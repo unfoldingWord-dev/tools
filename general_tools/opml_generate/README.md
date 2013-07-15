@@ -4,6 +4,9 @@ OPML Generator
 *This tool generates a valid OPML file that contains the RSS feed for every change in every configured 
 language in Door43.*
 
+**FIXME**: this tool needs to be created.
+
+
 Notes:
 
 * The list of language codes exists in a PHP array in a file called "local.php", which is updated when 
