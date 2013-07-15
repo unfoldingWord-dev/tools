@@ -12,4 +12,6 @@ HELPER="general_tools/langcodes_generate/helper.php"
 
 php $TOOLS/$HELPER > $LANGCODES
 
+chmod -w $LANGCODES
+
 exit 0
