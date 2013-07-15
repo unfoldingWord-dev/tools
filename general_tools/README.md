@@ -9,5 +9,6 @@ These tools work across all content in the [Door43](http://door43.org) project. 
 Tools
 -----
 
+* **langcodes-generate** - generate list of language codes used in Door43.
 * **opml-generate** - automatically generate an OPML file to track the changes for every language configured in Door43.
 
