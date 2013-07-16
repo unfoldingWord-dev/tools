@@ -12,11 +12,12 @@
 ###############################################################################
 
 ROOT=/var/www/vhosts/door43.org/httpdocs/data/gitrepo
-#DEBUG PAGES=$ROOT/pages
-PAGES=/tmp/pages
-#DEBUG DEST=$ROOT/media/exports
-DEST=/tmp/exports
-LANGS=$ROOT/media/exports/meta/langcodes.txt
+PAGES=$ROOT/pages
+DEST=$ROOT/media/exports
+#DEBUG PAGES=/tmp/pages
+#DEBUG DEST=/tmp/exports
+# for processing all available languages: LANGS=$ROOT/media/exports/meta/langcodes.txt
+LANGS=$1
 
 DATE=`date +%y%m%d%H%M`
 DOKU2HTML=/usr/local/bin/doku2html
@@ -28,10 +29,9 @@ TMP=/tmp/tmpfile.txt
 #
 # process each language
 #
-#DEBUG for l in `cat $LANGS`
-for l in "en" 
+for l in $LANGS
+#DEBUG for l in "en" 
 do
-	echo -n "$l: "
 
 	#
 	# does this language have an OBS project?
@@ -39,21 +39,24 @@ do
 	if [ -d $PAGES/$l/obs ];
 	then
 
+		echo -n "$l: "
+
 		#
 		# set source & export directories
 		#
 		SOURCEDIR=$PAGES/$l/obs
-		EXPORTDIR=$DEST/$l/obs
+		EXPORTDIR=$DEST/$l/obs/plaintext
 
 		#
 		# create "obs/plaintext" directories in "exports" directory 
 		# for current language, if not exist yet
 		# 
-		if [ ! -d $EXPORTDIR/plaintext ]
+		if [ ! -d $EXPORTDIR ]
 		then
-			mkdir -p $EXPORTDIR/plaintext
+			mkdir -p $EXPORTDIR
+		else
+			chmod -R +w $EXPORTDIR
 		fi
-
 
 	    #
 	    # process the contents of the 'obs' directory,
@@ -88,8 +91,8 @@ do
 	    # we now have all stories in language $l as Markdown in 
 	    # $EXPORTDIR. we will now concatenate them...
 	    #
-	    COMBINED=$EXPORTDIR/obs-$l_$DATE.md
-	    cat /dev/null > $COMBINED
+	    COMBINED=obs-$l.md
+	    cat /dev/null > $EXPORTDIR/$COMBINED
 
 	    for m in `ls $EXPORTDIR/[0-9][0-9]*.md | sort`
 	    do
@@ -97,7 +100,8 @@ do
 	    	#
 	    	# combine markdown files into one
 	    	#
-	    	cat $m >> $COMBINED
+	    	cat $m >> $EXPORTDIR/$COMBINED
+	    	echo "" >> $EXPORTDIR/$COMBINED
 
 	    done
 
@@ -107,6 +111,12 @@ do
 	    DOCUMENT=`basename $EXPORTDIR/$COMBINED .md`
 	    $PANDOC -f markdown -S -t odt -o $EXPORTDIR/$DOCUMENT.odt $EXPORTDIR/$COMBINED
 	    $PANDOC -f markdown -S -t docx -o $EXPORTDIR/$DOCUMENT.docx $EXPORTDIR/$COMBINED
+
+	    #
+	    # revert all files to read-only (so cannot be deleted in 
+	    # Door43 web interface)
+		#
+		chmod -R -w $EXPORTDIR
 
 	fi
 
