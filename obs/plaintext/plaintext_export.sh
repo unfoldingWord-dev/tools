@@ -66,7 +66,7 @@ do
 	    	#
 	    	# set the basename of the file
 	    	#
-	    	NAME=`basename -s .txt $i`
+	    	NAME=`basename $i .txt`
 
 	    	#
 	    	# $i is the dokuwiki text file to be processed;
@@ -104,7 +104,7 @@ do
 	    #
 	    # ...and create an ODT + DOCX
 	    #
-	    DOCUMENT=`basename -s .md $EXPORTDIR/$COMBINED`
+	    DOCUMENT=`basename $EXPORTDIR/$COMBINED .md`
 	    $PANDOC -f markdown -S -t odt -o $EXPORTDIR/$DOCUMENT.odt $EXPORTDIR/$COMBINED
 	    $PANDOC -f markdown -S -t docx -o $EXPORTDIR/$DOCUMENT.docx $EXPORTDIR/$COMBINED
 
