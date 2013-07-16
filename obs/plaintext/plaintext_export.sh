@@ -12,9 +12,9 @@
 ###############################################################################
 
 ROOT=/var/www/vhosts/door43.org/httpdocs/data/gitrepo
-#PAGES=$ROOT/pages
+#DEBUG PAGES=$ROOT/pages
 PAGES=/tmp/pages
-#DEST=$ROOT/media/exports
+#DEBUG DEST=$ROOT/media/exports
 DEST=/tmp/exports
 LANGS=$ROOT/media/exports/meta/langcodes.txt
 
@@ -23,13 +23,13 @@ DOKU2HTML=/usr/local/bin/doku2html
 PANDOC=/usr/bin/pandoc
 
 # tmp vars
-#FILE=$PAGES/en/obs/01-the-creation.txt
 TMP=/tmp/tmpfile.txt
 
 #
 # process each language
 #
-for l in `cat $LANGS`
+#DEBUG for l in `cat $LANGS`
+for l in "en" 
 do
 	echo -n "$l: "
 
