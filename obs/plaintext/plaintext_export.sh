@@ -14,11 +14,13 @@
 ROOT=/var/www/vhosts/door43.org/httpdocs/data/gitrepo
 #PAGES=$ROOT/pages
 PAGES=/tmp/pages
-#DEST=$ROOT/exports
+#DEST=$ROOT/media/exports
 DEST=/tmp/exports
 LANGS=$ROOT/media/exports/meta/langcodes.txt
 
 DATE=`date +%y%m%d%H%M`
+DOKU2HTML=/usr/local/bin/doku2html
+PANDOC=/usr/bin/pandoc
 
 # tmp vars
 #FILE=$PAGES/en/obs/01-the-creation.txt
@@ -34,22 +36,22 @@ do
 	#
 	# does this language have an OBS project?
 	#
-	if [ -d $ROOT/$l/obs ];
+	if [ -d $PAGES/$l/obs ];
 	then
 
 		#
 		# set source & export directories
 		#
-		SOURCEDIR=$ROOT/$l/obs
+		SOURCEDIR=$PAGES/$l/obs
 		EXPORTDIR=$DEST/$l/obs
 
 		#
 		# create "obs/plaintext" directories in "exports" directory 
 		# for current language, if not exist yet
 		# 
-		if [ ! -d $EXPORTSDIR/plaintext ]
+		if [ ! -d $EXPORTDIR/plaintext ]
 		then
-			mkdir -p $EXPORTSDIR/plaintext
+			mkdir -p $EXPORTDIR/plaintext
 		fi
 
 
@@ -76,8 +78,8 @@ do
 	    	#
 	    	# convert wiki text --> html --> markdown
 	    	#
-			doku2html $TMP | \
-			pandoc -f html -s -t markdown -o $EXPORTDIR/$NAME.md
+			$DOKU2HTML $TMP | \
+			$PANDOC -f html -s -t markdown -o $EXPORTDIR/$NAME.md
 			rm -f $TMP
 
 	    done
@@ -103,8 +105,8 @@ do
 	    # ...and create an ODT + DOCX
 	    #
 	    DOCUMENT=`basename -s .md $EXPORTDIR/$COMBINED`
-	    pandoc -f markdown -S -t odt -o $EXPORTDIR/$DOCUMENT.odt $EXPORTDIR/$COMBINED
-	    pandoc -f markdown -S -t docx -o $EXPORTDIR/$DOCUMENT.docx $EXPORTDIR/$COMBINED
+	    $PANDOC -f markdown -S -t odt -o $EXPORTDIR/$DOCUMENT.odt $EXPORTDIR/$COMBINED
+	    $PANDOC -f markdown -S -t docx -o $EXPORTDIR/$DOCUMENT.docx $EXPORTDIR/$COMBINED
 
 	fi
 
