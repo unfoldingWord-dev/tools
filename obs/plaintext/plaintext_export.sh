@@ -72,7 +72,7 @@ do
 	    	# $i is the dokuwiki text file to be processed;
 	    	# remove image declarations from the file
 	    	#
-	    	cat $SOURCEDIR/$i | \
+	    	cat $i | \
 	    	grep -v ".jpg" > $TMP
 
 	    	#
