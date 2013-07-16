@@ -97,7 +97,7 @@ do
 	    	#
 	    	# combine markdown files into one
 	    	#
-	    	cat $EXPORTDIR/$m >> $COMBINED
+	    	cat $m >> $COMBINED
 
 	    done
 
