@@ -55,7 +55,7 @@ do
 		then
 			mkdir -p $EXPORTDIR
 		else
-			chmod -R +w $EXPORTDIR
+			chmod +w $EXPORTDIR/*
 		fi
 
 	    #
@@ -116,7 +116,7 @@ do
 	    # revert all files to read-only (so cannot be deleted in 
 	    # Door43 web interface)
 		#
-		chmod -R -w $EXPORTDIR
+		chmod -w $EXPORTDIR/*
 
 	fi
 
