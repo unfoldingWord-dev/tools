@@ -73,10 +73,16 @@ do
 
 
 	    	#
-	    	# convert wiki text --> html --> markdown
+	    	# convert wiki text --> html --> tmp markdown --> clean up --> final markdown
 	    	#
+			#$DOKU2HTML $i | \
+			#$PANDOC -f html -s -t markdown -o $EXPORTDIR/$NAME.md
+
 			$DOKU2HTML $i | \
-			$PANDOC -f html -s -t markdown -o $EXPORTDIR/$NAME.md
+			$PANDOC -f html -s -t markdown -o $TMP
+
+			cat $TMP | sed 's/?w=640&h=360&tok=[a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9]//' | sed 's:_media:var/www/vhosts/door43.org/httpdocs/data/gitrepo/media:' > $EXPORTDIR/$NAME.md
+
 			rm -f $TMP
 
 	    done
