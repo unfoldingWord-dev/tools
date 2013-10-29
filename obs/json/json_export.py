@@ -36,22 +36,46 @@ else:
 digits = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
 
 
-def getChapter(chapter, jsonchapter):
-    for line in chapter.readlines():
-        if line.startswith('\n'): continue
-        if '======' in line:
-            jsonchapter['title'] = line.replace('======', '').strip()
+def getChapter(chapterpath, jsonchapter):
+    i = 0
+    chapter = codecs.open(chapterpath, 'r', encoding='utf-8').readlines()
+    for line in chapter:
+        i += 1
+        if line.startswith((u'\n', u'\ufeff')) or line == u'':
             continue
-        elif line.startswith('//'):
-            jsonchapter['ref'] = line.replace('//', '').strip()
+        if u'======' in line:
+            jsonchapter['title'] = line.replace(u'======', u'').strip()
+            continue
+        elif line.startswith(u'//'):
+            jsonchapter['ref'] = line.replace(u'//', u'').strip()
             continue
         elif line.startswith('{{'):
+            if 'Program Files' in line:
+                continue
             frame = { 'id': line.split('.jpg')[0].split('obs-')[1],
                       'img': line.strip()
                     }
         else:
-            frame['text'] = line.strip()
-            jsonchapter['frames'].append(frame)
+            if 'No translation' in line:
+                frame = { 'id': None,
+                          'img': None,
+                          'text': 'No translation'
+                        }
+                jsonchapter['frames'].append(frame)
+                break
+            try:
+                frame['text'] = line.strip()
+                jsonchapter['frames'].append(frame)
+            except UnboundLocalError:
+                error = 'Problem parsing line number: {0} in {1}'.format(
+                                                               i, chapterpath)
+                print error
+                frame = { 'id': None,
+                          'img': None,
+                          'text': 'Invalid format.'
+                        }
+                jsonchapter['frames'].append(frame)
+                break
     return jsonchapter
 
 def writePage(outfile, p):
@@ -63,8 +87,9 @@ def writePage(outfile, p):
 if __name__ == '__main__':
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
     for lang in os.listdir(pages):
-        if lang != 'en': continue
-        if 'obs' not in os.listdir('{0}/{1}'.format(pages, lang)): continue
+        if ( os.path.isfile('{0}/{1}'.format(pages, lang)) or
+             'obs' not in os.listdir('{0}/{1}'.format(pages, lang)) ):
+            continue
         jsonlang = { 'language': '{0}'.format(lang),
                      'chapters': [],
                      'date_modified': today,
@@ -74,10 +99,8 @@ if __name__ == '__main__':
             jsonchapter = { 'number': page.split('-')[0],
                             'frames': [],
                           }
-            chapter = codecs.open('{0}/{1}/obs/{2}'.format(pages, lang, page),
-                                                        'r', encoding='utf-8')
-            jsonlang['chapters'].append(getChapter(chapter, jsonchapter))
-            chapter.close()
+            chapterpath = '{0}/{1}/obs/{2}'.format(pages, lang, page)
+            jsonlang['chapters'].append(getChapter(chapterpath, jsonchapter))
         jsonpage = json.dumps(jsonlang, sort_keys=True, indent=2)
         writePage('{0}/{1}/obs-{1}.json'.format(pages, lang), jsonpage)
-        break
+        writePage('{0}/obs-{1}.json'.format(exportdir, lang), jsonpage)
