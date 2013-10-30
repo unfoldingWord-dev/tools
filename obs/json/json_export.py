@@ -26,7 +26,6 @@ import json
 import codecs
 import datetime
 from urllib import urlencode
-from operator import itemgetter
 
 if os.path.exists('local_settings.py'):
     from local_settings import *
