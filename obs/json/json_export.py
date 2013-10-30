@@ -26,6 +26,7 @@ import json
 import codecs
 import datetime
 from urllib import urlencode
+from operator import itemgetter
 
 if os.path.exists('local_settings.py'):
     from local_settings import *
@@ -76,6 +77,7 @@ def getChapter(chapterpath, jsonchapter):
                         }
                 jsonchapter['frames'].append(frame)
                 break
+    jsonchapter['frames'].sort(key=lambda frame: frame['id'])
     return jsonchapter
 
 def writePage(outfile, p):
@@ -101,6 +103,7 @@ if __name__ == '__main__':
                           }
             chapterpath = '{0}/{1}/obs/{2}'.format(pages, lang, page)
             jsonlang['chapters'].append(getChapter(chapterpath, jsonchapter))
+        jsonlang['chapters'].sort(key=lambda frame: frame['number'])
         jsonpage = json.dumps(jsonlang, sort_keys=True, indent=2)
         writePage('{0}/{1}/obs-{1}.json'.format(pages, lang), jsonpage)
         writePage('{0}/obs-{1}.json'.format(exportdir, lang), jsonpage)
