@@ -25,7 +25,6 @@ import os
 import json
 import codecs
 import datetime
-from urllib import urlencode
 
 if os.path.exists('local_settings.py'):
     from local_settings import *
@@ -100,6 +99,8 @@ def loadJSON(f):
 
 if __name__ == '__main__':
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
+    catpath = '{0}/obs-catalog.json'.format(exportdir)
+    catalog = loadJSON(catpath)
     for lang in os.listdir(pages):
         if ( os.path.isfile('{0}/{1}'.format(pages, lang)) or
              'obs' not in os.listdir('{0}/{1}'.format(pages, lang)) ):
@@ -119,6 +120,11 @@ if __name__ == '__main__':
         prevjsonlang = loadJSON('{0}/{1}/obs-{1}.json'.format(pages, lang))
         curjson = getDump(jsonlang)
         prevjson = getDump(prevjsonlang)
+        if not catalog.has_key(lang):
+            catalog[lang] = today
         if len(str(curjson)) != len(str(prevjson)):
+            catalog[lang] = today
             writePage('{0}/{1}/obs-{1}.json'.format(pages, lang), curjson)
             writePage('{0}/{1}/obs/json/obs-{1}.json'.format(exportdir, lang), curjson)
+    catjson = getDump(catalog)
+    writePage(catpath, catjson)
