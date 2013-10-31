@@ -80,9 +80,14 @@ def getChapter(chapterpath, jsonchapter):
     return jsonchapter
 
 def writePage(outfile, p):
+    makeDir(outfile.rpartition('/')[0])
     f = codecs.open(outfile.replace('txt', 'json'), 'w', encoding='utf-8')
     f.write(p)
     f.close()
+
+def makeDir(d):
+    if not os.path.exists(d):
+        os.makedirs(d, 0755)
 
 
 if __name__ == '__main__':
@@ -105,4 +110,4 @@ if __name__ == '__main__':
         jsonlang['chapters'].sort(key=lambda frame: frame['number'])
         jsonpage = json.dumps(jsonlang, sort_keys=True, indent=2)
         writePage('{0}/{1}/obs-{1}.json'.format(pages, lang), jsonpage)
-        writePage('{0}/obs-{1}.json'.format(exportdir, lang), jsonpage)
+        writePage('{0}/{1}/obs/json/obs-{1}.json'.format(exportdir, lang), jsonpage)
