@@ -89,6 +89,14 @@ def makeDir(d):
     if not os.path.exists(d):
         os.makedirs(d, 0755)
 
+def getDump(j):
+    return json.dumps(j, sort_keys=True, indent=2)
+
+def loadJSON(f):
+    if os.path.isfile(f):
+        return json.load(open(f, 'r'))
+    return json.loads('{}')
+
 
 if __name__ == '__main__':
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
@@ -108,6 +116,9 @@ if __name__ == '__main__':
             chapterpath = '{0}/{1}/obs/{2}'.format(pages, lang, page)
             jsonlang['chapters'].append(getChapter(chapterpath, jsonchapter))
         jsonlang['chapters'].sort(key=lambda frame: frame['number'])
-        jsonpage = json.dumps(jsonlang, sort_keys=True, indent=2)
-        writePage('{0}/{1}/obs-{1}.json'.format(pages, lang), jsonpage)
-        writePage('{0}/{1}/obs/json/obs-{1}.json'.format(exportdir, lang), jsonpage)
+        prevjsonlang = loadJSON('{0}/{1}/obs-{1}.json'.format(pages, lang))
+        curjson = getDump(jsonlang)
+        prevjson = getDump(prevjsonlang)
+        if len(str(curjson)) != len(str(prevjson)):
+            writePage('{0}/{1}/obs-{1}.json'.format(pages, lang), curjson)
+            writePage('{0}/{1}/obs/json/obs-{1}.json'.format(exportdir, lang), curjson)
