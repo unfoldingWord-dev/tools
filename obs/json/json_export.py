@@ -25,7 +25,6 @@ import os
 import json
 import codecs
 import datetime
-from urllib import urlencode
 
 if os.path.exists('local_settings.py'):
     from local_settings import *
@@ -80,13 +79,28 @@ def getChapter(chapterpath, jsonchapter):
     return jsonchapter
 
 def writePage(outfile, p):
+    makeDir(outfile.rpartition('/')[0])
     f = codecs.open(outfile.replace('txt', 'json'), 'w', encoding='utf-8')
     f.write(p)
     f.close()
 
+def makeDir(d):
+    if not os.path.exists(d):
+        os.makedirs(d, 0755)
+
+def getDump(j):
+    return json.dumps(j, sort_keys=True, indent=2)
+
+def loadJSON(f):
+    if os.path.isfile(f):
+        return json.load(open(f, 'r'))
+    return json.loads('{}')
+
 
 if __name__ == '__main__':
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
+    catpath = '{0}/obs-catalog.json'.format(exportdir)
+    catalog = loadJSON(catpath)
     for lang in os.listdir(pages):
         if ( os.path.isfile('{0}/{1}'.format(pages, lang)) or
              'obs' not in os.listdir('{0}/{1}'.format(pages, lang)) ):
@@ -103,6 +117,14 @@ if __name__ == '__main__':
             chapterpath = '{0}/{1}/obs/{2}'.format(pages, lang, page)
             jsonlang['chapters'].append(getChapter(chapterpath, jsonchapter))
         jsonlang['chapters'].sort(key=lambda frame: frame['number'])
-        jsonpage = json.dumps(jsonlang, sort_keys=True, indent=2)
-        writePage('{0}/{1}/obs-{1}.json'.format(pages, lang), jsonpage)
-        writePage('{0}/obs-{1}.json'.format(exportdir, lang), jsonpage)
+        prevjsonlang = loadJSON('{0}/{1}/obs-{1}.json'.format(pages, lang))
+        curjson = getDump(jsonlang)
+        prevjson = getDump(prevjsonlang)
+        if not catalog.has_key(lang):
+            catalog[lang] = today
+        if len(str(curjson)) != len(str(prevjson)):
+            catalog[lang] = today
+            writePage('{0}/{1}/obs-{1}.json'.format(pages, lang), curjson)
+            writePage('{0}/{1}/obs/json/obs-{1}.json'.format(exportdir, lang), curjson)
+    catjson = getDump(catalog)
+    writePage(catpath, catjson)
