@@ -117,14 +117,15 @@ if __name__ == '__main__':
             chapterpath = '{0}/{1}/obs/{2}'.format(pages, lang, page)
             jsonlang['chapters'].append(getChapter(chapterpath, jsonchapter))
         jsonlang['chapters'].sort(key=lambda frame: frame['number'])
-        prevjsonlang = loadJSON('{0}/{1}/obs-{1}.json'.format(pages, lang))
+        prevjsonlang = loadJSON('{0}/{1}/obs/obs-{1}.json'.format(exportdir, lang))
         curjson = getDump(jsonlang)
         prevjson = getDump(prevjsonlang)
-        if not catalog.has_key(lang):
+        if not lang in catalog:
             catalog[lang] = today
         if len(str(curjson)) != len(str(prevjson)):
             catalog[lang] = today
-            writePage('{0}/{1}/obs-{1}.json'.format(pages, lang), curjson)
-            writePage('{0}/{1}/obs/json/obs-{1}.json'.format(exportdir, lang), curjson)
+            print '{0}/{1}/obs/obs-{1}.json'.format(exportdir, lang)
+            writePage('{0}/{1}/obs/obs-{1}.json'.format(exportdir, lang),
+                                                                      curjson)
     catjson = getDump(catalog)
     writePage(catpath, catjson)
