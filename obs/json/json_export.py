@@ -30,8 +30,8 @@ if os.path.exists('local_settings.py'):
     from local_settings import *
 else:
     root = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo'
-    pages = root + '/pages'
-    exportdir = root + '/media/exports'
+    pages = os.path.join(root, 'pages')
+    exportdir = os.path.join(root, 'media/exports')
 digits = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
 
 
@@ -91,41 +91,64 @@ def makeDir(d):
 def getDump(j):
     return json.dumps(j, sort_keys=True, indent=2)
 
-def loadJSON(f):
+def loadJSON(f, t):
     if os.path.isfile(f):
         return json.load(open(f, 'r'))
-    return json.loads('{}')
+    if t == 'd':
+      return json.loads('{}')
+    else:
+      return json.loads('[]')
+
+def loadLangStrings(path):
+    langdict = {}
+    if not os.path.isfile(path):
+        return langdict
+    for line in codecs.open(path, 'r', encoding='utf-8').readlines():
+        if ( line.startswith(u'#') or line.startswith(u'\n')
+                                                  or line.startswith(u'\r') ):
+            continue
+        code,string = line.split(None, 1)
+        langdict[code.strip()] = string.strip()
+    return langdict
 
 
 if __name__ == '__main__':
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
-    catpath = '{0}/obs-catalog.json'.format(exportdir)
-    catalog = loadJSON(catpath)
+    langdict = loadLangStrings(os.path.join(root, 'media/langnames.txt'))
+    catpath = os.path.join(exportdir, 'obs-catalog.json')
+    catalog = loadJSON(catpath, 'l')
     for lang in os.listdir(pages):
-        if ( os.path.isfile('{0}/{1}'.format(pages, lang)) or
-             'obs' not in os.listdir('{0}/{1}'.format(pages, lang)) ):
+        if ( os.path.isfile(os.path.join(pages, lang)) or
+             'obs' not in os.listdir(os.path.join(pages, lang)) ):
             continue
-        jsonlang = { 'language': '{0}'.format(lang),
+        jsonlang = { 'language': lang,
                      'chapters': [],
                      'date_modified': today,
                    }
-        for page in os.listdir('{0}/{1}/obs'.format(pages, lang)):
+        for page in os.listdir(os.path.join(pages, lang, 'obs')):
             if not page.startswith(digits): continue
             jsonchapter = { 'number': page.split('-')[0],
                             'frames': [],
                           }
-            chapterpath = '{0}/{1}/obs/{2}'.format(pages, lang, page)
+            chapterpath = os.path.join(pages, lang, 'obs', page)
             jsonlang['chapters'].append(getChapter(chapterpath, jsonchapter))
         jsonlang['chapters'].sort(key=lambda frame: frame['number'])
-        prevjsonlang = loadJSON('{0}/{1}/obs/obs-{1}.json'.format(exportdir, lang))
+        jsonlangfilepath = os.path.join(exportdir, lang, 'obs',
+                                            'obs-{0}.json'.format(lang))
+        prevjsonlang = loadJSON(jsonlangfilepath, 'd')
         curjson = getDump(jsonlang)
         prevjson = getDump(prevjsonlang)
-        if not lang in catalog:
-            catalog[lang] = today
+        langstr = langdict[lang]
+        if not lang in [x['language'] for x in catalog]:
+            langcat =  { 'language': lang,
+                         'string': langstr,
+                         'date_modified': today
+                       }
+            catalog.append(langcat)
+        # Maybe fix this if to do a full string comparison
         if len(str(curjson)) != len(str(prevjson)):
-            catalog[lang] = today
-            print '{0}/{1}/obs/obs-{1}.json'.format(exportdir, lang)
-            writePage('{0}/{1}/obs/obs-{1}.json'.format(exportdir, lang),
-                                                                      curjson)
+            ( [x for x in catalog if x['language'] ==
+                                            lang][0]['date_modified']) = today
+            writePage(jsonlangfilepath, curjson)
     catjson = getDump(catalog)
     writePage(catpath, catjson)
