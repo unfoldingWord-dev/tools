@@ -66,8 +66,9 @@ fi
 
 # Create DokuWiki files from Zim source files
 for f in `ls "$src"`; do
-    sed -e 's/..\/..\/..\/images/:en:obs/g' \
-        -e 's/.jpg/.jpg?nolink&640x360/g' \
+    sed -e 's/..\/..\/..\/images\//:en:obs:/g' \
+        -e 's/..\/..\/images\//:en:obs:/g' \
+        -e 's/.jpg/.jpg?nolink\&640x360/g' \
         -e '1,3d' \
         "$src/$f" > "$dst/$f"
 done
