@@ -9,5 +9,5 @@ Notes:
 * Exported text is formatted as Markdown.
 * Stories exist as standalone text files as well as a single, concatenated text file with all stories.
 * *pending: The text is also converted to ODT and DOCX (and potentially other formats as well).*
-* Run command with language code to process: `$ plaintext_export.sh en` or `$ plaintext_export.sh "en fa"`.
+* Run command with language code to process: `$ markdown_export.sh en` or `$ markdown_export.sh "en fa"`.
 * Exported content is available via the Door43 media manager, (`exports/<langcode>/obs/plaintext`)
