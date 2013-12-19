@@ -65,9 +65,9 @@ def getChapter(chapterpath, jsonchapter):
             try:
                 frame['text'] = line.strip()
                 jsonchapter['frames'].append(frame)
-            except UnboundLocalError:
-                error = 'Problem parsing line number: {0} in {1}'.format(
-                                                               i, chapterpath)
+            except UnboundLocalError, e:
+                error = 'Problem parsing line {0} in {1}: {2}'.format(i,
+                                                               chapterpath, e)
                 print error
                 frame = { 'id': None,
                           'img': None,
