@@ -46,6 +46,8 @@ def makeDir(d):
 
 if __name__ == '__main__':
     for jpgfile in os.listdir(imagesdir):
+        if not jpgfile.endswith('.jpg'):
+            continue
         jpgparts = jpgfile.split('-')
         chapter = jpgparts[1]
         number = jpgparts[2].split('.')[0]
