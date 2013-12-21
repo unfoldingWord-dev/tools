@@ -38,6 +38,7 @@ def writeJSON(outfile, jsonjpg):
     f = open(outfile.replace('jpg', 'json'), 'wb')
     f.write(jsonjpg)
     f.close()
+    os.chown(outfile.replace('jpg', 'json'), 48, 502)
 
 def makeDir(d):
     if not os.path.exists(d):
