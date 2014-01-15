@@ -62,7 +62,7 @@ do
 	    # process the contents of the 'obs' directory,
 	    # maintain sort order
 	    #
-	    for i in `ls $SOURCEDIR/[0-9][0-9]*.txt | sort`
+	    for i in "$SOURCEDIR/front-matter.txt" `ls $SOURCEDIR/[0-9][0-9]*.txt "$SOURCEDIR/back-matter.txt" | sort`
 	    do 
 	    	echo -n "+"
 
