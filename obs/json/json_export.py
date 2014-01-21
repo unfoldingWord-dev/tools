@@ -114,7 +114,8 @@ def loadLangStrings(path):
 
 if __name__ == '__main__':
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
-    langdict = loadLangStrings(os.path.join(root, 'media/langnames.txt'))
+    langdict = loadLangStrings(os.path.join('/var/www/vhosts/door43.org',
+                       'httpdocs/lib/plugins/translation/lang/langnames.txt'))
     catpath = os.path.join(exportdir, 'obs-catalog.json')
     catalog = loadJSON(catpath, 'l')
     for lang in os.listdir(pages):
