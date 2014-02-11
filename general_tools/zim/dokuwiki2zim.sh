@@ -66,5 +66,7 @@ fi
 
 # Create Zim files from DokuWiki source files
 for f in `ls "$src"`; do
-    sed 's/:en:obs:/..\/..\/..\/images\//g' "$src/$f" > "$dst/$f"
+    sed -e 's/:en:obs:/..\/..\/..\/images\//g' \
+        -e 's/<[^>]*>//g' \
+        "$src/$f" > "$dst/$f"
 done
