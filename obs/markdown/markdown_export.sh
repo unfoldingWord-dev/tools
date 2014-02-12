@@ -55,16 +55,17 @@ do
 		then
 			mkdir -p $EXPORTDIR
 		else
-			chmod +w $EXPORTDIR/*
+			sudo chmod ug+w $EXPORTDIR/*
 		fi
 
 	    #
 	    # process the contents of the 'obs' directory,
 	    # maintain sort order
 	    #
-	    for i in "$SOURCEDIR/front-matter.txt" `ls $SOURCEDIR/[0-9][0-9]*.txt "$SOURCEDIR/back-matter.txt" | sort`
+	    for i in "$SOURCEDIR/front-matter.txt" `ls $SOURCEDIR/[0-9][0-9]*.txt | sort` "$SOURCEDIR/back-matter.txt" 
 	    do 
 	    	echo -n "+"
+	    	#echo "+ $i"
 
 	    	#
 	    	# set the basename of the file
@@ -94,9 +95,11 @@ do
 	    COMBINED=obs-$l.md
 	    cat /dev/null > $EXPORTDIR/$COMBINED
 
-	    for m in `ls $EXPORTDIR/[0-9][0-9]*.md | sort`
+
+	    for m in "$EXPORTDIR/front-matter.md" `ls $EXPORTDIR/[0-9][0-9]*.md | sort` "$EXPORTDIR/back-matter.md"
 	    do
 
+		#echo "+ $m"
 	    	#
 	    	# combine markdown files into one
 	    	#
@@ -116,11 +119,12 @@ do
 	    # revert all files to read-only (so cannot be deleted in 
 	    # Door43 web interface)
 		#
-		chmod -w $EXPORTDIR/*
+		sudo chmod a-w $EXPORTDIR/*
 
 	fi
 
 	echo ""
+	echo "Check this out: $EXPORTDIR/$COMBINED"
 
 done
 

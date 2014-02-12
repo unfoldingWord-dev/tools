@@ -55,7 +55,7 @@ do
 		then
 			mkdir -p $EXPORTDIR
 		else
-			chmod +w $EXPORTDIR/*
+			sudo chmod +w $EXPORTDIR/*
 		fi
 
 	    #
@@ -116,10 +116,14 @@ do
 	    # revert all files to read-only (so cannot be deleted in 
 	    # Door43 web interface)
 		#
-		chmod -w $EXPORTDIR/*
+		sudo chmod a-w $EXPORTDIR/*
 
 	fi
 
+	echo ""
+	echo ""
+	echo "check this out: $EXPORTDIR/$DOCUMENT.odt"
+	echo "check this out: $EXPORTDIR/$DOCUMENT.docx"
 	echo ""
 
 done

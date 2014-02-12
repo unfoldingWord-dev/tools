@@ -14,7 +14,7 @@
 
 ROOT=/var/www/vhosts/door43.org/httpdocs/data/gitrepo
 DEST=$ROOT/media/exports
-TEMPLATE=$ROOT/media/en/obs-templates/obs-book-template.odt
+TEMPLATE=$ROOT/media/en/obs-templates/obs-book-template-fa.odt
 # for processing all available languages: LANGS=$ROOT/media/exports/meta/langcodes.txt
 LANGS=$1
 
@@ -64,7 +64,11 @@ do
  		# FIXME: the "-V lang:____" option should be scripted so that it dynamically inserts the language based on the
  		# language subdirectory of the content being processed
 
- 		pandoc -S -V lang:fa -o $EXPORTDIR/obs-$l.odt \
+		echo "going to render: pandoc -S -V lang:$l -o $EXPORTDIR/obs-$l.odt \
+ 		--reference-odt=$TEMPLATE \
+ 		$DEST/$l/obs/markdown/obs-$l.md"
+
+ 		pandoc -S -V lang:$l -o $EXPORTDIR/obs-$l.odt \
  		--reference-odt=$TEMPLATE \
  		$DEST/$l/obs/markdown/obs-$l.md
 
