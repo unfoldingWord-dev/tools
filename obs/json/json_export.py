@@ -20,19 +20,24 @@
 #  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 #  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #  THE SOFTWARE.
+#
+#  Requires PyGithub for unfoldingWord export.
 
 import os
+import sys
 import json
 import codecs
+import shlex
 import datetime
+from subprocess import *
 
-if os.path.exists('local_settings.py'):
-    from local_settings import *
-else:
-    root = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo'
-    pages = os.path.join(root, 'pages')
-    exportdir = os.path.join(root, 'media/exports')
+
+root = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo'
+pages = os.path.join(root, 'pages')
+exportdir = os.path.join(root, 'media/exports')
+unfoldingWorddir = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
 digits = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
+rtl = ['he', 'ar']
 
 
 def getChapter(chapterpath, jsonchapter):
@@ -111,8 +116,119 @@ def loadLangStrings(path):
         langdict[code.strip()] = string.strip()
     return langdict
 
+def getStatus(statfile):
+    status = {}
+    if os.path.isfile(statfile):
+        for line in open(statfile):
+            if ( line.startswith('#') or line.startswith('\n')
+                                                         or ':' not in line ):
+                continue
+            k, v = line.split(':')
+            status[k.strip().lower()] = v.strip().lower()
+    return status
+
+def exportunfoldingWord(status, gitdir, json, lang, githuborg):
+    '''
+    Exports JSON data for each language into its own Github repo.
+    '''
+    if status.has_key('checking level') and status.has_key['publish date']:
+        if ( status['checking level'] in ['1', '2', '3'] and 
+                       status['publish date'] == str(datetime.date.today()) ):
+            writePage(os.path.join(gitdir, 'obs-{0}.json'.format(lang)), json)
+            statjson = getDump(status)
+            writePage(os.path.join(gitdir, 'status-{0}.json'.format(lang)))
+            gitCreate(gitdir)
+            githubCreate(gitdir, lang, githuborg)
+            gitCommit(gitdir, statjson)
+            gitPush(gitdir)
+
+def gitCreate(d):
+    '''
+    Creates local GIT repo and pushes to Github.
+    '''
+    if os.path.exists(os.path.join(gitdir, '.git')):
+        return
+    os.chdir(d)
+    out, ret = runCommand('git init .')
+    if ret > 0:
+        print 'Failed to create a GIT repo in: {0}'.format(d)
+        sys.exit(1)
+
+def githubCreate(d, lang, org):
+    '''
+    Creates a Github repo for lang unless it already exists.
+    '''
+    rname = 'obs-{0}'.format(lang)
+    try:
+        repo = org.get_repo(rname)
+        return
+    except GithubException:
+        try:
+            repo = org.create_repo(rname,
+                            'Open Bible Stories for {0}'.format(lang),
+                            'http://unfoldingword.org/{0}/'.format(lang),
+                            has_issues=False,
+                            has_wiki=False,
+                            auto_init=False,
+                            )
+        except GithubException as ghe:
+            print(ghe)
+            return
+    os.chdir(d)
+    out, ret = runCommand('git remote add origin {0}'.format(repo.ssh_url))
+    if ret > 0:
+        print 'Failed to add Github remote to repo in: {0}'.format(d)
+
+def gitCommit(d, msg):
+    '''
+    Adds all files in d and commits with message m.
+    '''
+    os.chdir(d)
+    out, ret = runCommand('git add *')
+    out1, ret1= runCommand('git commit -am "{0}"'.format(msg))
+    if ret > 0 or ret1 > 0:
+        print 'Failed to commit to repo in: {0}'.format(d)
+
+def gitPush(d):
+    '''
+    Pushes local repository to github.
+    '''
+    os.chdir(d)
+    out, ret = runCommand('git push origin master')
+    if ret > 0:
+        print 'Failed to push repo to Github in: {0}'.format(d)
+
+def runCommand(c):
+    command = shlex.split(c)
+    com = Popen(command, shell=False, stdout=PIPE, stderr=PIPE)
+    comout = ''.join(com.communicate()).strip()
+    return comout, com.returncode
+
+def getGithubOrg(orgname):
+    user = raw_input('Github username: ').strip()
+    pw = raw_input('Github password: ').strip()
+    g = Github(user, pw)
+    return g.get_organization(orgname)
+
 
 if __name__ == '__main__':
+    unfoldingwordexport = False
+    if len(sys.argv) > 1:
+        if sys.argv[1] == '--unfoldingwordexport':
+            try:
+                from github import Github
+                from github import GithubException
+            except:
+                print "Please install PyGithub with pip"
+                sys.exit(1)
+            unfoldingwordexport = True
+            try:
+                githuborg = getGithubOrg('unfoldingword')
+            except:
+                print 'Could not login to Github'
+                sys.exit(1)
+        else:
+            print 'Unknown argument: {0}'.format(sys.argv[1])
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
     langdict = loadLangStrings(os.path.join('/var/www/vhosts/door43.org',
                        'httpdocs/lib/plugins/translation/lang/langnames.txt'))
@@ -146,10 +262,14 @@ if __name__ == '__main__':
                          'date_modified': today
                        }
             catalog.append(langcat)
-        # Maybe fix this if to do a full string comparison
+        # Maybe fix this to do a full string comparison
         if len(str(curjson)) != len(str(prevjson)):
             ( [x for x in catalog if x['language'] ==
                                             lang][0]['date_modified']) = today
             writePage(jsonlangfilepath, curjson)
+        if unfoldingwordexport:
+            status = getStatus(os.path.join(pages, lang, 'status.txt'))
+            unfoldingWordlangdir = os.path.join(unfoldingWorddir, lang)
+            exportunfoldingWord(status, unfoldingWordlangdir, curjson, lang, githuborg)
     catjson = getDump(catalog)
     writePage(catpath, catjson)
