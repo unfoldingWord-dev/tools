@@ -259,8 +259,8 @@ if __name__ == '__main__':
         try:
             langstr = langdict[lang]
         except KeyError:
-            print "Configuration for language {0} missing.".format(lang)
-            print "Please update in {0}.".format(langnames)
+            print "Configuration for language {0} missing in {1}.".format(lang,
+                                                                     langnames)
             continue
         if not lang in [x['language'] for x in catalog]:
             langcat =  { 'language': lang,
