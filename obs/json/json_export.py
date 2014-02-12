@@ -38,6 +38,8 @@ exportdir = os.path.join(root, 'media/exports')
 unfoldingWorddir = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
 digits = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
 rtl = ['he', 'ar']
+langnames = os.path.join('/var/www/vhosts/door43.org',
+                        'httpdocs/lib/plugins/translation/lang/langnames.txt')
 
 
 def getChapter(chapterpath, jsonchapter):
@@ -230,8 +232,7 @@ if __name__ == '__main__':
         else:
             print 'Unknown argument: {0}'.format(sys.argv[1])
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
-    langdict = loadLangStrings(os.path.join('/var/www/vhosts/door43.org',
-                       'httpdocs/lib/plugins/translation/lang/langnames.txt'))
+    langdict = loadLangStrings(langnames)
     catpath = os.path.join(exportdir, 'obs-catalog.json')
     catalog = loadJSON(catpath, 'l')
     for lang in os.listdir(pages):
@@ -255,7 +256,12 @@ if __name__ == '__main__':
         prevjsonlang = loadJSON(jsonlangfilepath, 'd')
         curjson = getDump(jsonlang)
         prevjson = getDump(prevjsonlang)
-        langstr = langdict[lang]
+        try:
+            langstr = langdict[lang]
+        except KeyError:
+            print "Configuration for language {0} missing.".format(lang)
+            print "Please update in {0}.".format(langnames)
+            continue
         if not lang in [x['language'] for x in catalog]:
             langcat =  { 'language': lang,
                          'string': langstr,
