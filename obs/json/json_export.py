@@ -133,7 +133,7 @@ def exportunfoldingWord(status, gitdir, json, lang, githuborg):
     '''
     Exports JSON data for each language into its own Github repo.
     '''
-    if status.has_key('checking level') and status.has_key['publish date']:
+    if status.has_key('checking level') and status.has_key('publish date'):
         if ( status['checking level'] in ['1', '2', '3'] and 
                        status['publish date'] == str(datetime.date.today()) ):
             writePage(os.path.join(gitdir, 'obs-{0}.json'.format(lang)), json)
@@ -274,8 +274,9 @@ if __name__ == '__main__':
                                             lang][0]['date_modified']) = today
             writePage(jsonlangfilepath, curjson)
         if unfoldingwordexport:
-            status = getStatus(os.path.join(pages, lang, 'status.txt'))
+            status = getStatus(os.path.join(pages, lang, 'obs/status.txt'))
             unfoldingWordlangdir = os.path.join(unfoldingWorddir, lang)
-            exportunfoldingWord(status, unfoldingWordlangdir, curjson, lang, githuborg)
+            exportunfoldingWord(status, unfoldingWordlangdir, curjson,
+                                                              lang, githuborg)
     catjson = getDump(catalog)
     writePage(catpath, catjson)
