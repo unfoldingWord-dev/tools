@@ -135,8 +135,7 @@ def exportunfoldingWord(status, gitdir, json, lang, githuborg):
     '''
     if status.has_key('checking level') and status.has_key('publish date'):
         if ( status['checking level'] in ['1', '2', '3'] and 
-                       #status['publish date'] == str(datetime.date.today()) ):
-                       status['publish date'] == '2014-01-01' ):
+                       status['publish date'] == str(datetime.date.today()) ):
             print "Exporting to unfoldingWord: {0}".format(lang)
             makeDir(gitdir)
             writePage(os.path.join(gitdir, 'obs-{0}.json'.format(lang)), json)
