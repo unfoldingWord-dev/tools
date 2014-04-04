@@ -87,7 +87,7 @@ def getChapter(chapterpath, jsonchapter):
 
 def writePage(outfile, p):
     makeDir(outfile.rpartition('/')[0])
-    f = codecs.open(outfile.replace('txt', 'json'), 'w', encoding='utf-8')
+    f = codecs.open(outfile.replace('.txt', '.json'), 'w', encoding='utf-8')
     f.write(p)
     f.close()
 
@@ -135,10 +135,14 @@ def exportunfoldingWord(status, gitdir, json, lang, githuborg):
     '''
     if status.has_key('checking level') and status.has_key('publish date'):
         if ( status['checking level'] in ['1', '2', '3'] and 
-                       status['publish date'] == str(datetime.date.today()) ):
+                       #status['publish date'] == str(datetime.date.today()) ):
+                       status['publish date'] == '2014-01-01' ):
+            print "Exporting to unfoldingWord: {0}".format(lang)
+            makeDir(gitdir)
             writePage(os.path.join(gitdir, 'obs-{0}.json'.format(lang)), json)
             statjson = getDump(status)
-            writePage(os.path.join(gitdir, 'status-{0}.json'.format(lang)))
+            writePage(os.path.join(gitdir, 'status-{0}.json'.format(lang)),
+                                                                     statjson)
             gitCreate(gitdir)
             githubCreate(gitdir, lang, githuborg)
             gitCommit(gitdir, statjson)
@@ -148,7 +152,7 @@ def gitCreate(d):
     '''
     Creates local GIT repo and pushes to Github.
     '''
-    if os.path.exists(os.path.join(gitdir, '.git')):
+    if os.path.exists(os.path.join(d, '.git')):
         return
     os.chdir(d)
     out, ret = runCommand('git init .')
@@ -187,9 +191,10 @@ def gitCommit(d, msg):
     '''
     os.chdir(d)
     out, ret = runCommand('git add *')
-    out1, ret1= runCommand('git commit -am "{0}"'.format(msg))
+    out1, ret1= runCommand('''git commit -am '{0}' '''.format(msg))
     if ret > 0 or ret1 > 0:
-        print 'Failed to commit to repo in: {0}'.format(d)
+        print 'Nothing to commit, or failed commit to repo in: {0}'.format(d)
+        print out1
 
 def gitPush(d):
     '''
@@ -198,6 +203,7 @@ def gitPush(d):
     os.chdir(d)
     out, ret = runCommand('git push origin master')
     if ret > 0:
+        print out
         print 'Failed to push repo to Github in: {0}'.format(d)
 
 def runCommand(c):
