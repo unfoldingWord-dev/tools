@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
-#  Copyright (c) 2013 Jesse Griffin
+#  Copyright (c) 2013-2014 Jesse Griffin <jesse@distantshores.org>
 #  http://creativecommons.org/licenses/MIT/
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -133,19 +133,14 @@ def exportunfoldingWord(status, gitdir, json, lang, githuborg):
     '''
     Exports JSON data for each language into its own Github repo.
     '''
-    if status.has_key('checking level') and status.has_key('publish date'):
-        if ( status['checking level'] in ['1', '2', '3'] and 
-                       status['publish date'] == str(datetime.date.today()) ):
-            print "Exporting to unfoldingWord: {0}".format(lang)
-            makeDir(gitdir)
-            writePage(os.path.join(gitdir, 'obs-{0}.json'.format(lang)), json)
-            statjson = getDump(status)
-            writePage(os.path.join(gitdir, 'status-{0}.json'.format(lang)),
-                                                                     statjson)
-            gitCreate(gitdir)
-            githubCreate(gitdir, lang, githuborg)
-            gitCommit(gitdir, statjson)
-            gitPush(gitdir)
+    makeDir(gitdir)
+    writePage(os.path.join(gitdir, 'obs-{0}.json'.format(lang)), json)
+    statjson = getDump(status)
+    writePage(os.path.join(gitdir, 'status-{0}.json'.format(lang)), statjson)
+    gitCreate(gitdir)
+    githubCreate(gitdir, lang, githuborg)
+    gitCommit(gitdir, statjson)
+    gitPush(gitdir)
 
 def gitCreate(d):
     '''
@@ -238,6 +233,8 @@ if __name__ == '__main__':
             print 'Unknown argument: {0}'.format(sys.argv[1])
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
     langdict = loadLangStrings(langnames)
+    uwcatpath = os.path.join(unfoldingWorddir, 'obs-catalog.json')
+    uwcatalog = loadJSON(uwcatpath, 'l')
     catpath = os.path.join(exportdir, 'obs-catalog.json')
     catalog = loadJSON(catpath, 'l')
     for lang in os.listdir(pages):
@@ -267,11 +264,13 @@ if __name__ == '__main__':
             print "Configuration for language {0} missing in {1}.".format(lang,
                                                                      langnames)
             continue
+        status = getStatus(os.path.join(pages, lang, 'obs/status.txt'))
+        langcat =  { 'language': lang,
+                     'string': langstr,
+                     'date_modified': today,
+                     'status': status,
+                   }
         if not lang in [x['language'] for x in catalog]:
-            langcat =  { 'language': lang,
-                         'string': langstr,
-                         'date_modified': today
-                       }
             catalog.append(langcat)
         # Maybe fix this to do a full string comparison
         if len(str(curjson)) != len(str(prevjson)):
@@ -279,9 +278,18 @@ if __name__ == '__main__':
                                             lang][0]['date_modified']) = today
             writePage(jsonlangfilepath, curjson)
         if unfoldingwordexport:
-            status = getStatus(os.path.join(pages, lang, 'obs/status.txt'))
             unfoldingWordlangdir = os.path.join(unfoldingWorddir, lang)
-            exportunfoldingWord(status, unfoldingWordlangdir, curjson,
+            if status.has_key('checking level') and status.has_key(
+                                                              'publish date'):
+                if ( status['checking level'] in ['1', '2', '3'] and 
+                       status['publish date'] == str(datetime.date.today()) ):
+                    print "Exporting to unfoldingWord: {0}".format(lang)
+                    exportunfoldingWord(status, unfoldingWordlangdir, curjson,
                                                               lang, githuborg)
+                    if not lang in [x['language'] for x in uwcatalog]:
+                        uwcatalog.append(langcat)
     catjson = getDump(catalog)
     writePage(catpath, catjson)
+    if unfoldingwordexport:
+        uwcatjson = getDump(uwcatalog)
+        writePage(uwcatpath, uwcatjson)
