@@ -34,6 +34,7 @@ from subprocess import *
 
 root = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo'
 pages = os.path.join(root, 'pages')
+uwadmindir = os.path.join(pages, 'en/uwadmin')
 exportdir = os.path.join(root, 'media/exports')
 unfoldingWorddir = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
 digits = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
@@ -264,7 +265,7 @@ if __name__ == '__main__':
             print "Configuration for language {0} missing in {1}.".format(lang,
                                                                      langnames)
             continue
-        status = getStatus(os.path.join(pages, lang, 'obs/status.txt'))
+        status = getStatus(os.path.join(uwadmindir, lang, 'obs/status.txt'))
         langcat =  { 'language': lang,
                      'string': langstr,
                      'date_modified': today,
@@ -283,11 +284,13 @@ if __name__ == '__main__':
                                                               'publish date'):
                 if ( status['checking level'] in ['1', '2', '3'] and 
                        status['publish date'] == str(datetime.date.today()) ):
-                    print "Exporting to unfoldingWord: {0}".format(lang)
+                    print "=========="
+                    print "---> Exporting to unfoldingWord: {0}".format(lang)
                     exportunfoldingWord(status, unfoldingWordlangdir, curjson,
                                                               lang, githuborg)
                     if not lang in [x['language'] for x in uwcatalog]:
                         uwcatalog.append(langcat)
+                    print "=========="
     catjson = getDump(catalog)
     writePage(catpath, catjson)
     if unfoldingwordexport:
