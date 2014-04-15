@@ -91,7 +91,7 @@ do
 	    # we now have all stories in language $l as Markdown in 
 	    # $EXPORTDIR. we will now concatenate them...
 	    #
-	    COMBINED=obs-$l.md
+	    COMBINED=obs-plaintext-$l.md
 	    cat /dev/null > $EXPORTDIR/$COMBINED
 
 	    for m in `ls $EXPORTDIR/[0-9][0-9]*.md | sort`
