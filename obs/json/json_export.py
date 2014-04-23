@@ -278,7 +278,11 @@ if __name__ == '__main__':
              'obs' not in os.listdir(os.path.join(pages, lang)) ):
             continue
         app_words = getJSONDict(os.path.join(pages, lang, 'obs/app_words.txt'))
+        langdirection = 'ltr'
+        if lang in rtl:
+            langdirection = 'rtl'
         jsonlang = { 'language': lang,
+                     'direction': langdirection,
                      'chapters': [],
                      'app_words': app_words,
                      'date_modified': today,
@@ -305,6 +309,7 @@ if __name__ == '__main__':
         status = getJSONDict(os.path.join(uwadmindir, lang, 'obs/status.txt'))
         langcat =  { 'language': lang,
                      'string': langstr,
+                     'direction': langdirection,
                      'date_modified': today,
                      'status': status,
                    }
