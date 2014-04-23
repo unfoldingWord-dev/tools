@@ -150,7 +150,7 @@ def loadLangStrings(path):
         langdict[code.strip()] = string.strip()
     return langdict
 
-def getStatus(statfile):
+def getJSONDict(statfile):
     status = {}
     if os.path.isfile(statfile):
         for line in open(statfile):
@@ -158,7 +158,7 @@ def getStatus(statfile):
                                                          or ':' not in line ):
                 continue
             k, v = line.split(':')
-            status[k.strip().lower()] = v.strip().lower()
+            status[k.strip().lower().replace(' ', '_')] = v.strip().lower()
     return status
 
 def exportunfoldingWord(status, gitdir, json, lang, githuborg):
@@ -277,8 +277,10 @@ if __name__ == '__main__':
         if ( os.path.isfile(os.path.join(pages, lang)) or
              'obs' not in os.listdir(os.path.join(pages, lang)) ):
             continue
+        app_words = getJSONDict(os.path.join(pages, lang, 'obs/app_words.txt'))
         jsonlang = { 'language': lang,
                      'chapters': [],
+                     'app_words': app_words,
                      'date_modified': today,
                    }
         for page in os.listdir(os.path.join(pages, lang, 'obs')):
@@ -300,7 +302,7 @@ if __name__ == '__main__':
             print "Configuration for language {0} missing in {1}.".format(lang,
                                                                      langnames)
             continue
-        status = getStatus(os.path.join(uwadmindir, lang, 'obs/status.txt'))
+        status = getJSONDict(os.path.join(uwadmindir, lang, 'obs/status.txt'))
         langcat =  { 'language': lang,
                      'string': langstr,
                      'date_modified': today,
@@ -315,10 +317,10 @@ if __name__ == '__main__':
             writePage(jsonlangfilepath, curjson)
         if unfoldingwordexport:
             unfoldingWordlangdir = os.path.join(unfoldingWorddir, lang)
-            if status.has_key('checking level') and status.has_key(
-                                                              'publish date'):
-                if ( status['checking level'] in ['1', '2', '3'] and 
-                       status['publish date'] == str(datetime.date.today()) ):
+            if status.has_key('checking_level') and status.has_key(
+                                                              'publish_date'):
+                if ( status['checking_level'] in ['1', '2', '3'] and 
+                       status['publish_date'] == str(datetime.date.today()) ):
                     print "=========="
                     print "---> Exporting to unfoldingWord: {0}".format(lang)
                     exportunfoldingWord(status, unfoldingWordlangdir, curjson,
