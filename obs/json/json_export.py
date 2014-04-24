@@ -158,7 +158,7 @@ def getJSONDict(statfile):
                                                          or ':' not in line ):
                 continue
             k, v = line.split(':')
-            status[k.strip().lower().replace(' ', '_')] = v.strip().lower()
+            status[k.strip().lower().replace(' ', '_')] = v.strip()
     return status
 
 def exportunfoldingWord(status, gitdir, json, lang, githuborg):
