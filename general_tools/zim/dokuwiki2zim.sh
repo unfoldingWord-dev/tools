@@ -28,7 +28,11 @@ help() {
     echo "Convert DokuWiki files to Zim files."
     echo
     echo "Usage:"
-    echo "   $PROGNAME -s <dokuwikisourcedir> -d <zimdestinationdir>"
+    echo -n "   $PROGNAME -s <dokuwikisourcedir> -d <zimdestinationdir> "
+    echo "[-u <depth(1|2|3|4|5)>]"
+    echo
+    echo "   e.g. $PROGNAME -s /tmp/dokuwiki -d /tmp/zim -d 2"
+    echo
     echo "   $PROGNAME --help"
     echo
     exit 1
@@ -50,6 +54,10 @@ while test -n "$1"; do
             dst="$2"
             shift
             ;;
+        --up|-u)
+            up="$2"
+            shift
+            ;;
         *)
             echo "Unknown argument: $1"
             help
@@ -58,15 +66,27 @@ while test -n "$1"; do
     shift
 done
 
-# Verify we have good path names
-if [ ! -d "$src" -o ! -d "$dst" ]; then
-    echo "Error: source and destination must be directories."
+# Verify we have good variables
+if [ ! -d "$src" ]; then
+    echo "Error: source must be a directory."
     help
+fi
+if [ ! -d "$dst" ]; then
+    echo "Error: destination must be a directory."
+    help
+fi
+if [ -n "up" ]; then
+    depth="..\/"
+    for x in `seq 2 $up`; do
+        depth+="..\/"
+    done
+else
+    depth="..\/..\/..\/"
 fi
 
 # Create Zim files from DokuWiki source files
 for f in `ls "$src"`; do
-    sed -e 's/:en:obs:obs-/..\/..\/..\/images\/obs-/g' \
+    sed -e "s/:en:obs:obs-/${depth}images\/obs-/g" \
         -e 's/<[^>]*>//g' \
         -e 's/jpg\?.*$/jpg}}/g' \
         -e 's/\(\[\[:en:obs:notes.*|\)\({{.*$\)/\2\n\1/g' \
