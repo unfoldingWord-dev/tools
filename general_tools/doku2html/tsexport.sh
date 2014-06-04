@@ -27,7 +27,7 @@
 PROGNAME="${0##*/}"
 D2H="/var/www/vhosts/door43.org/tools/general_tools/doku2html/dokuwiki2html.sh"
 SRCBASE="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en"
-DSTBASE="/var/www/vhosts/door43.org/tsexports"
+DSTBASE="/var/www/vhosts/door43.org/ts-exports"
 
 "$D2H" -s "$SRCBASE/obs/notes/" -d "$DSTBASE/notes/" &
 "$D2H" -s "$SRCBASE/key-terms/" -d "$DSTBASE/key-terms/" &
