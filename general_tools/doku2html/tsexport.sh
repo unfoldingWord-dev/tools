@@ -29,8 +29,15 @@ D2H="/var/www/vhosts/door43.org/tools/general_tools/doku2html/dokuwiki2html.sh"
 SRCBASE="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en"
 DSTBASE="/var/www/vhosts/door43.org/ts-exports"
 
+echo "Converting to HTML..."
 "$D2H" -s "$SRCBASE/obs/notes/" -d "$DSTBASE/notes/" &
 "$D2H" -s "$SRCBASE/key-terms/" -d "$DSTBASE/key-terms/" &
 "$D2H" -s "$SRCBASE/ta/" -d "$DSTBASE/ta/" &
 
 wait
+
+echo "Updating Links..."
+for f in `find "$DSTBASE" -type f -name '*.html'`; do
+    sed -i -e 's/en\/obs\/notes\/frames/en\/notes\/frames/g' $f
+done
+echo "Done."
