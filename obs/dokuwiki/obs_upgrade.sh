@@ -43,7 +43,7 @@ for f in `ls $SRCBASE/*.txt`; do
     sed -e '/^===== Translation/,$d' \
         -e '/^=====/d' \
         -e 's/\*\*//g' \
-        -e 's/\[\[:[a-z:\-]*|//g' \
+        -e 's/\[\[:[A-Za-z:\-]*|//g' \
         -e 's/\]\]//g' \
         -e 's/  / /g' \
         -e 's/[”“]/"/g' \
