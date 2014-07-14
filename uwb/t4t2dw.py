@@ -31,6 +31,7 @@ separate chapters and does some basic text to footnote conversions.
 """
 
 import os
+import re
 import sys
 import argparse
 import zipfile
@@ -41,12 +42,12 @@ import codecs
 
 # To Do:
 # Alternatives marked with:
-#  -> (OR alternative option)  (e.g. Ps 52)
 #  -> ◄ option1/option2 ► (e.g. Ps 100)
 #    --> Alternative within above is marked by < suboption1/suboption2 > (Not found)
-#  -> option1/option2 (e.g. Ps 100)
 
-footnote = u'\\f + \\fr {0} \\f*'
+footnote = ur'\\f + \\ft {0} \\f*'
+orp = re.compile(r'([(]OR.*[)])', flags=16) # Matches: (OR alternative text)
+slashp = re.compile(r'(\w*)/(\w*)', flags=32) # Matches: option1/option2
 abbvtable = {
   u'[APO]': u'apostrophe',
   u'[CHI]': u'chiasmus',
@@ -179,6 +180,8 @@ def convert(f):
   '''
   Converts T4T features into footnotes.
   '''
+  f = orp.sub(footnote.format(r'\1'), f)
+  f = slashp.sub(footnote.format(r'Or: \2'), f)
   for k,v in abbvtable.iteritems():
     f = f.replace(k, footnote.format(v))
   return f
