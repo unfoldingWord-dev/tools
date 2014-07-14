@@ -27,7 +27,7 @@
 
 """
 This script splits the USFM files from T4T (http://ebible.org/t4t/) into
-separate chapters
+separate chapters and does some basic text to footnote conversions.
 """
 
 import os
@@ -38,6 +38,35 @@ import os.path
 import shutil
 import glob
 import codecs
+
+# To Do:
+# Alternatives marked with:
+#  -> (OR alternative option)  (e.g. Ps 52)
+#  -> ◄ option1/option2 ► (e.g. Ps 100)
+#    --> Alternative within above is marked by < suboption1/suboption2 > (Not found)
+#  -> option1/option2 (e.g. Ps 100)
+
+footnote = u'\\f + \\fr {0} \\f*'
+abbvtable = {
+  u'[APO]': u'apostrophe',
+  u'[CHI]': u'chiasmus',
+  u'[DOU]': u'doublet',
+  u'[EUP]': u'euphemism',
+  u'[HEN]': u'hendiadys',
+  u'[HYP]': u'hyperbole',
+  u'[IDM]': u'idiom',
+  u'[IRO]': u'irony',
+  u'[LIT]': u'litotes',
+  u'[MET]': u'metaphor',
+  u'[MTY]': u'metonymy',
+  u'[PRS]': u'personification',
+  u'[RHQ]': u'rhetorical question',
+  u'[SIM]': u'simile',
+  u'[SYM]': u'symbol',
+  u'[SAR]': u'sarcasm',
+  u'[SYN]': u'synecdoche',
+  u'[TRI]': u'triple',
+}
 
 def main(arguments):
 
@@ -104,7 +133,7 @@ def main(arguments):
             if not os.path.isdir(book):
               os.mkdir(book)
             outputFile = book+'/'+chapterNum+'.usfm.txt'
-            writeFile(outputFile, ''.join(chapterLines))
+            writeFile(outputFile, convert(''.join(chapterLines)))
             fileList.append('{0}:{1}.usfm'.format(bookID, chapterNum))
 
           # begin reading new chapter
@@ -120,7 +149,7 @@ def main(arguments):
       if not os.path.isdir(book):
         os.mkdir(book)
       outputFile = book+'/'+chapterNum+'.usfm.txt'
-      writeFile(outputFile, ''.join(chapterLines))
+      writeFile(outputFile, convert(''.join(chapterLines)))
       fileList.append('{0}:{1}.usfm'.format(bookID, chapterNum))
     # write book information
     book = str(outputDir+bookID).lower()
@@ -144,6 +173,15 @@ def writeFile(f, content):
   out = codecs.open(f, encoding='utf-8', mode='w')
   out.write(content)
   out.close()
+
+
+def convert(f):
+  '''
+  Converts T4T features into footnotes.
+  '''
+  for k,v in abbvtable.iteritems():
+    f = f.replace(k, footnote.format(v))
+  return f
 
 
 def unzip(source, dest):
