@@ -181,7 +181,7 @@ def convert(f):
   Converts T4T features into footnotes.
   '''
   f = orp.sub(footnote.format(r'\1'), f)
-  f = slashp.sub(footnote.format(r'Or: \2'), f)
+  f = slashp.sub(r'\1{0}'.format(footnote.format(r'Or: \2')), f)
   for k,v in abbvtable.iteritems():
     f = f.replace(k, footnote.format(v))
   return f
