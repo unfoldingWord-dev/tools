@@ -40,14 +40,12 @@ import shutil
 import glob
 import codecs
 
-# To Do:
-# Alternatives marked with:
-#  -> ◄ option1/option2 ► (e.g. Ps 100)
-#    --> Alternative within above is marked by < suboption1/suboption2 > (Not found)
-
-footnote = ur'\\f + \\ft {0} \\f*'
-orp = re.compile(r'([(]OR.*[)])', flags=16) # Matches: (OR alternative text)
-slashp = re.compile(r'(\w*)/(\w*)', flags=32) # Matches: option1/option2
+footnote = u'\\f + \\ft {0} \\f*'
+refootnote = ur'\\f + \\ft {0} \\f*'
+arrowp = re.compile(ur'◄([^/]*)/(.*)►', flags=32) # Matches: ◄option1/option2►
+slashinft = re.compile(ur'(\\ft .*)/', flags=32) # Matches: \ft option2/option3
+orp = re.compile(ur'([(]OR.*[)])', flags=16) # Matches: (OR alternative text)
+slashp = re.compile(ur'(\w*)/(\w*)', flags=32) # Matches: option1/option2
 abbvtable = {
   u'[APO]': u'apostrophe',
   u'[CHI]': u'chiasmus',
@@ -180,8 +178,10 @@ def convert(f):
   '''
   Converts T4T features into footnotes.
   '''
-  f = orp.sub(footnote.format(r'\1'), f)
-  f = slashp.sub(r'\1{0}'.format(footnote.format(r'Or: \2')), f)
+  f = arrowp.sub(ur'\1{0}'.format(refootnote.format(ur'Or: \2')), f)
+  f = slashinft.sub(r'\1, Or: ', f)
+  f = orp.sub(refootnote.format(ur'\1'), f)
+  f = slashp.sub(ur'\1{0}'.format(refootnote.format(ur'Or: \2')), f)
   for k,v in abbvtable.iteritems():
     f = f.replace(k, footnote.format(v))
   return f
