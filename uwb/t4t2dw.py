@@ -46,6 +46,7 @@ arrowp = re.compile(ur'◄([^/]*)/(.*)►', flags=32) # Matches: ◄option1/opti
 slashinft = re.compile(ur'(\\ft .*)/', flags=32) # Matches: \ft option2/option3
 orp = re.compile(ur'[(]OR,(.*)[)]', flags=16) # Matches: (OR alternative text)
 slashp = re.compile(ur'(\w*)/(\w*)', flags=32) # Matches: option1/option2
+ftinft = re.compile(ur'(\\f \+ \\ft)([^\\]*)\\f \+ \\ft([^\\]*)\\f\*', flags=32) # Matches: footnote in footnote
 abbvtable = {
   u'[APO]': u'apostrophe',
   u'[CHI]': u'chiasmus',
@@ -179,11 +180,12 @@ def convert(f):
   Converts T4T features into footnotes.
   '''
   f = arrowp.sub(ur'\1{0}'.format(refootnote.format(ur'Or: \2')), f)
-  f = slashinft.sub(r'\1, Or: ', f)
+  f = slashinft.sub(ur'\1, Or: ', f)
   f = orp.sub(refootnote.format(ur'Or:\1'), f)
   f = slashp.sub(ur'\1{0}'.format(refootnote.format(ur'Or: \2')), f)
   for k,v in abbvtable.iteritems():
     f = f.replace(k, footnote.format(v))
+  f = ftinft.sub(ur'\1\2(\3)', f)
   return f
 
 
