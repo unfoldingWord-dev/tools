@@ -42,30 +42,30 @@ import codecs
 
 footnote = u'\\f + \\ft {0} \\f*'
 refootnote = ur'\\f + \\ft {0} \\f*'
-arrowp = re.compile(ur'◄([^/]*)/(.*)►', flags=32) # Matches: ◄option1/option2►
+arrowp = re.compile(ur'◄([^/]*)/([^►]*)►', flags=32) # Matches: ◄option1/option2►
 slashinft = re.compile(ur'(\\ft .*)/', flags=32) # Matches: \ft option2/option3
-orp = re.compile(ur'[(]OR,(.*)[)]', flags=16) # Matches: (OR alternative text)
+orp = re.compile(ur'[(]OR,([^)]*)[)]', flags=16) # Matches: (OR alternative text)
 slashp = re.compile(ur'(\w*)/(\w*)', flags=32) # Matches: option1/option2
 ftinft = re.compile(ur'(\\f \+ \\ft)([^\\]*)\\f \+ \\ft([^\\]*)\\f\*', flags=32) # Matches: footnote in footnote
 abbvtable = {
-  u'[APO]': u'apostrophe',
-  u'[CHI]': u'chiasmus',
-  u'[DOU]': u'doublet',
-  u'[EUP]': u'euphemism',
-  u'[HEN]': u'hendiadys',
-  u'[HYP]': u'hyperbole',
-  u'[IDM]': u'idiom',
-  u'[IRO]': u'irony',
-  u'[LIT]': u'litotes',
-  u'[MET]': u'metaphor',
-  u'[MTY]': u'metonymy',
-  u'[PRS]': u'personification',
-  u'[RHQ]': u'rhetorical question',
-  u'[SIM]': u'simile',
-  u'[SYM]': u'symbol',
-  u'[SAR]': u'sarcasm',
-  u'[SYN]': u'synecdoche',
-  u'[TRI]': u'triple',
+  u'APO': u'apostrophe',
+  u'CHI': u'chiasmus',
+  u'DOU': u'doublet',
+  u'EUP': u'euphemism',
+  u'HEN': u'hendiadys',
+  u'HYP': u'hyperbole',
+  u'IDM': u'idiom',
+  u'IRO': u'irony',
+  u'LIT': u'litotes',
+  u'MET': u'metaphor',
+  u'MTY': u'metonymy',
+  u'PRS': u'personification',
+  u'RHQ': u'rhetorical question',
+  u'SIM': u'simile',
+  u'SYM': u'symbol',
+  u'SAR': u'sarcasm',
+  u'SYN': u'synecdoche',
+  u'TRI': u'triple',
 }
 
 def main(arguments):
@@ -179,12 +179,17 @@ def convert(f):
   '''
   Converts T4T features into footnotes.
   '''
+  f = (f.replace(u'“', '"').replace(u'”', '"').replace(u'’', "'")
+        .replace(u'‘', "'"))
   f = arrowp.sub(ur'\1{0}'.format(refootnote.format(ur'Or: \2')), f)
   f = slashinft.sub(ur'\1, Or: ', f)
   f = orp.sub(refootnote.format(ur'Or:\1'), f)
   f = slashp.sub(ur'\1{0}'.format(refootnote.format(ur'Or: \2')), f)
   for k,v in abbvtable.iteritems():
-    f = f.replace(k, footnote.format(v))
+    f = f.replace(u'[{0}]'.format(k), footnote.format(v))
+    for k2,v2 in abbvtable.iteritems():
+      f = f.replace(u'[{0}, {1}]'.format(k, k2), footnote.format(u'{0}, {1}'
+        .format(v, v2)))
   f = ftinft.sub(ur'\1\2(\3)', f)
   return f
 
