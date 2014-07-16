@@ -46,6 +46,7 @@ arrowp = re.compile(ur'◄([^/]*)/([^►]*)►', flags=32) # Matches: ◄option1
 slashinft = re.compile(ur'(\\ft .*)/', flags=32) # Matches: \ft option2/option3
 orp = re.compile(ur'[(]OR,([^)]*)[)]', flags=16) # Matches: (OR alternative text)
 slashp = re.compile(ur'(\w*)/(\w*)', flags=32) # Matches: option1/option2
+bracep = re.compile(ur'{([^}]*)}', flags=32) # Matches: {possible added}
 ftinft = re.compile(ur'(\\f \+ \\ft)([^\\]*)\\f \+ \\ft([^\\]*)\\f\*', flags=32) # Matches: footnote in footnote
 prntable = {
   u'(inc)': u'inclusive',
@@ -188,6 +189,7 @@ def convert(f):
   f = (f.replace(u'“', '"').replace(u'”', '"').replace(u'’', "'")
         .replace(u'‘', "'"))
   f = arrowp.sub(ur'\1{0}'.format(refootnote.format(ur'Or: \2')), f)
+  f = bracep.sub(refootnote.format(ur'Or:\1'), f)
   f = slashinft.sub(ur'\1, Or: ', f)
   f = orp.sub(refootnote.format(ur'Or:\1'), f)
   f = slashp.sub(ur'\1{0}'.format(refootnote.format(ur'Or: \2')), f)
