@@ -40,20 +40,38 @@ import shutil
 import glob
 import codecs
 
+# USFM footnote syntax strings
 footnote = u'\\f + \\ft {0} \\f*'
 refootnote = ur'\\f + \\ft {0} \\f*'
-arrowp = re.compile(ur'◄([^/]*)/([^►]*)►', flags=32) # Matches: ◄option1/option2►
-slashinft = re.compile(ur'(\\ft .*)/', flags=32) # Matches: \ft option2/option3
-orp = re.compile(ur'[(]OR,([^)]*)[)]', flags=16) # Matches: (OR alternative text)
-slashp = re.compile(ur'(\w*)/(\w*)', flags=32) # Matches: option1/option2
-bracep = re.compile(ur'{([^}]*)}', flags=32) # Matches: {possible added}
-ftinft = re.compile(ur'(\\f \+ \\ft)([^*]*)\\f \+ \\ft([^\\]*)\\f\*', re.DOTALL | re.UNICODE) # Matches: footnote in footnote
+
+# Pattern matching, used in convert()
+# Matches arrow pattern: ◄option1/option2►
+arrowp = re.compile(ur'◄([^/]*)/([^►]*)►', re.UNICODE)
+
+# Matches alternative in footnote pattern: \ft option2/option3
+slashinft = re.compile(ur'(\\ft .*)/', re.UNICODE)
+
+# Matches alternative text pattern: (OR alternative text)
+orp = re.compile(ur'[(]OR,([^)]*)[)]', re.DOTALL | re.UNICODE)
+
+# Matches alternative pattern: option1/option2
+slashp = re.compile(ur'(\w*)/(\w*)', re.UNICODE)
+
+# Matches brace pattern: {possible added}
+bracep = re.compile(ur'{([^}]*)}', re.UNICODE)
+
+# Matches footnote in footnote
+ftinft = re.compile(ur'(\\f \+ \\ft)([^*]*)\\f \+ \\ft([^\\]*)\\f\*',
+  re.DOTALL | re.UNICODE)
+
+# Pronoun notes abbreviation table
 prntable = {
   u'(inc)': u'inclusive',
   u'(exc)': u'exclusive',
   u'(sg)': u'singular',
   u'(pl)': u'plural',
 }
+# Figures abbreviation table
 abbvtable = {
   u'APO': u'apostrophe',
   u'CHI': u'chiasmus',
