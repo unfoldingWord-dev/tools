@@ -47,6 +47,12 @@ slashinft = re.compile(ur'(\\ft .*)/', flags=32) # Matches: \ft option2/option3
 orp = re.compile(ur'[(]OR,([^)]*)[)]', flags=16) # Matches: (OR alternative text)
 slashp = re.compile(ur'(\w*)/(\w*)', flags=32) # Matches: option1/option2
 ftinft = re.compile(ur'(\\f \+ \\ft)([^\\]*)\\f \+ \\ft([^\\]*)\\f\*', flags=32) # Matches: footnote in footnote
+prntable = {
+  u'(inc)': u'inclusive',
+  u'(exc)': u'exclusive',
+  u'(sg)': u'singular',
+  u'(pl)': u'plural',
+}
 abbvtable = {
   u'APO': u'apostrophe',
   u'CHI': u'chiasmus',
@@ -190,6 +196,8 @@ def convert(f):
     for k2,v2 in abbvtable.iteritems():
       f = f.replace(u'[{0}, {1}]'.format(k, k2), footnote.format(u'{0}, {1}'
         .format(v, v2)))
+  for k,v in prntable.iteritems():
+    f = f.replace(u'{0}'.format(k), footnote.format(v))
   f = ftinft.sub(ur'\1\2(\3)', f)
   return f
 
