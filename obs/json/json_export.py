@@ -47,7 +47,7 @@ unfoldingWord | Open Bible Stories
 
 *an unrestricted visual mini-Bible in any language*
 
-http://openbiblestories.com
+http://unfoldingword.org/
 
 Created by Distant Shores Media (http://distantshores.org) and the Door43 world missions community (http://door43.org).
 
