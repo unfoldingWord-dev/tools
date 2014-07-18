@@ -38,7 +38,7 @@ uwadmindir = os.path.join(pages, 'en/uwadmin')
 exportdir = os.path.join(root, 'media/exports')
 unfoldingWorddir = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
 digits = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
-rtl = ['he', 'ar']
+rtl = ['he', 'ar', 'fa']
 langnames = os.path.join('/var/www/vhosts/door43.org',
                         'httpdocs/lib/plugins/translation/lang/langnames.txt')
 readme = u'''
@@ -79,19 +79,20 @@ def getChapter(chapterpath, jsonchapter):
     chapter = codecs.open(chapterpath, 'r', encoding='utf-8').readlines()
     for line in chapter:
         i += 1
-        if line.startswith((u'\n', u'\ufeff')) or line == u'':
+        line = line.strip()
+        if line.startswith((u'\n', u'\r', u'\ufeff')) or line == u'':
             continue
         if u'======' in line:
-            jsonchapter['title'] = line.replace(u'======', u'').strip()
+            jsonchapter['title'] = line.replace(u'======', u'')
             continue
         elif line.startswith(u'//'):
-            jsonchapter['ref'] = line.replace(u'//', u'').strip()
+            jsonchapter['ref'] = line.replace(u'//', u'')
             continue
         elif line.startswith('{{'):
             if 'Program Files' in line:
                 continue
             frame = { 'id': line.split('.jpg')[0].split('obs-')[1],
-                      'img': line.strip()
+                      'img': line
                     }
         else:
             if 'No translation' in line:
@@ -102,7 +103,7 @@ def getChapter(chapterpath, jsonchapter):
                 jsonchapter['frames'].append(frame)
                 break
             try:
-                frame['text'] = line.strip()
+                frame['text'] = line
                 jsonchapter['frames'].append(frame)
             except UnboundLocalError, e:
                 error = 'Problem parsing line {0} in {1}: {2}'.format(i,
