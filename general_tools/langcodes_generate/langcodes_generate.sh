@@ -1,4 +1,12 @@
 #!/bin/bash
+# -*- coding: utf8 -*-
+#
+#  Copyright (c) 2014 unfoldingWord
+#  http://creativecommons.org/licenses/MIT/
+#  See LICENSE file for details.
+#
+#  Contributors:
+#  Tim Jore <tim@distantshores.org>
 
 ###############################################################################
 #
