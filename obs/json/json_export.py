@@ -322,6 +322,12 @@ if __name__ == '__main__':
                                             lang][0]['date_modified']) = today
             writePage(jsonlangfilepath, curjson)
         if unfoldingwordexport:
+            if 'Invalid format.' in curjson:
+                print "=========="
+                print '==> !! Cannot export {0}, invalid JSON format'.format(
+                                                                         lang)
+                print "=========="
+                continue
             unfoldingWordlangdir = os.path.join(unfoldingWorddir, lang)
             if status.has_key('checking_level') and status.has_key(
                                                               'publish_date'):
