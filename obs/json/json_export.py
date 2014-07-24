@@ -68,14 +68,18 @@ def getChapter(chapterpath, jsonchapter):
         i += 1
         line = line.strip()
         if line.startswith((u'\n', u'\r', u'\ufeff')) or line == u'':
+            # Blank line, pass
             continue
         if u'======' in line:
+            # Chapter title line
             jsonchapter['title'] = line.replace(u'======', u'')
             continue
         elif line.startswith(u'//'):
+            # Reference line
             jsonchapter['ref'] = line.replace(u'//', u'')
             continue
         elif line.startswith('{{'):
+            # Image tag line
             if 'Program Files' in line:
                 continue
             frame = { 'id': line.split('.jpg')[0].split('obs-')[1],
@@ -90,6 +94,7 @@ def getChapter(chapterpath, jsonchapter):
                 jsonchapter['frames'].append(frame)
                 break
             try:
+                # Frame text begins
                 frame['text'] = line
                 jsonchapter['frames'].append(frame)
             except UnboundLocalError, e:
