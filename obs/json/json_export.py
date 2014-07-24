@@ -11,6 +11,7 @@
 #  Requires PyGithub for unfoldingWord export.
 
 import os
+import re
 import sys
 import json
 import codecs
@@ -59,54 +60,46 @@ Use of trademarks: unfoldingWord is a trademark of Distant Shores Media and may 
 
 Attribution of artwork: All images used in these stories are © Sweet Publishing (www.sweetpublishing.com) and are made available under a Creative Commons Attribution-Share Alike License (http://creativecommons.org/licenses/by-sa/3.0).
 '''
+# Regexes for splitting the chapter into components
+titlere = re.compile(ur'^======.*', re.UNICODE)
+refre = re.compile(ur'//.*//', re.UNICODE)
+framere = re.compile(ur'{{[^{]*', re.DOTALL | re.UNICODE)
+fridre =  re.compile(ur'[0-5][0-9]-[0-9][0-9]', re.UNICODE)
 
 
 def getChapter(chapterpath, jsonchapter):
-    i = 0
-    chapter = codecs.open(chapterpath, 'r', encoding='utf-8').readlines()
-    for line in chapter:
-        i += 1
-        line = line.strip()
-        if line.startswith((u'\n', u'\r', u'\ufeff')) or line == u'':
-            # Blank line, pass
-            continue
-        if u'======' in line:
-            # Chapter title line
-            jsonchapter['title'] = line.replace(u'======', u'')
-            continue
-        elif line.startswith(u'//'):
-            # Reference line
-            jsonchapter['ref'] = line.replace(u'//', u'')
-            continue
-        elif line.startswith('{{'):
-            # Image tag line
-            if 'Program Files' in line:
-                continue
-            frame = { 'id': line.split('.jpg')[0].split('obs-')[1],
-                      'img': line
-                    }
+    chapter = codecs.open(chapterpath, 'r', encoding='utf-8').read()
+    # Get title for chapter
+    title = titlere.search(chapter)
+    if title:
+        jsonchapter['title'] = title.group(0).replace('=', '').strip()
+    else:
+        jsonchapter['title'] = 'NOT FOUND'
+        print 'NOT FOUND: title in {0}'.format(chapterpath)
+    # Get reference for chapter
+    ref = refre.search(chapter)
+    if ref:
+        jsonchapter['ref'] = ref.group(0).replace('/', '').strip()
+    else:
+        jsonchapter['ref'] = 'NOT FOUND'
+        print 'NOT FOUND: reference in {0}'.format(chapterpath)
+    # Get the frames
+    for fr in framere.findall(chapter):
+        frlines = fr.split('\n')
+        frse = fridre.search(fr)
+        if frse:
+            frid = frse.group(0)
         else:
-            if 'No translation' in line:
-                frame = { 'id': None,
-                          'img': None,
-                          'text': 'No translation'
-                        }
-                jsonchapter['frames'].append(frame)
-                break
-            try:
-                # Frame text begins
-                frame['text'] = line
-                jsonchapter['frames'].append(frame)
-            except UnboundLocalError, e:
-                error = 'Problem parsing line {0} in {1}: {2}'.format(i,
-                                                               chapterpath, e)
-                print error
-                frame = { 'id': None,
-                          'img': None,
-                          'text': 'Invalid format.'
-                        }
-                jsonchapter['frames'].append(frame)
-                break
+            frid = 'NOT FOUND'
+            print u'NOT FOUND: frame id in {0} for "{1}"'.format(chapterpath,
+                                                                          fr)
+        frame = { 'id': frid,
+                  'img': frlines[0].strip(),
+                  'text': ''.join([x for x in frlines[1:] if '//' not in x]
+                                                                    ).strip()
+                }
+        jsonchapter['frames'].append(frame)
+    # Sort frames
     jsonchapter['frames'].sort(key=lambda frame: frame['id'])
     return jsonchapter
 
@@ -321,7 +314,7 @@ if __name__ == '__main__':
                 if ( status['checking_level'] in ['1', '2', '3'] and 
                        status['publish_date'] == str(datetime.date.today()) ):
                     print "=========="
-                    if 'Invalid format.' in curjson:
+                    if 'NOT FOUND.' in curjson:
                         print ('==> !! Cannot export {0}, invalid JSON format'
                                                                .format(lang))
                         print "=========="
