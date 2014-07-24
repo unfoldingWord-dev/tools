@@ -61,7 +61,7 @@ Use of trademarks: unfoldingWord is a trademark of Distant Shores Media and may 
 Attribution of artwork: All images used in these stories are © Sweet Publishing (www.sweetpublishing.com) and are made available under a Creative Commons Attribution-Share Alike License (http://creativecommons.org/licenses/by-sa/3.0).
 '''
 # Regexes for splitting the chapter into components
-titlere = re.compile(ur'^======.*', re.UNICODE)
+titlere = re.compile(ur'======.*', re.UNICODE)
 refre = re.compile(ur'//.*//', re.UNICODE)
 framere = re.compile(ur'{{[^{]*', re.DOTALL | re.UNICODE)
 fridre =  re.compile(ur'[0-5][0-9]-[0-9][0-9]', re.UNICODE)
@@ -74,15 +74,15 @@ def getChapter(chapterpath, jsonchapter):
     if title:
         jsonchapter['title'] = title.group(0).replace('=', '').strip()
     else:
-        jsonchapter['title'] = 'NOT FOUND'
-        print 'NOT FOUND: title in {0}'.format(chapterpath)
+        jsonchapter['title'] = u'NOT FOUND'
+        print u'NOT FOUND: title in {0}'.format(chapterpath)
     # Get reference for chapter
     ref = refre.search(chapter)
     if ref:
         jsonchapter['ref'] = ref.group(0).replace('/', '').strip()
     else:
-        jsonchapter['ref'] = 'NOT FOUND'
-        print 'NOT FOUND: reference in {0}'.format(chapterpath)
+        jsonchapter['ref'] = u'NOT FOUND'
+        print u'NOT FOUND: reference in {0}'.format(chapterpath)
     # Get the frames
     for fr in framere.findall(chapter):
         frlines = fr.split('\n')
@@ -90,12 +90,11 @@ def getChapter(chapterpath, jsonchapter):
         if frse:
             frid = frse.group(0)
         else:
-            frid = 'NOT FOUND'
-            print u'NOT FOUND: frame id in {0} for "{1}"'.format(chapterpath,
-                                                                          fr)
+            frid = u'NOT FOUND'
+            print u'NOT FOUND: frame id in {0}'.format(chapterpath)
         frame = { 'id': frid,
                   'img': frlines[0].strip(),
-                  'text': ''.join([x for x in frlines[1:] if '//' not in x]
+                  'text': u''.join([x for x in frlines[1:] if u'//' not in x]
                                                                     ).strip()
                 }
         jsonchapter['frames'].append(frame)
