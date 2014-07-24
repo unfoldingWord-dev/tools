@@ -259,6 +259,7 @@ if __name__ == '__main__':
     langdict = loadLangStrings(langnames)
     uwcatpath = os.path.join(unfoldingWorddir, 'obs-catalog.json')
     uwcatalog = loadJSON(uwcatpath, 'l')
+    uwcatlangs = [x['language'] for x in uwcatalog]
     catpath = os.path.join(exportdir, 'obs-catalog.json')
     catalog = loadJSON(catpath, 'l')
     for lang in os.listdir(pages):
@@ -309,23 +310,23 @@ if __name__ == '__main__':
                                             lang][0]['date_modified']) = today
             writePage(jsonlangfilepath, curjson)
         if unfoldingwordexport:
-            if 'Invalid format.' in curjson:
-                print "=========="
-                print '==> !! Cannot export {0}, invalid JSON format'.format(
-                                                                         lang)
-                print "=========="
-                continue
             unfoldingWordlangdir = os.path.join(unfoldingWorddir, lang)
             if status.has_key('checking_level') and status.has_key(
                                                               'publish_date'):
                 if ( status['checking_level'] in ['1', '2', '3'] and 
                        status['publish_date'] == str(datetime.date.today()) ):
                     print "=========="
+                    if 'Invalid format.' in curjson:
+                        print ('==> !! Cannot export {0}, invalid JSON format'
+                                                               .format(lang))
+                        print "=========="
+                        continue
                     print "---> Exporting to unfoldingWord: {0}".format(lang)
                     exportunfoldingWord(status, unfoldingWordlangdir, curjson,
                                                               lang, githuborg)
-                    if not lang in [x['language'] for x in uwcatalog]:
-                        uwcatalog.append(langcat)
+                    if lang in uwcatlangs:
+                        uwcatalog.pop(uwcatlangs.index(lang))
+                    uwcatalog.append(langcat)
                     print "=========="
     catjson = getDump(catalog)
     writePage(catpath, catjson)
