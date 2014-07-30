@@ -18,8 +18,7 @@ import os
 import sys
 import codecs
 
-#pages='/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages'
-pages='/tmp/pages'
+pages='/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages'
 
 
 def fileImport(fl):
