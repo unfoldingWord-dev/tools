@@ -18,16 +18,16 @@ import os
 import sys
 import codecs
 
-pages='/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages'
+#pages='/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages'
+pages='/tmp/pages'
 
 
 def fileImport(fl):
     for i in fl:
         if i in [u'', u'\n', u'\r', u'\r\n']:
             continue
-        fparts = i.split()
-        print fparts[0]
-        writeFile(fparts[0], u''.join(fparts[1:]))
+        fparts = i.split('\n')
+        writeFile(fparts[0], u'\n'.join(fparts[1:]))
 
 def writeFile(outfile, content):
     makeDir(outfile.rpartition(u'/')[0])
