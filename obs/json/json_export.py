@@ -354,6 +354,7 @@ if __name__ == '__main__':
                                                               lang, githuborg)
                     if lang in uwcatlangs:
                         uwcatalog.pop(uwcatlangs.index(lang))
+                        uwcatlangs.pop(uwcatlangs.index(lang))
                     uwcatalog.append(langcat)
                     print "=========="
     catjson = getDump(catalog)
