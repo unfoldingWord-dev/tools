@@ -49,13 +49,13 @@ if [ -z "$lang" ]; then
 fi
 
 outputfile="/tmp/obs-tn-$lang-`date +%F`.md"
-echo "Exporting to $outputfile
-rm -f $outputfile
+echo "Exporting to $outputfile"
+rm -f "$outputfile"
 
 # Export from DokuWiki to HTML to Markdown function
 tnexport () {
     for f in `find "$1" -type f -name '*.txt'`; do
-        echo "ns: $f" >> "$outputfile"
+        echo "filename: $f" >> "$outputfile"
         $DOKU2HTML "$f" | $PANDOC -f html -s -t markdown | \
             fmt | \
             sed -e 's/ ===/\n===/' \
