@@ -17,7 +17,9 @@ TMPL="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/templates/obs3/"
 DEST="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/$LANG/"
 LANGNAMES="/var/www/vhosts/door43.org/httpdocs/lib/plugins/translation/lang/langnames.txt"
 
-if [ ! `grep -qw "$LANG" "$LANGNAMES"` ]; then
+grep -qw "$LANG" "$LANGNAMES"
+RET=$?
+if [ $RET -ne 0 ]; then
     echo "The $LANG language code is not configured in DokuwWiki at:"
     echo "$LANGNAMES"
     echo "Please add it and run this script again"
