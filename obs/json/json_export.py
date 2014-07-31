@@ -29,6 +29,15 @@ digits = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
 rtl = ['he', 'ar', 'fa']
 langnames = os.path.join('/var/www/vhosts/door43.org',
                         'httpdocs/lib/plugins/translation/lang/langnames.txt')
+statusheaders = ( 'publish_date',
+                  'version',
+                  'contributors',
+                  'checking_entity',
+                  'checking_level',
+                  'source_text',
+                  'source_text_version',
+                  'comments',
+                )
 readme = u'''
 unfoldingWord | Open Bible Stories
 ==================================
@@ -148,13 +157,19 @@ def getJSONDict(statfile):
             status[k.strip().lower().replace(' ', '_')] = v.strip()
     return status
 
+def cleanStatus(status):
+    for k in [x for x in status.iterkeys()]:
+        if k not in statusheaders:
+            del status[k]
+    return status
+
 def exportunfoldingWord(status, gitdir, json, lang, githuborg):
     '''
     Exports JSON data for each language into its own Github repo.
     '''
     makeDir(gitdir)
     writePage(os.path.join(gitdir, 'obs-{0}.json'.format(lang)), json)
-    statjson = getDump(status)
+    statjson = getDump(cleanStatus(status))
     writePage(os.path.join(gitdir, 'status-{0}.json'.format(lang)), statjson)
     writePage(os.path.join(gitdir, 'README.md'), readme)
     gitCreate(gitdir)
@@ -235,12 +250,17 @@ def getGithubOrg(orgname):
     g = Github(user, pw)
     return g.get_organization(orgname)
 
-def uwQA(jsd, lang):
+def uwQA(jsd, lang, status):
     '''
-    Implements basic quality control to verify correct number of frames and correct
-    JSON formatting.
+    Implements basic quality control to verify correct number of frames,
+    correct JSON formatting, and correct status headers.
     '''
     flag = True
+    for header in statusheaders:
+        if not status.has_key(header):
+            print ('==> !! Cannot export {0}, status page missing header {1}'
+                                                        .format(lang, header))
+            flag = False
     if 'NOT FOUND.' in str(jsd):
         print '==> !! Cannot export {0}, invalid JSON format'.format(lang)
         flag = False
@@ -346,7 +366,7 @@ if __name__ == '__main__':
                 if ( status['checking_level'] in ['1', '2', '3'] and 
                        status['publish_date'] == str(datetime.date.today()) ):
                     print "=========="
-                    if not uwQA(jsonlang, lang):
+                    if not uwQA(jsonlang, lang, status):
                         print "=========="
                         continue
                     print "---> Exporting to unfoldingWord: {0}".format(lang)
