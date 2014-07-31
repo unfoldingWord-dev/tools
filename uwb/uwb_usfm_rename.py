@@ -14,13 +14,13 @@ This script renames the DokuWiki export UWB files to appropriate USFM
 filenames.
 
 Requires that https://github.com/Door43/USFM-Tools be checked out to
-/var/www/vhosts/door43/USFM-Tools or be on the path
+/var/www/vhosts/door43.org/USFM-Tools or be on the path
 """
 
 import os
 import sys
 # Import the bookKeys mapping from USFM-Tools
-USFMTools='/var/www/vhosts/door43/USFM-Tools/support'
+USFMTools='/var/www/vhosts/door43.org/USFM-Tools/support'
 sys.path.append(USFMTools)
 try:
     from books import bookKeys
