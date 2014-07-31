@@ -17,13 +17,20 @@ TMPL="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/templates/obs3/"
 DEST="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/$LANG/"
 
 if [ -d "$DEST" ]; then
-    echo "Language directory $DEST exists, going to interactive mode."
-    exit 1
-else
-    mkdir -p "$DEST"
-    rsync -ha "$TMPL" "$DEST"
-    echo "--> Created new Open Bible Stories 3.0 template for: $LANG"
+    echo "Language directory exists: $DEST"
+    echo -n "Do you want to overwrite it with new OBS content? N/y "
+    read OVERWRITE
+    if [ ! "$OVERWRITE" == "y" ]; then
+        echo "Please manually copy the files you want from"
+        echo "$TMPL to"
+        echo "$DEST"
+        exit 1
+    fi
 fi
+
+mkdir -p "$DEST"
+rsync -ha "$TMPL" "$DEST"
+echo "--> Created new Open Bible Stories 3.0 template for: $LANG"
 
 # Replace LANGCODE placeholder with destination language code
 for f in `find "$DEST" -type f -name '*.txt'`; do
