@@ -57,7 +57,6 @@ tnexport () {
     for f in `find "$1" -type f -name '*.txt'`; do
         echo "filename: $f" >> "$outputfile"
         $DOKU2HTML "$f" | $PANDOC -f html -s -t markdown | \
-            fmt | \
             sed -e 's/ ===/\n===/' \
                 -e 's/ ---/\n---/' \
             >> "$outputfile"
