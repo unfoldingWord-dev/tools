@@ -147,7 +147,7 @@ def main(arguments):
             fileList.append('{0}:{1}.usfm'.format(bookID, chapterNum))
 
           # begin reading new chapter
-          chapterNum = l.split(None,2)[1]
+          chapterNum = str(l.split(None,2)[1]).zfill(3)
           chapterLines = []
           chapterLines.append(l)
         else:
@@ -165,9 +165,9 @@ def main(arguments):
     book = str(outputDir+bookID).lower()
     if not os.path.isdir(book):
       os.mkdir(book)
-    outputFile = book+'/0.usfm.txt'
+    outputFile = book+'/000.usfm.txt'
     writeFile(outputFile, ''.join(bookHeader))
-    fileList.append('{0}:0.usfm'.format(bookID))
+    fileList.append('{0}:000.usfm'.format(bookID))
 
   # clean up after ourselves
   shutil.rmtree(sourceDir)
