@@ -49,6 +49,10 @@ bracep = re.compile(ur'{([^}]*)}', re.UNICODE)
 ftinft = re.compile(ur'(\\f \+ \\ft)([^*]*)\\f \+ \\ft([^\\]*)\\f\*',
   re.DOTALL | re.UNICODE)
 
+# Matches Israeli or Israelis
+israelisp = re.compile(ur'Israelis', re.UNICODE)
+israelip = re.compile(ur'Israeli([^t])', re.UNICODE)
+
 # Pronoun notes abbreviation table
 prntable = {
   u'(inc)': u'inclusive',
@@ -194,6 +198,8 @@ def convert(f):
   f = arrowp.sub(ur'\1{0}'.format(refootnote.format(ur'Or: \2')), f)
   f = bracep.sub(refootnote.format(ur'Or:\1'), f)
   f = slashinft.sub(ur'\1, Or: ', f)
+  f = israelisp.sub(ur'Israelites', f)
+  f = israelip.sub(ur'Israelite\1', f)
   for k,v in prntable.iteritems():
     f = f.replace(u'{0}'.format(k), footnote.format(v))
   f = orp.sub(refootnote.format(ur'Or:\1'), f)
