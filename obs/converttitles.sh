@@ -8,6 +8,10 @@
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
 
+# Should be safe to run again, if needed, but just in case:
+echo "Please verify this is what you want to do..."
+exit 0
+
 PROGNAME="${0##*/}"
 
 ROOT=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages
