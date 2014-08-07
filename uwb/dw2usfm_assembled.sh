@@ -18,7 +18,10 @@ for d in `find "$UWBDW" -type d -name '[a-z0-9][a-z0-9][a-z0-9]'`; do
     bk="${d##*/}"
     for f in `ls "$d" | sort -n`; do
         [ -d "$d/$f" ] && continue
-        cat "$d/$f" >> "$UWBUSFM/$bk.usfm"
+        cat "$d/$f" | \
+         sed -e 's/\\add\*//g' \
+             -e 's/\\add//g' \
+          >> "$UWBUSFM/$bk.usfm"
     done
 done
 
