@@ -18,12 +18,13 @@ separate chapters and does some basic text to footnote conversions.
 import os
 import re
 import sys
-import argparse
-import zipfile
-import os.path
-import shutil
 import glob
 import codecs
+import shutil
+import urllib2
+import zipfile
+import argparse
+import datetime
 
 # USFM footnote syntax strings
 footnote = u'\\f + \\ft {0} \\f*'
@@ -88,8 +89,6 @@ def main(arguments):
     formatter_class=argparse.RawDescriptionHelpFormatter)
   parser.add_argument('-o', '--output', dest="outputDir", default=False,
     required=True, help = "Output Directory")
-  parser.add_argument('infile', help = "Input file",
-    type = argparse.FileType('r'))
   parser.add_argument('-c', '--clean', dest="clean", default=False, action="store_const", const="sum", help = "Clean workspace")
 
   args = parser.parse_args(arguments)
@@ -101,21 +100,23 @@ def main(arguments):
       os.mkdir(outputDir)
 
   bookTags = ['\id', '\ide', '\h', '\\toc1', '\\toc2', '\\toc3', '\mt']
+  t4tzip = '/tmp/eng-t4t_usfm.zip_{0}'.format(str(datetime.date.today()))
 
   # clean the workspace
   if args.clean:
     print('cleaning workspace..')
-    if os.path.isdir(outputDir) or os.path.isdir(args.infile.name):
-      if os.path.isdir(outputDir):
-        shutil.rmtree(outputDir)
-
-      if os.path.isdir(args.infile.name):
-        shutil.rmtree(args.infile.name)
+    if os.path.isdir(outputDir):
+      shutil.rmtree(outputDir)
+    os.remove(t4tzip)
     print('done')
     return
 
+  # Download T4T zip
+  if not os.path.isfile(t4tzip):
+    getURL('http://ebible.org/t4t/eng-t4t_usfm.zip', t4tzip)
+
   # extract the archive
-  unzip(args.infile.name, sourceDir)
+  unzip(t4tzip, sourceDir)
 
   # list books
   fileList = []
@@ -226,6 +227,18 @@ def unzip(source, dest):
         if word in (os.curdir, os.pardir, ''): continue
         path = os.path.join(path, word)
       zf.extract(member, path)
+
+
+def getURL(url, outfile):
+  print "Getting %s" % url
+  try:
+    request = urllib2.urlopen(url)
+  except:
+    print "  => ERROR retrieving %s\nCheck the URL" % url
+    sys.exit(1)
+  print "  => Writing to %s" % outfile
+  with open(outfile, 'wb') as fp:
+    shutil.copyfileobj(request, fp)
 
 
 if __name__ == '__main__':
