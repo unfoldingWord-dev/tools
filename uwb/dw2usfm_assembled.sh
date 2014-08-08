@@ -8,7 +8,7 @@
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
 
-UWBDW='/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/uwb/v1'
+UWBDW='/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/uwb/v1/'
 UWBUSFM='/tmp/UWB-USFM'
 
 rm -rf "$UWBUSFM"
