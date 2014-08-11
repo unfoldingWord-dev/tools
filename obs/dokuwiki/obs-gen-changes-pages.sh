@@ -19,9 +19,9 @@ echo -e "====== Monthly Changes in OBS Namespaces ======\n\n" >$MONTHLY
 for f in `find "$PAGES" -maxdepth 1 -type d | sort`; do
     [ ! -d "$f/obs" ] && continue
     LANG="${f##*/}"
-    echo "===== $LANG OBS =====" >>$WEEKLY
+    echo "**[[:$LANG:obs|$LANG]] OBS**" >>$WEEKLY
     echo "{{changes>ns=$LANG:obs&maxage=604800&render=pagelist(header,date,user,nocomments)}}
 " >>$WEEKLY
-    echo "===== $LANG OBS =====" >>$MONTHLY
+    echo "**[[:$LANG:obs|$LANG]] OBS**" >>$MONTHLY
     echo "{{changes>ns=$LANG:obs&maxage=25920000&render=pagelist(header,date,user,nocomments)}}" >>$MONTHLY
 done
