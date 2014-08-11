@@ -17,12 +17,13 @@ import urllib2
 
 caturl = 'http://api.unfoldingword.org/obs/txt/1/obs-catalog.json'
 uwstatpage = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/uwadmin/pub_status.txt'
+iconsdir = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/jpg/1/checkinglevels'
 pub_statustmpl = u'''====== unfoldingWord OBS Published Languages ======
 '''
 langtmpl = u'''
 ===== {0} =====
-^Language   ^Publish Date   ^Version ^
-| [[:en:uwadmin:{0}:obs:status|{1}]]      | {2}           | {3}    |
+^Language   ^Publish Date   ^Version    ^Checking Level ^
+|  [[:en:uwadmin:{0}:obs:status|{1}]]  |  {2}  |  {3}  |  {{{{http://api.unfoldingword.org/obs/jpg/1/checkinglevels/uW-Level{4}-32px.png}}}}  |
 '''
 
 def getCat(url):
@@ -45,7 +46,8 @@ def updateUWStatus(cat, fd):
         fd.write(langtmpl.format(e['language'],
                                  e['string'],
                                  e['status']['publish_date'],
-                                 e['status']['version']))
+                                 e['status']['version'],
+                                 e['status']['checking_level']))
 
 def createStatfile(f):
     f = codecs.open(f, encoding='utf-8', mode='w')
