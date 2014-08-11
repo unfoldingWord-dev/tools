@@ -284,6 +284,14 @@ def uwQA(jsd, lang, status):
     # Tests passed, return true
     return flag
 
+def updateUWAdminStatusPage():
+    sys.path.append('/var/www/vhosts/door43.org/tools/obs/dokuwiki')
+    try:
+        import obs_published_langs
+    except:
+        print 'Could not import obs_published_langs, check path.'
+    obs_published_langs.updatePage(obs_published_langs.caturl,
+                                              obs_published_langs.uwstatpage)
 
 if __name__ == '__main__':
     unfoldingwordexport = False
@@ -382,3 +390,4 @@ if __name__ == '__main__':
     if unfoldingwordexport:
         uwcatjson = getDump(uwcatalog)
         writePage(uwcatpath, uwcatjson)
+        updateUWAdminStatusPage()
