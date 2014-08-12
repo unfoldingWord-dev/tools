@@ -10,7 +10,7 @@
 
 
 """
-This script renames the DokuWiki export UWB files to appropriate USFM
+This script renames the DokuWiki export UTB files to appropriate USFM
 filenames.
 
 Requires that https://github.com/Door43/USFM-Tools be checked out to
