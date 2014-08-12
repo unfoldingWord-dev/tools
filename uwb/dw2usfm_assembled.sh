@@ -8,7 +8,7 @@
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
 
-UWBDW='/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/uwb/v1/'
+UWBDW='/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/utb/v1/'
 UWBUSFM='/tmp/UWB-USFM'
 
 rm -rf "$UWBUSFM"
@@ -18,6 +18,7 @@ for d in `find "$UWBDW" -type d -name '[a-z0-9][a-z0-9][a-z0-9]'`; do
     bk="${d##*/}"
     for f in `ls "$d" | sort -n`; do
         [ -d "$d/$f" ] && continue
+        [ "$f" == "home.txt" ] && continue
         cat "$d/$f" | \
          sed -e 's/\\add\*//g' \
              -e 's/\\add//g' \

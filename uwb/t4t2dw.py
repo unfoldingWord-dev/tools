@@ -179,7 +179,7 @@ def main(arguments):
 
   f = codecs.open('{0}/uwb.txt'.format(outputDir), encoding='utf-8', mode='w')
   for e in fileList:
-    f.write('  * [[en:uwb:v1:{0}|{1}]]\n'.format(e.lower(), 
+    f.write('  * [[en:utb:v1:{0}|{1}]]\n'.format(e.lower(),
       e.strip('.usfm').replace(':', ' ')))
   f.close()
 
