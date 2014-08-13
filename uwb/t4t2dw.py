@@ -26,6 +26,35 @@ import zipfile
 import argparse
 import datetime
 
+LICENSE = u'''~~NOCACHE~~
+\mt unfoldingWord | Translator's Bible
+
+\p \\bd an unrestricted Bible intended for translation into any language \\bd*
+
+\p \em http://unfoldingWord.org/Bible \em*
+
+\p unfoldingWord Translator's Bible, v. 0.1
+
+This work is based on \em The Translation for Translators \em* by Ellis Deibler, available under the terms of a Creative Commons Attribution-ShareAlike 4.0 International License (http://creativecommons.org/licenses/by-sa/4.0/).
+
+
+\p License:
+
+\p This work is made available under a Creative Commons Attribution-ShareAlike 4.0 International License (http://creativecommons.org/licenses/by-sa/4.0/).
+
+\p You are free:
+
+\p \\bd Share \\bd* — copy and redistribute the material in any medium or format
+\p \\bd Adapt \\bd* — remix, transform, and build upon the material for any purpose, even commercially.
+
+\p Under the following conditions:
+
+\p \\bd Attribution \\bd* — You must attribute the work as follows: "Original work available at http://openbiblestories.com." Attribution statements in derivative works should not in any way suggest that we endorse you or your use of this work.
+\p \\bd ShareAlike \\bd* — If you remix, transform, or build upon the material, you must distribute your contributions under the same license as the original.
+
+\p Use of trademarks: \\bd unfoldingWord \\bd* is a trademark of Distant Shores Media and may not be included on any derivative works created from this content.  Unaltered content from http://unfoldingWord.org must include the \\bd unfoldingWord \\bd* logo when distributed to others. But if you alter the content in any way, you must remove the \\bd unfoldingWord \\bd* logo before distributing your work.
+'''
+
 # USFM footnote syntax strings
 footnote = u'\\f + \\ft {0} \\f*'
 refootnote = ur'\\f + \\ft {0} \\f*'
@@ -182,6 +211,7 @@ def main(arguments):
     f.write('  * [[en:utb:v1:{0}|{1}]]\n'.format(e.lower(),
       e.strip('.usfm').replace(':', ' ')))
   f.close()
+  writeFile('{0}/frt/000.usfm.txt'.format(outputDir), LICENSE)
 
 
 def writeFile(f, content):
@@ -230,13 +260,11 @@ def unzip(source, dest):
 
 
 def getURL(url, outfile):
-  print "Getting %s" % url
   try:
     request = urllib2.urlopen(url)
   except:
     print "  => ERROR retrieving %s\nCheck the URL" % url
     sys.exit(1)
-  print "  => Writing to %s" % outfile
   with open(outfile, 'wb') as fp:
     shutil.copyfileobj(request, fp)
 
