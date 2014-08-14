@@ -83,6 +83,8 @@ ftinft = re.compile(ur'(\\f \+ \\ft)([^*]*)\\f \+ \\ft([^\\]*)\\f\*',
 israelisp = re.compile(ur'Israelis', re.UNICODE)
 israelip = re.compile(ur'Israeli([^t])', re.UNICODE)
 
+t4tp = re.compile(ur'[tT]ranslation 4 .*$', re.UNICODE)
+
 # Pronoun notes abbreviation table
 prntable = {
   u'(inc)': u'inclusive',
@@ -200,7 +202,7 @@ def main(arguments):
     if not os.path.isdir(book):
       os.mkdir(book)
     outputFile = book+'/000.usfm.txt'
-    writeFile(outputFile, ''.join(bookHeader))
+    writeFile(outputFile, utbize(bookHeader))
     fileList.append('{0}:000.usfm'.format(bookID))
 
   # clean up after ourselves
@@ -218,6 +220,11 @@ def writeFile(f, content):
   out = codecs.open(f, encoding='utf-8', mode='w')
   out.write(content)
   out.close()
+
+
+def utbize(l):
+  s = u''.join(l)
+  return t4tp.sub(ur"unfoldingWord | Translator's Bible", s)
 
 
 def convert(f):
