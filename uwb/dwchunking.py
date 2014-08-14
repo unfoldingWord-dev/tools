@@ -16,17 +16,21 @@ import os
 import sys
 import codecs
 
-TMPL = u'''====== Book Reference {1} ======
+TMPL = u'''====== {1} ======
 
 
 ===== TFT: =====
 
+<usfm>
 {0}
+</usfm>
 
 
 ===== UTB: =====
 
+<usfm>
 {0}
+</usfm>
 
 
 ===== Important Terms: =====
