@@ -149,7 +149,7 @@ def main(arguments):
 
   # list books
   fileList = []
-  files = glob.glob(sourceDir + '*.usfm')
+  files = glob.glob(sourceDir + '*[Ss][Ff][Mm]')
   for path in files:
     # open a new book
     f = codecs.open(path, encoding='utf-8')
@@ -260,6 +260,7 @@ def unzip(source, dest):
 
 
 def getURL(url, outfile):
+  print "Getting ZIP"
   try:
     request = urllib2.urlopen(url)
   except:
