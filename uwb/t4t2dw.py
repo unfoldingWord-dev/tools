@@ -128,7 +128,7 @@ def main(arguments):
     if not os.path.isdir(outputDir):
       os.mkdir(outputDir)
 
-  bookTags = ['\id', '\ide', '\h', '\\toc1', '\\toc2', '\\toc3', '\mt']
+  bookTags = ['\id', '\ide', '\h', '\\toc1', '\\toc2', '\\toc3', '\mt', '\mt1']
   t4tzip = '/tmp/eng-t4t_usfm.zip_{0}'.format(str(datetime.date.today()))
 
   # clean the workspace
