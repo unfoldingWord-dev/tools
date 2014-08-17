@@ -173,82 +173,15 @@ def exportunfoldingWord(status, gitdir, json, lang, githuborg):
     writePage(os.path.join(gitdir, 'status-{0}.json'.format(lang)), statjson)
     writePage(os.path.join(gitdir, 'README.md'), readme)
     gitCreate(gitdir)
-    githubCreate(gitdir, lang, githuborg)
+    name = 'obs-{0}'.format(lang)
+    desc = 'Open Bible Stories for {0}'.format(lang)
+    url = 'http://unfoldingword.org/{0}/'.format(lang)
+    githubCreate(gitdir, name, desc, url, githuborg)
     commitmsg = str(status)
     if 'comments' in status:
         commitmsg = status['comments']
     gitCommit(gitdir, commitmsg)
     gitPush(gitdir)
-
-def gitCreate(d):
-    '''
-    Creates local GIT repo and pushes to Github.
-    '''
-    if os.path.exists(os.path.join(d, '.git')):
-        return
-    os.chdir(d)
-    out, ret = runCommand('git init .')
-    if ret > 0:
-        print 'Failed to create a GIT repo in: {0}'.format(d)
-        sys.exit(1)
-
-def githubCreate(d, lang, org):
-    '''
-    Creates a Github repo for lang unless it already exists.
-    '''
-    rname = 'obs-{0}'.format(lang)
-    try:
-        repo = org.get_repo(rname)
-        return
-    except GithubException:
-        try:
-            repo = org.create_repo(rname,
-                            'Open Bible Stories for {0}'.format(lang),
-                            'http://unfoldingword.org/{0}/'.format(lang),
-                            has_issues=False,
-                            has_wiki=False,
-                            auto_init=False,
-                            )
-        except GithubException as ghe:
-            print(ghe)
-            return
-    os.chdir(d)
-    out, ret = runCommand('git remote add origin {0}'.format(repo.ssh_url))
-    if ret > 0:
-        print 'Failed to add Github remote to repo in: {0}'.format(d)
-
-def gitCommit(d, msg):
-    '''
-    Adds all files in d and commits with message m.
-    '''
-    os.chdir(d)
-    out, ret = runCommand('git add *')
-    out1, ret1= runCommand('''git commit -am '{0}' '''.format(msg))
-    if ret > 0 or ret1 > 0:
-        print 'Nothing to commit, or failed commit to repo in: {0}'.format(d)
-        print out1
-
-def gitPush(d):
-    '''
-    Pushes local repository to github.
-    '''
-    os.chdir(d)
-    out, ret = runCommand('git push origin master')
-    if ret > 0:
-        print out
-        print 'Failed to push repo to Github in: {0}'.format(d)
-
-def runCommand(c):
-    command = shlex.split(c)
-    com = Popen(command, shell=False, stdout=PIPE, stderr=PIPE)
-    comout = ''.join(com.communicate()).strip()
-    return comout, com.returncode
-
-def getGithubOrg(orgname):
-    user = raw_input('Github username: ').strip()
-    pw = raw_input('Github password: ').strip()
-    g = Github(user, pw)
-    return g.get_organization(orgname)
 
 def uwQA(jsd, lang, status):
     '''
@@ -297,11 +230,12 @@ if __name__ == '__main__':
     unfoldingwordexport = False
     if len(sys.argv) > 1:
         if sys.argv[1] == '--unfoldingwordexport':
+            sys.path.append('/var/www/vhosts/door43.org/tools/general_tools')
             try:
-                from github import Github
-                from github import GithubException
+                from git_wrapper import *
             except:
-                print "Please install PyGithub with pip"
+                print "Please verify that"
+                print "/var/www/vhosts/door43.org/tools/general_tools exists."
                 sys.exit(1)
             unfoldingwordexport = True
             try:
