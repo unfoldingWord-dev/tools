@@ -57,3 +57,6 @@ sed -i "s/ORIGDATE/`date +%F`/" "$PAGES/en/uwadmin/$LANG/obs/status.txt"
 
 # Update the changes pages
 /var/www/vhosts/door43.org/tools/obs/dokuwiki/obs-gen-changes-pages.sh
+
+# Create a github repo for this language
+#/var/www/vhosts/door43.org/tools/obs/dokuwiki/d43-git-init.py "$DEST"
