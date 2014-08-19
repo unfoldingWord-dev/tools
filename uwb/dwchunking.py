@@ -50,16 +50,19 @@ TMPL = u'''====== {1} ======
   * **[[en/bible-training/notes:43luk/questions/comprehension/01|Luke Chapter 1 Checking Questions]]**
  
 
-**[[en/bible-training/notes:43luk/01/14|<<]] | [[en/bible-training/notes:43luk/01/18|>>]]**'''
+**[[en/bible-training/notes:{2}|<<]] | [[en/bible-training/notes:{3}|>>]]**'''
 
 
 def splice(s):
+    chunks = []
     for i in s.split('\n===== '):
         ref, txt = i.split('=====\n', 1)
         ref = ref.strip()
         filepath = getpath(ref.lower())
         if not filepath: continue
-        writeFile(filepath, TMPL.format(txt.strip(), ref))
+        chunks.append([filepath, txt.strip(), ref])
+    chunks.sort(key=lambda chunks: chunks[0])
+    return chunks
 
 def getpath(r):
     fill = 2
@@ -87,6 +90,24 @@ def makeDir(d):
     if not os.path.exists(d):
         os.makedirs(d, 0755)
 
+def genNav(chunked):
+    '''
+    Walks the generated folder and creates next and previous links.
+    '''
+    for e in chunked:
+        #e[0] is filepath, e[1] is text, e[2] is ref
+        i = chunked.index(e)
+        prv = getNav(chunked, i-1)
+        nxt = getNav(chunked, i+1)
+        writeFile(e[0], TMPL.format(e[1], e[2], prv, nxt))
+
+def getNav(chunked, i):
+    if i == -1:
+        return ''
+    elif i >= len(chunked):
+        return ''
+    return chunked[i][0]
+
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
@@ -98,4 +119,5 @@ if __name__ == '__main__':
         print 'Please specify the file to chunk.'
         sys.exit(1)
     src = codecs.open(filetochunk, encoding='utf-8').read()
-    splice(src)
+    chunked = splice(src)
+    genNav(chunked)
