@@ -62,12 +62,15 @@ def splice(s):
         writeFile(filepath, TMPL.format(txt.strip(), ref))
 
 def getpath(r):
+    fill = 2
     try:
         book, ref = r.split(' ')
         #bk = books[book]
         c, vv = ref.split(':')
         v = vv.split('-')[0]
-        return '{0}/{1}/{2}.txt'.format(book, c.zfill(3), v.zfill(3))
+        if 'psa' in book.lower():
+           fill = 3
+        return '{0}/{1}/{2}.txt'.format(book, c.zfill(fill), v.zfill(fill))
     except:
         return False
 
