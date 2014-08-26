@@ -20,7 +20,7 @@ import datetime
 from subprocess import *
 
 
-obs_web = '/var/www/vhosts/unfolding/httpdocs/obs/'
+obs_web = '/var/www/vhosts/unfoldingword.org/httpdocs/obs/'
 unfoldingWorddir = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
 uw_img_api = 'http://api.unfoldingword.org/obs/jpg/1/'
 digits = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
