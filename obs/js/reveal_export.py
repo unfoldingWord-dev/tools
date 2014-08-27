@@ -25,8 +25,6 @@ title = u'<section><h1>{0}</h1><h3>{1}</h3></section>'
 frame = u'<section data-background="{0}"><p>{1}</p></section>'
 head = readFile('index.head.html')
 foot = readFile('index.foot.html')
-#single_head = readFile('single_index.head.html')
-#single_foot = readFile('single_index.foot.html')
 
 
 def buildReveal(outdir, j):
