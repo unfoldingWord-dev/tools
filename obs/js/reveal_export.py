@@ -23,11 +23,9 @@ unfoldingWorddir = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
 uw_img_api = 'http://api.unfoldingword.org/obs/jpg/1/'
 title = u'<section><h1>{0}</h1><h3>{1}</h3></section>'
 frame = u'<section data-background="{0}"><p>{1}</p></section>'
-head = readFile('index.head.html')
-foot = readFile('index.foot.html')
 
 
-def buildReveal(outdir, j):
+def buildReveal(outdir, j, t):
     ldirection = j['direction']
     lang = j['language']
     resolutions = ['360px', '2160px']
@@ -40,7 +38,7 @@ def buildReveal(outdir, j):
                 imgURL = getImgURL(lang, res, f['id'])
                 page.append(frame.format(imgURL, f['text']))
             writeFile(os.path.join(outdir, res, chpnum, 'index.html'),
-                                     '\n'.join([head, '\n'.join(page), foot]))
+                                     '\n'.join([t[0], '\n'.join(page), t[1]]))
 
 def getImgURL(lang, res, fid):
     return '{0}{1}/{2}/obs-{3}-{4}.jpg'.format(uw_img_api, lang, res, lang, fid)
@@ -76,4 +74,5 @@ if __name__ == '__main__':
         langjson = loadJSON(os.path.join(unfoldingWorddir, lang,
                                            'obs-{0}.json'.format( lang)), 'd')
         rjs_dir = os.path.join(obs_web, lang)
-        buildReveal(rjs_dir, langjson)
+        template = [readFile('index.head.html'), readFile('index.foot.html')]
+        buildReveal(rjs_dir, langjson, template)
