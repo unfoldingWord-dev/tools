@@ -7,8 +7,6 @@
 #
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
-#
-#  Requires PyGithub for unfoldingWord export.
 
 import os
 import re
@@ -23,92 +21,12 @@ from subprocess import *
 obs_web = '/var/www/vhosts/unfoldingword.org/httpdocs/obs/'
 unfoldingWorddir = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
 uw_img_api = 'http://api.unfoldingword.org/obs/jpg/1/'
-digits = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
-rtl = ['he', 'ar', 'fa']
-langnames = os.path.join('/var/www/vhosts/door43.org',
-                        'httpdocs/lib/plugins/translation/lang/langnames.txt')
 title = u'<section><h1>{0}</h1><h3>{1}</h3></section>'
 frame = u'<section data-background="{0}"><p>{1}</p></section>'
-head = u'''<!doctype html>
-<html lang="en">
-
-    <head>
-        <meta charset="utf-8">
-
-        <title>unfoldingWord Open Bible Stories</title>
-
-        <meta name="description" content="an unrestricted visual mini-Bible in any language">
-        <meta name="author" content="Created by Distant Shores Media (http://distantshores.org) and the Door43 world missions community (http://door43.org).">
-
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-        <link rel="stylesheet" href="/css/reveal.min.css">
-        <link rel="stylesheet" href="/css/theme/default.css" id="theme">
-
-        <!-- For syntax highlighting -->
-        <link rel="stylesheet" href="/css/zenburn.css">
-
-        <!-- If the query includes 'print-pdf', include the PDF print sheet -->
-        <script>
-            if( window.location.search.match( /print-pdf/gi ) ) {
-                var link = document.createElement( 'link' );
-                link.rel = 'stylesheet';
-                link.type = 'text/css';
-                link.href = '/css/print/pdf.css';
-                document.getElementsByTagName( 'head' )[0].appendChild( link );
-            }
-        </script>
-
-        <!--[if lt IE 9]>
-        <script src="/js/html5shiv.js"></script>
-        <![endif]-->
-    </head>
-    <body>
-        <div class="reveal">
-            <div class="slides">'''
-foot = u'''
-            </div>
-        </div>
-
-        <script src="/js/head.min.js"></script>
-        <script src="/js/reveal.min.js"></script>
-
-        <script>
-
-            // Full list of configuration options available here:
-            // https://github.com/hakimel/reveal.js#configuration
-            Reveal.initialize({
-                controls: true,
-                progress: true,
-                history: true,
-                center: true,
-
-                theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
-                transition: Reveal.getQueryHash().transition || 'fade', // default/cube/page/concave/zoom/linear/fade/none
-
-                // Parallax scrolling
-                // parallaxBackgroundImage: 'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg',
-                // parallaxBackgroundSize: '2100px 900px',
-
-                // Optional libraries used to extend on reveal.js
-                dependencies: [
-                    { src: '/js/classList.js', condition: function() { return !document.body.classList; } },
-                    { src: '/js/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
-                    { src: '/js/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
-                    { src: '/js/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
-                    { src: '/js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
-                    { src: '/js/notes.js', async: true, condition: function() { return !!document.body.classList; } }
-                ]
-            });
-
-        </script>
-
-    </body>
-</html>
-'''
+head = readFile('index.head.html')
+foot = readFile('index.foot.html')
+#single_head = readFile('single_index.head.html')
+#single_foot = readFile('single_index.foot.html')
 
 
 def buildReveal(outdir, j):
@@ -128,6 +46,10 @@ def buildReveal(outdir, j):
 
 def getImgURL(lang, res, fid):
     return '{0}{1}/{2}/obs-{3}-{4}.jpg'.format(uw_img_api, lang, res, lang, fid)
+
+def readFile(infile):
+    f = codecs.open(infile, 'r', encoding='utf-8').read()
+    return f
 
 def writeFile(outfile, page):
     makeDir(outfile.rpartition('/')[0])
@@ -149,32 +71,11 @@ def loadJSON(f, t):
 
 
 if __name__ == '__main__':
-    unfoldingwordexport = False
-    if len(sys.argv) > 1:
-        if sys.argv[1] == '--unfoldingwordexport':
-            sys.path.append('/var/www/vhosts/door43.org/tools/general_tools')
-            try:
-                from git_wrapper import *
-            except:
-                print "Please verify that"
-                print "/var/www/vhosts/door43.org/tools/general_tools exists."
-                sys.exit(1)
-            unfoldingwordexport = True
-            try:
-                githuborg = getGithubOrg('unfoldingword')
-            except:
-                print 'Could not login to Github'
-                sys.exit(1)
-        else:
-            print 'Unknown argument: {0}'.format(sys.argv[1])
     for lang in os.listdir(unfoldingWorddir):
         if os.path.isfile(os.path.join(unfoldingWorddir, lang)):
             continue
 
         langjson = loadJSON(os.path.join(unfoldingWorddir, lang,
                                            'obs-{0}.json'.format( lang)), 'd')
-        langdirection = 'ltr'
-        if lang in rtl:
-            langdirection = 'rtl'
         rjs_dir = os.path.join(obs_web, lang)
         buildReveal(rjs_dir, langjson)
