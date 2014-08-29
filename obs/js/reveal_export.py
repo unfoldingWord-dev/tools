@@ -28,9 +28,17 @@ except:
 obs_web = '/var/www/vhosts/unfoldingword.org/httpdocs/'
 unfoldingWorddir = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
 uw_img_api = 'http://api.unfoldingword.org/obs/jpg/1/'
-title = u'<section><h1>{0}</h1><h3>{1}</h3></section>'
+title = u'''    <div class="contents">
+        <div class="reveal">
+            <div class="slides">
+                <section><h1>{0}</h1><h3>{1}</h3></section>'''
 frame = u'<section data-background="{0}"><p>{1}</p></section>'
 nextlink = u'<section><a href="../{0}/index.html"><p>{1}</p></a></section>'
+menutmpl = u'''    <div class="meny">
+        <ul>
+            <li>{0}</li>
+        </ul>
+    </div>'''
 commitmsg = u'Updated OBS presentation'
 index_head = '/var/www/vhosts/door43.org/tools/obs/js/index.head.html'
 index_foot = '/var/www/vhosts/door43.org/tools/obs/js/index.foot.html'
@@ -46,11 +54,14 @@ def buildReveal(outdir, j, t):
     lang = j['language']
     resolutions = ['360px', '2160px']
     nextstory = j['app_words']['next_chapter']
+    chapters = getChapters(j['chapters'])
+    menu = menutmpl.format(u'</li>\n            <li>'.join(chapters))
     for res in resolutions:
         i = 1
         for c in j['chapters']:
             page = []
             chpnum = c['number'].strip('.txt')
+            page.append(menu)
             page.append(title.format(c['title'], c['ref']))
             for f in c['frames']:
                 imgURL = getImgURL(lang, res, f['id'])
@@ -61,6 +72,13 @@ def buildReveal(outdir, j, t):
             writeTemplate(os.path.join(outdir, res, chpnum, 'index.html'),
                    os.path.join(unfoldingWorddir, lang, 'slides', res, chpnum,
                       'index.html'), '\n'.join([t[0], '\n'.join(page), t[1]]))
+
+def getChapters(chps):
+    '''
+    Builds menu system based on chapter names.
+    '''
+    return [c['title'] for c in chps]
+
 
 def writeTemplate(wwwfile, localfile, page):
     '''
