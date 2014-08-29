@@ -31,6 +31,8 @@ uw_img_api = 'http://api.unfoldingword.org/obs/jpg/1/'
 title = u'<section><h1>{0}</h1><h3>{1}</h3></section>'
 frame = u'<section data-background="{0}"><p>{1}</p></section>'
 commitmsg = u'Updated OBS presentation'
+index_head = '/var/www/vhosts/door43.org/tools/obs/js/index.head.html'
+index_foot = '/var/www/vhosts/door43.org/tools/obs/js/index.foot.html'
 
 
 def buildReveal(outdir, j, t):
@@ -51,7 +53,7 @@ def buildReveal(outdir, j, t):
             writeFile(os.path.join(outdir, res, chpnum, 'index.html'),
                                      '\n'.join([t[0], '\n'.join(page), t[1]]))
 
-def github_export(revealdir, gitdir)
+def github_export(revealdir, gitdir):
     '''
     Copies reveal.js presentation into github repo for language, commits and
     pushes to github for the given langauge directory.
@@ -114,7 +116,7 @@ if __name__ == '__main__':
         langjson = loadJSON(os.path.join(unfoldingWorddir, lang,
                                            'obs-{0}.json'.format( lang)), 'd')
         rjs_dir = os.path.join(obs_web, lang)
-        template = [readFile('index.head.html'), readFile('index.foot.html')]
+        template = [readFile(index_head), readFile(index_foot)]
         buildReveal(rjs_dir, langjson, template)
         unfoldingWordlangdir = os.path.join(unfoldingWorddir, lang)
         github_export(rjs_dir, unfoldingWordlangdir)
