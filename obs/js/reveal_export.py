@@ -33,6 +33,8 @@ frame = u'<section data-background="{0}"><p>{1}</p></section>'
 commitmsg = u'Updated OBS presentation'
 index_head = '/var/www/vhosts/door43.org/tools/obs/js/index.head.html'
 index_foot = '/var/www/vhosts/door43.org/tools/obs/js/index.foot.html'
+localrespaths = { u'PATH_CSS': u'../../css', u'PATH_JS': u'../../js' }
+wwwrespaths = { u'PATH_CSS': u'/css', u'PATH_JS': u'/js' }
 
 
 def buildReveal(outdir, j, t):
@@ -50,10 +52,24 @@ def buildReveal(outdir, j, t):
             for f in c['frames']:
                 imgURL = getImgURL(lang, res, f['id'])
                 page.append(frame.format(imgURL, f['text']))
-            writeFile(os.path.join(outdir, res, chpnum, 'index.html'),
-                                     '\n'.join([t[0], '\n'.join(page), t[1]]))
+            writeTemplate(os.path.join(outdir, res, chpnum, 'index.html'),
+                   os.path.join(unfoldingWorddir, lang, 'slides', res, chpnum,
+                      'index.html'), '\n'.join([t[0], '\n'.join(page), t[1]]))
 
-def github_export(revealdir, gitdir):
+def writeTemplate(wwwfile, localfile, page):
+    '''
+    Writes out two versions, one for web viewer and one for local viewer.
+    '''
+    localpage = page
+    wwwpage = page
+    for k,v in localrespaths.iteritems():
+        localpage = localpage.replace(k, v)
+    writeFile(localfile, localpage)
+    for k,v in wwwrespaths.iteritems():
+        wwwpage = wwwpage.replace(k, v)
+    writeFile(wwwfile, wwwpage)
+
+def github_export(revealdir, gitdir, lang):
     '''
     Copies reveal.js presentation into github repo for language, commits and
     pushes to github for the given langauge directory.
@@ -119,4 +135,4 @@ if __name__ == '__main__':
         template = [readFile(index_head), readFile(index_foot)]
         buildReveal(rjs_dir, langjson, template)
         unfoldingWordlangdir = os.path.join(unfoldingWorddir, lang)
-        github_export(rjs_dir, unfoldingWordlangdir)
+        github_export(rjs_dir, unfoldingWordlangdir, lang)
