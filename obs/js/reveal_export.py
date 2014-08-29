@@ -30,6 +30,7 @@ unfoldingWorddir = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
 uw_img_api = 'http://api.unfoldingword.org/obs/jpg/1/'
 title = u'<section><h1>{0}</h1><h3>{1}</h3></section>'
 frame = u'<section data-background="{0}"><p>{1}</p></section>'
+nextlink = u'<section><a href="../{0}/index.html"><p>{1}</p></a></section>'
 commitmsg = u'Updated OBS presentation'
 index_head = '/var/www/vhosts/door43.org/tools/obs/js/index.head.html'
 index_foot = '/var/www/vhosts/door43.org/tools/obs/js/index.foot.html'
@@ -44,7 +45,9 @@ def buildReveal(outdir, j, t):
     ldirection = j['direction']
     lang = j['language']
     resolutions = ['360px', '2160px']
+    nextstory = j['app_words']['next_chapter']
     for res in resolutions:
+        i = 1
         for c in j['chapters']:
             page = []
             chpnum = c['number'].strip('.txt')
@@ -52,6 +55,9 @@ def buildReveal(outdir, j, t):
             for f in c['frames']:
                 imgURL = getImgURL(lang, res, f['id'])
                 page.append(frame.format(imgURL, f['text']))
+            if i < 50:
+                page.append(nextlink.format(str(i+1).zfill(2), nextstory))
+            i += 1
             writeTemplate(os.path.join(outdir, res, chpnum, 'index.html'),
                    os.path.join(unfoldingWorddir, lang, 'slides', res, chpnum,
                       'index.html'), '\n'.join([t[0], '\n'.join(page), t[1]]))
