@@ -27,8 +27,9 @@ import zipfile
 import argparse
 import datetime
 
-words_path = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/ulb/subs'
-phrases_path = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/ulb/phrase_subs'
+words_path = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/ulb/v1/subs.txt'
+phrases_path = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/ulb/v1/phrase_subs.txt'
+asvp = re.compile(ur'[tT]ranslation 4 .*$', re.UNICODE)
 LICENSE = u'''~~NOCACHE~~
 \mt unfoldingWord | Literal Bible
 
