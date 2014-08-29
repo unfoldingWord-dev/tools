@@ -15,15 +15,15 @@ import sys
 import json
 import shlex
 from subprocess import *
-try:
-    from github import Github
-    from github import GithubException
-except:
-    print "Please install PyGithub with pip"
-    sys.exit(1)
 
 
 def getGithubOrg(orgname):
+    try:
+        from github import Github
+        from github import GithubException
+    except:
+        print "Please install PyGithub with pip"
+    sys.exit(1)
     user = raw_input('Github username: ').strip()
     pw = raw_input('Github password: ').strip()
     g = Github(user, pw)
