@@ -38,6 +38,7 @@ menutmpl = u'''    <div class="meny">
         <ul>
             {0}
         </ul>
+        <p><a href="https://unfoldingword.org/stories/">Open Bible Stories Home</a></p>
     </div>'''
 commitmsg = u'Updated OBS presentation'
 index_head = '/var/www/vhosts/door43.org/tools/obs/js/index.head.html'
