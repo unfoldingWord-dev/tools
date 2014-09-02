@@ -28,10 +28,9 @@ except:
 obs_web = '/var/www/vhosts/unfoldingword.org/httpdocs/'
 unfoldingWorddir = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
 uw_img_api = 'http://api.unfoldingword.org/obs/jpg/1/'
-title = u'''    <div class="contents">
-        <div class="reveal">
-            <div class="slides">
-                <section><h1>{0}</h1><h3>{1}</h3></section>'''
+title = u'''    <div class="reveal">
+        <div class="slides">
+            <section><h1>{0}</h1><h3>{1}</h3></section>'''
 frame = u'<section data-background="{0}"><p>{1}</p></section>'
 nextlink = u'<section><a href="../{0}/index.html"><p>{1}</p></a></section>'
 menutmpl = u'''    <div class="meny">
