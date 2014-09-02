@@ -41,7 +41,7 @@ menutmpl = u'''    <div class="meny">
         </ul>
         <p><a href="https://unfoldingword.org/stories/">Open Bible Stories Home</a></p>
     </div>'''
-commitmsg = u'Updated OBS presentation'
+commitmsg = u'Updated OBS slides'
 index_head = '/var/www/vhosts/door43.org/tools/obs/js/index.head.html'
 index_foot = '/var/www/vhosts/door43.org/tools/obs/js/index.foot.html'
 localrespaths = { u'PATH_CSS': u'../../css', u'PATH_JS': u'../../js' }
@@ -90,7 +90,6 @@ def getMenu(chps):
     for c in chps:
         menu.append(menulink.format(str(i).zfill(2), c))
         i += 1
-    #return menutmpl.format(u'</li>\n            <li>'.join(chapters))
     return menutmpl.format(u'\n            '.join(menu))
 
 
@@ -121,8 +120,8 @@ def github_export(revealdir, gitdir, lang):
         if not rsync(d, slidedir):
             print 'Failed to rsync {0} to {1}'.format(d, slidedir)
             sys.exit(1)
-    gitCommit(gitdir, commitmsg)
-    gitPush(gitdir)
+    #gitCommit(gitdir, commitmsg)
+    #gitPush(gitdir)
 
 def rsync(src, dst):
     '''
@@ -161,8 +160,7 @@ def loadJSON(f, t):
     else:
       return json.loads('[]')
 
-
-if __name__ == '__main__':
+def export():
     for lang in os.listdir(unfoldingWorddir):
         if os.path.isfile(os.path.join(unfoldingWorddir, lang)):
             continue
@@ -174,3 +172,7 @@ if __name__ == '__main__':
         buildReveal(rjs_dir, langjson, template)
         unfoldingWordlangdir = os.path.join(unfoldingWorddir, lang)
         github_export(rjs_dir, unfoldingWordlangdir, lang)
+
+
+if __name__ == '__main__':
+    export()
