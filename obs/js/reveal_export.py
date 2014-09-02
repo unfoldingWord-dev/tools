@@ -33,9 +33,10 @@ title = u'''    <div class="reveal">
             <section><h1>{0}</h1><h3>{1}</h3></section>'''
 frame = u'<section data-background="{0}"><p>{1}</p></section>'
 nextlink = u'<section><a href="../{0}/index.html"><p>{1}</p></a></section>'
+menulink = u'<li><a href="../{0}/index.html">{1}</a></li>'
 menutmpl = u'''    <div class="meny">
         <ul>
-            <li>{0}</li>
+            {0}
         </ul>
     </div>'''
 commitmsg = u'Updated OBS presentation'
@@ -54,7 +55,7 @@ def buildReveal(outdir, j, t):
     resolutions = ['360px', '2160px']
     nextstory = j['app_words']['next_chapter']
     chapters = getChapters(j['chapters'])
-    menu = menutmpl.format(u'</li>\n            <li>'.join(chapters))
+    menu = getMenu(chapters)
     for res in resolutions:
         i = 1
         for c in j['chapters']:
@@ -74,9 +75,21 @@ def buildReveal(outdir, j, t):
 
 def getChapters(chps):
     '''
-    Builds menu system based on chapter names.
+    Returns list of chapters.
     '''
     return [c['title'] for c in chps]
+
+def getMenu(chps):
+    '''
+    Returns an HTML list formated string of the chapters with links.
+    '''
+    menu = []
+    i = 1
+    for c in chps:
+        menu.append(menulink.format(str(i).zfill(2), c))
+        i += 1
+    #return menutmpl.format(u'</li>\n            <li>'.join(chapters))
+    return menutmpl.format(u'\n            '.join(menu))
 
 
 def writeTemplate(wwwfile, localfile, page):
