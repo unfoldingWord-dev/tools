@@ -120,8 +120,8 @@ def github_export(revealdir, gitdir, lang):
         if not rsync(d, slidedir):
             print 'Failed to rsync {0} to {1}'.format(d, slidedir)
             sys.exit(1)
-    #gitCommit(gitdir, commitmsg)
-    #gitPush(gitdir)
+    gitCommit(gitdir, commitmsg)
+    gitPush(gitdir)
 
 def rsync(src, dst):
     '''
