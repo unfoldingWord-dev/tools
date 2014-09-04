@@ -34,7 +34,7 @@ title = u'''    <div class="meny-arrow"></div>
             <section><h1>{0}</h1><h3>{1}</h3></section>'''
 frame = u'<section data-background="{0}"><p>{1}</p></section>'
 nextlink = u'<section><a href="../{0}/index.html"><p>{1}</p></a></section>'
-menulink = u'<li><a href="../{0}/index.html">{1}</a></li>'
+menulink = u'<li><a href="../{0}/PATH_INDEX">{1}</a></li>'
 menutmpl = u'''    <div class="meny">
         <ul>
             {0}
@@ -44,8 +44,8 @@ menutmpl = u'''    <div class="meny">
 commitmsg = u'Updated OBS slides'
 index_head = '/var/www/vhosts/door43.org/tools/obs/js/index.head.html'
 index_foot = '/var/www/vhosts/door43.org/tools/obs/js/index.foot.html'
-localrespaths = { u'PATH_CSS': u'../../css', u'PATH_JS': u'../../js' }
-wwwrespaths = { u'PATH_CSS': u'/css', u'PATH_JS': u'/js' }
+localrespaths = { u'PATH_CSS': u'../../css', u'PATH_JS': u'../../js', u'PATH_INDEX': u'index.html' }
+wwwrespaths = { u'PATH_CSS': u'/css', u'PATH_JS': u'/js' , u'PATH_INDEX': u''}
 
 
 def buildReveal(outdir, j, t):
