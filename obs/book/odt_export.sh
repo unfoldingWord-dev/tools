@@ -58,10 +58,10 @@ outputfile="/tmp/obs-$lang-`date +%F`.html"
 echo "Exporting to $outputfile"
 rm -f "$outputfile"
 
+$OBS_EXPORT -l $lang -f html -o "/tmp/obs.html"
+
 doku2html "$PAGES/$lang/obs/front-matter.txt" >>"$outputfile"
-
-$OBS_EXPORT -l $lang -f html -o "$outputfile"
-
+cat "/tmp/obs.html" >>"$outputfile"
 doku2html "$PAGES/$lang/obs/back-matter.txt" >>"$outputfile"
 
-pandoc -S -o "${outputfile%%.html}.odt" --reference-odt=$TEMPLATE "$outputfile"
+echo pandoc-dev -S -o "${outputfile%%.html}.odt" --reference-odt=$TEMPLATE "$outputfile"
