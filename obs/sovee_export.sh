@@ -53,7 +53,7 @@ if [ -z "$lang" ]; then
     help
 fi
 
-outputfile="/tmp/obs-tn-$lang-`date +%F`.md"
+outputfile="/tmp/sovee-obs-$lang-`date +%F`.txt"
 echo "Exporting to $outputfile"
 rm -f "$outputfile"
 
@@ -71,6 +71,6 @@ for f in `find $PAGES/en/obs -type f -name '[0-5][0-9].txt'`; do
     export_file $f
 done
 
-for f in `find $PAGES/en/obs/notes -type f -name '*.txt'`; do
-    export_file $f
-done
+#for f in `find $PAGES/en/obs/notes -type f -name '*.txt'`; do
+    #export_file $f
+#done
