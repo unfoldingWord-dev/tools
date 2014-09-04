@@ -18,7 +18,7 @@ DSTBASE="/var/www/vhosts/door43.org/ts-exports"
 
 echo "Converting to HTML..."
 "$D2H" -s "$SRCBASE/obs/notes/" -d "$DSTBASE/notes/" &
-"$D2H" -s "$SRCBASE/key-terms/" -d "$DSTBASE/key-terms/" &
+"$D2H" -s "$SRCBASE/obs/key-terms/" -d "$DSTBASE/key-terms/" &
 "$D2H" -s "$SRCBASE/ta/" -d "$DSTBASE/ta/" &
 
 wait
