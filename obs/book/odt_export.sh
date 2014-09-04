@@ -10,9 +10,9 @@
 
 PROGNAME="${0##*/}"
 PANDOC="/usr/bin/pandoc"
-DOKU2HTML=/usr/local/bin/doku2html
 PAGES=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages
 TEMPLATE=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/media/en/obs-templates/obs-book-template.odt
+OBS_EXPORT="/var/www/vhosts/door43.org/tools/obs/export.py"
 
 help() {
     echo
@@ -49,28 +49,19 @@ if [ -z "$lang" ]; then
     echo "Error: language to export must be specified."
     help
 fi
+if [ ! -x "$OBS_EXPORT" ]; then
+    echo "Error: $OBS_EXPORT not found."
+    help
+fi
 
 outputfile="/tmp/obs-$lang-`date +%F`.html"
 echo "Exporting to $outputfile"
 rm -f "$outputfile"
 
-# Export from DokuWiki to HTML to Markdown function
-htmlexport () {
-    $DOKU2HTML "$1/front-matter.txt" >>"$outputfile"
-    for f in `find "$1" -maxdepth 1 -type f -name '[0-5][0-9].txt' | sort`; do
-        sed -e 's/{{https/<p><img src="https/' \
-            -e 's/jpg}}/jpg" \/><\/p>/' \
-            -e 's/\/\/A Bible/<p><em>A Bible/' \
-            -e 's/\/\/$/<\/em><\/p>/' \
-            -e 's/^====== /<h1>/' \
-            -e 's/ ======$/<\/h1>/' \
-            "$f" \
-            >> "$outputfile"
-    done
-    $DOKU2HTML "$1/back-matter.txt" >>"$outputfile"
-}
+doku2html "$PAGES/$lang/obs/front-matter.txt" >>"$outputfile"
 
-# Run the exports
-htmlexport $PAGES/$lang/obs/
+$OBS_EXPORT -l $lang -f html -o "$outputfile"
 
-echo pandoc -S -o "${outputfile}.odt" --reference-odt=$TEMPLATE "$outputfile"
+doku2html "$PAGES/$lang/obs/back-matter.txt" >>"$outputfile"
+
+pandoc -S -o "${outputfile%%.html}.odt" --reference-odt=$TEMPLATE "$outputfile"
