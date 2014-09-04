@@ -27,7 +27,7 @@ except:
 
 obs_web = '/var/www/vhosts/unfoldingword.org/httpdocs/'
 unfoldingWorddir = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
-uw_img_api = 'http://api.unfoldingword.org/obs/jpg/1/'
+uw_img_api = 'https://api.unfoldingword.org/obs/jpg/1/'
 title = u'''    <div class="meny-arrow"></div>
     <div class="reveal">
         <div class="slides">
