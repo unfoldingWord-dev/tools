@@ -11,6 +11,7 @@
 PROGNAME="${0##*/}"
 PANDOC="/usr/bin/pandoc"
 DOKU2HTML=/usr/local/bin/doku2html
+PAGES=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages
 
 help() {
     echo
@@ -64,7 +65,6 @@ tnexport () {
 }
 
 # Run the exports
-cd /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages
-tnexport $lang/key-terms
-tnexport $lang/obs/notes/frames
-tnexport $lang/obs/notes/questions
+tnexport $PAGES/$lang/obs/notes/key-terms
+tnexport $PAGES/$lang/obs/notes/frames
+tnexport $PAGES/$lang/obs/notes/questions
