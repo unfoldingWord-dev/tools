@@ -58,7 +58,7 @@ echo "Exporting to $outputfile"
 rm -f "$outputfile"
 
 export_file () {
-    f=`cat $1 | sed "s/en/$lang/"`
+    f=`echo $1 | sed "s/en/$lang/"`
     echo "filename: $f" >> "$outputfile"
     cat "$1" | \
         sed -e "s/en\/obs\/notes/$lang\/obs\/notes/" \
@@ -66,11 +66,12 @@ export_file () {
         >> "$outputfile"
 }
 
-# Run the exports
-for f in `find $PAGES/en/obs -type f -name '[0-5][0-9].txt'`; do
+if [ "$obs" == "YES" ]; then
+    for f in `find $PAGES/en/obs -type f -name '[0-5][0-9].txt' | sort`; do
+        export_file $f
+    done
+fi
+
+for f in `find $PAGES/en/obs/notes -type f -name '*.txt' | sort`; do
     export_file $f
 done
-
-#for f in `find $PAGES/en/obs/notes -type f -name '*.txt'`; do
-    #export_file $f
-#done
