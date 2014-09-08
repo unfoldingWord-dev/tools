@@ -20,6 +20,12 @@ except:
     print "Please verify that"
     print "/var/www/vhosts/door43.org/tools/general_tools exists."
     sys.exit(1)
+try:
+    from github import Github
+    from github import GithubException
+except:
+    print "Please install PyGithub with pip"
+    sys.exit(1)
 
 
 readme = u'''
@@ -28,9 +34,9 @@ Door43 Pages: {0}
 
 *Raw DokuWiki exports from door43.org for {0}*
 
-http://door43.org
+https://door43.org/{0}/
 
-Created by Distant Shores Media (http://distantshores.org) and the Door43 world missions community (http://door43.org).
+Created by Distant Shores Media (https://distantshores.org) and the Door43 world missions community (https://door43.org).
 
 
 License
@@ -69,9 +75,11 @@ if __name__ == '__main__':
 
     # Log in to Github via API
     try:
-        githuborg = getGithubOrg('door43')
-    except:
-        print 'Could not login to Github'
+        pw = open('/root/.github_pass', 'r').read().strip()
+        guser = githubLogin('dsm-git', pw)
+        githuborg = getGithubOrg('door43', guser)
+    except GithubException as e:
+        print 'Problem logging into Github: {0}'.format(e)
         sys.exit(1)
 
     # Create git repo and push to Github
