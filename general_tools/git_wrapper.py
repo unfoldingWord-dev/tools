@@ -8,7 +8,7 @@
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
 #
-#  Requires PyGithub.
+#  Requires PyGithub for Github commands.
 
 import os
 import sys
@@ -17,23 +17,33 @@ import shlex
 from subprocess import *
 
 
-def getGithubOrg(orgname):
+def getGithubOrg(orgname, user):
+    try:
+        from github import Github
+    except:
+        print "Please install PyGithub with pip"
+        sys.exit(1)
+    return user.get_organization(orgname)
+
+def githubLogin(user, pw):
+    try:
+        from github import Github
+    except:
+        print "Please install PyGithub with pip"
+        sys.exit(1)
+    return Github(user, pw)
+
+def githubCreate(d, rname, rdesc, rurl, org):
+    '''
+    Creates a Github repo, unless it already exists.
+    Accepts a local path, repo name, description, org name.
+    '''
     try:
         from github import Github
         from github import GithubException
     except:
         print "Please install PyGithub with pip"
-    sys.exit(1)
-    user = raw_input('Github username: ').strip()
-    pw = raw_input('Github password: ').strip()
-    g = Github(user, pw)
-    return g.get_organization(orgname)
-
-def githubCreate(d, rname, rdesc, org):
-    '''
-    Creates a Github repo, unless it already exists.
-    Accepts a local path, repo name, description, org name.
-    '''
+        sys.exit(1)
     try:
         repo = org.get_repo(rname)
         return
