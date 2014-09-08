@@ -78,9 +78,9 @@ if __name__ == '__main__':
     lang = d.rpartition('/')[2]
     writePage(os.path.join(d, 'README.md'), readme.format(lang))
     gitCreate(d)
-    name = 'dw-{0}'.format(lang)
+    name = 'd43-{0}'.format(lang)
     desc = 'Door43 DokuWiki Pages for {0}'.format(lang)
     url = 'http://door43.org/{0}/'.format(lang)
     githubCreate(d, name, desc, url, githuborg)
-    gitCommit(d, 'Initial namespace creation.')
+    gitCommit(d, 'Namespace configured for Github.')
     gitPush(d)
