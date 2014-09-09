@@ -182,7 +182,7 @@ def convert(lines, words, phrases):
   '''
   newlines = []
   for l in lines:
-    l = l.replace(u'æ', 'ae')
+    l = l.replace(u'æ', 'ae').replace(u'\\add ', '').replace(u'\\add*', '')
     tokens = l.split()
     # Update word language
     for k,v in words.iteritems():
