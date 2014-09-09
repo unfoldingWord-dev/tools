@@ -96,6 +96,13 @@ def gitPush(d):
         print out
         print 'Failed to push repo to Github in: {0}'.format(d)
 
+def createHallHook(repo, roomid):
+    '''
+    Creates a hall hook for the given repository to the given room.
+    '''
+    config = { u'room_token': unicode(roomid) }
+    hook = repo.create_hook(u'hall', config)
+
 def runCommand(c):
     '''
     Runs a command in a shell.  Returns output and return code of command.

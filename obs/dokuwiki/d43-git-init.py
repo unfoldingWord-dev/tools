@@ -82,6 +82,8 @@ if __name__ == '__main__':
         print 'Problem logging into Github: {0}'.format(e)
         sys.exit(1)
 
+    hallroomid = open('/root/.d43hallroomid', 'r').read().strip()
+
     # Create git repo and push to Github
     lang = d.rpartition('/')[2]
     writePage(os.path.join(d, 'README.md'), readme.format(lang))
@@ -91,5 +93,7 @@ if __name__ == '__main__':
     desc = 'Door43 DokuWiki Pages for {0}'.format(lang)
     url = 'http://door43.org/{0}/'.format(lang)
     githubCreate(d, name, desc, url, githuborg)
+    repo = githuborg.get_repo(name)
+    createHallHook(repo, hallroomid)
     gitCommit(d, 'Namespace configured for Github.')
     gitPush(d)
