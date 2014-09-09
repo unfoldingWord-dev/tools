@@ -22,19 +22,23 @@ echo 'Online' >>"$PROGRESS_FILE"
 echo '------' >>"$PROGRESS_FILE"
 echo >>"$PROGRESS_FILE"
 
-echo -n "Published languages: " >>"$PROGRESS_FILE"
+echo -n "Published languages (" >>"$PROGRESS_FILE"
 wget -q -O - $PUB_URL | grep 'language' >/tmp/published_langs.txt
+PUB_LANGS=`wc -l /tmp/published_langs.txt | grep -o "[0-9]"`
+echo -n "$PUB_LANGS): " >>"$PROGRESS_FILE"
 cat /tmp/published_langs.txt | cut -f 2 -d ':' | cut -f 2 -d '"' | tr '\n' ' ' >>"$PROGRESS_FILE"
 
 echo >>"$PROGRESS_FILE"
 echo >>"$PROGRESS_FILE"
-NUM_LANGS=`wc -l /tmp/published_langs.txt | grep -o "[0-9]"`
 echo -n "Percentange of all languages: " >>"$PROGRESS_FILE"
-echo "scale=2; $NUM_LANGS * 100 / 7106" | bc | tr -d '\n' >>"$PROGRESS_FILE"
+echo "scale=2; $PUB_LANGS * 100 / 7106" | bc | tr -d '\n' >>"$PROGRESS_FILE"
 echo "%" >>"$PROGRESS_FILE"
 
 echo >>"$PROGRESS_FILE"
-echo -n "Active in the last month: " >>"$PROGRESS_FILE"
-wget -q -O - $CHANGES_URL | grep -o '\/[a-zA-Z0-9\-]*\/obs\/' | cut -f 2 -d '/' | sort | uniq | tr '\n' ' ' >>"$PROGRESS_FILE"
+echo -n "Active in the last month (" >>"$PROGRESS_FILE"
+wget -q -O - $CHANGES_URL | grep -o '\/[a-zA-Z0-9\-]*\/obs\/' | cut -f 2 -d '/' | sort | uniq >/tmp/progress_langs.txt
+PROGRESS_LANGS=`wc -l /tmp/progress_langs.txt | grep -o "[0-9]*"`
+echo -n "$PROGRESS_LANGS): " >>"$PROGRESS_FILE"
+cat /tmp/progress_langs.txt | tr '\n' ' ' >>"$PROGRESS_FILE"
 
 cat $PROGRESS_FILE | mail -s "Open Bible Stories Progress Report" ben@distantshores.org
