@@ -117,6 +117,19 @@ def main(lang, outpath, format, img_res):
         lang_json = loadJSON(tmpf, 'd')
     output = export(lang_json['chapters'], format, img_res,
                                                        lang_json['language'])
+    if format == 'tex':
+        outlist = []
+        tex_url = '/'.join([api_url_txt, 'introTeXtOBS.tex'])
+        texf = '/tmp/introTeXtOBS.tex'
+        getURL(tex_url, texf)
+        if not os.path.exists(texf):
+            print "Failed to get TeX template."
+            sys.exit(1)
+        head = codecs.open(texf, 'r', encoding='utf-8').read()
+        outlist.append(head)
+        outlist.append(output)
+        outlist.append(u'\stoptext')
+        output = u'\n'.join(outlist)
     writeFile(outpath, output)
 
 
