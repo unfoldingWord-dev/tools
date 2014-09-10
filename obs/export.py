@@ -58,6 +58,8 @@ def getImage(lang, fid, res, format='plain'):
                                                                  lang, fid)])
     if format == 'html':
         return u'<img src="{0}" />'.format(img_link)
+    elif format == 'tex':
+        return u'\\externalfigure\n[{0}]'.format(img_link)
     return u''
 
 def getTitle(text, format='plain'):
@@ -65,6 +67,8 @@ def getTitle(text, format='plain'):
         return u'<h1>{0}</h1>'.format(text)
     elif format == 'md':
         return u'{0}\n=========='.format(text)
+    elif format == 'tex':
+        return u'\\MT{{{0}}}'.format(text)
     return text
 
 def getFrame(text, format='plain'):
@@ -72,6 +76,8 @@ def getFrame(text, format='plain'):
         return u'<p>{0}</p>'.format(text)
     elif format == 'md':
         return u'\n{0}\n'.format(text)
+    elif format == 'tex':
+        return u'\\par {0}'.format(text)
     return text
 
 def getRef(text, format='plain'):
@@ -79,6 +85,8 @@ def getRef(text, format='plain'):
         return u'<em>{0}</em>'.format(text)
     elif format == 'md':
         return u'*{0}*'.format(text)
+    elif format == 'tex':
+        return u'\\par\n\\em {0}'.format(text)
     return text
 
 def export(lang_json, format, img_res, lang):
@@ -120,7 +128,7 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--language', dest="lang", default=False,
         required=True, help="Language code")
     parser.add_argument('-f', '--format', dest="format", default=False,
-        required=True, help="Desired format: html, md, or plain")
+        required=True, help="Desired format: html, md, tex, or plain")
     parser.add_argument('-r', '--resolution', dest="img_res", default='360px',
         help="Image resolution: 360px, or 2160px")
 
