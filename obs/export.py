@@ -68,7 +68,7 @@ def getTitle(text, format='plain'):
     elif format == 'md':
         return u'{0}\n=========='.format(text)
     elif format == 'tex':
-        return u'\\startmakeup\n{0}\n\\stopmakeup'.format(text)
+        return u'\\startmakeup\n\\section{{{0}}}\n\\stopmakeup'.format(text)
     return text
 
 def getFrame(text, format='plain'):
