@@ -101,7 +101,7 @@ def makeDir(d):
     if not os.path.exists(d):
         os.makedirs(d, 0755)
 
-def genNav(chunked):
+def genNav(chunked, usfmbk):
     '''
     Walks the generated folder and creates next and previous links.
     '''
@@ -112,8 +112,6 @@ def genNav(chunked):
         nxt = getNav(chunked, i+1)
         chp = e[2].split()[1].split(':')[0]
         bk = e[2].split()[0]
-        #if not bookKeys.has_key(bkup):
-        usfmbk = '43luk'
         writeFile(e[0], TMPL.format(e[1], e[2], prv, nxt, chp, bk, usfmbk))
 
 def getNav(chunked, i):
@@ -135,4 +133,4 @@ if __name__ == '__main__':
         sys.exit(1)
     src = codecs.open(filetochunk, encoding='utf-8').read()
     chunked = splice(src)
-    genNav(chunked)
+    genNav(chunked, filetochunk.replace('.txt', ''))
