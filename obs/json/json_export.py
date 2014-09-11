@@ -270,7 +270,7 @@ if __name__ == '__main__':
                    }
         for page in os.listdir(os.path.join(pages, lang, 'obs')):
             if not page.startswith(digits): continue
-            jsonchapter = { 'number': page.split('-')[0],
+            jsonchapter = { 'number': page.split('.')[0],
                             'frames': [],
                           }
             chapterpath = os.path.join(pages, lang, 'obs', page)
