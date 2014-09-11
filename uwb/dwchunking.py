@@ -15,6 +15,15 @@
 import os
 import sys
 import codecs
+## Import the bookKeys mapping from USFM-Tools
+USFMTools='/var/www/vhosts/door43.org/USFM-Tools/support'
+sys.path.append(USFMTools)
+try:
+    from books import bookKeys
+except ImportError:
+    print "Please ensure that {0}/books.py exists.".format(USFMTools)
+    sys.exit(1)
+
 
 TMPL = u'''====== {1} ======
 
@@ -47,7 +56,9 @@ TMPL = u'''====== {1} ======
   
 ===== Links: =====
 
-  * **[[en/bible-training/notes:43luk/questions/comprehension/01|Luke Chapter 1 Checking Questions]]**
+  * **[[en/bible-training/notes:{6}/questions/comprehension/{4}|Luke Chapter {4} Checking Questions]]**
+  * **[[en/bible-training/notes:{6}/questions/checking/{5}-checking|{5} Checking Questions]]**
+
  
 
 **[[en/bible-training/notes:{2}|<<]] | [[en/bible-training/notes:{3}|>>]]**'''
@@ -99,7 +110,11 @@ def genNav(chunked):
         i = chunked.index(e)
         prv = getNav(chunked, i-1)
         nxt = getNav(chunked, i+1)
-        writeFile(e[0], TMPL.format(e[1], e[2], prv, nxt))
+        chp = e[2].split()[1].split(':')[0]
+        bk = e[2].split()[0]
+        #if not bookKeys.has_key(bkup):
+        usfmbk = '43luk'
+        writeFile(e[0], TMPL.format(e[1], e[2], prv, nxt, chp, bk, usfmbk))
 
 def getNav(chunked, i):
     if i == -1:
