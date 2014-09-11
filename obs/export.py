@@ -77,7 +77,7 @@ def getFrame(text, format='plain'):
     elif format == 'md':
         return u'\n{0}\n'.format(text)
     elif format == 'tex':
-        return u'\\par {0}'.format(text)
+        return u'\\noindentation {0}'.format(text)
     return text
 
 def getRef(text, format='plain'):
@@ -86,7 +86,7 @@ def getRef(text, format='plain'):
     elif format == 'md':
         return u'*{0}*'.format(text)
     elif format == 'tex':
-        return u'\\par\n\\em {0}'.format(text)
+        return u'\\noindentation {{\\em {0}}}'.format(text)
     return text
 
 def export(lang_json, format, img_res, lang):
