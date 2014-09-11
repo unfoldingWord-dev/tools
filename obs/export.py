@@ -86,7 +86,7 @@ def getRef(text, format='plain'):
     elif format == 'md':
         return u'*{0}*'.format(text)
     elif format == 'tex':
-        return u'\\startplacefigure[location=nonumber]\n  {{\\em {0}}}\n\\stopplacefigure'.format(text)
+        return u'\\startplacefigure[location=nonumber]\n  {{\\midaligned {{ \\tfx {{{{\\em {0}}}}}}}}}\n\\stopplacefigure'.format(text)
     return text
 
 def export(lang_json, format, img_res, lang):
