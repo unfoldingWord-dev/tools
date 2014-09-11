@@ -59,7 +59,7 @@ def getImage(lang, fid, res, format='plain'):
     if format == 'html':
         return u'<img src="{0}" />'.format(img_link)
     elif format == 'tex':
-        return u'\\externalfigure\n[{0}]'.format(img_link)
+        return u'  {{\\externalfigure[{0}]}}'.format(img_link)
     return u''
 
 def getTitle(text, format='plain'):
@@ -77,7 +77,7 @@ def getFrame(text, format='plain'):
     elif format == 'md':
         return u'\n{0}\n'.format(text)
     elif format == 'tex':
-        return u'\\noindentation {0}'.format(text)
+        return u'\n\\placefigure[nonumber]\n  {{{0}}}'.format(text)
     return text
 
 def getRef(text, format='plain'):
@@ -86,21 +86,28 @@ def getRef(text, format='plain'):
     elif format == 'md':
         return u'*{0}*'.format(text)
     elif format == 'tex':
-        return u'\\noindentation {{\\em {0}}}'.format(text)
+        return u'\\startplacefigure[location=nonumber]\n  {{\\em {0}}}\n\\stopplacefigure'.format(text)
     return text
 
 def export(lang_json, format, img_res, lang):
     '''
     Exports JSON to specificed format.
     '''
+    j = u'\n\n'
+    if format == 'tex':
+        j = u'\n'
     output = []
     for chp in lang_json:
         output.append(getTitle(chp['title'], format))
         for fr in chp['frames']:
-            output.append(getImage(lang, fr['id'], img_res, format))
-            output.append(getFrame(fr['text'], format))
+            if format == 'tex':
+                output.append(getFrame(fr['text'], format))
+                output.append(getImage(lang, fr['id'], img_res, format))
+            else:
+                output.append(getImage(lang, fr['id'], img_res, format))
+                output.append(getFrame(fr['text'], format))
         output.append(getRef(chp['ref'], format))
-    return '\n\n'.join(output)
+    return j.join(output)
 
 def main(lang, outpath, format, img_res):
     jsonf = 'obs-{0}.json'.format(lang)
