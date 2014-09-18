@@ -23,6 +23,7 @@ if [ -d /etc/yum.repos.d/ ]; then
     # Both 6 and 7 need the following
     yum --enablerepo epel -y install @base @core puppet git redhat-lsb telnet keyutils trousers fipscheck mdadm xinetd vim-enhanced tmux screen postfix ntp wget rsync yum-utils yum-plugin-downloadonly man unzip
     chkconfig puppet off
+    yum -y update
 fi
 
 # Clone DSM Puppet config directory to /etc/puppet
