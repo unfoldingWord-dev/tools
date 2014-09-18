@@ -29,5 +29,5 @@ fi
 # Clone DSM Puppet config directory to /etc/puppet
 if [ ! -d /etc/puppet/.git ]; then
     rm -rf /etc/puppet
+    git clone gitolite3@us.door43.org:puppet /etc/puppet
 fi
-git clone gitolite3@us.door43.org:puppet /etc/puppet
