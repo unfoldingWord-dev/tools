@@ -77,7 +77,7 @@ def getFrame(text, format='plain'):
     elif format == 'md':
         return u'\n{0}\n'.format(text)
     elif format == 'tex':
-        return u'\n\\placefigure[nonumber]\n  {{{0}}}'.format(text)
+        return u'\n\\placefigure[nonumber]\n  {{{0} \\blank[small, flexible]}}'.format(text)
     return text
 
 def getRef(text, format='plain'):
