@@ -28,6 +28,7 @@ except:
     sys.exit(1)
 
 
+pagesdir = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages'
 readme = u'''
 Door43 Pages: {0}
 ==========
@@ -65,12 +66,13 @@ def writePage(outfile, contents):
 if __name__ == '__main__':
     # Check arguments
     if len(sys.argv) > 1:
-        d = sys.argv[1].strip()
+        lang = sys.argv[1].strip()
+        d = os.path.join(pagesdir, lang)
         if not os.path.exists(d):
             print "Directory not found {0}".format(d)
             sys.exit(1)
     else:
-        print "Please specify directory name"
+        print "Please specify language code"
         sys.exit(1)
 
     # Log in to Github via API
@@ -85,7 +87,6 @@ if __name__ == '__main__':
     hallroomid = open('/root/.d43hallroomid', 'r').read().strip()
 
     # Create git repo and push to Github
-    lang = d.rpartition('/')[2]
     writePage(os.path.join(d, 'README.md'), readme.format(lang))
     gitCreate(d)
     os.chown('{0}/.git'.format(d), 48, 48)
