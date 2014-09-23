@@ -94,7 +94,17 @@ def gitPush(d):
     out, ret = runCommand('git push origin master')
     if ret > 0:
         print out
-        print 'Failed to push repo to Github in: {0}'.format(d)
+        print 'Failed to push repo to origin master in: {0}'.format(d)
+
+def gitPull(d):
+    '''
+    Pulls from origin master to local repository.
+    '''
+    os.chdir(d)
+    out, ret = runCommand('git pull origin master')
+    if ret > 0:
+        print out
+        print 'Failed to pull from origin master in: {0}'.format(d)
 
 def createHallHook(repo, roomid):
     '''
