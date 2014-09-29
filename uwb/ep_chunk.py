@@ -95,7 +95,10 @@ def getTXT(refs, txt):
     for r in refs:
         ## Need to match end of string where \v doesn't start new verse
         versep = ur'\\v.{0}.*?\\v'.format(r)
+        versepend = ur'\\v.{0}.*?https'.format(r)
         verse = re.search(versep, txt, re.DOTALL).group(0)
+        if not verse:
+            verse = re.search(versepend, txt, re.DOTALL).group(0)
         chunks.append(verse.rstrip('\\v').strip())
     return '\n'.join(chunks)
 
@@ -174,4 +177,5 @@ if __name__ == '__main__':
     tft = getURL(TFTURL.format(bk, chp.zfill(3)))
 
     chunked = splice(ulb['text'], udb['text'], tft)
+    print chunked
     #genNav(chunked, filetochunk.replace('.txt', ''))
