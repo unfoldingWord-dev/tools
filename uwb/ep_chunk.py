@@ -30,27 +30,27 @@ except ImportError:
 
 
 TFTURL = 'https://door43.org/_export/raw/en/udb/v1/{0}/{1}.usfm'
-TMPL = u'''====== {1} ======
+TMPL = u'''====== {book} {chp}:{refrng} ======
 
 
 ===== TFT: =====
 
 <usfm>
-{0}
+{tft}
 </usfm>
 
 
 ===== UDB: =====
 
 <usfm>
-{7}
+{udb}
 </usfm>
 
 
 ===== ULB: =====
 
 <usfm>
-{8}
+{ulb}
 </usfm>
 
 
@@ -68,22 +68,30 @@ TMPL = u'''====== {1} ======
   
 ===== Links: =====
 
-  * **[[en/bible-training/notes:{6}/questions/comprehension/{4}|Luke Chapter {4} Checking Questions]]**
-  * **[[en/bible-training/notes:{6}/questions/checking/{5}-checking|{5} Checking Questions]]**
+  * **[[en/bible/notes:{bk}/questions/comprehension/{chp}|Luke Chapter {chp} Checking Questions]]**
+  * **[[en/bible/notes:{bk}/questions/checking/{book}-checking|{book} Checking Questions]]**
 
  
 
-**[[en/bible-training/notes:{2}|<<]] | [[en/bible-training/notes:{3}|>>]]**'''
+**[[en/bible/notes:{prv}|<<]] | [[en/bible/notes:{nxt}|>>]]**'''
 refre = re.compile(ur'\\v.([0-9][0-9]?[0-9]?)')
 
 
-def splice(ulb, udb, tft):
+def splice(ulb, udb, tft, bk, chp):
     chunks = {}
+    #book = getBook(bk)
+    book = bk.upper()
     for i in ulb.split('\n\\s5'):
         if i.startswith('https') and len(i) < 50: continue
         ref_list = refre.findall(i)
         ref = ','.join(ref_list)
-        chunks[ref] = {}
+        chunks[ref] = { 'bk': bk,
+                        'chp': chp,
+                        'book': book,
+                        'ref_list': ref_list,
+                        'refrng': '{0}-{1}'.format(ref_list[0], ref_list[-1]),
+                        'filepath': getpath(bk, chp, ref_list[0]),
+                      }
         chunks[ref]['ulb'] = i.strip()
         chunks[ref]['udb'] = getTXT(ref_list, udb)
         chunks[ref]['tft'] = getTXT(ref_list, tft)
@@ -101,18 +109,11 @@ def getTXT(refs, txt):
         chunks.append(verse.rstrip('\\v').strip())
     return '\n'.join(chunks)
 
-def getpath(r):
+def getpath(bk, chp, ref):
     fill = 2
-    try:
-        book, ref = r.split(' ')
-        #bk = books[book]
-        c, vv = ref.split(':')
-        v = vv.split('-')[0]
-        if 'psa' in book.lower():
-           fill = 3
-        return '{0}/{1}/{2}.txt'.format(book, c.zfill(fill), v.zfill(fill))
-    except:
-        return False
+    if 'psa' in bk.lower():
+       fill = 3
+    return '{0}/{1}/{2}.txt'.format(bk, chp.zfill(fill), ref.zfill(fill))
 
 def writeFile(f, content):
     makeDir(f.rpartition('/')[0])
@@ -127,25 +128,21 @@ def makeDir(d):
     if not os.path.exists(d):
         os.makedirs(d, 0755)
 
-def genNav(chunked, usfmbk):
-    '''
-    Walks the generated folder and creates next and previous links.
-    '''
-    for e in chunked:
-        #e[0] is filepath, e[1] is text, e[2] is ref
-        i = chunked.index(e)
-        prv = getNav(chunked, i-1)
-        nxt = getNav(chunked, i+1)
-        chp = e[2].split()[1].split(':')[0]
-        bk = e[2].split()[0]
-        writeFile(e[0], TMPL.format(e[1], e[2], prv, nxt, chp, bk, usfmbk))
+def writeChunks(chunked):
+    refs = [k for k in chunked.iterkeys()]
+    #refs.sort()
+    for k in refs:
+        i = refs.index(k)
+        chunked[k]['prv'] = getNav(refs, i-1, chunked)
+        chunked[k]['nxt'] = getNav(refs, i+1, chunked)
+        writeFile(chunked[k]['filepath'], TMPL.format(**chunked[k]))
 
-def getNav(chunked, i):
+def getNav(refs, i, chunked):
     if i == -1:
         return ''
-    elif i >= len(chunked):
+    elif i >= len(refs):
         return ''
-    return chunked[i][0]
+    return chunked[refs[i]]['ref_list'][0]
 
 def getURL(url):
     try:
@@ -175,5 +172,5 @@ if __name__ == '__main__':
     udb = ep.getText(padID=pad_name.replace('ulb', 'udb'))
     tft = getURL(TFTURL.format(bk, chp.zfill(3)))
 
-    chunked = splice(ulb['text'], udb['text'], tft)
-    #genNav(chunked, filetochunk.replace('.txt', ''))
+    chunked = splice(ulb['text'], udb['text'], tft, bk, chp)
+    writeChunks(chunked)
