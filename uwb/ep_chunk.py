@@ -180,11 +180,14 @@ def getTXT(refs, txt):
     return '\n'.join(chunks)
 
 def getpath(bk, chp, ref):
-    fill = 2
-    if 'psa' in bk.lower():
-       fill = 3
+    fill = getFill(bk)
     return '{0}/{1}/{2}.txt'.format(bk, chp.zfill(fill), ref.zfill(fill))
 
+def getFill(bk):
+    if 'psa' in bk.lower():
+       return 3
+    return 2
+    
 def writeFile(f, content):
     makeDir(f.rpartition('/')[0])
     out = codecs.open(f, encoding='utf-8', mode='w')
@@ -208,9 +211,7 @@ def writeChunks(chunked):
         writeFile(chunked[k]['filepath'], TMPL.format(**chunked[k]))
 
 def getNav(refs, i, chunked):
-    fill = 2
-    if 'psa' in bk.lower():
-       fill = 3
+    fill = getFill(bk)
     if i == -1:
         return ''
     elif i >= len(refs):
