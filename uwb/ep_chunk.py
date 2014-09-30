@@ -56,8 +56,7 @@ TMPL = u'''====== {book} {chp}:{refrng} ======
 
 ===== Important Terms: =====
 
-  * **[[:en:uwb:notes:key-terms:example|example]]**
-  * **[[:en:uwb:notes:key-terms:example|example]]**
+  * example
  
 
 ===== Translation Notes: =====
@@ -73,24 +72,25 @@ TMPL = u'''====== {book} {chp}:{refrng} ======
 
  
 
-**[[en/bible/notes:{prv}|<<]] | [[en/bible/notes:{nxt}|>>]]**'''
+**[[en/bible/notes/{bk}/{chp}/{prv}|<<]] | [[en/bible/notes/{bk}/{chp}/{nxt}|>>]]**'''
 refre = re.compile(ur'\\v.([0-9][0-9]?[0-9]?)')
 
 
 def splice(ulb, udb, tft, bk, chp):
     chunks = {}
-    #book = getBook(bk)
-    book = bk.upper()
+    book = bk
     for i in ulb.split('\n\\s5'):
         if i.startswith('https') and len(i) < 50: continue
         ref_list = refre.findall(i)
-        ref = ','.join(ref_list)
+        if not ref_list:
+            continue
+        ref = ref_list[0]
         chunks[ref] = { 'bk': bk,
                         'chp': chp,
                         'book': book,
                         'ref_list': ref_list,
                         'refrng': '{0}-{1}'.format(ref_list[0], ref_list[-1]),
-                        'filepath': getpath(bk, chp, ref_list[0]),
+                        'filepath': getpath(bk, chp, ref),
                       }
         chunks[ref]['ulb'] = i.strip()
         chunks[ref]['udb'] = getTXT(ref_list, udb)
@@ -130,7 +130,7 @@ def makeDir(d):
 
 def writeChunks(chunked):
     refs = [k for k in chunked.iterkeys()]
-    #refs.sort()
+    refs.sort(key=int)
     for k in refs:
         i = refs.index(k)
         chunked[k]['prv'] = getNav(refs, i-1, chunked)
@@ -156,6 +156,9 @@ def getURL(url):
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         pad_name = str(sys.argv[1]).strip()
+        if 'ulb' not in pad_name:
+            print 'Please specify ULB pad to chunk.'
+            sys.exit(1)
     else:
         print 'Please specify the pad to chunk.'
         sys.exit(1)
