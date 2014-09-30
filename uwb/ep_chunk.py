@@ -182,7 +182,8 @@ def getTXT(refs, txt):
 
 def getPath(bk, chp, ref):
     fill = getFill(bk)
-    return os.path.join(NP, bk, chp.zfill(fill), ref.zfill(fill))
+    return os.path.join(NP, bk, chp.zfill(fill),
+                                            '{0}.txt'.format(ref.zfill(fill)))
 
 def getFill(bk):
     if 'psa' in bk.lower():
