@@ -57,11 +57,18 @@ TMPL = u'''====== {book} {chp}:{refrng} ======
 ===== Important Terms: =====
 
   * example
+  * example
+  * example
+  * example
  
 
 ===== Translation Notes: =====
 
 
+    * **bold words**  - explanation
+    * **bold words**  - explanation
+    * **bold words**  - explanation
+    * **bold words**  - explanation
     * **bold words**  - explanation
     * **bold words**  - explanation
   
@@ -72,7 +79,12 @@ TMPL = u'''====== {book} {chp}:{refrng} ======
 
  
 
-**[[en/bible/notes/{bk}/{chp}/{prv}|<<]] | [[en/bible/notes/{bk}/{chp}/{nxt}|>>]]**'''
+**[[en/bible/notes/{bk}/{chp}/{prv}|<<]] | [[en/bible/notes/{bk}/{chp}/{nxt}|>>]]**
+
+~~DISCUSSION~~
+
+{{tag>draft}}
+'''
 refre = re.compile(ur'\\v.([0-9][0-9]?[0-9]?)')
 
 
