@@ -19,16 +19,74 @@ import codecs
 import urllib2
 from etherpad_lite import EtherpadLiteClient
 from etherpad_lite import EtherpadException
-## Import the bookKeys mapping from USFM-Tools
-USFMTools='/var/www/vhosts/door43.org/USFM-Tools/support'
-sys.path.append(USFMTools)
-try:
-    from books import bookKeys
-except ImportError:
-    print "Please ensure that {0}/books.py exists.".format(USFMTools)
-    sys.exit(1)
 
-
+books = { u'GEN': [ u'Genesis' ],
+          u'EXO': [ u'Exodus' ],
+          u'LEV': [ u'Leviticus' ],
+          u'NUM': [ u'Numbers' ],
+          u'DEU': [ u'Deuteronomy' ],
+          u'JOS': [ u'Joshua' ],
+          u'JDG': [ u'Judges' ],
+          u'RUT': [ u'Ruth' ],
+          u'1SA': [ u'1 Samuel' ],
+          u'2SA': [ u'2 Samuel' ],
+          u'1KI': [ u'1 Kings' ],
+          u'2KI': [ u'2 Kings' ],
+          u'1CH': [ u'1 Chronicles' ],
+          u'2CH': [ u'2 Chronicles' ],
+          u'EZR': [ u'Ezra' ],
+          u'NEH': [ u'Nehemiah' ],
+          u'EST': [ u'Esther' ],
+          u'JOB': [ u'Job' ],
+          u'PSA': [ u'Psalms' ],
+          u'PRO': [ u'Proverbs' ],
+          u'ECC': [ u'Ecclesiastes' ],
+          u'SNG': [ u'Song of Solomon' ],
+          u'ISA': [ u'Isaiah' ],
+          u'JER': [ u'Jeremiah' ],
+          u'LAM': [ u'Lamentations' ],
+          u'EZK': [ u'Ezekiel' ],
+          u'DAN': [ u'Daniel' ],
+          u'HOS': [ u'Hosea' ],
+          u'JOL': [ u'Joel' ],
+          u'AMO': [ u'Amos' ],
+          u'OBA': [ u'Obadiah' ],
+          u'JON': [ u'Jonah' ],
+          u'MIC': [ u'Micah' ],
+          u'NAM': [ u'Nahum' ],
+          u'HAB': [ u'Habakkuk' ],
+          u'ZEP': [ u'Zephaniah' ],
+          u'HAG': [ u'Haggai' ],
+          u'ZEC': [ u'Zechariah' ],
+          u'MAL': [ u'Malachi' ],
+          u'MAT': [ u'Matthew' ],
+          u'MRK': [ u'Mark' ],
+          u'LUK': [ u'Luke' ],
+          u'JHN': [ u'John' ],
+          u'ACT': [ u'Acts' ],
+          u'ROM': [ u'Romans' ],
+          u'1CO': [ u'1 Corinthians' ],
+          u'2CO': [ u'2 Corinthians' ],
+          u'GAL': [ u'Galatians' ],
+          u'EPH': [ u'Ephesians' ],
+          u'PHP': [ u'Philippians' ],
+          u'COL': [ u'Colossians' ],
+          u'1TH': [ u'1 Thessalonians' ],
+          u'2TH': [ u'2 Thessalonians' ],
+          u'1TI': [ u'1 Timothy' ],
+          u'2TI': [ u'2 Timothy' ],
+          u'TIT': [ u'Titus' ],
+          u'PHM': [ u'Philemon' ],
+          u'HEB': [ u'Hebrews' ],
+          u'JAS': [ u'James' ],
+          u'1PE': [ u'1 Peter' ],
+          u'2PE': [ u'2 Peter' ],
+          u'1JN': [ u'1 John' ],
+          u'2JN': [ u'2 John' ],
+          u'3JN': [ u'3 John' ],
+          u'JUD': [ u'Jude' ],
+          u'REV': [ u'Revelation' ]
+}
 TFTURL = 'https://door43.org/_export/raw/en/udb/v1/{0}/{1}.usfm'
 TMPL = u'''====== {book} {chp}:{refrng} ======
 
@@ -90,7 +148,7 @@ refre = re.compile(ur'\\v.([0-9][0-9]?[0-9]?)')
 
 def splice(ulb, udb, tft, bk, chp):
     chunks = {}
-    book = bk
+    book = books[bk.upper()][0]
     for i in ulb.split('\n\\s5'):
         if i.startswith('https') and len(i) < 50: continue
         ref_list = refre.findall(i)
