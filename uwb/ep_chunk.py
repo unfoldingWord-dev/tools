@@ -87,6 +87,7 @@ books = { u'GEN': [ u'Genesis' ],
           u'JUD': [ u'Jude' ],
           u'REV': [ u'Revelation' ]
 }
+NP = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes'
 TFTURL = 'https://door43.org/_export/raw/en/udb/v1/{0}/{1}.usfm'
 TMPL = u'''====== {book} {chp}:{refrng} ======
 
@@ -160,7 +161,7 @@ def splice(ulb, udb, tft, bk, chp):
                         'book': book,
                         'ref_list': ref_list,
                         'refrng': '{0}-{1}'.format(ref_list[0], ref_list[-1]),
-                        'filepath': getpath(bk, chp, ref),
+                        'filepath': getPath(bk, chp, ref),
                       }
         chunks[ref]['ulb'] = i.strip()
         chunks[ref]['udb'] = getTXT(ref_list, udb)
@@ -179,9 +180,9 @@ def getTXT(refs, txt):
         chunks.append(verse.rstrip('\\v').strip())
     return '\n'.join(chunks)
 
-def getpath(bk, chp, ref):
+def getPath(bk, chp, ref):
     fill = getFill(bk)
-    return '{0}/{1}/{2}.txt'.format(bk, chp.zfill(fill), ref.zfill(fill))
+    return os.path.join(NP, bk, chp.zfill(fill), ref.zfill(fill))
 
 def getFill(bk):
     if 'psa' in bk.lower():
