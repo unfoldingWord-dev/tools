@@ -138,11 +138,14 @@ def writeChunks(chunked):
         writeFile(chunked[k]['filepath'], TMPL.format(**chunked[k]))
 
 def getNav(refs, i, chunked):
+    fill = 2
+    if 'psa' in bk.lower():
+       fill = 3
     if i == -1:
         return ''
     elif i >= len(refs):
         return ''
-    return chunked[refs[i]]['ref_list'][0]
+    return chunked[refs[i]]['ref_list'][0].zfill(fill)
 
 def getURL(url):
     try:
