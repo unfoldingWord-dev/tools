@@ -210,7 +210,6 @@ def makeDir(d):
 
 def writeOrAppend(f, chunk):
     if os.path.exists(f):
-        print 'updating Bible text only...'
         content = codecs.open(f, encoding='utf-8', mode='r').read()
         content = tftp.sub(ur'\1 TFTSUB \2', content)
         content = udbp.sub(ur'\1 UDBSUB \2', content)
