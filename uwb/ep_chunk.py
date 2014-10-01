@@ -20,7 +20,6 @@ import urllib2
 from etherpad_lite import EtherpadLiteClient
 from etherpad_lite import EtherpadException
 
-### ADD apache chown
 
 NP = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes'
 TFTURL = 'https://door43.org/_export/raw/en/udb/v1/{0}/{1}.usfm'
@@ -200,6 +199,7 @@ def writeFile(f, content):
     out = codecs.open(f, encoding='utf-8', mode='w')
     out.write(content)
     out.close()
+    os.chown(f, 48, 48)
 
 def makeDir(d):
     '''
