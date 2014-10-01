@@ -20,6 +20,14 @@ import urllib2
 from etherpad_lite import EtherpadLiteClient
 from etherpad_lite import EtherpadException
 
+### ADD apache chown
+
+NP = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes'
+TFTURL = 'https://door43.org/_export/raw/en/udb/v1/{0}/{1}.usfm'
+refre = re.compile(ur'\\v.([0-9][0-9]?[0-9]?)')
+tftp = re.compile(ur'(TFT: =====.*?<usfm>\n).*?(\n</usfm>)', re.DOTALL | re.UNICODE)
+udbp = re.compile(ur'(UDB: =====.*?<usfm>\n).*?(\n</usfm>)', re.DOTALL | re.UNICODE)
+ulbp = re.compile(ur'(ULB: =====.*?<usfm>\n).*?(\n</usfm>)', re.DOTALL | re.UNICODE)
 books = { u'GEN': [ u'Genesis' ],
           u'EXO': [ u'Exodus' ],
           u'LEV': [ u'Leviticus' ],
@@ -87,8 +95,6 @@ books = { u'GEN': [ u'Genesis' ],
           u'JUD': [ u'Jude' ],
           u'REV': [ u'Revelation' ]
 }
-NP = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes'
-TFTURL = 'https://door43.org/_export/raw/en/udb/v1/{0}/{1}.usfm'
 TMPL = u'''====== {book} {chp}:{refrng} ======
 
 
@@ -142,9 +148,8 @@ TMPL = u'''====== {book} {chp}:{refrng} ======
 
 ~~DISCUSSION~~
 
-{{tag>draft}}
+{{{{tag>draft}}}}
 '''
-refre = re.compile(ur'\\v.([0-9][0-9]?[0-9]?)')
 
 
 def splice(ulb, udb, tft, bk, chp):
@@ -203,6 +208,20 @@ def makeDir(d):
     if not os.path.exists(d):
         os.makedirs(d, 0755)
 
+def writeOrAppend(f, chunk):
+    if os.path.exists(f):
+        print 'updating Bible text only...'
+        content = codecs.open(f, encoding='utf-8', mode='r').read()
+        content = tftp.sub(ur'\1 TFTSUB \2', content)
+        content = udbp.sub(ur'\1 UDBSUB \2', content)
+        content = ulbp.sub(ur'\1 ULBSUB \2', content)
+        content = ( content.replace(u' TFTSUB ', chunk['tft'])
+                           .replace(u' UDBSUB ', chunk['udb'])
+                           .replace(u' ULBSUB ', chunk['ulb']) )
+    else:
+        content = TMPL.format(**chunk)
+    writeFile(f, content)
+
 def writeChunks(chunked):
     refs = [k for k in chunked.iterkeys()]
     refs.sort(key=int)
@@ -210,7 +229,7 @@ def writeChunks(chunked):
         i = refs.index(k)
         chunked[k]['prv'] = getNav(refs, i-1, chunked)
         chunked[k]['nxt'] = getNav(refs, i+1, chunked)
-        writeFile(chunked[k]['filepath'], TMPL.format(**chunked[k]))
+        writeOrAppend(chunked[k]['filepath'], chunked[k])
 
 def getNav(refs, i, chunked):
     fill = getFill(bk)
