@@ -8,9 +8,12 @@
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
 
-
-"""
-"""
+'''
+This script takes grabs the ULB text from etherpad and splits it based on
+custom \s5 markers.  Then it pulls in the UDB and TFT text for the same
+range and ouputs DokuWiki files for the Notes team.  If the notes page
+exists then it only updates the Bible texts and does not alter other content.
+'''
 
 import os
 import re
