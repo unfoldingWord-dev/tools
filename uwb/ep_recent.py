@@ -23,7 +23,10 @@ from etherpad_lite import EtherpadException
 
 
 path = '/var/www/vhosts/pad.door43.org/httpdocs/recent.html'
-link = '<li class="list-group-item"><a href="https://pad.door43.org/p/{0}">{0} - {1}</a></li>'
+link = '''<tr>
+<td><a href="https://pad.door43.org/p/{0}">{0}</a></td>
+<td>{1}</td>
+</tr>'''
 page_template = '''<html>
 <head>
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/cs
@@ -32,9 +35,10 @@ s/bootstrap.min.css">
 <body>
 <h1>unfoldingWord Recently Edited Pads</h1>
 <br />
-<ul class="list-group">
+<table class="table table-striped">
+<th>Pad Name</th><th>Modified Time</th>
 {0}
-</ul>
+</table>
 </body>
 </html>'''
 
