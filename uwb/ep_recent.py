@@ -27,18 +27,22 @@ link = '''<tr>
 <td><a href="https://pad.door43.org/p/{0}">{0}</a></td>
 <td>{1}</td>
 </tr>'''
-page_template = '''<html>
+page_template = '''<!DOCTYPE html>
+<html lang="en">
 <head>
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/cs
 s/bootstrap.min.css">
 </head>
 <body>
+<div class="container">
 <h1>unfoldingWord Recently Edited Pads</h1>
-<br />
+<div class="row"><div class="col-md-4">
 <table class="table table-striped">
 <th>Pad Name</th><th>Modified Time</th>
 {0}
 </table>
+</div></div>
+</div>
 </body>
 </html>'''
 
