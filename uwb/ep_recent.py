@@ -8,19 +8,22 @@
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
 
+1412281416.485904
+1412280191.466
 
 """
 """
 
 import os
 import sys
+import time
 import codecs
 from etherpad_lite import EtherpadLiteClient
 from etherpad_lite import EtherpadException
 
 
 path = '/var/www/vhosts/pad.door43.org/httpdocs/recent.html'
-link = '<li class="list-group-item"><a href="https://pad.door43.org/p/{0}">{0}</a></li>'
+link = '<li class="list-group-item"><a href="https://pad.door43.org/p/{0}">{0} - {1}</a></li>'
 page_template = '''<html>
 <head>
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/cs
@@ -59,6 +62,7 @@ if __name__ == '__main__':
     recent_sorted = sorted(recent, key=lambda p: p[1], reverse=True)
     recent_html = []
     for i in recent_sorted:
-        recent_html.append(link.format(i))
+        t = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(i[1][0:10])))
+        recent_html.append(link.format(i[0], t)))
 
     writeFile(path, page_template.format('\n'.join(recent_html)))
