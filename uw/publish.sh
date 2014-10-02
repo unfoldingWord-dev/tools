@@ -23,9 +23,7 @@ LANGS=`grep "Exporting to unfoldingWord" /tmp/$$.json_export | cut -f 5 -d ' '`
 
 # Create PDF via TeX for languages exported
 for LANG in $LANGS; do
-    /var/www/vhosts/door43.org/tools/obs/export.py \
-        -l $LANG -f tex /tmp/$$.$LANG.tex
-    #3 Run context on TeX file to get PDF
+    /var/www/vhosts/door43.org/tools/obs/book/publish_PDF.sh -l $LANG
 done
 
 # Create web reveal.js viewer
