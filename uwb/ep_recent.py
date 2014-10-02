@@ -57,7 +57,8 @@ if __name__ == '__main__':
         recent.append((p, ep.getLastEdited(padID=p)['lastEdited']))
 
     recent_sorted = sorted(recent, key=lambda p: p[1], reverse=True)
-    for i in recent_sorted():
+    recent_html = []
+    for i in recent_sorted:
         recent_html.append(link.format(i))
 
     writeFile(path, page_template.format('\n'.join(recent_html)))
