@@ -8,9 +8,36 @@
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
 
-#  Creates a namespace with just home.txt and sidebar.txt files.
+help() {
+    echo
+    echo "Creates a namespace for door43."
+    echo
+    echo "Usage:"
+    echo "   $PROGNAME -l <LangCode>"
+    echo "   $PROGNAME --help"
+    echo
+    exit 1
+}
 
-LANG="$1"
+if [ $# -lt 1 ]; then
+    help
+fi
+while test -n "$1"; do
+    case "$1" in
+        --help|-h)
+            help
+            ;;
+        --lang|-l)
+            LANG="$2"
+            shift
+            ;;
+        *)
+            echo "Unknown argument: $1"
+            help
+            ;;
+    esac
+    shift
+done
 
 [ -z "$LANG" ] && echo "Please specify language code." && exit 1
 
