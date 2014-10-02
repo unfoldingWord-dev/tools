@@ -8,6 +8,10 @@
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
 
+# Add checking level to slide 1 at the end
+#<div class="uwchecking"><a href="https://unfoldingword.org/quality/" target="_blank"><img src="https://api.unfoldingword.org/obs/jpg/1/checkinglevels/uW-Level3-32px.png" /></a>
+
+
 import os
 import re
 import sys
