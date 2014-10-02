@@ -38,7 +38,7 @@ s/bootstrap.min.css">
 <h1>unfoldingWord Recently Edited Pads</h1>
 <div class="row"><div class="col-md-4">
 <table class="table table-striped">
-<th>Pad Name</th><th>Modified Time</th>
+<th>Pad Name</th><th>Modified Time (EST)</th>
 {0}
 </table>
 </div></div>
