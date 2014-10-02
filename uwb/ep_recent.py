@@ -62,6 +62,7 @@ if __name__ == '__main__':
         e = sys.exc_info()[0]
         print 'Problem logging into Etherpad via API: {0}'.format(e)
         sys.exit(1)
+    os.environ['TZ'] = 'US/Eastern'
     pads = ep.listAllPads()
     recent = []
     for p in pads['padIDs']:
