@@ -16,31 +16,43 @@ PAGES="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/"
 TMPL="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/templates/obs3/"
 DEST="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/$LANG/"
 LANGNAMES="/var/www/vhosts/door43.org/httpdocs/lib/plugins/translation/lang/langnames.txt"
+OBS="$DEST/obs/"
 
-grep -qw "$LANG" "$LANGNAMES"
-RET=$?
-if [ $RET -ne 0 ]; then
-    echo "The $LANG language code is not configured in DokuwWiki at:"
-    echo "$LANGNAMES"
-    echo "Please add it and run this script again"
-    exit 1
+if [ ! -d "$DEST" ]; then
+    /var/www/vhosts/door43.org/tools/obs/dokuwiki/ns-creator.sh "$LANG"
 fi
 
-if [ -d "$DEST" ]; then
-    echo "Language directory exists: $DEST"
+if [ -d "$OBS" ]; then
+    echo "OBS directory exists: $OBS"
     echo -n "Do you want to overwrite it with new OBS content? N/y "
     read OVERWRITE
     if [ ! "$OVERWRITE" == "y" ]; then
         echo "Please manually copy the files you want from"
         echo "$TMPL to"
-        echo "$DEST"
+        echo "$OBS"
         exit 1
     fi
 fi
 
-mkdir -p "$DEST"
-rsync -ha "$TMPL" "$DEST"
-echo "--> Created new Open Bible Stories 3.0 template for: $LANG"
+# Make OBS
+mkdir -p "$OBS"
+rsync -ha "$TMPL" "$OBS"
+
+############ Make Notes and Key-Terms if requested
+
+# Update home and sidebar for langauge to include OBS information
+echo '
+===== Resources =====
+
+  * **[[LANGCODE:obs|Open Bible Stories (LANGCODE)]]**' >> "$DEST/home.txt"
+echo '
+**Resources**
+
+  * [[LANGCODE:obs|Open Bible Stories (LANGCODE)]]
+
+**Latest OBS Status**
+{{page>en:uwadmin:LANGCODE:obs:status}}' >> "$DEST/sidebar.txt"
+cp "$DEST/sidebar.txt" "$OBS"
 
 # Replace LANGCODE placeholder with destination language code
 for f in `find "$DEST" -type f -name '*.txt'`; do
@@ -58,12 +70,14 @@ sed -i "s/ORIGDATE/`date +%F`/" "$PAGES/en/uwadmin/$LANG/obs/status.txt"
 # Update the changes pages
 /var/www/vhosts/door43.org/tools/obs/dokuwiki/obs-gen-changes-pages.sh
 
-# Commit changes to en namespace
-cd "$PAGES/en/uwadmin/"
-git add "$LANG"
-git commit -am "Added uwadmin obs page for $LANG"
-git push
-cd -
+# function for git work
+gitPush () {
+    cd "$1"
+    git add .
+    git commit -am "$2"
+    git push
+    cd -
+}
 
-# Create a github repo for this language
-/var/www/vhosts/door43.org/tools/obs/dokuwiki/d43-git-init.py "$LANG"
+gitPush "$PAGES/en/uwadmin/" "Added uwadmin obs page for $LANG"
+gitPush "$OBS" "Initial import of OBS"
