@@ -62,7 +62,8 @@ if __name__ == '__main__':
     recent_sorted = sorted(recent, key=lambda p: p[1], reverse=True)
     recent_html = []
     for i in recent_sorted:
-        t = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(i[1][0:10])))
+        t = time.strftime('%Y-%m-%d %H:%M:%S',
+             time.localtime(int(str(i[1])[0:10])))
         recent_html.append(link.format(i[0], t))
 
     writeFile(path, page_template.format('\n'.join(recent_html)))
