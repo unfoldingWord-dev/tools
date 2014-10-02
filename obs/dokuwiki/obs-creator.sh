@@ -8,9 +8,47 @@
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
 
-LANG="$1"
+help() {
+    echo
+    echo "Setup OBS for a new language."
+    echo
+    echo "Usage:"
+    echo "   $PROGNAME -l <LangCode> [--notes] [--src <LangCode>]"
+    echo "   $PROGNAME --help"
+    echo
+    exit 1
+}
+
+if [ $# -lt 1 ]; then
+    help
+fi
+while test -n "$1"; do
+    case "$1" in
+        --help|-h)
+            help
+            ;;
+        --lang|-l)
+            LANG="$2"
+            shift
+            ;;
+        --notes)
+            NOTES="YES"
+            shift
+            ;;
+        --src)
+            SRC="$2"
+            shift
+            ;;
+        *)
+            echo "Unknown argument: $1"
+            help
+            ;;
+    esac
+    shift
+done
 
 [ -z "$LANG" ] && echo "Please specify language code." && exit 1
+[ -z "$SRC" ] && SRC="en"
 
 PAGES="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/"
 TMPL="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/templates/obs3/"
@@ -19,7 +57,7 @@ LANGNAMES="/var/www/vhosts/door43.org/httpdocs/lib/plugins/translation/lang/lang
 OBS="$DEST/obs/"
 
 if [ ! -d "$DEST" ]; then
-    /var/www/vhosts/door43.org/tools/obs/dokuwiki/ns-creator.sh "$LANG"
+    /var/www/vhosts/door43.org/tools/obs/dokuwiki/ns-creator.sh -l "$LANG"
 fi
 
 if [ -d "$OBS" ]; then
@@ -38,17 +76,15 @@ fi
 mkdir -p "$OBS"
 rsync -ha "$TMPL" "$OBS"
 
-############ Make Notes and Key-Terms if requested
-
 # Update home and sidebar for langauge to include OBS information
 echo '
 ===== Resources =====
 
-  * **[[LANGCODE:obs|Open Bible Stories (LANGCODE)]]**' >> "$DEST/home.txt"
+  * **[[LANGCODE:obs:obs|Open Bible Stories (LANGCODE)]]**' >> "$DEST/home.txt"
 echo '
 **Resources**
 
-  * [[LANGCODE:obs|Open Bible Stories (LANGCODE)]]
+  * [[LANGCODE:obs:obs|Open Bible Stories (LANGCODE)]]
 
 **Latest OBS Status**
 {{page>en:uwadmin:LANGCODE:obs:status}}' >> "$DEST/sidebar.txt"
@@ -56,7 +92,7 @@ cp "$DEST/sidebar.txt" "$OBS"
 
 # Replace LANGCODE placeholder with destination language code
 for f in `find "$DEST" -type f -name '*.txt'`; do
-    sed -i "s/LANGCODE/$LANG/g" "$f"
+    sed -i -e "s/LANGCODE/$LANG/g" "$f"
 done
 
 # Set permissions
@@ -73,11 +109,16 @@ sed -i "s/ORIGDATE/`date +%F`/" "$PAGES/en/uwadmin/$LANG/obs/status.txt"
 # function for git work
 gitPush () {
     cd "$1"
-    git add .
-    git commit -am "$2"
-    git push
+    git add . >/dev/null
+    git commit -am "$2" >/dev/null
+    git push origin master >/dev/null
     cd -
 }
 
 gitPush "$PAGES/en/uwadmin/" "Added uwadmin obs page for $LANG"
 gitPush "$OBS" "Initial import of OBS"
+
+# Copy Notes and Key-Terms if requested
+if [ "$NOTES" == "YES" ]; then
+    /var/www/vhosts/door43.org/tools/obs/dokuwiki/obs-notes-creator.sh -l "$LANG" --src "$SRC"
+fi
