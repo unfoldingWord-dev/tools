@@ -9,9 +9,9 @@
 #  Jesse Griffin <jesse@distantshores.org>
 
 # Still testing, so exit here
-echo 'running' >>/tmp/publish.out
-id >>/tmp/publish.out
-exit 0
+#echo 'running' >>/tmp/publish.out
+#id >>/tmp/publish.out
+#exit 0
 
 # Run export of OBS to JSON
 /var/www/vhosts/door43.org/tools/obs/json/json_export.py \
@@ -23,7 +23,8 @@ LANGS=`grep "Exporting to unfoldingWord" /tmp/$$.json_export | cut -f 5 -d ' '`
 
 # Create PDF via TeX for languages exported
 for LANG in $LANGS; do
-    /var/www/vhosts/door43.org/tools/obs/book/publish_PDF.sh -l $LANG
+    #/var/www/vhosts/door43.org/tools/obs/book/publish_PDF.sh -l $LANG
+    echo $LANG
 done
 
 # Create web reveal.js viewer
