@@ -8,11 +8,6 @@
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
 
-# Still testing, so exit here
-#echo 'running' >>/tmp/publish.out
-#id >>/tmp/publish.out
-#exit 0
-
 # Run export of OBS to JSON
 /var/www/vhosts/door43.org/tools/obs/json/json_export.py \
     --unfoldingwordexport >>/tmp/$$.json_export
@@ -21,10 +16,12 @@
 LANGS=`grep "Exporting to unfoldingWord" /tmp/$$.json_export | cut -f 5 -d ' '`
 [ -z "$LANGS" ] && exit 0
 
-# Create PDF via TeX for languages exported
 for LANG in $LANGS; do
+    # Create PDF via TeX for languages exported
     #/var/www/vhosts/door43.org/tools/obs/book/publish_PDF.sh -l $LANG
-    echo $LANG
+
+    # Create image symlinks on api.unfoldingword.org
+    /var/www/vhosts/door43.org/tools/uw/makejpgsymlinks.sh -l $LANG
 done
 
 # Create web reveal.js viewer
