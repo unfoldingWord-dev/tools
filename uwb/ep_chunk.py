@@ -28,6 +28,7 @@ NP = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes'
 TFTURL = 'https://door43.org/_export/raw/en/udb/v1/{0}/{1}.usfm'
 refre = re.compile(ur'\\v.([0-9][0-9]?[0-9]?)')
 httpsre = re.compile(ur'https://pad.door43.org.*', re.UNICODE)
+sectionre = re.compile(ur'\\s.*', re.UNICODE)
 tftp = re.compile(ur'(TFT: =====.*?<usfm>\n).*?(\n</usfm>)', re.DOTALL | re.UNICODE)
 udbp = re.compile(ur'(UDB: =====.*?<usfm>\n).*?(\n</usfm>)', re.DOTALL | re.UNICODE)
 ulbp = re.compile(ur'(ULB: =====.*?<usfm>\n).*?(\n</usfm>)', re.DOTALL | re.UNICODE)
@@ -190,6 +191,7 @@ def getTXT(refs, txt):
             except:
                 print 'Warning: reference not found: {0}'.format(r)
         verse = httpsre.sub(u'', verse)
+        verse = sectionre.sub(u'', verse)
         chunks.append(verse.rstrip('\\v').strip())
     return '\n'.join(chunks)
 
