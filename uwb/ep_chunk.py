@@ -182,8 +182,8 @@ def splice(ulb, udb, tft, bk, chp):
 def getTXT(refs, txt):
     chunks = []
     for r in refs:
-        versep = ur'\\v.?{0}.*?\\v'.format(r)
-        versepend = ur'\\v.?{0}.*?$'.format(r)
+        versep = ur'\\v.?{0}[- ].*?\\v'.format(r)
+        versepend = ur'\\v.?{0}[- ].*?$'.format(r)
         try:
             verse = re.search(versep, txt, re.DOTALL).group(0)
         except AttributeError:
