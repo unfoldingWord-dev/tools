@@ -179,8 +179,6 @@ def exportunfoldingWord(status, gitdir, json, lang, githuborg):
     url = 'http://unfoldingword.org/{0}/'.format(lang)
     githubCreate(gitdir, name, desc, url, githuborg)
     commitmsg = str(status)
-    if 'comments' in status:
-        commitmsg = status['comments']
     gitCommit(gitdir, commitmsg)
     gitPush(gitdir)
 
@@ -237,6 +235,12 @@ if __name__ == '__main__':
             except:
                 print "Please verify that"
                 print "/var/www/vhosts/door43.org/tools/general_tools exists."
+                sys.exit(1)
+            try:
+                from github import Github
+                from github import GithubException
+            except:
+                print "Please install PyGithub with pip"
                 sys.exit(1)
             unfoldingwordexport = True
             # Log in to Github via API
