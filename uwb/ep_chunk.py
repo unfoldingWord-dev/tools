@@ -191,6 +191,7 @@ def getTXT(refs, txt):
                 verse = re.search(versepend, txt, re.DOTALL).group(0)
             except:
                 print 'Warning: reference not found: {0}'.format(r)
+                continue
         verse = httpsre.sub(u'', verse)
         verse = sectionre.sub(u'', verse)
         chunks.append(verse.rstrip('\\v').strip())
