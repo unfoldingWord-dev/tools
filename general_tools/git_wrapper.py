@@ -81,7 +81,7 @@ def gitCommit(d, msg):
     '''
     os.chdir(d)
     out, ret = runCommand('git add *')
-    out1, ret1= runCommand('''git commit -am '{0}' '''.format(msg))
+    out1, ret1= runCommand('''git commit -am "{0}" '''.format(msg))
     if ret > 0 or ret1 > 0:
         print 'Nothing to commit, or failed commit to repo in: {0}'.format(d)
         print out1
