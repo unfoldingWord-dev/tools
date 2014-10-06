@@ -27,6 +27,7 @@ from etherpad_lite import EtherpadException
 NP = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes'
 TFTURL = 'https://door43.org/_export/raw/en/udb/v1/{0}/{1}.usfm'
 refre = re.compile(ur'\\v.([0-9][0-9]?[0-9]?)')
+httpsre = re.compile(ur'https://pad.door43.org.*', re.UNICODE)
 tftp = re.compile(ur'(TFT: =====.*?<usfm>\n).*?(\n</usfm>)', re.DOTALL | re.UNICODE)
 udbp = re.compile(ur'(UDB: =====.*?<usfm>\n).*?(\n</usfm>)', re.DOTALL | re.UNICODE)
 ulbp = re.compile(ur'(ULB: =====.*?<usfm>\n).*?(\n</usfm>)', re.DOTALL | re.UNICODE)
@@ -170,6 +171,7 @@ def splice(ulb, udb, tft, bk, chp):
                         'refrng': '{0}-{1}'.format(ref_list[0], ref_list[-1]),
                         'filepath': getPath(bk, chp, ref),
                       }
+        i = httpsre.sub(u'', i)
         chunks[ref]['ulb'] = i.strip()
         chunks[ref]['udb'] = getTXT(ref_list, udb)
         chunks[ref]['tft'] = getTXT(ref_list, tft)
@@ -187,6 +189,7 @@ def getTXT(refs, txt):
                 verse = re.search(versepend, txt, re.DOTALL).group(0)
             except:
                 print 'Warning: reference not found: {0}'.format(r)
+        verse = httpsre.sub(u'', verse)
         chunks.append(verse.rstrip('\\v').strip())
     return '\n'.join(chunks)
 
