@@ -58,6 +58,9 @@ OBS="$DEST/obs/"
 
 if [ ! -d "$DEST" ]; then
     /var/www/vhosts/door43.org/tools/obs/dokuwiki/ns-creator.sh -l "$LANG"
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
 fi
 
 if [ -d "$OBS" ]; then
