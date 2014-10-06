@@ -173,6 +173,7 @@ def splice(ulb, udb, tft, bk, chp):
                         'filepath': getPath(bk, chp, ref),
                       }
         i = httpsre.sub(u'', i)
+        i = sectionre.sub(u'', i)
         chunks[ref]['ulb'] = i.strip()
         chunks[ref]['udb'] = getTXT(ref_list, udb)
         chunks[ref]['tft'] = getTXT(ref_list, tft)
