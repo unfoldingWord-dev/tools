@@ -11,7 +11,7 @@ if [ -d /etc/yum.repos.d/ ]; then
         rpm -ivh http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
     fi
     if [ "$VER" == '7' ]; then
-        rpm -ivh http://dl.fedoraproject.org/pub/epel/beta/7/x86_64/epel-release-7-1.noarch.rpm
+        rpm -ivh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-2.noarch.rpm
         yum --enablerepo epel -y install iptables-services
         systemctl mask firewalld.service
         systemctl enable iptables.service
