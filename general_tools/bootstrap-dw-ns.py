@@ -46,6 +46,8 @@ if __name__ == '__main__':
         print 'Problem logging into Github: {0}'.format(e)
         sys.exit(1)
 
+    if not os.path.exists(pagesdir):
+        os.makedirs(pagesdir, 0755)
     # Cycle through available repos and clone them
     repo_urls = []
     repos = githuborg.get_repos(type="public")
