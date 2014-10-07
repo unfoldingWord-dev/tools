@@ -106,6 +106,16 @@ def gitPull(d):
         print out
         print 'Failed to pull from origin master in: {0}'.format(d)
 
+def gitClone(d, remote):
+    '''
+    Clones a repo from remote into d.  Directory d should not exist or be
+    empty.
+    '''
+    out, ret = runCommand('git clone {0} {1}'.format(remote, d))
+    if ret > 0:
+        print out
+        print 'Failed to clone from {0} to {1}'.format(remote, d)
+
 def createHallHook(repo, roomid):
     '''
     Creates a hall hook for the given repository to the given room.
