@@ -53,6 +53,7 @@ if __name__ == '__main__':
         ssh_url = r.ssh_url
         if 'd43-' in ssh_url:
             repo_urls.append(ssh_url)
+    repo_urls.sort()
     for ssh_url in repo_urls:
         lang = ssh_url.split('/')[1].replace('.git', '').replace('d43-', '')
         d = os.path.join(pagesdir, lang)
