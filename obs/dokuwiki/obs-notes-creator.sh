@@ -61,8 +61,8 @@ rsync -ha $SRCNOTES* $DEST/
 # Replace LANGCODE placeholder with destination language code
 for f in `find "$DEST" -type f -name '*.txt'`; do
     sed -i -e "s/LANGCODE/$LANG/g" \
-           -e "s/$SRC\/obs\/notes/$LANG\/obs\/notes/" \
-           -e "s/$SRC:obs:notes/$LANG:obs:notes/" \
+           -e "s/$SRC\/obs\/notes/$LANG\/obs\/notes/g" \
+           -e "s/$SRC:obs:notes/$LANG:obs:notes/g" \
         "$f"
 done
 
