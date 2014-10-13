@@ -18,7 +18,7 @@ help() {
     echo -n "   $PROGNAME -s <dokuwikisourcedir> -d <zimdestinationdir> "
     echo "[-u <depth(1|2|3|4|5)>]"
     echo
-    echo "   e.g. $PROGNAME -s /tmp/dokuwiki -d /tmp/zim -d 2"
+    echo "   e.g. $PROGNAME -s /tmp/dokuwiki -d /tmp/zim -u 2"
     echo
     echo "   $PROGNAME --help"
     echo
@@ -73,6 +73,7 @@ fi
 
 # Create Zim files from DokuWiki source files
 for f in `ls "$src"`; do
+    [ -d "$src/$f" ] && continue
     sed -e "s/:en:obs:obs-/${depth}images\/obs-/g" \
         -e 's/<[^>]*>//g' \
         -e 's/jpg\?.*$/jpg}}/g' \
