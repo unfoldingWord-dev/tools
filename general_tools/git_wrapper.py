@@ -101,7 +101,7 @@ def gitPull(d):
     Pulls from origin master to local repository.
     '''
     os.chdir(d)
-    out, ret = runCommand('git pull origin master')
+    out, ret = runCommand('git pull --no-edit origin master')
     if ret > 0:
         print out
         print 'Failed to pull from origin master in: {0}'.format(d)
