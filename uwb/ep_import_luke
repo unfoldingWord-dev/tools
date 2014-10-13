@@ -1,0 +1,22 @@
+#!/usr/bin/env sh
+# -*- coding: utf8 -*-
+#
+#  Copyright (c) 2014 unfoldingWord
+#  http://creativecommons.org/licenses/MIT/
+#  See LICENSE file for details.
+#
+#  Contributors:
+#  Jesse Griffin <jesse@distantshores.org>
+
+NOTES=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes/luk
+
+for x in `seq -f "%02g" 1 24`; do
+    /var/www/vhosts/door43.org/tools/uwb/ep_chunk.py en-ulb-luk-$x >/dev/null
+done
+
+chown -R apache:apache $NOTES
+
+cd $NOTES
+git add .
+git commit -am 'Updated Luke notes'
+git push origin master
