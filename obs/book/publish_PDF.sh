@@ -31,6 +31,10 @@ while test -n "$1"; do
             LANG="$2"
             shift
             ;;
+        --ver|-v)
+            VER="$2"
+            shift
+            ;;
         *)
             echo "Unknown argument: $1"
             help
@@ -41,7 +45,6 @@ done
 
 [ -z "$LANG" ] && echo "Please specify language code." && exit 1
 
-VER="3.1"
 TOOLS="/var/www/vhosts/door43.org/tools"
 API="/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/pdf/$LANG"
 FILENAME="OBS-$LANG-v$VER"
