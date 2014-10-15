@@ -43,6 +43,7 @@ done
 
 VER="3.1"
 TOOLS="/var/www/vhosts/door43.org/tools"
+API="/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/pdf/$LANG"
 FILENAME="OBS-$LANG-v$VER"
 
 $TOOLS/obs/export.py -l $LANG -f tex -o /tmp/$$.$FILENAME.tex
@@ -52,6 +53,7 @@ $TOOLS/obs/export.py -l $LANG -f tex -o /tmp/$$.$FILENAME.tex
 cd /tmp
 context $$.$FILENAME.tex
 
-mv $$.$FILENAME.pdf $FILENAME.pdf
+mkdir -p $API
+mv -f /tmp/$$.$FILENAME.pdf $API/$FILENAME.pdf
 
-#rm -f $$.*
+rm -f /tmp/$$.*
