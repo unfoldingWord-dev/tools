@@ -45,7 +45,7 @@ VER="3.1"
 TOOLS="/var/www/vhosts/door43.org/tools"
 FILENAME="OBS-$LANG-v$VER"
 
-$TOOLS/export.py -l $LANG -f tex -o /tmp/$$.$FILENAME.tex
+$TOOLS/obs/export.py -l $LANG -f tex -o /tmp/$$.$FILENAME.tex
 
 . /opt/context/tex/setuptex
 
