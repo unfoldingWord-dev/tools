@@ -46,14 +46,14 @@ TMPL="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/templates/"
 DEST="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/$LANG/"
 LANGNAMES="/var/www/vhosts/door43.org/httpdocs/lib/plugins/translation/lang/langnames.txt"
 
-grep -qw "$LANG" "$LANGNAMES"
-RET=$?
-if [ $RET -ne 0 ]; then
-    echo "The $LANG language code is not configured in DokuwWiki at:"
-    echo "$LANGNAMES"
-    echo "Please add it and run this script again"
-    exit 1
-fi
+#grep -qw "$LANG" "$LANGNAMES"
+#RET=$?
+#if [ $RET -ne 0 ]; then
+    #echo "The $LANG language code is not configured in DokuwWiki at:"
+    #echo "$LANGNAMES"
+    #echo "Please add it and run this script again"
+    #exit 1
+#fi
 
 if [ -d "$DEST" ]; then
     echo "Language directory exists: $DEST"
@@ -81,3 +81,5 @@ chown -R apache:apache "$DEST"
 
 # Create a github repo for this language
 /var/www/vhosts/door43.org/tools/obs/dokuwiki/d43-git-init.py "$LANG"
+
+chown -R apache:apache "$DEST/.git"

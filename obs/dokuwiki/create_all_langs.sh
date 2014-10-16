@@ -10,13 +10,15 @@
 
 PAGES="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages"
 
-CODES=`wget -O - http://vd725.gondor.co/exports/codes-d43.txt`
+CODES=`wget -q -O - http://vd725.gondor.co/exports/codes-d43.txt`
 
 for LANG in $CODES; do
 
     DEST="$PAGES/$LANG"
     [ -d "$DEST" ] && continue
 
+    echo Creating $LANG...
     /var/www/vhosts/door43.org/tools/obs/dokuwiki/ns-creator.sh -l $LANG
+    break
 
 done
