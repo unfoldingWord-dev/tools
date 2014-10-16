@@ -13,6 +13,7 @@
 import os
 import sys
 import codecs
+from time import sleep
 sys.path.append('/var/www/vhosts/door43.org/tools/general_tools')
 try:
     from git_wrapper import *
@@ -97,4 +98,5 @@ if __name__ == '__main__':
     repo = githuborg.get_repo(name)
     createHallHook(repo, hallroomid)
     gitCommit(d, 'Namespace configured for Github.')
+    sleep(2)
     gitPush(d)
