@@ -8,22 +8,27 @@
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
 
-#Should be safe to run, but just in case:
-exit 1
-
 PROGNAME="${0##*/}"
 PAGES=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/
 
 changelinks () {
-    for f in `find "$1" -maxdepth 1 -type f -name '[0-5][0-9].txt'`; do
+    for f in `find "$1" -type f -name '*.txt'`; do
 
-        sed -i -e "s/:en:obs:obs-/https:\/\/api.unfoldingword.org\/obs\/jpg\/1\/en\/360px\/obs-en-/g"  \
-            -e 's/?nolink&640x360//'  \
+        sed -i -e "s/{{:en:obs:obs-/{{https:\/\/api.unfoldingword.org\/obs\/jpg\/1\/en\/360px\/obs-en-/g"  \
+            -e 's/?nolink&640x360/?nolink/'  \
             $f
     done
 }
 
 for d in `find $PAGES -type d -name 'obs' -not -path "/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/uwadmin/*"`; do
     changelinks $d
+    cd $d
+    STATUS=`git status -s | grep "^ M" | wc -l`
+    if [ $STATUS -gt 0 ]; then
+        git commit -am 'Updated image links'
+        git push origin master
+    fi
 done
 
+# In case script is run as root, change perms back to apache
+chown -R apache:apache $PAGES
