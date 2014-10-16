@@ -45,6 +45,7 @@ done
 
 [ -z "$LANG" ] && echo "Please specify language code." && exit 1
 
+MAILTO="publishing@unfoldingword.org"
 TOOLS="/var/www/vhosts/door43.org/tools"
 API="/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/pdf/$LANG"
 FILENAME="OBS-$LANG-v$VER"
@@ -60,3 +61,8 @@ mkdir -p $API
 mv -f /tmp/$$.$FILENAME.pdf $API/$FILENAME.pdf
 
 rm -f /tmp/$$.*
+
+URL="https://api.unfoldingword.org/obs/pdf/$LANG/$FILENAME.pdf"
+echo "A PDF for $LANG at version $VER has been created.  " \
+    "Please download it from $URL." \
+    | mail -s "PDF Generated for $LANG" "$MAILTO"
