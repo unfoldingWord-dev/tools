@@ -20,3 +20,4 @@ cd $NOTES
 git add .
 git commit -am 'Updated Luke notes'
 git push origin master
+chown -R apache:apache /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en
