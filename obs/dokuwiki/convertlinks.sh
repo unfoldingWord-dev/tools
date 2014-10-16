@@ -16,6 +16,8 @@ changelinks () {
 
         sed -i -e "s/{{:en:obs:obs-/{{https:\/\/api.unfoldingword.org\/obs\/jpg\/1\/en\/360px\/obs-en-/g"  \
             -e 's/?nolink&640x360/?nolink/'  \
+            -e 's/:https:api.unfoldingword.org:obs:jpg:1:en:360px:/https:\/\/api.unfoldingword.org\/obs\/jpg\/1\/en\/360px\//g'  \
+            -e 's/{{:https:/{{https:/g'  \
             $f
     done
 }
