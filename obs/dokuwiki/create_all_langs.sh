@@ -19,6 +19,5 @@ for LANG in $CODES; do
 
     echo Creating $LANG...
     /var/www/vhosts/door43.org/tools/obs/dokuwiki/ns-creator.sh -l $LANG
-    break
 
 done
