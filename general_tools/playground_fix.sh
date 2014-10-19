@@ -7,7 +7,7 @@ PDIR=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/playground
 PAGE="$PDIR/playground.txt"
 MSG="Feel free to edit this page."
 
-[ -z $PDIR ] && mkdir -p $PDIR
+[ -d "$PDIR" ] || mkdir -p $PDIR
 
 echo "$MSG" >"$PAGE"
 
