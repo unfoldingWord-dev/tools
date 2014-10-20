@@ -34,8 +34,9 @@ except:
     sys.exit(1)
 
 lang_url = 'https://api.unfoldingword.org/obs/txt/1/langnames.json'
-host_regions = { 'us.door43.org': ['Americas', 'Europe', 'Africa', 'Asia'],
+host_regions = { 'us.door43.org': ['Americas', 'Africa', 'Asia'],
                  'jp.door43.org': ['Pacific'],
+                 'uk.door43.org': ['Europe'],
                }
 
 
@@ -74,7 +75,7 @@ if __name__ == '__main__':
         #Check to see if hooks are correct
         pass
 
-    hook_name = 'jp-updates'
+    hook_name = hostname
     hook_config = { u'url': u'http://jp.door43.org:9094',
                     u'insecure_ssl': u'0', u'secret': u'',
                     u'content_type': u'json'
