@@ -9,8 +9,7 @@
 #  Jesse Griffin <jesse@distantshores.org>
 
 PROGNAME="${0##*/}"
-PANDOC="/usr/bin/pandoc"
-DOKU2HTML=/usr/local/bin/doku2html
+DOKU2HTML=/usr/local/sbin/doku2html
 PAGES=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages
 
 help() {
@@ -53,14 +52,14 @@ if [ -z "$lang" ]; then
     help
 fi
 
-outputfile="/tmp/sovee-obs-$lang-`date +%F`.txt"
+outputfile="/tmp/sovee-obs-$lang-`date +%F`.html"
 echo "Exporting to $outputfile"
 rm -f "$outputfile"
 
 export_file () {
     f=`echo $1 | sed "s/en/$lang/"`
-    echo "filename: $f" >> "$outputfile"
-    cat "$1" | \
+    echo "<!-- filename: $f -->" >> "$outputfile"
+    $DOKU2HTML "$1" | \
         sed -e "s/en\/obs\/notes/$lang\/obs\/notes/" \
             -e "s/en:obs:notes/$lang:obs:notes/" \
         >> "$outputfile"
