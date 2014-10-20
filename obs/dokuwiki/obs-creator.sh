@@ -76,30 +76,27 @@ if [ -d "$OBS" ]; then
 fi
 
 # Make OBS
-mkdir -p "$OBS"
-rsync -ha "$TMPL" "$OBS"
+rsync -ha "$TMPL" "$DEST"
 
 # Update home and sidebar for langauge to include OBS information
 echo '
 ===== Resources =====
 
-  * **[[LANGCODE:obs:obs|Open Bible Stories (LANGCODE)]]**' >> "$DEST/home.txt"
+  * **[[LANGCODE:obs|Open Bible Stories (LANGCODE)]]**' >> "$DEST/home.txt"
 echo '
 **Resources**
 
-  * [[LANGCODE:obs:obs|Open Bible Stories (LANGCODE)]]
+  * [[LANGCODE:obs|Open Bible Stories (LANGCODE)]]
 
 **Latest OBS Status**
 {{page>en:uwadmin:LANGCODE:obs:status}}' >> "$DEST/sidebar.txt"
+
 cp "$DEST/sidebar.txt" "$OBS"
 
 # Replace LANGCODE placeholder with destination language code
 for f in `find "$DEST" -type f -name '*.txt'`; do
     sed -i -e "s/LANGCODE/$LANG/g" "$f"
 done
-
-# Set permissions
-chown -R apache:apache "$DEST"
 
 # Make uwadmin status page
 mkdir -p "$PAGES/en/uwadmin/$LANG/obs"
@@ -119,9 +116,12 @@ gitPush () {
 }
 
 gitPush "$PAGES/en/uwadmin/" "Added uwadmin obs page for $LANG"
-gitPush "$OBS" "Initial import of OBS"
+gitPush "$DEST" "Initial import of OBS"
 
 # Copy Notes and Key-Terms if requested
 if [ "$NOTES" == "YES" ]; then
     /var/www/vhosts/door43.org/tools/obs/dokuwiki/obs-notes-creator.sh -l "$LANG" --src "$SRC"
 fi
+
+# Set permissions
+chown -R apache:apache "$DEST"
