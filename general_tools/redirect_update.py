@@ -75,3 +75,5 @@ if __name__ == '__main__':
     writeFile('/etc/puppet/modules/nginx/files/r_for_us', '\n'.join(r_for_us))
     writeFile('/etc/puppet/modules/nginx/files/r_for_jp', '\n'.join(r_for_jp))
 
+    print "Please review modified files in /etc/puppet."
+
