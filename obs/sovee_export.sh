@@ -58,10 +58,10 @@ rm -f "$outputfile"
 
 export_file () {
     f=`echo $1 | sed "s/en/$lang/"`
-    echo "<!-- filename: $f -->" >> "$outputfile"
+    echo -e "\n<!-- filename: $f -->" >> "$outputfile"
     $DOKU2HTML "$1" | \
-        sed -e "s/en\/obs\/notes/$lang\/obs\/notes/" \
-            -e "s/en:obs:notes/$lang:obs:notes/" \
+        sed -e "s/en\/obs\/notes/$lang\/obs\/notes/g" \
+            -e "s/en:obs:notes/$lang:obs:notes/g" \
         >> "$outputfile"
 }
 
