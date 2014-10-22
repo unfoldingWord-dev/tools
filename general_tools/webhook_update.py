@@ -19,6 +19,7 @@ import os
 import sys
 import codecs
 import urllib2
+from time import sleep
 sys.path.append('/var/www/vhosts/door43.org/tools/general_tools')
 try:
     from git_wrapper import *
@@ -33,20 +34,12 @@ except:
     print "Please install PyGithub with pip"
     sys.exit(1)
 
-lang_url = 'https://api.unfoldingword.org/obs/txt/1/langnames.json'
-host_regions = { 'us.door43.org': ['Americas', 'Africa', 'Asia'],
-                 'jp.door43.org': ['Pacific'],
-                 'uk.door43.org': ['Europe'],
-               }
-
-
-def getLangs(url):
-    try:
-        request = urllib2.urlopen(url).read()
-    except:
-        request = '{}'
-    return json.loads(request)
-
+filepath = '/etc/puppet/modules/nginx/files/{0}'
+urltmpl = 'http://{0}:9094'
+hosts = ( ['us.door43.org', 'r_for_us'],
+          ['uk.door43.org', 'r_for_uk'],
+          ['jp.door43.org', 'r_for_jp'],
+        )
 
 
 if __name__ == '__main__':
@@ -59,27 +52,42 @@ if __name__ == '__main__':
         print 'Problem logging into Github: {0}'.format(e)
         sys.exit(1)
 
-    lang_info = getLangs(lang_url)
+rlimit.rate.remaining
 
-    hostname = os.environ.get('HOSTNAME')
-    if hostname not in host_regions:
-        print 'Hostname not configured for a region'
-        sys.exit(1)
-    regions = host_regions[hostname]
+    slave_info = {}
+    for h in hosts:
+        if not os.path.exists(filepath.format(h[1])):
+            print 'Cannot access {0}'.format(filepath.format(h[1]))
+            sys.exit(1)
+        lines = open(filepath.format(h[1]), 'r').readlines()
+        for l in lines:
+            repo_name = 'd43-{0}'.format(l.split('/')[1])
+            if not repo_name in slave_info:
+                slave_info[repo_name] = []
+            slave_info[repo_name].append(urltmpl.format(h[0]))
 
-    # Cycle through available repos and set hooks
+    repos = githuborg.get_repos(type="public")
+    for r in repos:
+        if 'd43-' not in r.name:
+            continue
+        if guser.get_rate_limit().rate.remaining < 1000:
+            sleep 5
 
-    repo_name = 'd43-en'
-    repo = githuborg.get_repo(repo_name)
-    for hook in repo.get_hooks():
-        #Check to see if hooks are correct
-        pass
+        print 'Configuring {0}'format(r.name)
 
-    hook_name = hostname
-    hook_config = { u'url': u'http://jp.door43.org:9094',
-                    u'insecure_ssl': u'0', u'secret': u'',
-                    u'content_type': u'json'
-                  }
+        hooks = r.get_hooks()
+        cur_hks = [x.config['url'] for x in hooks if x.name == 'web']
 
-    repo.create_hook(hook_name, hook_config)
+        # Create hooks if they don't exist
+        for host in set(slave_info[r.name]) - set(cur_hooks):
+            r.create_hook('web', {u'url': host, u'insecure_ssl': u'0',
+                                  u'secret': u'', u'content_type': u'json'})
 
+        # Remove hooks if need be
+        for host in set(cur_hooks) - set(slave_info[r.name]):
+            hk = [x for x in hooks if x.config['url'] == host]
+            hk[0].delete()
+
+        print 'Slave info {0}'.format(slave_info[r.name])
+        print 'Original hooks {0}'.format(cur_hks)
+        break
