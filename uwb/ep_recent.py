@@ -8,10 +8,8 @@
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
 
-1412281416.485904
-1412280191.466
-
 """
+Generates HTML page of recently edited pads.
 """
 
 import os
@@ -66,6 +64,8 @@ if __name__ == '__main__':
     pads = ep.listAllPads()
     recent = []
     for p in pads['padIDs']:
+        if not p:
+            continue
         recent.append((p, ep.getLastEdited(padID=p)['lastEdited']))
 
     recent_sorted = sorted(recent, key=lambda p: p[1], reverse=True)
