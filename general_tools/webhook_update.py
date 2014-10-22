@@ -69,20 +69,20 @@ if __name__ == '__main__':
         if 'd43-' not in r.name:
             continue
         if guser.get_rate_limit().rate.remaining < 1000:
-            sleep 5
+            sleep(5)
 
-        print 'Configuring {0}'format(r.name)
+        print 'Configuring {0}'.format(r.name)
 
         hooks = r.get_hooks()
         cur_hks = [x.config['url'] for x in hooks if x.name == 'web']
 
         # Create hooks if they don't exist
-        for host in set(slave_info[r.name]) - set(cur_hooks):
+        for host in set(slave_info[r.name]) - set(cur_hks):
             r.create_hook('web', {u'url': host, u'insecure_ssl': u'0',
                                   u'secret': u'', u'content_type': u'json'})
 
         # Remove hooks if need be
-        for host in set(cur_hooks) - set(slave_info[r.name]):
+        for host in set(cur_hks) - set(slave_info[r.name]):
             hk = [x for x in hooks if x.config['url'] == host]
             hk[0].delete()
 
