@@ -52,8 +52,6 @@ if __name__ == '__main__':
         print 'Problem logging into Github: {0}'.format(e)
         sys.exit(1)
 
-rlimit.rate.remaining
-
     slave_info = {}
     for h in hosts:
         if not os.path.exists(filepath.format(h[1])):
