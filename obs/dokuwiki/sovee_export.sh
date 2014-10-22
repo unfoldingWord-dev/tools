@@ -14,10 +14,10 @@ PAGES=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages
 
 help() {
     echo
-    echo "Export Translation Notes files to a single text file."
+    echo "Export Translation Notes and optionally OBS to a single text file."
     echo
     echo "Usage:"
-    echo "   $PROGNAME -l <LangCode> --obs"
+    echo "   $PROGNAME -l <LangCode> [--obs]"
     echo "   $PROGNAME --help"
     echo
     exit 1
@@ -64,6 +64,9 @@ export_file () {
             -e "s/en:obs:notes/$lang:obs:notes/g" \
         >> "$outputfile"
 }
+
+export_file $PAGES/en/statement-of-faith.txt
+export_file $PAGES/en/translation-guidelines.txt
 
 if [ "$obs" == "YES" ]; then
     for f in `find $PAGES/en/obs -type f -name '[0-5][0-9].txt' | sort`; do
