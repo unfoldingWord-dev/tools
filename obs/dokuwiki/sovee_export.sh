@@ -62,6 +62,8 @@ export_file () {
     $DOKU2HTML "$1" | \
         sed -e "s/en\/obs\/notes/$lang\/obs\/notes/g" \
             -e "s/en:obs:notes/$lang:obs:notes/g" \
+            -e 's/<a href.*title="http/<img src="http/'\
+            -e 's/<img src="\/lib.*//' \
         >> "$outputfile"
 }
 
