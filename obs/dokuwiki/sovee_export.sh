@@ -64,6 +64,7 @@ export_file () {
             -e "s/en:obs:notes/$lang:obs:notes/g" \
             -e 's/<a href.*title="http/<img src="http/'\
             -e 's/<img src="\/lib.*//' \
+        | grep -v '^<!--' \
         >> "$outputfile"
 }
 
