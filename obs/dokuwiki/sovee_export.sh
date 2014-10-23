@@ -72,7 +72,7 @@ export_file $PAGES/en/statement-of-faith.txt
 export_file $PAGES/en/translation-guidelines.txt
 
 if [ "$obs" == "YES" ]; then
-    for f in `find $PAGES/en/obs -type f -name '[0-5][0-9].txt' | sort`; do
+    for f in `find $PAGES/en/obs -maxdepth 1 -type f -name '[0-5][0-9].txt' | sort`; do
         export_file $f
     done
 fi

@@ -70,8 +70,9 @@ if __name__ == '__main__':
             continue
         if guser.get_rate_limit().rate.remaining < 1000:
             sleep(5)
-
-        print 'Configuring {0}'.format(r.name)
+        if not r.name in slave_info:
+            print '==> Redirect not found: {0}'.format(r.name)
+            continue
 
         hooks = r.get_hooks()
         cur_hks = [x.config['url'] for x in hooks if x.name == 'web']
@@ -85,7 +86,3 @@ if __name__ == '__main__':
         for host in set(cur_hks) - set(slave_info[r.name]):
             hk = [x for x in hooks if x.config['url'] == host]
             hk[0].delete()
-
-        print 'Slave info {0}'.format(slave_info[r.name])
-        print 'Original hooks {0}'.format(cur_hks)
-        break
