@@ -154,7 +154,7 @@ def getJSONDict(statfile):
             if ( line.startswith('#') or line.startswith('\n')
                                                          or ':' not in line ):
                 continue
-            k, v = line.split(':')
+            k, v = line.split(':', 1)
             status[k.strip().lower().replace(' ', '_')] = v.strip()
     return status
 
