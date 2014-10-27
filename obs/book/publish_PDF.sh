@@ -47,7 +47,7 @@ done
 
 MAILTO="publishing@unfoldingword.org"
 TOOLS="/var/www/vhosts/door43.org/tools"
-API="/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/pdf/$LANG"
+API="/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/$LANG"
 FILENAME="OBS-$LANG-v$VER"
 
 $TOOLS/obs/export.py -l $LANG -f tex -o /tmp/$$.$FILENAME.tex
@@ -62,7 +62,7 @@ mv -f /tmp/$$.$FILENAME.pdf $API/$FILENAME.pdf
 
 rm -f /tmp/$$.*
 
-URL="https://api.unfoldingword.org/obs/pdf/$LANG/$FILENAME.pdf"
+URL="https://api.unfoldingword.org/obs/txt/1/$LANG/$FILENAME.pdf"
 echo "A PDF for $LANG at version $VER has been created.  " \
     "Please download it from $URL." \
     | mail -s "PDF Generated for $LANG" "$MAILTO"
