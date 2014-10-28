@@ -31,6 +31,7 @@ ktre = re.compile(ur'====== (.*?) ======', re.UNICODE)
 defre = re.compile(ur'===== Definition: =====(.*?)\[See also', re.UNICODE | re.DOTALL)
 defre2 = re.compile(ur'===== Definition: =====(.*?)=====', re.UNICODE | re.DOTALL)
 factre = re.compile(ur'===== Facts: =====(.*?)\[See also', re.UNICODE | re.DOTALL)
+factre2 = re.compile(ur'===== Facts: =====(.*?)=====', re.UNICODE | re.DOTALL)
 linknamere = re.compile(ur'\|(.*?)\]\]', re.UNICODE)
 cfre = re.compile(ur'See also.*', re.UNICODE)
 examplesre = re.compile(ur'===== Examples from the Bible stories.*',
@@ -53,6 +54,8 @@ def getKTDef(page):
         defse = defre2.search(page)
     if not defse:
         defse = factre.search(page)
+    if not defse:
+        defse = factre2.search(page)
     deftxt = defse.group(1).strip()
     return getHTML(deftxt)
 
