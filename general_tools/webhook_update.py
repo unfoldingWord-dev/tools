@@ -69,7 +69,7 @@ if __name__ == '__main__':
         if 'd43-' not in r.name:
             continue
         if guser.get_rate_limit().rate.remaining < 1000:
-            sleep(5)
+            sleep(15)
         if not r.name in slave_info:
             print '==> Redirect not found: {0}'.format(r.name)
             continue
