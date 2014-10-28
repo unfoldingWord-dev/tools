@@ -29,6 +29,7 @@ api = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
 # Regexes for splitting the chapter into components
 ktre = re.compile(ur'====== (.*?) ======', re.UNICODE)
 defre = re.compile(ur'===== Definition: =====(.*?)\[See also', re.UNICODE | re.DOTALL)
+factre = re.compile(ur'===== Facts: =====(.*?)\[See also', re.UNICODE | re.DOTALL)
 linknamere = re.compile(ur'\|(.*?)\]\]', re.UNICODE)
 cfre = re.compile(ur'See also.*', re.UNICODE)
 examplesre = re.compile(ur'===== Examples from the Bible stories.*',
@@ -46,6 +47,9 @@ def getKT(f):
     kt['ex'] = getKTExamples(exsection)
 
 def getKTDef(page):
+    defse = defre.search(page)
+    if not defse:
+        defse = factre.search(page)
     deftxt = defre.search(page).group(1).strip()
     return getHTML(deftxt)
 
