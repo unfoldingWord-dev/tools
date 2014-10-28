@@ -44,13 +44,13 @@ def getKT(f):
     kt['term'] = ktre.search(page).group(1)
     kt['def'] = getKTDef(page)
     kt['cf'] = getKTCF(page)
-    kt['ex'] = getKTExamples(exsection)
+    kt['ex'] = getKTExamples(page)
 
 def getKTDef(page):
     defse = defre.search(page)
     if not defse:
         defse = factre.search(page)
-    deftxt = defre.search(page).group(1).strip()
+    deftxt = defse.group(1).strip()
     return getHTML(deftxt)
 
 def getKTCF(page):
