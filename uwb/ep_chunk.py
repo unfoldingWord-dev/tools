@@ -271,7 +271,7 @@ if __name__ == '__main__':
         print 'Please specify the pad to chunk.'
         sys.exit(1)
     try:
-        pw = open('/root/.ep_api_key', 'r').read().strip()
+        pw = open('/usr/share/httpd/.ssh/ep_api_key', 'r').read().strip()
         ep = EtherpadLiteClient(base_params={'apikey': pw})
     except:
         e = sys.exc_info()[0]
