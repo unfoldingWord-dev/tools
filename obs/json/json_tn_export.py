@@ -99,6 +99,7 @@ if __name__ == '__main__':
     apipath = os.path.join(api, lang)
     keyterms = []
     for f in glob.glob('{0}/*.txt'.format(ktpath)):
+        if 'home.txt' in f or '1-discussion-topic.txt' in f: continue
         keyterms.append(getKT(f))
     keyterms.sort(key=lambda x: x['term'])
     writeJSON('{0}/kt-{1}.json'.format(apipath, lang), keyterms)
