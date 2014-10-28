@@ -57,8 +57,11 @@ def getKTDef(page):
     return getHTML(deftxt)
 
 def getKTCF(page):
-    text = cfre.search(page).group(0)
-    cf = linknamere.findall(text)
+    cf = []
+    cfse = cfre.search(page)
+    if cfse:
+        text = cfse.group(0)
+        cf = linknamere.findall(text)
     return cf
 
 def getKTExamples(page):
