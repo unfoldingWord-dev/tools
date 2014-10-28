@@ -63,3 +63,4 @@ if __name__ == '__main__':
             print 'Will not clone, path exists: {0}'.format(d)
             continue
         gitClone(d, ssh_url)
+        os.chown(d, 48, 48)
