@@ -102,7 +102,7 @@ def getHTML(text):
     # add ul/li
     text = boldstartre.sub(ur'\1<b>', text)
     text = boldstopre.sub(ur'</b>\2', text)
-    return text
+    return text.replace(u'\n', u'<br>')
 
 def writeJSON(outfile, p):
     f = codecs.open(outfile, 'w', encoding='utf-8')
