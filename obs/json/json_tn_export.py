@@ -131,7 +131,7 @@ def writeJSON(outfile, p):
     f.close()
 
 def getDump(j):
-    return json.dumps(j, sort_keys=True, indent=2)
+    return json.dumps(j, sort_keys=True)
 
 
 if __name__ == '__main__':
