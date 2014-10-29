@@ -28,6 +28,7 @@ api = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
 
 # Regexes for splitting the chapter into components
 ktre = re.compile(ur'====== (.*?) ======', re.UNICODE)
+subre = re.compile(ur'\n==== (.*) ====\n', re.UNICODE)
 defre = re.compile(ur'===== Definition: =====(.*?)\[See also', re.UNICODE | re.DOTALL)
 defre2 = re.compile(ur'===== Definition: =====(.*?)=====', re.UNICODE | re.DOTALL)
 factre = re.compile(ur'===== Facts: =====(.*?)\[See also', re.UNICODE | re.DOTALL)
@@ -44,6 +45,7 @@ def getKT(f):
     page = codecs.open(f, 'r', encoding='utf-8').read()
     kt = {}
     kt['term'] = ktre.search(page).group(1)
+    kt['sub'] = getKTSub(page)
     kt['def'] = getKTDef(page)
     kt['cf'] = getKTCF(page)
     kt['ex'] = getKTExamples(page)
@@ -59,6 +61,13 @@ def getKTDef(page):
         defse = factre2.search(page)
     deftxt = defse.group(1).strip()
     return getHTML(deftxt)
+
+def getKTSub(page):
+    sub = u''
+    subse = subre.search(page)
+    if subse:
+        sub = subse.group(1)
+    return sub.strip()
 
 def getKTCF(page):
     cf = []
