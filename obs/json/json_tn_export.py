@@ -44,6 +44,7 @@ fridre = re.compile(ur'[0-5][0-9]-[0-9][0-9]', re.UNICODE)
 boldstartre = re.compile(ur'([ ,.])(\*\*)', re.UNICODE)
 boldstopre = re.compile(ur'(\*\*)([ ,.])', re.UNICODE)
 lire = re.compile(ur' +\* ', re.UNICODE)
+h3re = re.compile(ur'=== (.*?) ===', re.UNICODE)
 
 
 def getKT(f):
@@ -103,6 +104,7 @@ def getHTML(text):
     # add ul/li
     text = boldstartre.sub(ur'\1<b>', text)
     text = boldstopre.sub(ur'</b>\2', text)
+    text = h3re.sub(ur'<h3>\1</h3>', text)
     text = getHTMLList(text)
     return text.replace(u'\n', u'<br>')
 
