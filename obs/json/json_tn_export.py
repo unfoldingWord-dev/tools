@@ -43,6 +43,7 @@ fridre = re.compile(ur'[0-5][0-9]-[0-9][0-9]', re.UNICODE)
 # Regexes for DW to HTML conversion
 boldstartre = re.compile(ur'([ ,.])(\*\*)', re.UNICODE)
 boldstopre = re.compile(ur'(\*\*)([ ,.])', re.UNICODE)
+lire = re.compile(ur' +\* ', re.UNICODE)
 
 
 def getKT(f):
@@ -102,7 +103,27 @@ def getHTML(text):
     # add ul/li
     text = boldstartre.sub(ur'\1<b>', text)
     text = boldstopre.sub(ur'</b>\2', text)
+    text = getHTMLList(text)
     return text.replace(u'\n', u'<br>')
+
+def getHTMLList(text):
+    started = False
+    newtext = []
+    for line in text.split(u'\n'):
+        if lire.search(line):
+            if not started:
+                started = True
+                newtext.append(u'<ul>')
+            line = lire.sub(u'<li>', line)
+            newtext.append(u'{0}</li>'.format(line))
+        else:
+            if started:
+                started = False
+                newtext.append(u'</ul>')
+            newtext.append(line)
+    if started:
+        newtext.append(u'</ul>')
+    return u'\n'.join(newtext)
 
 def writeJSON(outfile, p):
     f = codecs.open(outfile, 'w', encoding='utf-8')
