@@ -47,6 +47,7 @@ def getKT(f):
     kt['def'] = getKTDef(page)
     kt['cf'] = getKTCF(page)
     kt['ex'] = getKTExamples(page)
+    return kt
 
 def getKTDef(page):
     defse = defre.search(page)
