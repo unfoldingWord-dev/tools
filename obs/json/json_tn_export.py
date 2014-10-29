@@ -46,21 +46,24 @@ def getKT(f):
     kt = {}
     kt['term'] = ktre.search(page).group(1)
     kt['sub'] = getKTSub(page)
-    kt['def'] = getKTDef(page)
+    kt['def_title'], kt['def'] = getKTDef(page)
     kt['cf'] = getKTCF(page)
     kt['ex'] = getKTExamples(page)
     return kt
 
 def getKTDef(page):
+    def_title = 'Definition'
     defse = defre.search(page)
     if not defse:
         defse = defre2.search(page)
     if not defse:
         defse = factre.search(page)
+        def_title = 'Facts'
     if not defse:
         defse = factre2.search(page)
+        def_title = 'Facts'
     deftxt = defse.group(1).strip()
-    return getHTML(deftxt)
+    return (def_title, getHTML(deftxt))
 
 def getKTSub(page):
     sub = u''
