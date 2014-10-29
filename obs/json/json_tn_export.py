@@ -44,7 +44,7 @@ fridre = re.compile(ur'[0-5][0-9]-[0-9][0-9]', re.UNICODE)
 boldstartre = re.compile(ur'([ ,.])(\*\*)', re.UNICODE)
 boldstopre = re.compile(ur'(\*\*)([ ,.])', re.UNICODE)
 lire = re.compile(ur' +\* ', re.UNICODE)
-h3re = re.compile(ur'=== (.*?) ===', re.UNICODE)
+h3re = re.compile(ur'\n\n=== (.*?) ===\n\n\n', re.UNICODE)
 
 
 def getKT(f):
@@ -125,7 +125,7 @@ def getHTMLList(text):
             newtext.append(line)
     if started:
         newtext.append(u'</ul>')
-    return u'\n'.join(newtext)
+    return u''.join(newtext)
 
 def writeJSON(outfile, p):
     f = codecs.open(outfile, 'w', encoding='utf-8')
