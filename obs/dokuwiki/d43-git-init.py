@@ -10,6 +10,10 @@
 #
 #  Requires PyGithub.
 
+'''
+Creates a Github repo for the specified namespace.
+'''
+
 import os
 import sys
 import codecs
