@@ -42,7 +42,6 @@ def getDW(text):
     out, ret = com.communicate(text.encode('utf8'))
     return out.decode('utf-8').strip()
 
-
 def writeFile(outfile, content):
     makeDir(outfile.rpartition(u'/')[0])
     f = codecs.open(outfile, 'w', encoding='utf-8')
@@ -52,6 +51,7 @@ def writeFile(outfile, content):
 def makeDir(d):
     if not os.path.exists(d):
         os.makedirs(d, 0755)
+
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
