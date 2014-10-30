@@ -70,6 +70,14 @@ export_file () {
 
 export_file $PAGES/en/statement-of-faith.txt
 export_file $PAGES/en/translation-guidelines.txt
+export_file $PAGES/en/obs/front-matter.txt
+export_file $PAGES/en/obs/back-matter.txt
+export_file $PAGES/en/obs/app_words.txt
+export_file $PAGES/en/legal/license.txt
+export_file $PAGES/en/get-started.txt
+export_file $PAGES/en/tips-tricks.txt
+export_file $PAGES/en/obs-training/get-started/switching_editors.txt
+export_file /var/www/vhosts/door43.org/httpdocs/conf/lang/en/register.txt
 
 if [ "$obs" == "YES" ]; then
     for f in `find $PAGES/en/obs -maxdepth 1 -type f -name '[0-5][0-9].txt' | sort`; do
