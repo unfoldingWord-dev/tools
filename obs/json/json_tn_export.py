@@ -39,8 +39,8 @@ examplesre = re.compile(ur'===== Examples from the Bible stories.*',
     re.UNICODE | re.DOTALL)
 extxtre = re.compile(ur'\*\* (.*)', re.UNICODE)
 fridre = re.compile(ur'[0-5][0-9]-[0-9][0-9]', re.UNICODE)
-tNre = re.compile(ur'===== Translation Notes.*', re.UNICODE | re.DOTALL)
-itre = re.compile(ur'===== Important Terms: =====(.*?)=====', re.UNICODE | re.DOTALL)
+tNre = re.compile(ur'==== Translation Notes.*', re.UNICODE | re.DOTALL)
+itre = re.compile(ur'==== Important Terms: ====(.*?)====', re.UNICODE | re.DOTALL)
 tNtermre = re.compile(ur' \*\*(.*?)\*\* ', re.UNICODE)
 tNtextre = re.compile(ur'\*\* - (.*)', re.UNICODE)
 
@@ -145,7 +145,7 @@ def getFrame(f):
     frame['id'] = fridre.search(f).group(0).strip()
     frame['it'] = getIT(page)
     frame['tn'] = gettN(page)
-    return kt
+    return frame
 
 def getIT(page):
     text = itre.search(page).group(1).strip()
@@ -183,7 +183,7 @@ def runtN(lang):
     for f in glob.glob('{0}/*.txt'.format(tNpath)):
         if 'home.txt' in f: continue
         frames.append(getFrame(f))
-    frames.sort(key=lambda x: x['term'])
+    frames.sort(key=lambda x: x['id'])
     writeJSON('{0}/tN-{1}.json'.format(apipath, lang), frames)
 
 
