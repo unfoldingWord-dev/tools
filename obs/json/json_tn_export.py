@@ -39,6 +39,10 @@ examplesre = re.compile(ur'===== Examples from the Bible stories.*',
     re.UNICODE | re.DOTALL)
 extxtre = re.compile(ur'\*\* (.*)', re.UNICODE)
 fridre = re.compile(ur'[0-5][0-9]-[0-9][0-9]', re.UNICODE)
+tNre = re.compile(ur'===== Translation Notes.*', re.UNICODE | re.DOTALL)
+itre = re.compile(ur'===== Important Terms: =====(.*?)=====', re.UNICODE | re.DOTALL)
+tNtermre = re.compile(ur' \*\*(.*?)\*\* ', re.UNICODE)
+tNtextre = re.compile(ur'\*\* - (.*)', re.UNICODE)
 
 # Regexes for DW to HTML conversion
 boldstartre = re.compile(ur'([ ,.])(\*\*)', re.UNICODE)
@@ -135,6 +139,33 @@ def writeJSON(outfile, p):
 def getDump(j):
     return json.dumps(j, sort_keys=True)
 
+def getFrame(f):
+    page = codecs.open(f, 'r', encoding='utf-8').read()
+    frame = {}
+    frame['id'] = fridre.search(f).group(0).strip()
+    frame['it'] = getIT(page)
+    frame['tn'] = gettN(page)
+    return kt
+
+def getIT(page):
+    text = itre.search(page).group(1).strip()
+    it = linknamere.findall(text)
+    return it
+
+def gettN(page):
+    tN = []
+    text = tNre.search(page).group(0)
+    for i in text.split():
+        item = {}
+        tNtermse = tNtermre.search(i)
+        if not tNtermse:
+            continue
+        item['ref'] = tNtermse.group(1)
+        item['text'] = tNtextre.search(i).group(1).strip()
+        item['text'] = getHTML(item['text'])
+        tN.append(item)
+    return tN
+
 def runKT(lang):
     ktpath = os.path.join(pages, lang, 'obs/notes/key-terms')
     apipath = os.path.join(api, lang)
@@ -145,6 +176,17 @@ def runKT(lang):
     keyterms.sort(key=lambda x: x['term'])
     writeJSON('{0}/kt-{1}.json'.format(apipath, lang), keyterms)
 
+def runtN(lang):
+    tNpath = os.path.join(pages, lang, 'obs/notes/frames')
+    apipath = os.path.join(api, lang)
+    frames = []
+    for f in glob.glob('{0}/*.txt'.format(tNpath)):
+        if 'home.txt' in f: continue
+        frames.append(getFrame(f))
+    frames.sort(key=lambda x: x['term'])
+    writeJSON('{0}/tN-{1}.json'.format(apipath, lang), frames)
+
 
 if __name__ == '__main__':
     runKT('en')
+    runtN('en')
