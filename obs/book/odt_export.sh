@@ -60,6 +60,7 @@ rm -f "$outputfile"
 
 $OBS_EXPORT -l $lang -f html -o "/tmp/obs.html"
 
+echo "<img src="https://api.unfoldingword.org/obs/jpg/1/uWOBSverticallogo600w.png"></img>" >>"$outputfile"
 doku2html "$PAGES/$lang/obs/front-matter.txt" >>"$outputfile"
 cat "/tmp/obs.html" >>"$outputfile"
 doku2html "$PAGES/$lang/obs/back-matter.txt" >>"$outputfile"
