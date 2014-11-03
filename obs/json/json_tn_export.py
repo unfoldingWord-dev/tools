@@ -135,9 +135,7 @@ def writeJSON(outfile, p):
 def getDump(j):
     return json.dumps(j, sort_keys=True)
 
-
-if __name__ == '__main__':
-    lang = 'en'
+def runKT(lang):
     ktpath = os.path.join(pages, lang, 'obs/notes/key-terms')
     apipath = os.path.join(api, lang)
     keyterms = []
@@ -146,3 +144,7 @@ if __name__ == '__main__':
         keyterms.append(getKT(f))
     keyterms.sort(key=lambda x: x['term'])
     writeJSON('{0}/kt-{1}.json'.format(apipath, lang), keyterms)
+
+
+if __name__ == '__main__':
+    runKT('en')
