@@ -8,16 +8,25 @@
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
 
-NOTES=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes/luk
+NOTES=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes
 
-for x in `seq -f "%02g" 1 24`; do
-    /var/www/vhosts/door43.org/tools/uwb/ep_chunk.py en-ulb-luk-$x >/dev/null
-done
+book_import () {
+    # $1 is book short name
+    # $2 is number of chapters
 
-chown -R apache:apache $NOTES
+    for x in `seq -f "%02g" 1 $2`; do
+        /var/www/vhosts/door43.org/tools/uwb/ep_chunk.py en-ulb-$1-$x >/dev/null
+    done
 
-cd $NOTES
-git add .
-git commit -am 'Updated Luke notes'
-git push origin master
+    cd $NOTES/$1
+    git add .
+    git commit -am "Updated $1 notes"
+    git push origin master
+
+}
+
+book_import luk 24
+book_import rut 4
+book_import tit 3
+
 chown -R apache:apache /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en
