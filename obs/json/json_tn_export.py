@@ -42,7 +42,7 @@ fridre = re.compile(ur'[0-5][0-9]-[0-9][0-9]', re.UNICODE)
 tNre = re.compile(ur'==== Translation Notes.*', re.UNICODE | re.DOTALL)
 itre = re.compile(ur'==== Important Terms: ====(.*?)====', re.UNICODE | re.DOTALL)
 tNtermre = re.compile(ur' \*\*(.*?)\*\* ', re.UNICODE)
-tNtextre = re.compile(ur'\*\* - (.*)', re.UNICODE)
+tNtextre = re.compile(ur'\*\* [–-] (.*)', re.UNICODE)
 
 # Regexes for DW to HTML conversion
 boldstartre = re.compile(ur'([ ,.])(\*\*)', re.UNICODE)
@@ -155,7 +155,7 @@ def getIT(page):
 def gettN(page):
     tN = []
     text = tNre.search(page).group(0)
-    for i in text.split():
+    for i in text.split('\n'):
         item = {}
         tNtermse = tNtermre.search(i)
         if not tNtermse:
