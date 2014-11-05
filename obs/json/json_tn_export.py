@@ -46,7 +46,8 @@ tNtextre = re.compile(ur'\*\* [–-] (.*)', re.UNICODE)
 
 # Regexes for DW to HTML conversion
 boldstartre = re.compile(ur'([ ,.])(\*\*)', re.UNICODE)
-boldstopre = re.compile(ur'(\*\*)([ ,.])', re.UNICODE)
+boldstartre2 = re.compile(ur'\*\*', re.UNICODE)
+boldstopre = re.compile(ur'''(\*\*)([ ,.'!])''', re.UNICODE)
 lire = re.compile(ur' +\* ', re.UNICODE)
 h3re = re.compile(ur'\n=== (.*?) ===\n', re.UNICODE)
 
@@ -108,6 +109,7 @@ def getHTML(text):
     # add ul/li
     text = boldstartre.sub(ur'\1<b>', text)
     text = boldstopre.sub(ur'</b>\2', text)
+    text = boldstartre2.sub(ur'<b>', text)
     text = h3re.sub(ur'<h3>\1</h3>', text)
     text = getHTMLList(text)
     return text.replace(u'\n', u'<br>')
