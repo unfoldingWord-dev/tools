@@ -73,7 +73,7 @@ def getKTDef(page):
     if not defse:
         defse = factre2.search(page)
         def_title = 'Facts'
-    deftxt = defse.group(1).strip()
+    deftxt = defse.group(1).rstrip()
     return (def_title, getHTML(deftxt))
 
 def getKTSub(page):
@@ -112,7 +112,7 @@ def getHTML(text):
     text = boldstartre2.sub(ur'<b>', text)
     text = h3re.sub(ur'<h3>\1</h3>', text)
     text = getHTMLList(text)
-    return text.replace(u'\n', u'<br>')
+    return text.strip()
 
 def getHTMLList(text):
     started = False
