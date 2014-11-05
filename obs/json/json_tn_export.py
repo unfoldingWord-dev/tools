@@ -175,7 +175,7 @@ def runKT(lang):
     for f in glob.glob('{0}/*.txt'.format(ktpath)):
         if 'home.txt' in f or '1-discussion-topic.txt' in f: continue
         keyterms.append(getKT(f))
-    keyterms.sort(key=lambda x: x['term'])
+    keyterms.sort(key=lambda x: len(x['term']), reverse=True)
     writeJSON('{0}/kt-{1}.json'.format(apipath, lang), keyterms)
 
 def runtN(lang):
