@@ -167,11 +167,14 @@ def splice(ulb, udb, tft, bk, chp):
         if not ref_list:
             continue
         ref = ref_list[0]
+        refrng = '{0}-{1}'.format(ref_list[0], ref_list[-1])
+        if ref_list[0] == ref_list[-1]:
+            refrng = ref_list[0]
         chunks[ref] = { 'bk': bk,
                         'chp': chp,
                         'book': book,
                         'ref_list': ref_list,
-                        'refrng': '{0}-{1}'.format(ref_list[0], ref_list[-1]),
+                        'refrng': refrng,
                         'filepath': getPath(bk, chp, ref),
                       }
         i = httpsre.sub(u'', i)
