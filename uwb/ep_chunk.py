@@ -18,6 +18,7 @@ exists then it only updates the Bible texts and does not alter other content.
 import os
 import re
 import sys
+import glob
 import codecs
 import urllib2
 from etherpad_lite import EtherpadLiteClient
@@ -148,7 +149,7 @@ TMPL = u'''====== {book} {chp}:{refrng} ======
 
  
 
-**[[en/bible/notes/{bk}/{chp}/{prv}|<<]] | [[en/bible/notes/{bk}/{chp}/{nxt}|>>]]**
+**[[en/bible/notes/{bk}/{prvchp}/{prv}|<<]] | [[en/bible/notes/{bk}/{nxtchp}/{nxt}|>>]]**
 
 ~~DISCUSSION~~
 
@@ -236,20 +237,38 @@ def writeOrAppend(f, chunk):
     writeFile(f, content)
 
 def writeChunks(chunked):
+    fill = getFill(bk)
     refs = [k for k in chunked.iterkeys()]
     refs.sort(key=int)
     for k in refs:
         i = refs.index(k)
         chunked[k]['prv'] = getNav(refs, i-1, chunked)
         chunked[k]['nxt'] = getNav(refs, i+1, chunked)
+        chunked[k]['prvchp'] = chp
+        chunked[k]['nxtchp'] = chp
+        if i == 0:
+            chunked[k]['prvchp'] = str(int(chp) - 1).zfill(fill)
+            chunked[k]['prv'] = getLastSection(bk, chunked[k]['prvchp'])
+        if i == (len(refs) - 1):
+            chunked[k]['nxtchp'] = str(int(chp) + 1).zfill(fill)
+            chunked[k]['nxt'] = '01'
         writeOrAppend(chunked[k]['filepath'], chunked[k])
+
+def getLastSection(bk, chp):
+    dirpath = os.path.join(NP, bk, chp)
+    if not os.path.exists(dirpath):
+        return chp
+    seclist = glob.glob('{0}/[0-9]*.txt'.format(dirpath))
+    seclist.sort()
+    ref = seclist[-1].rpartition('/')[-1].rstrip('.txt')
+    return ref
 
 def getNav(refs, i, chunked):
     fill = getFill(bk)
     if i == -1:
         return ''
     elif i >= len(refs):
-        return ''
+        return '1'.zfill(fill)
     return chunked[refs[i]]['ref_list'][0].zfill(fill)
 
 def getURL(url):
