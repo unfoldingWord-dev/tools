@@ -30,9 +30,9 @@ TFTURL = 'https://door43.org/_export/raw/en/udb/v1/{0}/{1}.usfm'
 refre = re.compile(ur'\\v.([0-9][0-9]?[0-9]?)')
 httpsre = re.compile(ur'https://pad.door43.org.*', re.UNICODE)
 sectionre = re.compile(ur'\\s.*', re.UNICODE)
-tftp = re.compile(ur'(TFT: =====.*?<usfm>\n).*?(\n</usfm>)', re.DOTALL | re.UNICODE)
-udbp = re.compile(ur'(UDB: =====.*?<usfm>\n).*?(\n</usfm>)', re.DOTALL | re.UNICODE)
-ulbp = re.compile(ur'(ULB: =====.*?<usfm>\n).*?(\n</usfm>)', re.DOTALL | re.UNICODE)
+tftp = re.compile(ur'(TFT: =====.*?<usfm>).*?(</usfm>)', re.DOTALL | re.UNICODE)
+udbp = re.compile(ur'(UDB: =====.*?<usfm>).*?(</usfm>)', re.DOTALL | re.UNICODE)
+ulbp = re.compile(ur'(ULB: =====.*?<usfm>).*?(</usfm>)', re.DOTALL | re.UNICODE)
 books = { u'GEN': [ u'Genesis' ],
           u'EXO': [ u'Exodus' ],
           u'LEV': [ u'Leviticus' ],
@@ -229,9 +229,9 @@ def makeDir(d):
 def writeOrAppend(f, chunk):
     if os.path.exists(f):
         content = codecs.open(f, encoding='utf-8', mode='r').read()
-        content = tftp.sub(ur'\1 TFTSUB \2', content)
-        content = udbp.sub(ur'\1 UDBSUB \2', content)
-        content = ulbp.sub(ur'\1 ULBSUB \2', content)
+        content = tftp.sub(ur'\1\n TFTSUB \n\2', content)
+        content = udbp.sub(ur'\1\n UDBSUB \n\2', content)
+        content = ulbp.sub(ur'\1\n ULBSUB \n\2', content)
         content = ( content.replace(u' TFTSUB ', chunk['tft'])
                            .replace(u' UDBSUB ', chunk['udb'])
                            .replace(u' ULBSUB ', chunk['ulb']) )
