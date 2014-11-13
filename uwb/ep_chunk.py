@@ -144,7 +144,7 @@ TMPL = u'''====== {book} {chp}:{refrng} ======
   
 ===== Links: =====
 
-  * **[[en/bible/notes:{bk}/questions/comprehension/{chp}|{book} Chapter {chp} Checking Questions]]**
+  * **[[en/bible/notes:{bk}/questions/comprehension/{chp}|{book} Chapter {chp} Comprehension Questions]]**
   * **[[en/bible/notes:{bk}/questions/checking/{book}-checking|{book} Checking Questions]]**
 
  
