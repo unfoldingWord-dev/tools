@@ -19,7 +19,8 @@ LANGS=`grep "Exporting to unfoldingWord" /tmp/$$.json_export | cut -f 5 -d ' '`
 for LANG in $LANGS; do
     VER=`/var/www/vhosts/door43.org/tools/uw/get_ver.py $LANG`
     # Create PDF via TeX for languages exported
-    /var/www/vhosts/door43.org/tools/obs/book/publish_PDF.sh -l $LANG -v $VER
+    #/var/www/vhosts/door43.org/tools/obs/book/publish_PDF.sh -l $LANG -v $VER
+    /var/www/vhosts/door43.org/tools/obs/book/odt_export.sh -l $LANG
 
     # Create image symlinks on api.unfoldingword.org
     /var/www/vhosts/door43.org/tools/uw/makejpgsymlinks.sh -l $LANG
