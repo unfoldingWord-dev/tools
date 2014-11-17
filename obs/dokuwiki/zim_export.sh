@@ -18,7 +18,7 @@ help() {
     echo "Export Translation Notes and optionally OBS to a Zim Wiki."
     echo
     echo "Usage:"
-    echo "   $PROGNAME -s <sourcelangcode> -d <zimdestinationdir> "
+    echo "   $PROGNAME -s <sourcelangcode>"
     echo "   $PROGNAME --help"
     echo
     exit 1
@@ -65,6 +65,7 @@ export_file () {
         -e 's/^\*\[/\* \[/g' \
         -e 's/\]\]\/\//\]\]/' \
         -e 's/\/\/see/see/' \
+        -e 's/key-terms\//key-terms:/' \
         -e "s/{{https:\/\/api.unfoldingword.org\/obs\/jpg\/1\/$srclang\/360px/{{..\/360px/" \
         "$1" | grep -v -e ":playground:" -e '^~~' \
         > "$DEST/${1##$PAGES/}"
