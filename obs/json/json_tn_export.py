@@ -25,6 +25,7 @@ import codecs
 root = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo'
 pages = os.path.join(root, 'pages')
 api = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
+ktaliases = {}
 
 # Regexes for grabbing content
 ktre = re.compile(ur'====== (.*?) ======', re.UNICODE)
@@ -34,6 +35,7 @@ defre2 = re.compile(ur'===== Definition: =====(.*?)=====', re.UNICODE | re.DOTAL
 factre = re.compile(ur'===== Facts: =====(.*?)\[See also', re.UNICODE | re.DOTALL)
 factre2 = re.compile(ur'===== Facts: =====(.*?)=====', re.UNICODE | re.DOTALL)
 linknamere = re.compile(ur'\|(.*?)\]\]', re.UNICODE)
+linkre = re.compile(ur':([^:]*\|.*?)\]\]', re.UNICODE)
 cfre = re.compile(ur'See also.*', re.UNICODE)
 examplesre = re.compile(ur'===== Examples from the Bible stories.*',
     re.UNICODE | re.DOTALL)
@@ -55,6 +57,7 @@ h3re = re.compile(ur'\n=== (.*?) ===\n', re.UNICODE)
 def getKT(f):
     page = codecs.open(f, 'r', encoding='utf-8').read()
     kt = {}
+    kt['filename'] = f.rsplit('/', 1)[1].replace('.txt', '')
     kt['term'] = ktre.search(page).group(1).strip()
     kt['sub'] = getKTSub(page)
     kt['def_title'], kt['def'] = getKTDef(page)
@@ -139,20 +142,24 @@ def writeJSON(outfile, p):
     f.close()
 
 def getDump(j):
-    return json.dumps(j, sort_keys=True)
+    return json.dumps(j, indent=2, sort_keys=True)
 
 def getFrame(f):
     page = codecs.open(f, 'r', encoding='utf-8').read()
+    getAliases(page)
     frame = {}
     frame['id'] = fridre.search(f).group(0).strip()
-    frame['it'] = getIT(page)
     frame['tn'] = gettN(page)
     return frame
 
-def getIT(page):
+def getAliases(page):
     text = itre.search(page).group(1).strip()
-    it = linknamere.findall(text)
-    return it
+    its = linkre.findall(text)
+    for t in its:
+        term, alias = t.split('|')
+        if not ktaliases.has_key(term):
+            ktaliases[term] = []
+        ktaliases[term].append(alias)
 
 def gettN(page):
     tN = []
@@ -175,6 +182,14 @@ def runKT(lang):
     for f in glob.glob('{0}/*.txt'.format(ktpath)):
         if 'home.txt' in f or '1-discussion-topic.txt' in f: continue
         keyterms.append(getKT(f))
+    for i in keyterms:
+        try:
+            i['aliases'] = list(set([x for x in ktaliases[i['filename']]
+                                                          if x != i['term']]))
+        except KeyError:
+            # this just means no aliases were found
+            pass
+        del i['filename']
     keyterms.sort(key=lambda x: len(x['term']), reverse=True)
     writeJSON('{0}/kt-{1}.json'.format(apipath, lang), keyterms)
 
@@ -190,5 +205,5 @@ def runtN(lang):
 
 
 if __name__ == '__main__':
-    runKT('en')
     runtN('en')
+    runKT('en')
