@@ -79,7 +79,7 @@ export_file $PAGES/$srclang/obs/app_words.txt
 export_file $PAGES/$srclang/legal/license.txt
 export_file $PAGES/$srclang/get-started.txt
 export_file $PAGES/$srclang/tips-tricks.txt
-export_file $PAGES/$srclang/obs-training/get-started/switching_editors.txt
+export_file $PAGES/$srclang/switching_editors.txt
 
 if [ ! -f /tmp/obs-images-360px.zip ]; then
     cd /tmp/
