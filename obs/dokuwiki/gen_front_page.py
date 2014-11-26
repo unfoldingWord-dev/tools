@@ -24,8 +24,6 @@ lang_url = u'http://td.unfoldingword.org/exports/langnames.json'
 conf_path = u'/var/www/vhosts/door43.org/httpdocs/conf/local.php'
 entry_tmpl = u'  * [[:{0}:home|{1} ({0})]]'
 page_tmpl = u'''
-~~NOCACHE~~
-
 **Choose your language:**
 
 {0}
