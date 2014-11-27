@@ -19,7 +19,7 @@ import json
 import codecs
 import urllib2
 
-outfile = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/d43_home.txt'
+outfile = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/home.txt'
 lang_url = u'http://td.unfoldingword.org/exports/langnames.json'
 conf_path = u'/var/www/vhosts/door43.org/httpdocs/conf/local.php'
 entry_tmpl = u'  * [[:{0}:home|{1} ({0})]]'
@@ -30,10 +30,9 @@ page_tmpl = u'''
 
 ----
 
-Looking for a language that is not here yet?[[http://distantshores.org/contact|Contact us]] and we will configure it for use (it only takes a few minutes).
-
-FAQ – Frequently Asked Questions
+Looking for a language that is not here yet? [[:contact|Contact us]] and we will configure it for use (it only takes a few minutes).
 '''
+
 lang_dict = {}
 
 def getURL(url):
