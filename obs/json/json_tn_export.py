@@ -20,6 +20,7 @@ import sys
 import json
 import glob
 import codecs
+import datetime
 
 
 root = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo'
@@ -175,7 +176,7 @@ def gettN(page):
         tN.append(item)
     return tN
 
-def runKT(lang):
+def runKT(lang, today):
     ktpath = os.path.join(pages, lang, 'obs/notes/key-terms')
     apipath = os.path.join(api, lang)
     keyterms = []
@@ -190,20 +191,23 @@ def runKT(lang):
             # this just means no aliases were found
             pass
         del i['filename']
+    keyterms.append({'date_modified': today})
     keyterms.sort(key=lambda x: len(x['term']), reverse=True)
     writeJSON('{0}/kt-{1}.json'.format(apipath, lang), keyterms)
 
-def runtN(lang):
+def runtN(lang, today):
     tNpath = os.path.join(pages, lang, 'obs/notes/frames')
     apipath = os.path.join(api, lang)
     frames = []
     for f in glob.glob('{0}/*.txt'.format(tNpath)):
         if 'home.txt' in f: continue
         frames.append(getFrame(f))
+    frames.append({'date_modified': today})
     frames.sort(key=lambda x: x['id'])
     writeJSON('{0}/tN-{1}.json'.format(apipath, lang), frames)
 
 
 if __name__ == '__main__':
-    runtN('en')
-    runKT('en')
+    today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
+    runtN('en', today)
+    runKT('en', today)
