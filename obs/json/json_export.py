@@ -27,6 +27,7 @@ uwadmindir = os.path.join(pages, 'en/uwadmin')
 exportdir = os.path.join(root, 'media/exports')
 unfoldingWorddir = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
 rtl = ['he', 'ar', 'fa']
+imgurl = 'https://api.unfoldingword.org/obs/jpg/1/{0}/360px/obs-{0}-{1}.jpg'
 langnames = os.path.join('/var/www/vhosts/door43.org',
                         'httpdocs/lib/plugins/translation/lang/langnames.txt')
 statusheaders = ( 'publish_date',
@@ -112,7 +113,7 @@ def getChapter(chapterpath, jsonchapter, lang):
             frid = u'NOT FOUND'
             print u'NOT FOUND: frame id in {0}'.format(chapterpath)
         frame = { 'id': frid,
-                  'img': frlines[0].strip(),
+                  'img': imgurl.format(lang, frid),
                   'text': getText(frlines[1:], lang, frid)
                 }
         jsonchapter['frames'].append(frame)
