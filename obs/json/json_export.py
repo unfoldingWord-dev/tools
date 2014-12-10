@@ -24,7 +24,7 @@ from subprocess import *
 root = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo'
 pages = os.path.join(root, 'pages')
 uwadmindir = os.path.join(pages, 'en/uwadmin')
-exportdir = os.path.join(root, 'media/exports')
+exportdir = '/var/www/vhosts/door43.org/httpdocs/exports'
 unfoldingWorddir = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
 rtl = ['he', 'ar', 'fa']
 imgurl = 'https://api.unfoldingword.org/obs/jpg/1/{0}/360px/obs-{0}-{1}.jpg'
