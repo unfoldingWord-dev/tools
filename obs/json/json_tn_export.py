@@ -191,8 +191,8 @@ def runKT(lang, today):
             # this just means no aliases were found
             pass
         del i['filename']
-    keyterms.append({'date_modified': today})
     keyterms.sort(key=lambda x: len(x['term']), reverse=True)
+    keyterms.append({'date_modified': today})
     writeJSON('{0}/kt-{1}.json'.format(apipath, lang), keyterms)
 
 def runtN(lang, today):
@@ -202,8 +202,8 @@ def runtN(lang, today):
     for f in glob.glob('{0}/*.txt'.format(tNpath)):
         if 'home.txt' in f: continue
         frames.append(getFrame(f))
-    frames.append({'date_modified': today})
     frames.sort(key=lambda x: x['id'])
+    frames.append({'date_modified': today})
     writeJSON('{0}/tN-{1}.json'.format(apipath, lang), frames)
 
 
