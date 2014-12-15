@@ -63,6 +63,6 @@ mv -f /tmp/$$.$FILENAME.pdf $API/$FILENAME.pdf
 rm -f /tmp/$$.*
 
 URL="https://api.unfoldingword.org/obs/txt/1/$LANG/$FILENAME.pdf"
-echo "A PDF for $LANG at version $VER has been created.  " \
-    "Please download it from $URL." \
-    | mail -s "PDF Generated for $LANG" "$MAILTO"
+#echo "A PDF for $LANG at version $VER has been created.  " \
+    #"Please download it from $URL." \
+    #| mail -s "PDF Generated for $LANG" "$MAILTO"
