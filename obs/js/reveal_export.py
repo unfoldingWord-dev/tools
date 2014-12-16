@@ -8,9 +8,6 @@
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
 
-# Add checking level to slide 1 at the end
-#<div class="uwchecking"><a href="https://unfoldingword.org/quality/" target="_blank"><img src="https://api.unfoldingword.org/obs/jpg/1/checkinglevels/uW-Level3-32px.png" /></a>
-
 
 import os
 import re
@@ -29,13 +26,14 @@ except:
     sys.exit(1)
 
 
+catalog_url = u'https://api.unfoldingword.org/obs/txt/1/obs-catalog.json'
 obs_web = '/var/www/vhosts/unfoldingword.org/httpdocs/'
 unfoldingWorddir = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
 uw_img_api = 'https://api.unfoldingword.org/obs/jpg/1/'
 title = u'''    <div class="meny-arrow"></div>
     <div class="reveal">
         <div class="slides">
-            <section><h1>{0}</h1><h3>{1}</h3></section>'''
+            <section><h1>{0}</h1><h3>{1}</h3><div class="uwchecking"><a href="https://unfoldingword.org/quality/" target="_blank"><img src="https://api.unfoldingword.org/obs/jpg/1/checkinglevels/uW-Level{2}-32px.png" /></a></section>'''
 frame = u'<section data-background="{0}"><p>{1}</p></section>'
 nextlink = u'<section><a href="../{0}/index.html"><p>{1}</p></a></section>'
 menulink = u'<li><a href="../{0}/PATH_INDEX">{1}</a></li>'
@@ -52,7 +50,7 @@ localrespaths = { u'PATH_CSS': u'../../css', u'PATH_JS': u'../../js', u'PATH_IND
 wwwrespaths = { u'PATH_CSS': u'/css', u'PATH_JS': u'/js' , u'PATH_INDEX': u''}
 
 
-def buildReveal(outdir, j, t):
+def buildReveal(outdir, j, t, check_lev):
     '''
     Builds reveal.js presentation for the given language.
     '''
@@ -68,7 +66,7 @@ def buildReveal(outdir, j, t):
             page = []
             chpnum = c['number'].strip('.txt')
             page.append(menu)
-            page.append(title.format(c['title'], c['ref']))
+            page.append(title.format(c['title'], c['ref'], check_lev))
             for f in c['frames']:
                 imgURL = getImgURL(lang, res, f['id'])
                 page.append(frame.format(imgURL, f['text']))
@@ -164,16 +162,26 @@ def loadJSON(f, t):
     else:
       return json.loads('[]')
 
-def export():
-    for lang in os.listdir(unfoldingWorddir):
-        if os.path.isfile(os.path.join(unfoldingWorddir, lang)):
-            continue
+def getURL(url):
+    try:
+        request = urllib2.urlopen(url)
+        content = request.read()
+        encoding = request.headers['content-type'].split('charset=')[-1]
+        ucontent = unicode(content, encoding)
+    except:
+        print "  => ERROR retrieving %s\nCheck the URL" % url
+        sys.exit(1)
+    return ucontent
 
+def export():
+    cat = json.loads(getURL(catalog_url))
+    for x in cat:
+        lang == x['language']:
         langjson = loadJSON(os.path.join(unfoldingWorddir, lang,
                                            'obs-{0}.json'.format( lang)), 'd')
         rjs_dir = os.path.join(obs_web, lang)
         template = [readFile(index_head), readFile(index_foot)]
-        buildReveal(rjs_dir, langjson, template)
+        buildReveal(rjs_dir, langjson, template, x['status']['checking_level'])
         unfoldingWordlangdir = os.path.join(unfoldingWorddir, lang)
         github_export(rjs_dir, unfoldingWordlangdir, lang)
 
