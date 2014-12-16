@@ -15,6 +15,7 @@ import sys
 import json
 import codecs
 import shlex
+import urllib2
 import datetime
 from subprocess import *
 sys.path.append('/var/www/vhosts/door43.org/tools/general_tools')
@@ -33,7 +34,7 @@ uw_img_api = 'https://api.unfoldingword.org/obs/jpg/1/'
 title = u'''    <div class="meny-arrow"></div>
     <div class="reveal">
         <div class="slides">
-            <section><h1>{0}</h1><h3>{1}</h3><div class="uwchecking"><a href="https://unfoldingword.org/quality/" target="_blank"><img src="https://api.unfoldingword.org/obs/jpg/1/checkinglevels/uW-Level{2}-32px.png" /></a></section>'''
+            <section><h1>{0}</h1><h3>{1}</h3><div class="uwchecking"><a href="https://unfoldingword.org/quality/" target="_blank"><img src="https://api.unfoldingword.org/obs/jpg/1/checkinglevels/uW-Level{2}-64px.png" /></a></section>'''
 frame = u'<section data-background="{0}"><p>{1}</p></section>'
 nextlink = u'<section><a href="../{0}/index.html"><p>{1}</p></a></section>'
 menulink = u'<li><a href="../{0}/PATH_INDEX">{1}</a></li>'
@@ -164,19 +165,16 @@ def loadJSON(f, t):
 
 def getURL(url):
     try:
-        request = urllib2.urlopen(url)
-        content = request.read()
-        encoding = request.headers['content-type'].split('charset=')[-1]
-        ucontent = unicode(content, encoding)
+        request = urllib2.urlopen(url).read()
+        return request
     except:
-        print "  => ERROR retrieving %s\nCheck the URL" % url
-        sys.exit(1)
-    return ucontent
+        print '  => ERROR retrieving {0}\nCheck the URL'.format(url)
+
 
 def export():
     cat = json.loads(getURL(catalog_url))
     for x in cat:
-        lang == x['language']:
+        lang = x['language']
         langjson = loadJSON(os.path.join(unfoldingWorddir, lang,
                                            'obs-{0}.json'.format( lang)), 'd')
         rjs_dir = os.path.join(obs_web, lang)
