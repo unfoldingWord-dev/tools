@@ -28,5 +28,9 @@ book_import () {
 book_import luk 24
 book_import rut 4
 book_import tit 3
+book_import 1ti 6
+book_import 2ti 4
+book_import act 28
+book_import gen 50
 
 chown -R apache:apache /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en
