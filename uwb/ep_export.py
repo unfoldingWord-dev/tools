@@ -9,7 +9,7 @@
 #  Jesse Griffin <jesse@distantshores.org>
 
 '''
-This script takes ULB and UDB from Etherpad and creates a ZIP of USFM files.
+This script exports the ULB and UDB from Etherpad.
 '''
 
 import os
@@ -23,15 +23,19 @@ from etherpad_lite import EtherpadLiteClient
 from etherpad_lite import EtherpadException
 
 
+names = { 'ULB': 'unfoldingWord Literal Bible',
+          'UDB': 'unfoldingWord Dynamic Bible'
+        }
+baseout = '/var/www/vhosts/api.unfoldingword.org/httpdocs/{0}/txt/1/{0}-{1}'
 _digits = re.compile('\d')
 httpsre = re.compile(ur'https://pad.door43.org.*', re.UNICODE)
-LICENSE = u'''\mt unfoldingWord | Literal Bible
+LICENSE = u'''\mt {1}
 
 \p \\bd an unrestricted Bible intended for translation into any language \\bd*
 
 \p \em http://unfoldingWord.org/Bible \em*
 
-\p unfoldingWord Literal Bible, v. {0}
+\p {1}, v. {0}
 
 This work is based on \em The American Standard Version \em*, which is in the public domain.
 
@@ -165,11 +169,12 @@ def main(slug, ver):
     ver_pads = [x for x in all_pads['padIDs'] if slug.lower() in x]
     ver_pads.sort()
 
-    outdir = '/tmp/en-{0}-{1}'.format(slug, ver)
+    outdir = baseout.format(slug.lower(), 'en')
 
     save(ver_pads, outdir, slug, ep)
-    writeFile('{0}/LICENSE.usfm'.format(outdir), LICENSE.format(ver))
-    #zip(outdir)
+    writeFile('{0}/LICENSE.usfm'.format(outdir), LICENSE.format(ver,
+                                                                 names[slug]))
+    print "Check {0} and do a git push".format(outdir)
 
 
 if __name__ == '__main__':
@@ -182,4 +187,3 @@ if __name__ == '__main__':
 
     args = parser.parse_args(sys.argv[1:])
     main(args.slug, args.ver)
-
