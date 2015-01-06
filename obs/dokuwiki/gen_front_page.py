@@ -30,7 +30,7 @@ page_tmpl = u'''
 
 ----
 
-Looking for a language that is not here yet? [[:contact|Contact us]] and we will configure it for use (it only takes a few minutes).
+Looking for a language that is not here yet? [[https://door43.org/obs-setup|Setup OBS]] for your language (it only takes a moment).
 '''
 
 lang_dict = {}
