@@ -27,6 +27,7 @@ names = { 'ULB': 'unfoldingWord Literal Bible',
           'UDB': 'unfoldingWord Dynamic Bible'
         }
 baseout = '/var/www/vhosts/api.unfoldingword.org/httpdocs/{0}/txt/1/{0}-{1}'
+draftout = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/{1}/{0}/ep/'
 _digits = re.compile('\d')
 httpsre = re.compile(ur'https://pad.door43.org.*', re.UNICODE)
 LICENSE = u'''\mt {1}
@@ -138,9 +139,10 @@ def writeFile(outfile, content):
     f.write(content)
     f.close()
 
-def save(pads, outdir, slug, ep):
+def save(pads, outdir, slug, ep, ver):
     for bk in books.iterkeys():
-        if bk not in [ 'RUT', 'LUK', 'TIT']: continue
+        if ver.lower() != 'draft':
+            if bk not in [ 'RUT', 'LUK', 'TIT']: continue
         bk_pads = [x for x in pads if bk.lower() in x and contains_digits(x)]
         bk_pads.sort()
         content = []
@@ -152,6 +154,8 @@ def save(pads, outdir, slug, ep):
             content.append(p_content)
         outfile = '{0}/{1}-{2}-en-{3}.usfm'.format(outdir, books[bk][1], bk,
                                                                          slug)
+        if ver.lower() == 'draft':
+            outfile = '{0}.txt'.format(outfile).lower()
         writeFile(outfile, u''.join(content))
 
 def main(slug, ver):
@@ -169,9 +173,12 @@ def main(slug, ver):
     ver_pads = [x for x in all_pads['padIDs'] if slug.lower() in x]
     ver_pads.sort()
 
-    outdir = baseout.format(slug.lower(), 'en')
+    if ver.lower() == 'draft':
+        outdir = draftout.format(slug.lower(), 'en')
+    else:
+        outdir = baseout.format(slug.lower(), 'en')
 
-    save(ver_pads, outdir, slug, ep)
+    save(ver_pads, outdir, slug, ep, ver)
     writeFile('{0}/LICENSE.usfm'.format(outdir), LICENSE.format(ver,
                                                                  names[slug]))
     print "Check {0} and do a git push".format(outdir)
