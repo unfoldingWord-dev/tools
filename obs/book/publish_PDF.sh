@@ -13,7 +13,7 @@ help() {
     echo "Creates a PDF for specified language code."
     echo
     echo "Usage:"
-    echo "   $PROGNAME -l <LangCode>"
+    echo "   $PROGNAME -l <LangCode> -v <version>"
     echo "   $PROGNAME --help"
     echo
     exit 1
