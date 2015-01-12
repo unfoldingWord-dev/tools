@@ -60,7 +60,7 @@ context $$.$FILENAME.tex
 mkdir -p $API
 mv -f /tmp/$$.$FILENAME.pdf $API/$FILENAME.pdf
 
-rm -f /tmp/$$.*
+#rm -f /tmp/$$.*
 
 URL="https://api.unfoldingword.org/obs/txt/1/$LANG/$FILENAME.pdf"
 #echo "A PDF for $LANG at version $VER has been created.  " \
