@@ -20,6 +20,7 @@ import codecs
 import urllib2
 import argparse
 
+project_dirs = ['obs']
 obs_v1_api = u'https://api.unfoldingword.org/obs/txt/1'
 obs_v1_url = u'{0}/obs-catalog.json'.format(obs_v1_api)
 obs_v2_local = u'/var/www/vhosts/api.unfoldingword.org/httpdocs/ts/txt/2'
@@ -90,8 +91,27 @@ def obs():
     outfile = u'{0}/obs/languages.json'.format(obs_v2_local)
     writeFile(outfile, getDump(langs_cat))
 
+def global_cat(project_dirs):
+    global_cat = []
+    for p in project_dirs:
+        proj_url = u'{0}/obs/languages.json'.format(obs_v2_api)
+        proj_data = getURL(proj_url)
+        proj_cat = json.loads(proj_data)
+        dates = set([x['language']['date_modified'] for x in proj_cat])
+        dates_list = list(dates)
+        dates_list.sort(reverse=True)
+        global_cat.append({ 'slug': p,
+                            'date_modified': dates_list[0],
+                            'lang_catalog': proj_url,
+                          })
+    # Write global catalog
+    outfile = u'{0}/catalog.json'.format(obs_v2_local)
+    writeFile(outfile, getDump(global_cat))
+
 def main():
     obs()
+    #bible()
+    global_cat(project_dirs)
 
 
 if __name__ == '__main__':
