@@ -22,7 +22,8 @@ import argparse
 
 obs_v1_api = u'https://api.unfoldingword.org/obs/txt/1'
 obs_v1_url = u'{0}/obs-catalog.json'.format(obs_v1_api)
-obs_v2_api = u'/var/www/vhosts/api.unfoldingword.org/httpdocs/ts/txt/2'
+obs_v2_local = u'/var/www/vhosts/api.unfoldingword.org/httpdocs/ts/txt/2'
+obs_v2_api = u'https://api.unfoldingword.org/ts/txt/2'
 
 
 def getURL(url):
@@ -57,8 +58,23 @@ def loadJSON(f, t):
 def obs():
     obs_v1 = getURL(obs_v1_url)
     obs_v1_cat = json.loads(obs_v1)
-    obs_v2_cat = []
+    langs_cat = []
+    # Write OBS catalog for each language
     for e in obs_v1_cat:
+        # Need to pull Project name and desc from front-matter
+        lang_entry = { 'language': { 'slug': e['language'],
+                                     'name': e['string'],
+                                     'direction': e['direction'],
+                                     'date_modified': e['date_modified']
+                                   },
+                       'project': { 'name': 'Open Bible Stories',
+                                    'desc': 'an unrestricted visual mini-Bible in any language',
+                                    'meta': []
+                                  },
+                       'res_catalog': u'{0}/obs/{1}/resources.json'.format(
+                                                    obs_v2_api, e['language'])
+                     }
+        langs_cat.append(lang_entry)
         del e['string']
         del e['direction']
         e['slug'] = 'obs'
@@ -67,9 +83,12 @@ def obs():
                                                                 e['language'])
         e['terms'] = u'{0}/{1}/kt-{1}.json'.format(obs_v1_api, e['language'])
         e['notes'] = u'{0}/{1}/tN-{1}.json'.format(obs_v1_api, e['language'])
-        outfile = u'{0}/obs/{1}/resources.json'.format(obs_v2_api,
+        outfile = u'{0}/obs/{1}/resources.json'.format(obs_v2_local,
                                                                 e['language'])
         writeFile(outfile, getDump([e]))
+    # Write global OBS catalog
+    outfile = u'{0}/obs/languages.json'.format(obs_v2_local)
+    writeFile(outfile, getDump(langs_cat))
 
 def main():
     obs()
