@@ -11,8 +11,8 @@
 PUB_URL="https://api.unfoldingword.org/obs/txt/1/obs-catalog.json"
 CHANGES_URL="https://door43.org/en/dev/changes"
 PROGRESS_FILE='/tmp/obs_progress_report.txt'
-TABLE='/tmp/obs_progress_table.txt'
-
+LANGS_FILE='/tmp/progress_langs.txt'
+TABLE="/tmp/OBS-Progress-`date +%F`.csv"
 
 echo 'Open Bible Stories' >"$PROGRESS_FILE"
 echo '==================' >>"$PROGRESS_FILE"
@@ -38,19 +38,20 @@ echo "%" >>"$PROGRESS_FILE"
 echo >>"$PROGRESS_FILE"
 echo -n "Active in the last month (" >>"$PROGRESS_FILE"
 wget -U 'd43' -q -O - $CHANGES_URL | grep -o '\/[a-zA-Z0-9\-]*\/obs\/[0-5][0-9]' >/tmp/changes.txt
-cut -f 2 -d '/' /tmp/changes.txt | sort | uniq >/tmp/progress_langs.txt
-PROGRESS_LANGS=`wc -l /tmp/progress_langs.txt | grep -o "[0-9]*"`
+cut -f 2 -d '/' /tmp/changes.txt | sort | uniq >"$LANGS_FILE"
+PROGRESS_LANGS=`wc -l $LANGS_FILE | grep -o "[0-9]*"`
 echo -n "$PROGRESS_LANGS): " >>"$PROGRESS_FILE"
-cat /tmp/progress_langs.txt | tr '\n' ' ' >>"$PROGRESS_FILE"
+cat "$LANGS_FILE" | tr '\n' ' ' >>"$PROGRESS_FILE"
 
-#echo -n "Lang," >$TABLE
-#seq -w 1 50 | tr '\n' ',' >>$TABLE
-#obs_table=()
-#for x in `cat $TABLE | tr ',' '\n'`; do
-    #obs_table[$x]=""
-    #if "$x" == 'Lang' && continue
-    #grep "$x$" /tmp/changes.txt
-#done
+echo -n "Lang," >$TABLE
+seq -w 1 50 | tr '\n' ',' >>$TABLE
+for x in `cat $LANGS_FILE`; do
+    echo -en "\n$x," >>$TABLE
+    for y in `seq -w 1 50`; do
+        grep "$x" /tmp/changes.txt | grep -q "$y$" && echo -n 'X'>>$TABLE
+        echo -n "," >>$TABLE
+    done
+done
 
-
-cat $PROGRESS_FILE | mail -s "Open Bible Stories Progress Report" ben@distantshores.org jesse@distantshores.org
+cat $PROGRESS_FILE | mail -s "Open Bible Stories Progress Report" -a $TABLE \
+    ben@distantshores.org jesse@distantshores.org
