@@ -55,3 +55,7 @@ done
 
 cat $PROGRESS_FILE | mail -s "Open Bible Stories Progress Report" -a $TABLE \
     ben@distantshores.org jesse@distantshores.org
+
+rm -f "$PROGRESS_FILE"
+rm -f "$LANGS_FILE"
+rm -f "$TABLE"
