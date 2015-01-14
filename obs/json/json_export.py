@@ -268,6 +268,8 @@ def updateUWAdminStatusPage():
 
 def getFrontMatter(lang, today):
     frontpath = os.path.join(pages, lang, 'obs', 'front-matter.txt')
+    if not os.path.exists(frontpath):
+        return getDump({})
     front = codecs.open(frontpath, 'r', encoding='utf-8').read()
     obsnamese = obsnamere.search(front)
     if obsnamese:
@@ -276,23 +278,25 @@ def getFrontMatter(lang, today):
         obsname = 'Open Bible Stories'
     taglinese = taglinere.search(front)
     if taglinese:
-        tagline = taglinese.group(1).split('**')[1].strip()
+        tagline = taglinese.group(0).split('**')[1].strip()
     else:
         tagline = 'an unrestricted visual mini-Bible in any language'
-    return { 'language': lang,
-             'name': obsname,
-             'tagline': tagline,
-             'front-matter': front,
-             'date_modified': today
-           }
+    return getDump({ 'language': lang,
+                     'name': obsname,
+                     'tagline': tagline,
+                     'front-matter': front,
+                     'date_modified': today
+                   })
 
 def getBackMatter(lang, today):
     backpath = os.path.join(pages, lang, 'obs', 'back-matter.txt')
+    if not os.path.exists(backpath):
+        return getDump({})
     back = codecs.open(backpath, 'r', encoding='utf-8').read()
-    return { 'language': lang,
-             'back-matter': back,
-             'date_modified': today
-           }
+    return getDump({ 'language': lang,
+                     'back-matter': back,
+                     'date_modified': today
+                   })
 
 
 if __name__ == '__main__':
