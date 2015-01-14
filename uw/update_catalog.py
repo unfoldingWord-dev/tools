@@ -62,14 +62,16 @@ def obs():
     langs_cat = []
     # Write OBS catalog for each language
     for e in obs_v1_cat:
-        # Need to pull Project name and desc from front-matter
+        front = getURL(u'{0}/{1}/obs-{1}-front-matter.json'.format(obs_v1_api,
+                                                               e['language']))
+        frontjson = json.loads(front)
         lang_entry = { 'language': { 'slug': e['language'],
                                      'name': e['string'],
                                      'direction': e['direction'],
                                      'date_modified': e['date_modified']
                                    },
-                       'project': { 'name': 'Open Bible Stories',
-                                    'desc': 'an unrestricted visual mini-Bible in any language',
+                       'project': { 'name': frontjson['name'],
+                                    'desc': frontjson['tagline'],
                                     'meta': []
                                   },
                        'res_catalog': u'{0}/obs/{1}/resources.json'.format(
