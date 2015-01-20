@@ -51,7 +51,7 @@ done
 [ ! -f "$APK" ] && echo "Please specify apk file." && exit 1
 [ -z "$VER" ] && echo "Please specify version." && exit 1
 
-APKNAME="${APK%%.apk}-${VER}"
+APKNAME="${APK%%.apk}
 
 mktorrent -c "$APKNAME" -n "$APKNAME" \
     -a http://torrent.tracker/announce,http://tracker.prq.to/announce,http://open.tracker.thepiratebay.org/announce,http://www.sumotracker.com/announce \
