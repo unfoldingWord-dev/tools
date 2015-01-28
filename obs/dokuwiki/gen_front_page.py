@@ -10,7 +10,7 @@
 #
 
 '''
-Returns version number of specified language.
+Generates the front page for door43.org
 '''
 
 import os
