@@ -142,11 +142,14 @@ def writeFile(outfile, content):
 def save(pads, outdir, slug, ep, ver):
     for bk in books.iterkeys():
         if ver.lower() != 'draft':
-            if bk not in [ 'RUT', 'LUK', 'TIT']: continue
+            if bk not in ['RUT', 'LUK', 'TIT']: continue
         bk_pads = [x for x in pads if bk.lower() in x and contains_digits(x)]
         bk_pads.sort()
         content = []
         for p in bk_pads:
+            # Skips pad that WA uses for communication (e.g. 'en-ulb-1ti')
+            if len(p.split('-')) < 4:
+                continue
             p_content = ep.getText(padID=p)['text']
             if 'Welcome to Etherpad!' in p_content:
                 continue
