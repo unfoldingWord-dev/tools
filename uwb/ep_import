@@ -33,4 +33,27 @@ book_import 2ti 4
 book_import act 28
 book_import gen 50
 
+# These added 2015-01-28
+book_import jon 4
+book_import rom 16
+book_import gal 6
+book_import eph 6
+book_import php 4
+book_import 1th 5
+book_import 2th 3
+book_import phm 1
+book_import heb 13
+book_import jas 5
+book_import 1co 16
+book_import 2co 13
+book_import exo 40
+book_import 1pe 5
+book_import 2pe 3
+book_import 1jn 5
+book_import 2jn 1
+book_import 3jn 1
+book_import jud 1
+book_import rev 22
+book_import col 4
+
 chown -R apache:apache /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en
