@@ -97,7 +97,7 @@ def obs():
 def global_cat(project_dirs):
     global_cat = []
     for p in project_dirs:
-        proj_url = u'{0}/obs/languages.json'.format(obs_v2_api)
+        proj_url = u'{0}/{1}/languages.json'.format(obs_v2_api, p)
         proj_data = getURL(proj_url)
         proj_cat = json.loads(proj_data)
         dates = set([x['language']['date_modified'] for x in proj_cat])

@@ -31,3 +31,6 @@ done
 
 # Cleanup
 rm -f /tmp/$$.*
+
+# Run update of v2 API
+/var/www/vhosts/door43.org/tools/uw/update_catalog.py
