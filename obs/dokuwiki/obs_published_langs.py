@@ -15,7 +15,7 @@ import json
 import codecs
 import urllib2
 
-caturl = 'http://api.unfoldingword.org/obs/txt/1/obs-catalog.json'
+caturl = 'https://api.unfoldingword.org/obs/txt/1/obs-catalog.json'
 uwstatpage = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/uwadmin/pub_status.txt'
 iconsdir = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/jpg/1/checkinglevels'
 pub_statustmpl = u'''====== unfoldingWord OBS Published Languages ======
@@ -23,7 +23,7 @@ pub_statustmpl = u'''====== unfoldingWord OBS Published Languages ======
 langtmpl = u'''
 ===== {0} =====
 ^Language   ^Publish Date   ^Version    ^Checking Level ^
-|  [[:en:uwadmin:{0}:obs:status|{1}]]  |  {2}  |  {3}  |  {{{{http://api.unfoldingword.org/obs/jpg/1/checkinglevels/uW-Level{4}-32px.png}}}}  |
+|  [[:en:uwadmin:{0}:obs:status|{1}]]  |  {2}  |  {3}  |  {{{{https://api.unfoldingword.org/obs/jpg/1/checkinglevels/uW-Level{4}-32px.png}}}}  |
 '''
 
 def getCat(url):
