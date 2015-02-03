@@ -43,14 +43,19 @@ def makeDir(d):
         os.makedirs(d, 0755)
 
 def writeJSON(outfile, p):
-    print outfile
+    '''
+    Simple wrapper to write a file as JSON.
+    '''
     makeDir(outfile.rsplit('/', 1)[0])
     f = codecs.open(outfile, 'w', encoding='utf-8')
     f.write(json.dumps(p, indent=2, sort_keys=True))
     f.close()
 
 def parse(usx):
-    # regex findall on s5
+    '''
+    Iterates through the source and splits it into frames based on the
+    s5 markers.
+    '''
     chapters = []
     chp = ''
     frid = 0
@@ -83,6 +88,14 @@ def parse(usx):
                 fr_list = []
                 continue
         fr_list.append(line)
+
+    # Append the last frame and the last chapter
+    chp['frames'].append({ u'id': u'{0}-{1}'.format(
+                                   str(chp_num).zfill(2), str(frid).zfill(2)),
+                           u'img': u'',
+                           u'format': u'usx',
+                           u'text': u'\n'.join(fr_list)
+                          })
     chapters.append(chp)
     return chapters
 
