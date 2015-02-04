@@ -36,10 +36,6 @@ while test -n "$1"; do
             APP="$2"
             shift
             ;;
-        --version|-v)
-            VER="$2"
-            shift
-            ;;
         *)
             echo "Unknown argument: $1"
             help
@@ -49,9 +45,8 @@ while test -n "$1"; do
 done
 
 [ ! -f "$APK" ] && echo "Please specify apk file." && exit 1
-[ -z "$VER" ] && echo "Please specify version." && exit 1
 
-APKNAME="${APK%%.apk}
+APKNAME="${APK%%.apk}"
 
 mktorrent -c "$APKNAME" -n "$APKNAME" \
     -a http://torrent.tracker/announce,http://tracker.prq.to/announce,http://open.tracker.thepiratebay.org/announce,http://www.sumotracker.com/announce \
