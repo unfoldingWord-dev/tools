@@ -113,9 +113,11 @@ def main():
                                                                  ).readlines()
             slug = f.split('.')[0].lower()
             book = parse(usx)
-            book.append({'date_modified': today})
+            payload = { 'chapters': book,
+                        'date_modified': today
+                      }
             writeJSON(os.path.join(api_v2, slug, lang, ver, 'source.json'),
-                                                                         book)
+                                                                     payload)
 
 
 if __name__ == '__main__':
