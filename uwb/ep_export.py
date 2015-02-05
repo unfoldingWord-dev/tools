@@ -140,6 +140,15 @@ def writeFile(outfile, content):
     f.write(content)
     f.close()
 
+def writeJSON(outfile, p):
+    '''
+    Simple wrapper to write a file as JSON.
+    '''
+    makeDir(outfile.rsplit('/', 1)[0])
+    f = codecs.open(outfile, 'w', encoding='utf-8')
+    f.write(json.dumps(p, indent=2, sort_keys=True))
+    f.close()
+
 def save(pads, outdir, slug, ep, ver):
     for bk in books.iterkeys():
         if ver.lower() != 'draft':
@@ -184,6 +193,20 @@ def main(slug, ver):
         outdir = baseout.format(slug.lower(), 'en')
 
     save(ver_pads, outdir, slug, ep, ver)
+    status = { "slug": slug,
+               "name": names[slug],
+               "date_modified": today,
+               "status": { "checking_entity": "Wycliffe Associates",
+                           "checking_level": "3",
+                           "comments": "Original source text",
+                           "contributors": "Wycliffe Associates",
+                           "publish_date": today,
+                           "source_text": "en",
+                           "source_text_version": ver,
+                           "version": ver
+                          }
+             }
+    writeJSON('{0}/status.json'.format(outdir), status)
     writeFile('{0}/LICENSE.usfm'.format(outdir), LICENSE.format(ver,
                                                                  names[slug]))
     print "Check {0} and do a git push".format(outdir)
