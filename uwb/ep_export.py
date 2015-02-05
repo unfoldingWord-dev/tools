@@ -175,7 +175,7 @@ def save(pads, outdir, slug, ep, ver):
         if ver.lower() == 'draft':
             outfile = '{0}.txt'.format(outfile).lower()
         writeFile(outfile, u''.join(content))
-        books_published.append(bk)
+        books_published.append(bk.lower())
     return books_published
 
 def main(slug, ver):
