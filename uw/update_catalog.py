@@ -19,8 +19,12 @@ import json
 import codecs
 import urllib2
 import argparse
+from copy import deepcopy
 
 project_dirs = ['obs']
+bible_dirs = ['rut', 'luk', 'tit']
+bible_slugs = ['udb', 'ulb']
+bible_stat = u'https://api.unfoldingword.org/{0}/txt/1/{0}-{1}/status.json'
 obs_v1_api = u'https://api.unfoldingword.org/obs/txt/1'
 obs_v1_url = u'{0}/obs-catalog.json'.format(obs_v1_api)
 obs_v2_local = u'/var/www/vhosts/api.unfoldingword.org/httpdocs/ts/txt/2'
@@ -94,8 +98,38 @@ def obs():
     outfile = u'{0}/obs/languages.json'.format(obs_v2_local)
     writeFile(outfile, getDump(langs_cat))
 
-def global_cat(project_dirs):
+def bible():
+    bible_status = {}
+    bible_bks = []
+    for slug in bible_slugs:
+        stat = getURL(bible_stat.format(slug, 'en'))
+        bible_status[slug] = json.loads(stat)
+        bible_bks += bible_status[slug]['books_published']
+
+    for bk in set(bible_bks):
+        resources_cat = []
+        for slug in bible_slugs:
+            if bk not in bible_status[slug]['books_published']:
+                continue
+            lang = bible_status[slug]['lang']
+            slug_cat = deepcopy(bible_status[slug])
+            slug_cat['source'] = '{0}/{1}/{2}/{3}/source.json'.format(
+                                   obs_v2_api, bk, lang, slug)
+            slug_cat['terms'] = '{0}/{1}/{2}/{3}/terms.json'.format(
+                                   obs_v2_api, bk, lang, slug)
+            slug_cat['notes'] = '{0}/{1}/{2}/{3}/notes.json'.format(
+                                   obs_v2_api, bk, lang, slug)
+            del slug_cat['books_published']
+            del slug_cat['lang']
+            resources_cat.append(slug_cat)
+        outfile = '{0}/{1}/{2}/resources.json'.format(obs_v2_local, bk, lang)
+        writeFile(outfile, getDump(resources_cat))
+
+
+def global_cat():
     global_cat = []
+    for x in bible_dirs:
+        project_dirs.append(x)
     for p in project_dirs:
         proj_url = u'{0}/{1}/languages.json'.format(obs_v2_api, p)
         proj_data = getURL(proj_url)
@@ -113,8 +147,8 @@ def global_cat(project_dirs):
 
 def main():
     obs()
-    #bible()
-    global_cat(project_dirs)
+    bible()  # languages.json
+    global_cat()
 
 
 if __name__ == '__main__':
