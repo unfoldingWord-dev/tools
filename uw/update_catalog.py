@@ -104,7 +104,7 @@ def bible():
     for slug in bible_slugs:
         stat = getURL(bible_stat.format(slug, 'en'))
         bible_status[slug] = json.loads(stat)
-        bible_bks += bible_status[slug]['books_published']
+        bible_bks += bible_status[slug]['books_published'].keys()
 
     for bk in set(bible_bks):
         resources_cat = []
@@ -148,7 +148,7 @@ def global_cat():
 def main():
     obs()
     bible()  # languages.json
-    global_cat()
+    #global_cat()
 
 
 if __name__ == '__main__':
