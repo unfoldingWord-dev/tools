@@ -150,6 +150,7 @@ def writeJSON(outfile, p):
     f.close()
 
 def save(pads, outdir, slug, ep, ver):
+    books_published = []
     for bk in books.iterkeys():
         if ver.lower() != 'draft':
             if bk not in ['RUT', 'LUK', 'TIT']: continue
@@ -171,6 +172,8 @@ def save(pads, outdir, slug, ep, ver):
         if ver.lower() == 'draft':
             outfile = '{0}.txt'.format(outfile).lower()
         writeFile(outfile, u''.join(content))
+        books_published.append(bk)
+    return books_published
 
 def main(slug, ver):
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
@@ -193,10 +196,12 @@ def main(slug, ver):
     else:
         outdir = baseout.format(slug.lower(), 'en')
 
-    save(ver_pads, outdir, slug, ep, ver)
+    books_published = save(ver_pads, outdir, slug, ep, ver)
     status = { "slug": slug.lower(),
                "name": names[slug],
+               "lang": "en",
                "date_modified": today,
+               "books_published": books_published,
                "status": { "checking_entity": "Wycliffe Associates",
                            "checking_level": "3",
                            "comments": "Original source text",
