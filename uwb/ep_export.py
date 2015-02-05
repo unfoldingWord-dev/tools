@@ -31,6 +31,9 @@ draftout = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/{1}/{0}/ep/'
 _digits = re.compile('\d')
 httpsre = re.compile(ur'https://pad.door43.org.*', re.UNICODE)
 srre = re.compile(ur'\\sr.*', re.UNICODE)
+basis = { 'UDB': u'This work is based on \em Translation 4 Translators \em*, which is licensed CC-BY-SA (http://creativecommons.org/licenses/by-sa/4.0/).',
+          'ULB': u'This work is based on \em The American Standard Version \em*, which is in the public domain.'
+        }
 LICENSE = u'''\mt {1}
 
 \p \\bd an unrestricted Bible intended for translation into any language \\bd*
@@ -39,7 +42,7 @@ LICENSE = u'''\mt {1}
 
 \p {1}, v. {0}
 
-This work is based on \em The American Standard Version \em*, which is in the public domain.
+{2}
 
 
 \p License:
@@ -214,7 +217,7 @@ def main(slug, ver):
              }
     writeJSON('{0}/status.json'.format(outdir), status)
     writeFile('{0}/LICENSE.usfm'.format(outdir), LICENSE.format(ver,
-                                                                 names[slug]))
+                                                    names[slug], basis[slug]))
     print "Check {0} and do a git push".format(outdir)
 
 
