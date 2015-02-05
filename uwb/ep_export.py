@@ -15,9 +15,9 @@ This script exports the ULB and UDB from Etherpad.
 import os
 import re
 import sys
-import glob
+import json
 import codecs
-import zipfile
+import datetime
 import argparse
 from etherpad_lite import EtherpadLiteClient
 from etherpad_lite import EtherpadException
@@ -173,6 +173,7 @@ def save(pads, outdir, slug, ep, ver):
         writeFile(outfile, u''.join(content))
 
 def main(slug, ver):
+    today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
     try:
         pw = open('/usr/share/httpd/.ssh/ep_api_key', 'r').read().strip()
         ep = EtherpadLiteClient(base_params={'apikey': pw},
@@ -193,7 +194,7 @@ def main(slug, ver):
         outdir = baseout.format(slug.lower(), 'en')
 
     save(ver_pads, outdir, slug, ep, ver)
-    status = { "slug": slug,
+    status = { "slug": slug.lower(),
                "name": names[slug],
                "date_modified": today,
                "status": { "checking_entity": "Wycliffe Associates",
