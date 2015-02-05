@@ -129,7 +129,7 @@ def bible():
     for bk in bks_set:
         languages_cat = []
         res_info = { 'project': bible_status[slug]['books_published'][bk],
-                     'lang': { 'slug': 'en',
+                     'language': { 'slug': 'en',
                                'name': 'English',
                                'direction': 'ltr',
                                'date_modified': bible_status[slug][
