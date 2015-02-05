@@ -106,10 +106,11 @@ def bible():
         bible_status[slug] = json.loads(stat)
         bible_bks += bible_status[slug]['books_published'].keys()
 
-    for bk in set(bible_bks):
+    bks_set = set(bible_bks)
+    for bk in bks_set:
         resources_cat = []
         for slug in bible_slugs:
-            if bk not in bible_status[slug]['books_published']:
+            if bk not in bible_status[slug]['books_published'].keys():
                 continue
             lang = bible_status[slug]['lang']
             slug_cat = deepcopy(bible_status[slug])
@@ -124,6 +125,22 @@ def bible():
             resources_cat.append(slug_cat)
         outfile = '{0}/{1}/{2}/resources.json'.format(obs_v2_local, bk, lang)
         writeFile(outfile, getDump(resources_cat))
+
+    for bk in bks_set:
+        languages_cat = []
+        res_info = { 'project': bible_status[slug]['books_published'][bk],
+                     'lang': { 'slug': 'en',
+                               'name': 'English',
+                               'direction': 'ltr',
+                               'date_modified': bible_status[slug][
+                                                             'date_modified'],
+                             },
+                     'res_catalog': '{0}/{1}/{2}/resources.json'.format(
+                                                         obs_v2_api, bk, lang)
+                   }
+        languages_cat.append(res_info)
+        outfile = '{0}/{1}/languages.json'.format(obs_v2_local, bk)
+        writeFile(outfile, getDump(languages_cat))
 
 
 def global_cat():
@@ -148,7 +165,7 @@ def global_cat():
 def main():
     obs()
     bible()  # languages.json
-    #global_cat()
+    global_cat()
 
 
 if __name__ == '__main__':
