@@ -153,7 +153,7 @@ def writeJSON(outfile, p):
     f.close()
 
 def save(pads, outdir, slug, ep, ver):
-    books_published = []
+    books_published = {}
     for bk in books.iterkeys():
         if ver.lower() != 'draft':
             if bk not in ['RUT', 'LUK', 'TIT']: continue
@@ -175,7 +175,13 @@ def save(pads, outdir, slug, ep, ver):
         if ver.lower() == 'draft':
             outfile = '{0}.txt'.format(outfile).lower()
         writeFile(outfile, u''.join(content))
-        books_published.append(bk.lower())
+        meta = ['Bible: OT', 'Bible', 'Old Testament']
+        if int(books[bk][1]) > 39:
+            meta = ['Bible: NT', 'Bible', 'New Testament']
+        books_published[bk.lower()] = { 'name': books[bk][0],
+                                        'meta': meta,
+                                        'desc': ''
+                                      }
     return books_published
 
 def main(slug, ver):
