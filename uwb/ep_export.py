@@ -23,6 +23,9 @@ from etherpad_lite import EtherpadLiteClient
 from etherpad_lite import EtherpadException
 
 
+COMPLETE = [ 'GEN', 'RUT', 'JNH',
+             'LUK', 'ACT', '1TI', '2TI', 'TIT', 'PHM', 'JAS', 'JUD', 'REV'
+           ]
 names = { 'ULB': 'unfoldingWord Literal Bible',
           'UDB': 'unfoldingWord Dynamic Bible'
         }
@@ -156,7 +159,7 @@ def save(pads, outdir, slug, ep, ver):
     books_published = {}
     for bk in books.iterkeys():
         if ver.lower() != 'draft':
-            if bk not in ['RUT', 'LUK', 'TIT']: continue
+            if bk not in COMPLETE: continue
         bk_pads = [x for x in pads if bk.lower() in x and contains_digits(x)]
         bk_pads.sort()
         content = []
