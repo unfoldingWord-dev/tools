@@ -157,9 +157,9 @@ def global_cat():
         meta = []
         if proj_cat[0]['project']['meta']:
             if 'Bible: OT' in proj_cat[0]['project']['meta']:
-                meta += [ 'bible-ot', 'bible', 'ot' ]
+                meta += [ 'bible-ot' ]
             if 'Bible: NT' in proj_cat[0]['project']['meta']:
-                meta += [ 'bible-nt', 'bible', 'nt' ]
+                meta += [ 'bible-nt' ]
         global_cat.append({ 'slug': p,
                             'date_modified': dates_list[0],
                             'lang_catalog': proj_url,
