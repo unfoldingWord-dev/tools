@@ -175,9 +175,9 @@ def save(pads, outdir, slug, ep, ver):
         if ver.lower() == 'draft':
             outfile = '{0}.txt'.format(outfile).lower()
         writeFile(outfile, u''.join(content))
-        meta = ['Bible: OT', 'Bible', 'Old Testament']
+        meta = ['Bible: OT']
         if int(books[bk][1]) > 39:
-            meta = ['Bible: NT', 'Bible', 'New Testament']
+            meta = ['Bible: NT']
         books_published[bk.lower()] = { 'name': books[bk][0],
                                         'meta': meta,
                                         'desc': ''
