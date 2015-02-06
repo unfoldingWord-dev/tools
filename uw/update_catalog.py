@@ -154,9 +154,16 @@ def global_cat():
         dates = set([x['language']['date_modified'] for x in proj_cat])
         dates_list = list(dates)
         dates_list.sort(reverse=True)
+        meta = []
+        if proj_cat[0]['project']['meta']:
+            if 'Bible: OT' in proj_cat[0]['project']['meta']:
+                meta += [ 'bible-ot', 'bible', 'ot' ]
+            if 'Bible: NT' in proj_cat[0]['project']['meta']:
+                meta += [ 'bible-nt', 'bible', 'nt' ]
         global_cat.append({ 'slug': p,
                             'date_modified': dates_list[0],
                             'lang_catalog': proj_url,
+                            'meta': meta
                           })
     # Write global catalog
     outfile = u'{0}/catalog.json'.format(obs_v2_local)
