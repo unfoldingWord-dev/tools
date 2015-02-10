@@ -70,13 +70,15 @@ if __name__ == '__main__':
     head = codecs.open('compare.template.html', 'r', encoding='utf-8').read()
 
     htmlhead = head % ('OBS v1 to v3',
-             'Open Bible Stories Changes - Version 1 to Version 3')
-    v1_v3 = runDiff(v1jf['chapters'], v3jf['chapters'], 'Version 1', 'Version 3')
+             'Open Bible Stories Changes - Version 1 to Version 3.2')
+    v1_v3 = runDiff(v1jf['chapters'], v3jf['chapters'], 'Version 1',
+                                                       'Version 3.2')
     v1_v3_page = '\n'.join([htmlhead, v1_v3, htmlfoot])
     writeFile('ver_1-to-ver_3.html', v1_v3_page)
 
     htmlhead = head % ('OBS v2 to v3',
-             'Open Bible Stories Changes - Version 2 to Version 3')
-    v2_v3 = runDiff(v2jf['chapters'], v3jf['chapters'], 'Version 2', 'Version 3')
+             'Open Bible Stories Changes - Version 2 to Version 3.2')
+    v2_v3 = runDiff(v2jf['chapters'], v3jf['chapters'], 'Version 2',
+                                                        'Version 3.2')
     v2_v3_page = '\n'.join([htmlhead, v2_v3, htmlfoot])
     writeFile('ver_2-to-ver_3.html', v2_v3_page)
