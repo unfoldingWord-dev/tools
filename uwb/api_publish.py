@@ -104,9 +104,10 @@ def parse(usx):
 def getChunks(book):
     chunks = []
     for c in book:
-        for frame in c:
-            chunks.append({[frame['id']] = versere.search(
-                                                      frame['text']).group(1))
+        for frame in c['frames']:
+            chunks.append({ 'id': frame['id'],
+                            'firstvs': versere.search(frame['text']).group(1)
+                          })
     return chunks
 
 def main():
@@ -123,14 +124,15 @@ def main():
                                                                  ).readlines()
             slug = f.split('.')[0].lower()
             book = parse(usx)
-            chunks = getChunks(book)
             payload = { 'chapters': book,
                         'date_modified': today
                       }
             writeJSON(os.path.join(api_v2, slug, lang, ver, 'source.json'),
                                                                      payload)
-            writeJSON(os.path.join(api_v2, slug, lang, ver, 'chunks.json'),
-                                                                      chunks)
+            if 'ulb' in d:
+                chunks = getChunks(book)
+                writeJSON(os.path.join(api_v2, slug, lang, ver, 'chunks.json'),
+                                                                       chunks)
 
 
 if __name__ == '__main__':
