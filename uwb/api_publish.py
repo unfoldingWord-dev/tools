@@ -17,6 +17,7 @@ Requires that https://github.com/Door43/USFM-Tools be checked out to
 """
 
 import os
+import re
 import sys
 import json
 import codecs
@@ -33,6 +34,7 @@ except ImportError:
 ULBSource = '/var/www/vhosts/api.unfoldingword.org/httpdocs/ulb/txt/1/'
 UDBSource = '/var/www/vhosts/api.unfoldingword.org/httpdocs/udb/txt/1/'
 api_v2 = '/var/www/vhosts/api.unfoldingword.org/httpdocs/ts/txt/2/'
+versere = re.compile(ur'<verse number="([0-9]+)"', re.UNICODE)
 
 
 def makeDir(d):
@@ -99,6 +101,14 @@ def parse(usx):
     chapters.append(chp)
     return chapters
 
+def getChunks(book):
+    chunks = []
+    for c in book:
+        for frame in c:
+            chunks.append({[frame['id']] = versere.search(
+                                                      frame['text']).group(1))
+    return chunks
+
 def main():
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
     udbd = [os.path.join(UDBSource, x) for x in os.listdir(UDBSource)]
@@ -113,11 +123,14 @@ def main():
                                                                  ).readlines()
             slug = f.split('.')[0].lower()
             book = parse(usx)
+            chunks = getChunks(book)
             payload = { 'chapters': book,
                         'date_modified': today
                       }
             writeJSON(os.path.join(api_v2, slug, lang, ver, 'source.json'),
                                                                      payload)
+            writeJSON(os.path.join(api_v2, slug, lang, ver, 'chunks.json'),
+                                                                      chunks)
 
 
 if __name__ == '__main__':
