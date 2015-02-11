@@ -34,6 +34,7 @@ draftout = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/{1}/{0}/ep/'
 _digits = re.compile('\d')
 httpsre = re.compile(ur'https://pad.door43.org.*', re.UNICODE)
 srre = re.compile(ur'\\sr.*', re.UNICODE)
+s1re = re.compile(ur'\\s1.*', re.UNICODE)
 basis = { 'UDB': u'This work is based on \em Translation 4 Translators \em*, which is licensed CC-BY-SA (http://creativecommons.org/licenses/by-sa/4.0/).',
           'ULB': u'This work is based on \em The American Standard Version \em*, which is in the public domain.'
         }
@@ -172,6 +173,7 @@ def save(pads, outdir, slug, ep, ver):
                 continue
             p_content = httpsre.sub(u'', p_content)
             p_content = srre.sub(u'', p_content)
+            p_content = s1re.sub(u'', p_content)
             content.append(p_content)
         outfile = '{0}/{1}-{2}-en-{3}.usfm'.format(outdir, books[bk][1], bk,
                                                                          slug)
