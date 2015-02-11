@@ -22,7 +22,8 @@ import argparse
 from copy import deepcopy
 
 project_dirs = ['obs']
-bible_dirs = ['rut', 'luk', 'tit']
+bible_dirs = ['rut', 'luk', 'tit', '1ti', '2ti', 'act', 'jas', 'jud', 'phm',
+              'rev']
 bible_slugs = ['udb', 'ulb']
 bible_stat = u'https://api.unfoldingword.org/{0}/txt/1/{0}-{1}/status.json'
 obs_v1_api = u'https://api.unfoldingword.org/obs/txt/1'
