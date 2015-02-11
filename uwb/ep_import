@@ -65,4 +65,11 @@ book_import num 36
 book_import deu 34
 book_import jos 24
 
+# These added 2015-02-11
+book_import jdg 21
+book_import 1sa 31
+book_import job 42
+book_import 1ki 22
+book_import 2ki 25
+
 chown -R apache:apache /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en
