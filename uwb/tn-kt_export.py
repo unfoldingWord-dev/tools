@@ -127,7 +127,18 @@ def getHTMLList(text):
         newtext.append(u'</ul>')
     return u''.join(newtext)
 
+def makeDir(d):
+    '''
+    Simple wrapper to make a directory if it does not exist.
+    '''
+    if not os.path.exists(d):
+        os.makedirs(d, 0755)
+
 def writeJSON(outfile, p):
+    '''
+    Simple wrapper to write a file as JSON.
+    '''
+    makeDir(outfile.rsplit('/', 1)[0])
     f = codecs.open(outfile, 'w', encoding='utf-8')
     f.write(getDump(p))
     f.close()
@@ -172,7 +183,6 @@ def gettN(page):
 
 def runKT(lang, today):
     ktpath = os.path.join(pages, lang, 'bible/notes/key-terms')
-    apipath = api_v2
     keyterms = []
     for f in glob.glob('{0}/*.txt'.format(ktpath)):
         if 'home.txt' in f or '1-discussion-topic.txt' in f: continue
@@ -189,6 +199,7 @@ def runKT(lang, today):
         del i['filename']
     keyterms.sort(key=lambda x: len(x['term']), reverse=True)
     keyterms.append({'date_modified': today})
+    apipath = os.path.join(api_v2, 'bible', lang)
     writeJSON('{0}/kt-{1}.json'.format(apipath, lang), keyterms)
 
 def runtN(lang, today):
