@@ -116,11 +116,11 @@ def bible():
             lang = bible_status[slug]['lang']
             slug_cat = deepcopy(bible_status[slug])
             slug_cat['source'] = '{0}/{1}/{2}/{3}/source.json'.format(
-                                   obs_v2_api, bk, lang, slug)
-            slug_cat['terms'] = '{0}/{1}/{2}/{3}/terms.json'.format(
-                                   obs_v2_api, bk, lang, slug)
-            slug_cat['notes'] = '{0}/{1}/{2}/{3}/notes.json'.format(
-                                   obs_v2_api, bk, lang, slug)
+                                                   obs_v2_api, bk, lang, slug)
+            slug_cat['terms'] = '{0}/bible/{1}/kt-{1}.json'.format(
+                                                             obs_v2_api, lang)
+            slug_cat['notes'] = '{0}/{1}/{2}/tN-{2}.json'.format(
+                                                         obs_v2_api, bk, lang)
             del slug_cat['books_published']
             del slug_cat['lang']
             resources_cat.append(slug_cat)
