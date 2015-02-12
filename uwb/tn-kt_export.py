@@ -27,14 +27,11 @@ root = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo'
 pages = os.path.join(root, 'pages')
 api_v2 = '/var/www/vhosts/api.unfoldingword.org/httpdocs/ts/txt/2/'
 ktaliases = {}
+def_titles = ['Definition', 'Facts', 'Description']
 
 # Regexes for grabbing content
 ktre = re.compile(ur'====== (.*?) ======', re.UNICODE)
 subre = re.compile(ur'\n==== (.*) ====\n', re.UNICODE)
-defre = re.compile(ur'===== Definition: =====(.*?)\(See also', re.UNICODE | re.DOTALL)
-defre2 = re.compile(ur'===== Definition: =====(.*?)=====', re.UNICODE | re.DOTALL)
-factre = re.compile(ur'===== Facts: =====(.*?)\(See also', re.UNICODE | re.DOTALL)
-factre2 = re.compile(ur'===== Facts: =====(.*?)=====', re.UNICODE | re.DOTALL)
 linknamere = re.compile(ur':([A-Za-z0-9\-]*)\]\]', re.UNICODE)
 linkre = re.compile(ur':([^:]*\|.*?)\]\]', re.UNICODE)
 cfre = re.compile(ur'See also.*', re.UNICODE)
@@ -70,16 +67,15 @@ def getKT(f):
     return kt
 
 def getKTDef(page):
-    def_title = 'Definition'
-    defse = defre.search(page)
-    if not defse:
-        defse = defre2.search(page)
-    if not defse:
-        defse = factre.search(page)
-        def_title = 'Facts'
-    if not defse:
-        defse = factre2.search(page)
-        def_title = 'Facts'
+    for def_title in def_titles:
+        defre = re.compile(ur'===== {0}: =====(.*?)\(See also'.format(
+                                           def_title), re.UNICODE | re.DOTALL)
+        defse = defre.search(page)
+        if not defse:
+            defre = re.compile(ur'===== {0}: =====(.*?)====='.format(
+                                           def_title), re.UNICODE | re.DOTALL)
+            defse = defre.search(page)
+        if defse: break
     try:
         deftxt = defse.group(1).rstrip()
     except:
