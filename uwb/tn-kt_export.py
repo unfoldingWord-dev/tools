@@ -38,11 +38,13 @@ cfre = re.compile(ur'See also.*', re.UNICODE)
 examplesre = re.compile(ur'===== Examples from the Bible stories.*',
     re.UNICODE | re.DOTALL)
 extxtre = re.compile(ur'\*\* (.*)', re.UNICODE)
-fridre = re.compile(ur'[0-5][0-9]-[0-9][0-9]', re.UNICODE)
+fridre = re.compile(ur'[0-5][0-9]/[0-9][0-9]', re.UNICODE)
 tNre = re.compile(ur'==== Translation Notes.*', re.UNICODE | re.DOTALL)
 itre = re.compile(ur'==== Important Terms: ====(.*?)====', re.UNICODE | re.DOTALL)
 tNtermre = re.compile(ur' \*\*(.*?)\*\* ', re.UNICODE)
 tNtextre = re.compile(ur'\*\* [–-] (.*)', re.UNICODE)
+tNtextre2 = re.compile(ur'\* (.*)', re.UNICODE)
+pubre = re.compile(ur'tag>.*publish.*', re.UNICODE)
 
 # Regexes for DW to HTML conversion
 boldstartre = re.compile(ur'([ ,.])(\*\*)', re.UNICODE)
@@ -54,7 +56,7 @@ h3re = re.compile(ur'\n=== (.*?) ===\n', re.UNICODE)
 
 def getKT(f):
     page = codecs.open(f, 'r', encoding='utf-8').read()
-    if 'tag>publish' not in page: return False
+    if not pubre.search(page): return False
     kt = {}
     kt['filename'] = f.rsplit('/', 1)[1].replace('.txt', '')
     kt['term'] = ktre.search(page).group(1).strip()
@@ -135,9 +137,10 @@ def getDump(j):
 
 def getFrame(f):
     page = codecs.open(f, 'r', encoding='utf-8').read()
+    if not pubre.search(page): return False
     getAliases(page)
     frame = {}
-    frame['id'] = fridre.search(f).group(0).strip()
+    frame['id'] = fridre.search(f).group(0).strip().replace('/', '-')
     frame['tn'] = gettN(page)
     return frame
 
@@ -159,8 +162,11 @@ def gettN(page):
         if not tNtermse:
             continue
         item['ref'] = tNtermse.group(1)
-        item['text'] = tNtextre.search(i).group(1).strip()
-        item['text'] = getHTML(item['text'])
+        tNtextse = tNtextre.search(i)
+        if not tNtextse:
+            tNtextse = tNtextre2.search(i)
+        item_text = tNtextse.group(1).strip()
+        item['text'] = getHTML(item_text)
         tN.append(item)
     return tN
 
@@ -186,18 +192,31 @@ def runKT(lang, today):
     writeJSON('{0}/kt-{1}.json'.format(apipath, lang), keyterms)
 
 def runtN(lang, today):
-    tNpath = os.path.join(pages, lang, 'obs/notes/frames')
-    apipath = os.path.join(api_v2, lang)
-    frames = []
-    for f in glob.glob('{0}/*.txt'.format(tNpath)):
-        if 'home.txt' in f: continue
-        frames.append(getFrame(f))
-    frames.sort(key=lambda x: x['id'])
-    frames.append({'date_modified': today})
-    writeJSON('{0}/tN-{1}.json'.format(apipath, lang), frames)
+    tNpath = os.path.join(pages, lang, 'bible/notes')
+    for book in os.listdir(tNpath):
+        book_path = os.path.join(tNpath, book)
+        if len(book) > 3: continue
+        if not os.path.isdir(book_path): continue
+        apipath = os.path.join(api_v2, book, lang)
+        if not os.path.isdir(apipath): continue
+        frames = []
+        for chapter in os.listdir(book_path):
+            try:
+                int(chapter)
+            except ValueError:
+                continue
+            for f in glob.glob('{0}/{1}/*.txt'.format(book_path, chapter)):
+                if 'home.txt' in f: continue
+                frame = getFrame(f)
+                if frame: 
+                    frames.append(frame)
+
+        frames.sort(key=lambda x: x['id'])
+        frames.append({'date_modified': today})
+        writeJSON('{0}/tN-{1}.json'.format(apipath, lang), frames)
 
 
 if __name__ == '__main__':
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
-    #runtN('en', today)
+    runtN('en', today)
     runKT('en', today)
