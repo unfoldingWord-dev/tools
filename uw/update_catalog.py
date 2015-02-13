@@ -168,7 +168,9 @@ def global_cat():
         dates = set([x['language']['date_modified'] for x in proj_cat])
         dates_list = list(dates)
         dates_list.sort(reverse=True)
-        sort = [x['project']['sort'] for x in proj_cat][0]
+        sort = '01'
+        if p in bible_dirs:
+            sort = [x['project']['sort'] for x in proj_cat if 'project' in x][0]
         meta = []
         if proj_cat[0]['project']['meta']:
             if 'Bible: OT' in proj_cat[0]['project']['meta']:
