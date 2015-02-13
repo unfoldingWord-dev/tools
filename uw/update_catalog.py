@@ -168,6 +168,7 @@ def global_cat():
         dates = set([x['language']['date_modified'] for x in proj_cat])
         dates_list = list(dates)
         dates_list.sort(reverse=True)
+        sort = [x['project']['sort'] for x in proj_cat][0]
         meta = []
         if proj_cat[0]['project']['meta']:
             if 'Bible: OT' in proj_cat[0]['project']['meta']:
@@ -176,7 +177,9 @@ def global_cat():
                 meta += [ 'bible-nt' ]
         global_cat.append({ 'slug': p,
                             'date_modified': dates_list[0],
-                            'lang_catalog': proj_url,
+                            'lang_catalog': u'{0}?date_modified={1}'.format(
+                                                     proj_url, dates_list[0]),
+                            'sort': sort,
                             'meta': meta
                           })
     # Write global catalog
