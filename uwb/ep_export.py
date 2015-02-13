@@ -187,6 +187,7 @@ def save(pads, outdir, slug, ep, ver):
             meta = ['Bible: NT']
         books_published[bk.lower()] = { 'name': books[bk][0],
                                         'meta': meta,
+                                        'sort': books[bk][1],
                                         'desc': ''
                                       }
     return books_published
