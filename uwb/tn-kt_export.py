@@ -144,7 +144,7 @@ def writeJSON(outfile, p):
     f.close()
 
 def getDump(j):
-    return json.dumps(j, indent=2, sort_keys=True)
+    return json.dumps(j, sort_keys=True)
 
 def getFrame(f):
     page = codecs.open(f, 'r', encoding='utf-8').read()
@@ -200,7 +200,7 @@ def runKT(lang, today):
     keyterms.sort(key=lambda x: len(x['term']), reverse=True)
     keyterms.append({'date_modified': today})
     apipath = os.path.join(api_v2, 'bible', lang)
-    writeJSON('{0}/kt-{1}.json'.format(apipath, lang), keyterms)
+    writeJSON('{0}/terms.json'.format(apipath), keyterms)
 
 def runtN(lang, today):
     tNpath = os.path.join(pages, lang, 'bible/notes')
@@ -224,7 +224,7 @@ def runtN(lang, today):
 
         frames.sort(key=lambda x: x['id'])
         frames.append({'date_modified': today})
-        writeJSON('{0}/tN-{1}.json'.format(apipath, lang), frames)
+        writeJSON('{0}/notes.json'.format(apipath), frames)
 
 
 if __name__ == '__main__':

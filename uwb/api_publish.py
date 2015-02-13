@@ -50,7 +50,7 @@ def writeJSON(outfile, p):
     '''
     makeDir(outfile.rsplit('/', 1)[0])
     f = codecs.open(outfile, 'w', encoding='utf-8')
-    f.write(json.dumps(p, indent=2, sort_keys=True))
+    f.write(json.dumps(p, sort_keys=True))
     f.close()
 
 def parse(usx):
