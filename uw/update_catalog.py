@@ -51,7 +51,7 @@ def makeDir(d):
         os.makedirs(d, 0755)
 
 def getDump(j):
-    return json.dumps(j, sort_keys=True, indent=2)
+    return json.dumps(j, sort_keys=True)
 
 def loadJSON(f, t):
     if os.path.isfile(f):
@@ -129,9 +129,9 @@ def bible():
             slug_cat = deepcopy(bible_status[slug])
             slug_cat['source'] = addDate('{0}/{1}/{2}/{3}/source.json'.format(
                                                    obs_v2_api, bk, lang, slug))
-            slug_cat['terms'] = addDate('{0}/bible/{1}/kt-{1}.json'.format(
+            slug_cat['terms'] = addDate('{0}/bible/{1}/terms.json'.format(
                                                              obs_v2_api, lang))
-            slug_cat['notes'] = addDate('{0}/{1}/{2}/tN-{2}.json'.format(
+            slug_cat['notes'] = addDate('{0}/{1}/{2}/notes.json'.format(
                                                          obs_v2_api, bk, lang))
             del slug_cat['books_published']
             del slug_cat['lang']
