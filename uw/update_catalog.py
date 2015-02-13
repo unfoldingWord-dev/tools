@@ -99,6 +99,18 @@ def obs():
     outfile = u'{0}/obs/languages.json'.format(obs_v2_local)
     writeFile(outfile, getDump(langs_cat))
 
+def addDate(url):
+    '''
+    Adds 'date_modified=datestamp' to URL based on value found in the url.'
+    '''
+    src_str = getURL(url)
+    src = json.loads(src_str)
+    if type(src) == dict:
+        dmod = src['date_modified']
+    else:
+        dmod = [x['date_modified'] for x in src if 'date_modified' in x][0]
+    return u'{0}?date_modified={1}'.format(url, dmod)
+
 def bible():
     bible_status = {}
     bible_bks = []
@@ -115,14 +127,15 @@ def bible():
                 continue
             lang = bible_status[slug]['lang']
             slug_cat = deepcopy(bible_status[slug])
-            slug_cat['source'] = '{0}/{1}/{2}/{3}/source.json'.format(
-                                                   obs_v2_api, bk, lang, slug)
-            slug_cat['terms'] = '{0}/bible/{1}/kt-{1}.json'.format(
-                                                             obs_v2_api, lang)
-            slug_cat['notes'] = '{0}/{1}/{2}/tN-{2}.json'.format(
-                                                         obs_v2_api, bk, lang)
+            slug_cat['source'] = addDate('{0}/{1}/{2}/{3}/source.json'.format(
+                                                   obs_v2_api, bk, lang, slug))
+            slug_cat['terms'] = addDate('{0}/bible/{1}/kt-{1}.json'.format(
+                                                             obs_v2_api, lang))
+            slug_cat['notes'] = addDate('{0}/{1}/{2}/tN-{2}.json'.format(
+                                                         obs_v2_api, bk, lang))
             del slug_cat['books_published']
             del slug_cat['lang']
+            # Probably update date_modified to today
             resources_cat.append(slug_cat)
         outfile = '{0}/{1}/{2}/resources.json'.format(obs_v2_local, bk, lang)
         writeFile(outfile, getDump(resources_cat))
