@@ -34,7 +34,7 @@ except ImportError:
 ULBSource = '/var/www/vhosts/api.unfoldingword.org/httpdocs/ulb/txt/1/'
 UDBSource = '/var/www/vhosts/api.unfoldingword.org/httpdocs/udb/txt/1/'
 api_v2 = '/var/www/vhosts/api.unfoldingword.org/httpdocs/ts/txt/2/'
-versere = re.compile(ur'<verse number="([0-9]+)"', re.UNICODE)
+versere = re.compile(ur'<verse number="([0-9]*)', re.UNICODE)
 
 
 def makeDir(d):
@@ -64,11 +64,11 @@ def parse(usx):
     chp_num = 0
     fr_list = []
     for line in usx:
+        if line.startswith(u'\n'): continue
         if 'chapter number' in line:
             if chp:
                 chapters.append(chp)
             chp_num += 1
-            frid = 0
             chp = { u'number': str(chp_num).zfill(2),
                     u'ref': u'',
                     u'title': u'',
@@ -80,12 +80,13 @@ def parse(usx):
             if chp_num == 0:
                 continue
             if fr_list:
-                frid += 1
+                fr_text = u'\n'.join(fr_list)
+                firstvs = versere.search(fr_text).group(1)
                 chp['frames'].append({ u'id': u'{0}-{1}'.format(
-                                   str(chp_num).zfill(2), str(frid).zfill(2)),
+                                     str(chp_num).zfill(2), firstvs.zfill(2)),
                                        u'img': u'',
                                        u'format': u'usx',
-                                       u'text': u'\n'.join(fr_list)
+                                       u'text': fr_text
                                       })
                 fr_list = []
                 continue
@@ -129,9 +130,8 @@ def main():
                       }
             writeJSON(os.path.join(api_v2, slug, lang, ver, 'source.json'),
                                                                      payload)
-            if 'ulb' in d:
-                chunks = getChunks(book)
-                writeJSON(os.path.join(api_v2, slug, lang, ver, 'chunks.json'),
+            chunks = getChunks(book)
+            writeJSON(os.path.join(api_v2, slug, lang, ver, 'chunks.json'),
                                                                        chunks)
 
 
