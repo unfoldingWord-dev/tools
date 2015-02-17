@@ -120,19 +120,20 @@ def bible(langnames):
     langs = set([x[1] for x in bible_slugs])
     for slug, lang in bible_slugs:
         stat = getURL(bible_stat.format(slug, lang))
-        bible_status[slug] = json.loads(stat)
-        bible_bks += bible_status[slug]['books_published'].keys()
+        bible_status[(slug, lang)] = json.loads(stat)
+        bible_bks += bible_status[(slug, lang)]['books_published'].keys()
 
     bks_set = set(bible_bks)
     for bk in bks_set:
         for lang_iter in langs:
             resources_cat = []
             for slug, lang in bible_slugs:
-                if bk not in bible_status[slug]['books_published'].keys():
+                if bk not in bible_status[(slug, lang)
+                                                  ]['books_published'].keys():
                     continue
                 if lang != lang_iter: continue
-                lang = bible_status[slug]['lang']
-                slug_cat = deepcopy(bible_status[slug])
+                lang = bible_status[(slug, lang)]['lang']
+                slug_cat = deepcopy(bible_status[(slug, lang)])
                 slug_cat['source'] = addDate('{0}/{1}/{2}/{3}/source.json'.format(
                                                    obs_v2_api, bk, lang, slug))
                 slug_cat['terms'] = addDate('{0}/bible/{1}/terms.json'.format(
@@ -149,19 +150,27 @@ def bible(langnames):
 
     for bk in bks_set:
         languages_cat = []
+        langs_processed = []
         for lang_iter in langs:
-            lang_info = getLangInfo(lang_iter, langnames)
-            res_info = { 'project': bible_status[slug]['books_published'][bk],
-                         'language': { 'slug': lang_iter,
+            for slug, lang in bible_slugs:
+                if lang in langs_processed: continue
+                if lang != lang_iter: continue
+                if (slug, lang_iter) not in bible_status: continue
+                lang_info = getLangInfo(lang_iter, langnames)
+                res_info = { 'project': bible_status[(slug, lang_iter)
+                                                     ]['books_published'][bk],
+                         'language': { 'slug': lang_info['lc'],
                                        'name': lang_info['ln'],
                                        'direction': lang_info['dir'],
-                                       'date_modified': bible_status[slug][
-                                                             'date_modified'],
+                                       'date_modified':
+                                                bible_status[(slug, lang_iter)
+                                                           ]['date_modified'],
                                      },
                          'res_catalog': '{0}/{1}/{2}/resources.json'.format(
-                                                    obs_v2_api, bk, lang_iter)
+                                              obs_v2_api, bk, lang_info['lc'])
                        }
-            languages_cat.append(res_info)
+                languages_cat.append(res_info)
+                langs_processed.append(lang)
         outfile = '{0}/{1}/languages.json'.format(obs_v2_local, bk)
         writeFile(outfile, getDump(languages_cat))
 
