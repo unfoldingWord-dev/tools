@@ -21,6 +21,7 @@ import re
 import sys
 import json
 import codecs
+import argparse
 import datetime
 # Import USFM-Tools
 USFMTools='/var/www/vhosts/door43.org/USFM-Tools'
@@ -81,7 +82,12 @@ def parse(usx):
                 continue
             if fr_list:
                 fr_text = u'\n'.join(fr_list)
-                firstvs = versere.search(fr_text).group(1)
+                try:
+                    firstvs = versere.search(fr_text).group(1)
+                except AttributeError:
+                    print u'Error, chp {0}'.format(chp_num)
+                    print u'Text: {0}'.format(fr_text)
+                    sys.exit(1)
                 chp['frames'].append({ u'id': u'{0}-{1}'.format(
                                      str(chp_num).zfill(2), firstvs.zfill(2)),
                                        u'img': u'',
@@ -111,19 +117,26 @@ def getChunks(book):
                           })
     return chunks
 
-def main():
+def main(source):
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
+    dirs = []
+    if source:
+        source_dirs = [os.path.join(source, x) for x in os.listdir(source)]
+        dirs += source_dirs
     udbd = [os.path.join(UDBSource, x) for x in os.listdir(UDBSource)]
+    dirs += udbd
     ulbd = [os.path.join(ULBSource, x) for x in os.listdir(ULBSource)]
-    dirs = udbd + ulbd
+    dirs += ulbd
     for d in dirs:
         ver, lang = d.rsplit('/', 1)[1].split('-')
         tmpdir = '/tmp/{0}-{1}'.format(ver, lang)
         transform.buildUSX(d, tmpdir, '', True)
+        print "#### Chunking..."
         for f in os.listdir(tmpdir):
             usx = codecs.open(os.path.join(tmpdir, f), 'r', encoding='utf-8'
                                                                  ).readlines()
             slug = f.split('.')[0].lower()
+            print '     ({0})'.format(slug.upper())
             book = parse(usx)
             payload = { 'chapters': book,
                         'date_modified': today
@@ -136,4 +149,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('-s', '--sourceDir', dest="sourcedir", default=False,
+                                                     help="Source directory.")
+    args = parser.parse_args(sys.argv[1:])
+    main(args.sourcedir)
