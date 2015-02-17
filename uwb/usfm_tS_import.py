@@ -31,10 +31,79 @@ chunkurl = u'https://api.unfoldingword.org/ts/txt/2/{0}/en/ulb/chunks.json'
 outtmp = '/var/www/vhosts/api.unfoldingword.org/httpdocs/{0}/txt/1/{0}-{1}'
 idre = re.compile(ur'\\id.*', re.UNICODE)
 chpre = re.compile(ur'\\c [0-9]* ', re.UNICODE)
+bknmre = re.compile(ur'\\h .*', re.UNICODE)
+books = { u'GEN': [ u'Genesis', '01' ],
+          u'EXO': [ u'Exodus', '02' ],
+          u'LEV': [ u'Leviticus', '03' ],
+          u'NUM': [ u'Numbers', '04' ],
+          u'DEU': [ u'Deuteronomy', '05' ],
+          u'JOS': [ u'Joshua', '06' ],
+          u'JDG': [ u'Judges', '07' ],
+          u'RUT': [ u'Ruth', '08' ],
+          u'1SA': [ u'1 Samuel', '09' ],
+          u'2SA': [ u'2 Samuel', '10' ],
+          u'1KI': [ u'1 Kings', '11' ],
+          u'2KI': [ u'2 Kings', '12' ],
+          u'1CH': [ u'1 Chronicles', '13' ],
+          u'2CH': [ u'2 Chronicles', '14' ],
+          u'EZR': [ u'Ezra', '15' ],
+          u'NEH': [ u'Nehemiah', '16' ],
+          u'EST': [ u'Esther', '17' ],
+          u'JOB': [ u'Job', '18' ],
+          u'PSA': [ u'Psalms', '19' ],
+          u'PRO': [ u'Proverbs', '20' ],
+          u'ECC': [ u'Ecclesiastes', '21' ],
+          u'SNG': [ u'Song of Solomon', '22' ],
+          u'ISA': [ u'Isaiah', '23' ],
+          u'JER': [ u'Jeremiah', '24' ],
+          u'LAM': [ u'Lamentations', '25' ],
+          u'EZK': [ u'Ezekiel', '26' ],
+          u'DAN': [ u'Daniel', '27' ],
+          u'HOS': [ u'Hosea', '28' ],
+          u'JOL': [ u'Joel', '29' ],
+          u'AMO': [ u'Amos', '30' ],
+          u'OBA': [ u'Obadiah', '31' ],
+          u'JON': [ u'Jonah', '32' ],
+          u'MIC': [ u'Micah', '33' ],
+          u'NAM': [ u'Nahum', '34' ],
+          u'HAB': [ u'Habakkuk', '35' ],
+          u'ZEP': [ u'Zephaniah', '36' ],
+          u'HAG': [ u'Haggai', '37' ],
+          u'ZEC': [ u'Zechariah', '38' ],
+          u'MAL': [ u'Malachi', '39' ],
+          u'MAT': [ u'Matthew', '40' ],
+          u'MRK': [ u'Mark', '41' ],
+          u'LUK': [ u'Luke', '42' ],
+          u'JHN': [ u'John', '43' ],
+          u'ACT': [ u'Acts', '44' ],
+          u'ROM': [ u'Romans', '45' ],
+          u'1CO': [ u'1 Corinthians', '46' ],
+          u'2CO': [ u'2 Corinthians', '47' ],
+          u'GAL': [ u'Galatians', '48' ],
+          u'EPH': [ u'Ephesians', '49' ],
+          u'PHP': [ u'Philippians', '50' ],
+          u'COL': [ u'Colossians', '51' ],
+          u'1TH': [ u'1 Thessalonians', '52' ],
+          u'2TH': [ u'2 Thessalonians', '53' ],
+          u'1TI': [ u'1 Timothy', '54' ],
+          u'2TI': [ u'2 Timothy', '55' ],
+          u'TIT': [ u'Titus', '56' ],
+          u'PHM': [ u'Philemon', '57' ],
+          u'HEB': [ u'Hebrews', '58' ],
+          u'JAS': [ u'James', '59' ],
+          u'1PE': [ u'1 Peter', '60' ],
+          u'2PE': [ u'2 Peter', '61' ],
+          u'1JN': [ u'1 John', '62' ],
+          u'2JN': [ u'2 John', '63' ],
+          u'3JN': [ u'3 John', '64' ],
+          u'JUD': [ u'Jude', '65' ],
+          u'REV': [ u'Revelation', '66' ],
+}
 
 
 
-def main(resource, lang, slug):
+def main(resource, lang, slug, name, checking, contrib, ver):
+    today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
     local_res = '/tmp/{0}'.format(resource.rpartition('/')[2])
     sourceDir = '/tmp/{0}'.format(resource.rpartition('/')[2].strip('.zip'))
     outdir = outtmp.format(slug, lang)
@@ -43,18 +112,44 @@ def main(resource, lang, slug):
         getZip(resource, local_res)
     unzip(local_res, sourceDir)
 
+    books_published = {}
     files = glob.glob('{0}/{1}'.format(sourceDir, '*[Ss][Ff][Mm]'))
     for path in files:
         lines = codecs.open(path, encoding='utf-8').readlines()
-        book = getbook('\n'.join(lines[:10]))
-        print book
+        book = getRE('\n'.join(lines[:10]), idre)
+        bookname = getRE('\n'.join(lines[:10]), bknmre)
         if not book: continue
         verses = getVerses(book)
         if not verses: continue
+        print book
         newlines = addSections(lines, verses)
-        print '--> {0}/{1}'.format(outdir, path.rpartition('/')[2])
-        writeFile('{0}/{1}'.format(outdir,
-                                 path.rpartition('/')[2]), u''.join(newlines))
+        book_name = '{0}-{1}.usfm'.format(books[book][1], book)
+        writeFile('{0}/{1}'.format(outdir, book_name), u''.join(newlines))
+        meta = ['Bible: OT']
+        if int(books[book][1]) > 39:
+            meta = ['Bible: NT']
+        books_published[book.lower()] = { 'name': bookname,
+                                          'meta': meta,
+                                          'sort': books[book][1],
+                                          'desc': ''
+                                        }
+    status = { "slug": slug.lower(),
+               "name": name,
+               "lang": lang,
+               "date_modified": today,
+               "books_published": books_published,
+               "status": { "checking_entity": checking,
+                           "checking_level": "3",
+                           "comments": "Original source text",
+                           "contributors": contrib,
+                           "publish_date": today,
+                           "source_text": lang,
+                           "source_text_version": ver,
+                           "version": ver
+                          }
+             }
+    writeJSON('{0}/status.json'.format(outdir), status)
+    print "Check {0} and do a git push".format(outdir)
 
 def getVerses(book):
     chunkstr = getURL(chunkurl.format(book.lower()))
@@ -81,11 +176,20 @@ def addSections(lines, verses):
         newlines.append(line)
     return newlines
 
-def getbook(text):
-    idse = idre.search(text)
-    if not idse:
+def getRE(text, regex):
+    se = regex.search(text)
+    if not se:
         return False
-    return idse.group(0).split()[1]
+    return se.group(0).split()[1]
+
+def writeJSON(outfile, p):
+    '''
+    Simple wrapper to write a file as JSON.
+    '''
+    makeDir(outfile.rsplit('/', 1)[0])
+    f = codecs.open(outfile, 'w', encoding='utf-8')
+    f.write(json.dumps(p, sort_keys=True))
+    f.close()
 
 def writeFile(f, content):
     makeDir(f.rpartition('/')[0])
@@ -138,6 +242,15 @@ if __name__ == '__main__':
         required=True, help="Language code of resource.")
     parser.add_argument('-s', '--slug', dest="slug", default=False,
         required=True, help="Slug of resource name (e.g. NIV).")
+    parser.add_argument('-n', '--name', dest="name", default=False,
+        required=True, help="Name (e.g. 'New International Version').")
+    parser.add_argument('-c', '--checking', dest="checking", default=False,
+        required=True, help="Checking entity.")
+    parser.add_argument('-t', '--translators', dest="contrib", default=False,
+        required=True, help="Contributing translators.")
+    parser.add_argument('-v', '--version', dest="version", default=False,
+        required=True, help="Version of resource.")
 
     args = parser.parse_args(sys.argv[1:])
-    main(args.resource, args.lang, args.slug)
+    main(args.resource, args.lang, args.slug, args.name, args.checking,
+                                                   args.contrib, args.version)
