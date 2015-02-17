@@ -93,7 +93,7 @@ gitPush () {
     cd -
 }
 
-#gitPush "$DST_NOTES" "Import of Bible notes from $SRC_LANG"
+gitPush "$DST_NOTES" "Import of Bible notes from $SRC_LANG"
 
 # Set permissions
-chown -R apache:apache "$DST_NOTES"
+chown -R apache:apache "$DST"
