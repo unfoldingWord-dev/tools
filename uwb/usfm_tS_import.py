@@ -28,41 +28,16 @@ import datetime
 
 
 chunkurl = u'https://api.unfoldingword.org/ts/txt/2/{0}/en/ulb/chunks.json'
+outtmp = '/var/www/vhosts/api.unfoldingword.org/httpdocs/{0}/txt/1/{0}-{1}'
 idre = re.compile(ur'\\id.*', re.UNICODE)
-
-LICENSE = u'''~~NOCACHE~~
-\mt unfoldingWord | Literal Bible
-
-\p \\bd an unrestricted Bible intended for translation into any language \\bd*
-
-\p \em http://unfoldingWord.org/Bible \em*
-
-\p unfoldingWord Literal Bible, v. 0.1
-
-This work is based on \em The American Standard Version \em*, which is in the public domain.
+chpre = re.compile(ur'\\c [0-9]* ', re.UNICODE)
 
 
-\p License:
 
-\p This work is made available under a Creative Commons Attribution-ShareAlike 4.0 International License (http://creativecommons.org/licenses/by-sa/4.0/).
-
-\p You are free:
-
-\p \\bd Share \\bd* — copy and redistribute the material in any medium or format
-\p \\bd Adapt \\bd* — remix, transform, and build upon the material for any purpose, even commercially.
-
-\p Under the following conditions:
-
-\p \\bd Attribution \\bd* — You must attribute the work as follows: "Original work available at http://openbiblestories.com." Attribution statements in derivative works should not in any way suggest that we endorse you or your use of this work.
-\p \\bd ShareAlike \\bd* — If you remix, transform, or build upon the material, you must distribute your contributions under the same license as the original.
-
-\p Use of trademarks: \\bd unfoldingWord \\bd* is a trademark of Distant Shores Media and may not be included on any derivative works created from this content.    Unaltered content from http://unfoldingWord.org must include the \\bd unfoldingWord \\bd* logo when distributed to others. But if you alter the content in any way, you must remove the \\bd unfoldingWord \\bd* logo before distributing your work.
-'''
-
-
-def main(resource, outdir):
+def main(resource, lang, slug):
     local_res = '/tmp/{0}'.format(resource.rpartition('/')[2])
     sourceDir = '/tmp/{0}'.format(resource.rpartition('/')[2].strip('.zip'))
+    outdir = outtmp.format(slug, lang)
 
     if not os.path.isfile(local_res):
         getZip(resource, local_res)
@@ -78,8 +53,8 @@ def main(resource, outdir):
         if not verses: continue
         newlines = addSections(lines, verses)
         print '--> {0}/{1}'.format(outdir, path.rpartition('/')[2])
-        writeFile('{0}/{1}'.format(outdir, path.rpartition('/')[2]),
-                                                         u''.join(newlines))
+        writeFile('{0}/{1}'.format(outdir,
+                                 path.rpartition('/')[2]), u''.join(newlines))
 
 def getVerses(book):
     chunkstr = getURL(chunkurl.format(book.lower()))
@@ -92,6 +67,12 @@ def addSections(lines, verses):
     i = 0
     for line in lines:
         if line in [u'', u' ', u'\n']: continue
+        chpse = chpre.search(line)
+        if chpse:
+            newlines.append(u'\\s5\n')
+            newlines.append(line)
+            i += 1
+            continue
         if i < len(verses):
             versese = re.search(ur'\\v {0} '.format(verses[i]), line)
             if versese:
@@ -151,10 +132,12 @@ def getURL(url):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('-o', '--output', dest="outputDir", default=False,
-        required=True, help = "Output Directory")
     parser.add_argument('-r', '--resource', dest="resource", default=False,
         required=True, help="URL of zip file.")
+    parser.add_argument('-l', '--lang', dest="lang", default=False,
+        required=True, help="Language code of resource.")
+    parser.add_argument('-s', '--slug', dest="slug", default=False,
+        required=True, help="Slug of resource name (e.g. NIV).")
 
     args = parser.parse_args(sys.argv[1:])
-    main(args.resource, args.outputDir)
+    main(args.resource, args.lang, args.slug)
