@@ -21,15 +21,17 @@ import urllib2
 import argparse
 from copy import deepcopy
 
+rtl_langs = ['ar']
 project_dirs = ['obs']
 bible_dirs = ['rut', 'luk', 'tit', '1ti', '2ti', 'act', 'jas', 'jud', 'phm',
               'rev', 'gen']
-bible_slugs = ['udb', 'ulb']
+bible_slugs = [('udb', 'en'), ('ulb', 'en'), ('avd', 'ar')]
 bible_stat = u'https://api.unfoldingword.org/{0}/txt/1/{0}-{1}/status.json'
 obs_v1_api = u'https://api.unfoldingword.org/obs/txt/1'
 obs_v1_url = u'{0}/obs-catalog.json'.format(obs_v1_api)
 obs_v2_local = u'/var/www/vhosts/api.unfoldingword.org/httpdocs/ts/txt/2'
 obs_v2_api = u'https://api.unfoldingword.org/ts/txt/2'
+lang_url = u'http://td.unfoldingword.org/exports/langnames.json'
 
 
 def getURL(url):
@@ -37,8 +39,7 @@ def getURL(url):
         request = urllib2.urlopen(url).read()
         return request
     except:
-        print '  => ERROR retrieving {0}\nCheck the URL'.format(url)
-        return
+        return False
 
 def writeFile(outfile, p):
     makeDir(outfile.rpartition('/')[0])
@@ -104,6 +105,8 @@ def addDate(url):
     Adds 'date_modified=datestamp' to URL based on value found in the url.'
     '''
     src_str = getURL(url)
+    if not src_str:
+        return url
     src = json.loads(src_str)
     if type(src) == dict:
         dmod = src['date_modified']
@@ -111,51 +114,63 @@ def addDate(url):
         dmod = [x['date_modified'] for x in src if 'date_modified' in x][0]
     return u'{0}?date_modified={1}'.format(url, dmod)
 
-def bible():
+def bible(langnames):
     bible_status = {}
     bible_bks = []
-    for slug in bible_slugs:
-        stat = getURL(bible_stat.format(slug, 'en'))
+    langs = set([x[1] for x in bible_slugs])
+    for slug, lang in bible_slugs:
+        stat = getURL(bible_stat.format(slug, lang))
         bible_status[slug] = json.loads(stat)
         bible_bks += bible_status[slug]['books_published'].keys()
 
     bks_set = set(bible_bks)
     for bk in bks_set:
-        resources_cat = []
-        for slug in bible_slugs:
-            if bk not in bible_status[slug]['books_published'].keys():
-                continue
-            lang = bible_status[slug]['lang']
-            slug_cat = deepcopy(bible_status[slug])
-            slug_cat['source'] = addDate('{0}/{1}/{2}/{3}/source.json'.format(
+        for lang_iter in langs:
+            resources_cat = []
+            for slug, lang in bible_slugs:
+                if bk not in bible_status[slug]['books_published'].keys():
+                    continue
+                if lang != lang_iter: continue
+                lang = bible_status[slug]['lang']
+                slug_cat = deepcopy(bible_status[slug])
+                slug_cat['source'] = addDate('{0}/{1}/{2}/{3}/source.json'.format(
                                                    obs_v2_api, bk, lang, slug))
-            slug_cat['terms'] = addDate('{0}/bible/{1}/terms.json'.format(
+                slug_cat['terms'] = addDate('{0}/bible/{1}/terms.json'.format(
                                                              obs_v2_api, lang))
-            slug_cat['notes'] = addDate('{0}/{1}/{2}/notes.json'.format(
+                slug_cat['notes'] = addDate('{0}/{1}/{2}/notes.json'.format(
                                                          obs_v2_api, bk, lang))
-            del slug_cat['books_published']
-            del slug_cat['lang']
-            # Probably update date_modified to today
-            resources_cat.append(slug_cat)
-        outfile = '{0}/{1}/{2}/resources.json'.format(obs_v2_local, bk, lang)
-        writeFile(outfile, getDump(resources_cat))
+                del slug_cat['books_published']
+                del slug_cat['lang']
+                # Probably update date_modified to today
+                resources_cat.append(slug_cat)
+            outfile = '{0}/{1}/{2}/resources.json'.format(obs_v2_local, bk,
+                                                                    lang_iter)
+            writeFile(outfile, getDump(resources_cat))
 
     for bk in bks_set:
         languages_cat = []
-        res_info = { 'project': bible_status[slug]['books_published'][bk],
-                     'language': { 'slug': 'en',
-                               'name': 'English',
-                               'direction': 'ltr',
-                               'date_modified': bible_status[slug][
+        for lang_iter in langs:
+            lang_info = getLangInfo(lang_iter, langnames)
+            res_info = { 'project': bible_status[slug]['books_published'][bk],
+                         'language': { 'slug': lang_iter,
+                                       'name': lang_info['ln'],
+                                       'direction': lang_info['dir'],
+                                       'date_modified': bible_status[slug][
                                                              'date_modified'],
-                             },
-                     'res_catalog': '{0}/{1}/{2}/resources.json'.format(
-                                                         obs_v2_api, bk, lang)
-                   }
-        languages_cat.append(res_info)
+                                     },
+                         'res_catalog': '{0}/{1}/{2}/resources.json'.format(
+                                                    obs_v2_api, bk, lang_iter)
+                       }
+            languages_cat.append(res_info)
         outfile = '{0}/{1}/languages.json'.format(obs_v2_local, bk)
         writeFile(outfile, getDump(languages_cat))
 
+def getLangInfo(lc, langnames):
+    lang_info = [x for x in langnames if x['lc'] == lc][0]
+    lang_info['dir'] = 'ltr'
+    if lc in rtl_langs:
+        lang_info['dir'] = 'rtl'
+    return lang_info
 
 def global_cat():
     global_cat = []
@@ -190,7 +205,8 @@ def global_cat():
 
 def main():
     obs()
-    bible()  # languages.json
+    langnames = json.loads(getURL(lang_url))
+    bible(langnames)
     global_cat()
 
 
