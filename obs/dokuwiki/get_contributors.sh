@@ -15,4 +15,4 @@ LANG="$1"
 OBSMETA="/var/www/vhosts/door43.org/httpdocs/data/meta/$LANG/obs"
 
 echo -n "Contributors for $LANG: "
-cut -f 5 $OBSMETA/[0-5][0-9]-*.changes | sort | uniq | paste -s -d ';'
+cut -f 5 $OBSMETA/[0-5][0-9]*.changes | sort | uniq | paste -s -d ';'
