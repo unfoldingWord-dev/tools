@@ -72,4 +72,25 @@ book_import job 42
 book_import 1ki 22
 book_import 2ki 25
 
+# These added 2015-02-17
+book_import 1ch 29
+book_import 2ch 36
+book_import lam 5
+book_import jer 52
+book_import oba 1
+book_import hag 2
+book_import zep 3
+book_import hab 3
+book_import nam 3
+book_import mic 7
+book_import mal 4
+book_import jol 3
+book_import amo 9
+book_import zec 14
+book_import ezr 10
+book_import est 10
+book_import neh 13
+book_import ezk 48
+book_import dan 12
+
 chown -R apache:apache /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en
