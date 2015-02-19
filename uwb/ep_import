@@ -14,9 +14,15 @@ book_import () {
     # $1 is book short name
     # $2 is number of chapters
 
-    for x in `seq -f "%02g" 1 $2`; do
-        /var/www/vhosts/door43.org/tools/uwb/ep_chunk.py en-ulb-$1-$x >/dev/null
-    done
+    if [ "$1" == "psa" ]; then
+        for x in `seq -f "%03g" 1 $2`; do
+            /var/www/vhosts/door43.org/tools/uwb/ep_chunk.py en-ulb-$1-$x >/dev/null
+        done
+    else
+        for x in `seq -f "%02g" 1 $2`; do
+            /var/www/vhosts/door43.org/tools/uwb/ep_chunk.py en-ulb-$1-$x >/dev/null
+        done
+    fi
 
     cd $NOTES/$1
     git add .
@@ -92,5 +98,13 @@ book_import est 10
 book_import neh 13
 book_import ezk 48
 book_import dan 12
+
+# These added 2015-02-17
+book_import hos 14
+book_import sng 8
+book_import ecc 12
+book_import pro 31
+book_import 2sa 24
+book_import psa 150
 
 chown -R apache:apache /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en
