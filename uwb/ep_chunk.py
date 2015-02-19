@@ -253,7 +253,7 @@ def writeChunks(chunked):
             chunked[k]['prv'] = getLastSection(bk, chunked[k]['prvchp'])
         if i == (len(refs) - 1):
             chunked[k]['nxtchp'] = str(int(chp) + 1).zfill(fill)
-            chunked[k]['nxt'] = '01'
+            chunked[k]['nxt'] = '1'.zfill(fill)
         writeOrAppend(chunked[k]['filepath'], chunked[k])
 
 def getLastSection(bk, chp):
