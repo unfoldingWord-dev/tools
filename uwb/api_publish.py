@@ -21,6 +21,7 @@ import re
 import sys
 import json
 import codecs
+import shutil
 import argparse
 import datetime
 # Import USFM-Tools
@@ -130,6 +131,8 @@ def main(source):
     for d in dirs:
         ver, lang = d.rsplit('/', 1)[1].split('-')
         tmpdir = '/tmp/{0}-{1}'.format(ver, lang)
+        if os.path.isdir(tmpdir):
+            shutil.rmtree(tmpdir)
         transform.buildUSX(d, tmpdir, '', True)
         print "#### Chunking..."
         for f in os.listdir(tmpdir):
