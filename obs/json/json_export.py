@@ -78,9 +78,9 @@ fridre = re.compile(ur'[0-5][0-9]-[0-9][0-9]', re.UNICODE)
 numre = re.compile(ur'([0-5][0-9]).txt', re.UNICODE)
 
 # Regexes for removing text formatting
-htmltagre = re.compile(ur'<.*>', re.UNICODE)
-linktagre = re.compile(ur'\[\[.*\]\]', re.UNICODE)
-imgtagre = re.compile(ur'{{.*}}', re.UNICODE)
+htmltagre = re.compile(ur'<.*?>', re.UNICODE)
+linktagre = re.compile(ur'\[\[.*?\]\]', re.UNICODE)
+imgtagre = re.compile(ur'{{.*?}}', re.UNICODE)
 imglinkre = re.compile(ur'https://.*\.(jpg|jpeg|gif)', re.UNICODE)
 
 # Regexes for front matter
