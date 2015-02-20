@@ -23,8 +23,17 @@ from copy import deepcopy
 
 rtl_langs = ['ar']
 project_dirs = ['obs']
-bible_dirs = ['rut', 'luk', 'tit', '1ti', '2ti', 'act', 'jas', 'jud', 'phm',
-              'rev', 'gen']
+# We'll need isa and psa to
+bible_dirs = [
+  '1ch', '1co', '1jn', '1ki', '1pe', '1sa', '1th', '1ti', '2ch',
+  '2co', '2jn', '2ki', '2pe', '2sa', '2th', '2ti', '3jn', 'act',
+  'amo', 'col', 'dan', 'deu', 'ecc', 'eph', 'est', 'exo', 'ezk',
+  'ezr', 'gal', 'gen', 'hab', 'hag', 'heb', 'hos', 'jas', 'jdg',
+  'jer', 'jhn', 'job', 'jol', 'jon', 'jos', 'jud', 'lam', 'lev',
+  'luk', 'mal', 'mat', 'mic', 'mrk', 'nam', 'neh', 'num', 'oba',
+  'phm', 'php', 'pro', 'rev', 'rom', 'rut', 'sng', 'tit', 'zec',
+  'zep'
+]
 bible_slugs = [('udb', 'en'), ('ulb', 'en'), ('avd', 'ar')]
 bible_stat = u'https://api.unfoldingword.org/{0}/txt/1/{0}-{1}/status.json'
 obs_v1_api = u'https://api.unfoldingword.org/obs/txt/1'
@@ -156,6 +165,9 @@ def bible(langnames):
                 if lang in langs_processed: continue
                 if lang != lang_iter: continue
                 if (slug, lang_iter) not in bible_status: continue
+                if bk not in bible_status[(slug, lang_iter)
+                                                  ]['books_published'].keys():
+                    continue
                 lang_info = getLangInfo(lang_iter, langnames)
                 res_info = { 'project': bible_status[(slug, lang_iter)
                                                      ]['books_published'][bk],
