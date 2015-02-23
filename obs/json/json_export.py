@@ -162,7 +162,7 @@ def makeDir(d):
         os.makedirs(d, 0755)
 
 def getDump(j):
-    return json.dumps(j, sort_keys=True, indent=2)
+    return json.dumps(j, sort_keys=True)
 
 def loadJSON(f, t):
     if os.path.isfile(f):
