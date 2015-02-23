@@ -107,4 +107,7 @@ book_import pro 31
 book_import 2sa 24
 book_import psa 150
 
+# This added 2015-02-23
+book_import isa 66
+
 chown -R apache:apache /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en
