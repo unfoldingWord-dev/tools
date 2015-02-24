@@ -136,19 +136,22 @@ def getImg(link, lang, frid):
 
 def getText(lines, lang, frid):
     '''
-    Cleans up text from possible DokuWiki and HTML pollution.
+    Groups lines into a string and runs through cleanText.
     '''
     text = u''.join([x for x in lines[1:] if u'//' not in x]).strip()
     text = text.replace(u'\\\\', u'').replace(u'**', u'').replace(u'__', u'')
+    return cleanText(text, lang, frid)
+
+def cleanText(text, lang, frid):
+    '''
+    Cleans up text from possible DokuWiki and HTML tag pollution.
+    '''
     if htmltagre.search(text):
         text = htmltagre.sub(u'', text)
-        print u'WARNING: HTML tag in {0}: {1}'.format(lang, frid)
     if linktagre.search(text):
         text = linktagre.sub(u'', text)
-        print u'WARNING: DokuWiki link tag in {0}:{1}'.format(lang, frid)
     if imgtagre.search(text):
         text = imgtagre.sub(u'', text)
-        print u'WARNING: DokuWiki image tag in {0}:{1}'.format(lang, frid)
     return text
         
 def writePage(outfile, p):
@@ -187,12 +190,13 @@ def loadLangStrings(path):
 def getJSONDict(statfile):
     status = {}
     if os.path.isfile(statfile):
-        for line in open(statfile):
-            if ( line.startswith('#') or line.startswith('\n')
-                                                         or ':' not in line ):
+        for line in codecs.open(statfile, 'r', encoding='utf-8'):
+            if ( line.startswith(u'#') or line.startswith(u'\n')
+                              or line.startswith(u'{{') or u':' not in line ):
                 continue
-            k, v = line.split(':', 1)
-            status[k.strip().lower().replace(' ', '_')] = v.strip()
+            newline = cleanText(line, statfile, line)
+            k, v = newline.split(u':', 1)
+            status[k.strip().lower().replace(u' ', u'_')] = v.strip()
     return status
 
 def cleanStatus(status):
@@ -284,7 +288,7 @@ def getFrontMatter(lang, today):
     return getDump({ 'language': lang,
                      'name': obsname,
                      'tagline': tagline,
-                     'front-matter': front,
+                     'front-matter': cleanText(front, lang, 'front-matter'),
                      'date_modified': today
                    })
 
@@ -294,7 +298,7 @@ def getBackMatter(lang, today):
         return getDump({})
     back = codecs.open(backpath, 'r', encoding='utf-8').read()
     return getDump({ 'language': lang,
-                     'back-matter': back,
+                     'back-matter': cleanText(back, lang, 'back-matter'),
                      'date_modified': today
                    })
 
