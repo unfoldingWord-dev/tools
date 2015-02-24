@@ -35,7 +35,7 @@ bible_dirs = [
   'zep'
 ]
 bible_slugs = [('udb', 'en'), ('ulb', 'en'), ('avd', 'ar')]
-usx_api = u'https://api.unfoldingword.org/{0}/txt/1/{0}-{1}/{2}?{3}'
+usfm_api = u'https://api.unfoldingword.org/{0}/txt/1/{0}-{1}/{2}?{3}'
 bible_stat = u'https://api.unfoldingword.org/{0}/txt/1/{0}-{1}/status.json'
 obs_v1_api = u'https://api.unfoldingword.org/obs/txt/1'
 obs_v1_url = u'{0}/obs-catalog.json'.format(obs_v1_api)
@@ -149,9 +149,9 @@ def bible(langnames):
                 source_date = u''
                 if '?' in slug_cat['source']:
                     source_date = slug_cat['source'].split('?')[1]
-                usx_name = u'{0}-{1}.usfm'.format(bible_status[(slug, lang)][
+                usfm_name = u'{0}-{1}.usfm'.format(bible_status[(slug, lang)][
                                    'books_published'][bk]['sort'], bk.upper())
-                slug_cat['usx'] = usx_api.format(slug, lang, usx_name,
+                slug_cat['usfm'] = usfm_api.format(slug, lang, usfm_name,
                                                                   source_date)
                 slug_cat['terms'] = addDate('{0}/bible/{1}/terms.json'.format(
                                                              obs_v2_api, lang))
