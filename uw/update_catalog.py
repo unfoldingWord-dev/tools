@@ -146,8 +146,9 @@ def bible(langnames):
                 slug_cat = deepcopy(bible_status[(slug, lang)])
                 slug_cat['source'] = addDate('{0}/{1}/{2}/{3}/source.json'
                                           .format(obs_v2_api, bk, lang, slug))
-                print slug_cat['source']
-                source_date = slug_cat['source'].split('?')[1]
+                source_date = u''
+                if '?' in slug_cat['source']:
+                    source_date = slug_cat['source'].split('?')[1]
                 usx_name = u'{0}-{1}.usfm'.format(bible_status[(slug, lang)][
                                    'books_published'][bk]['sort'], bk.upper())
                 slug_cat['usx'] = usx_api.format(slug, lang, usx_name,
