@@ -177,8 +177,7 @@ def save(pads, outdir, slug, ep, ver):
             p_content = s1re.sub(u'', p_content)
             p_content = s_re.sub(u'', p_content)
             content.append(p_content)
-        outfile = '{0}/{1}-{2}-en-{3}.usfm'.format(outdir, books[bk][1], bk,
-                                                                         slug)
+        outfile = '{0}/{1}-{2}.usfm'.format(outdir, books[bk][1], bk)
         if ver.lower() == 'draft':
             outfile = '{0}.txt'.format(outfile).lower()
         writeFile(outfile, u''.join(content))
