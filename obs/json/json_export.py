@@ -19,6 +19,13 @@ import codecs
 import shlex
 import datetime
 from subprocess import *
+gen_tools = '/var/www/vhosts/door43.org/tools/general_tools'
+sys.path.append(gen_tools)
+try:
+    from smartquotes import smartquotes
+except ImportError:
+    print "Please ensure that {0} exists.".format(gen_tools)
+    sys.exit(1)
 
 
 root = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo'
@@ -136,11 +143,13 @@ def getImg(link, lang, frid):
 
 def getText(lines, lang, frid):
     '''
-    Groups lines into a string and runs through cleanText.
+    Groups lines into a string and runs through cleanText and smartquotes.
     '''
     text = u''.join([x for x in lines[1:] if u'//' not in x]).strip()
     text = text.replace(u'\\\\', u'').replace(u'**', u'').replace(u'__', u'')
-    return cleanText(text, lang, frid)
+    text = cleanText(text, lang, frid)
+    text = smartquotes(text)
+    return text
 
 def cleanText(text, lang, frid):
     '''
@@ -348,6 +357,7 @@ if __name__ == '__main__':
         langdirection = 'ltr'
         if lang in rtl:
             langdirection = 'rtl'
+        print lang
         jsonlang = { 'language': lang,
                      'direction': langdirection,
                      'chapters': [],
