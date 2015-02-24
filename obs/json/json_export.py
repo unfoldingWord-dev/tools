@@ -15,16 +15,24 @@ import re
 import sys
 import json
 import glob
-import codecs
 import shlex
+import codecs
+import argparse
 import datetime
 from subprocess import *
 gen_tools = '/var/www/vhosts/door43.org/tools/general_tools'
 sys.path.append(gen_tools)
 try:
     from smartquotes import smartquotes
+    from git_wrapper import *
 except ImportError:
     print "Please ensure that {0} exists.".format(gen_tools)
+    sys.exit(1)
+try:
+    from github import Github
+    from github import GithubException
+except:
+    print "Please install PyGithub with pip"
     sys.exit(1)
 
 
@@ -313,33 +321,17 @@ def getBackMatter(lang, today):
 
 
 if __name__ == '__main__':
-    unfoldingwordexport = False
-    if len(sys.argv) > 1:
-        if sys.argv[1] == '--unfoldingwordexport':
-            sys.path.append('/var/www/vhosts/door43.org/tools/general_tools')
-            try:
-                from git_wrapper import *
-            except:
-                print "Please verify that"
-                print "/var/www/vhosts/door43.org/tools/general_tools exists."
-                sys.exit(1)
-            try:
-                from github import Github
-                from github import GithubException
-            except:
-                print "Please install PyGithub with pip"
-                sys.exit(1)
-            unfoldingwordexport = True
-            # Log in to Github via API
-            try:
-                pw = open('/root/.github_pass', 'r').read().strip()
-                guser = githubLogin('dsm-git', pw)
-                githuborg = getGithubOrg('unfoldingword', guser)
-            except GithubException as e:
-                print 'Problem logging into Github: {0}'.format(e)
-                sys.exit(1)
-        else:
-            print 'Unknown argument: {0}'.format(sys.argv[1])
+    parser = argparse.ArgumentParser(description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('-l', '--lang', dest="lang", default=False,
+        required=True, help="Language code of resource.")
+    parser.add_argument('-e', '--export', dest="uwexport", default=False,
+        action='store_true', help="Export to unfoldingWord.")
+
+    args = parser.parse_args(sys.argv[1:])
+    lang = args.lang
+    uwexport = args.uwexport
+    
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
     langdict = loadLangStrings(langnames)
     uwcatpath = os.path.join(unfoldingWorddir, 'obs-catalog.json')
@@ -347,79 +339,84 @@ if __name__ == '__main__':
     uwcatlangs = [x['language'] for x in uwcatalog]
     catpath = os.path.join(exportdir, 'obs-catalog.json')
     catalog = loadJSON(catpath, 'l')
-    for lang in os.listdir(pages):
-        if ( os.path.isfile(os.path.join(pages, lang)) or
-             'obs' not in os.listdir(os.path.join(pages, lang)) ):
-            continue
-        if lang in ['playground', 'template']:
-            continue
-        app_words = getJSONDict(os.path.join(pages, lang, 'obs/app_words.txt'))
-        langdirection = 'ltr'
-        if lang in rtl:
-            langdirection = 'rtl'
-        print lang
-        jsonlang = { 'language': lang,
-                     'direction': langdirection,
-                     'chapters': [],
-                     'app_words': app_words,
-                     'date_modified': today,
-                   }
-        page_list = glob.glob('{0}/{1}/obs/[0-5][0-9].txt'.format(pages, lang))
-        page_list.sort()
-        for page in page_list:
-            jsonchapter = { 'number': numre.search(page).group(1),
-                            'frames': [],
-                          }
-            jsonlang['chapters'].append(getChapter(page, jsonchapter, lang))
-        jsonlang['chapters'].sort(key=lambda frame: frame['number'])
-        jsonlangfilepath = os.path.join(exportdir, lang, 'obs',
-                                            'obs-{0}.json'.format(lang))
-        prevjsonlang = loadJSON(jsonlangfilepath, 'd')
-        curjson = getDump(jsonlang)
-        prevjson = getDump(prevjsonlang)
+
+    if 'obs' not in os.listdir(os.path.join(pages, lang)):
+        print 'OBS not configured in Door43 for {0}'.format(lang)
+        sys.exit(1)
+    app_words = getJSONDict(os.path.join(pages, lang, 'obs/app_words.txt'))
+    langdirection = 'ltr'
+    if lang in rtl:
+        langdirection = 'rtl'
+    jsonlang = { 'language': lang,
+                 'direction': langdirection,
+                 'chapters': [],
+                 'app_words': app_words,
+                 'date_modified': today,
+               }
+    page_list = glob.glob('{0}/{1}/obs/[0-5][0-9].txt'.format(pages, lang))
+    page_list.sort()
+    for page in page_list:
+        jsonchapter = { 'number': numre.search(page).group(1),
+                        'frames': [],
+                      }
+        jsonlang['chapters'].append(getChapter(page, jsonchapter, lang))
+    jsonlang['chapters'].sort(key=lambda frame: frame['number'])
+    jsonlangfilepath = os.path.join(exportdir, lang, 'obs',
+                                        'obs-{0}.json'.format(lang))
+    prevjsonlang = loadJSON(jsonlangfilepath, 'd')
+    curjson = getDump(jsonlang)
+    prevjson = getDump(prevjsonlang)
+    try:
+        langstr = langdict[lang]
+    except KeyError:
+        print "Configuration for language {0} missing in {1}.".format(lang,
+                                                                 langnames)
+        sys.exit(1)
+    status = getJSONDict(os.path.join(uwadmindir, lang, 'obs/status.txt'))
+    langcat =  { 'language': lang,
+                 'string': langstr,
+                 'direction': langdirection,
+                 'date_modified': today,
+                 'status': status,
+               }
+    if not lang in [x['language'] for x in catalog]:
+        catalog.append(langcat)
+    if str(curjson) != str(prevjson):
+        ( [x for x in catalog if x['language'] ==
+                                        lang][0]['date_modified']) = today
+        writePage(jsonlangfilepath, curjson)
+    if uwexport:
         try:
-            langstr = langdict[lang]
-        except KeyError:
-            print "Configuration for language {0} missing in {1}.".format(lang,
-                                                                     langnames)
-            continue
-        status = getJSONDict(os.path.join(uwadmindir, lang, 'obs/status.txt'))
-        langcat =  { 'language': lang,
-                     'string': langstr,
-                     'direction': langdirection,
-                     'date_modified': today,
-                     'status': status,
-                   }
-        if not lang in [x['language'] for x in catalog]:
-            catalog.append(langcat)
-        # Maybe fix this to do a full string comparison
-        if len(str(curjson)) != len(str(prevjson)):
-            ( [x for x in catalog if x['language'] ==
-                                            lang][0]['date_modified']) = today
-            writePage(jsonlangfilepath, curjson)
-        if unfoldingwordexport:
-            unfoldingWordlangdir = os.path.join(unfoldingWorddir, lang)
-            if status.has_key('checking_level') and status.has_key(
-                                                              'publish_date'):
-                if ( status['checking_level'] in ['1', '2', '3'] and 
-                       status['publish_date'] == str(datetime.date.today()) ):
+            pw = open('/root/.github_pass', 'r').read().strip()
+            guser = githubLogin('dsm-git', pw)
+            githuborg = getGithubOrg('unfoldingword', guser)
+        except GithubException as e:
+            print 'Problem logging into Github: {0}'.format(e)
+            sys.exit(1)
+
+        unfoldingWordlangdir = os.path.join(unfoldingWorddir, lang)
+        if status.has_key('checking_level') and status.has_key(
+                                                          'publish_date'):
+            if ( status['checking_level'] in ['1', '2', '3'] and 
+                   status['publish_date'] == str(datetime.date.today()) ):
+                print "=========="
+                frontjson = getFrontMatter(lang, today)
+                backjson = getBackMatter(lang, today)
+                if not uwQA(jsonlang, lang, status, frontjson, backjson):
                     print "=========="
-                    frontjson = getFrontMatter(lang, today)
-                    backjson = getBackMatter(lang, today)
-                    if not uwQA(jsonlang, lang, status, frontjson, backjson):
-                        print "=========="
-                        continue
-                    print "---> Exporting to unfoldingWord: {0}".format(lang)
-                    exportunfoldingWord(status, unfoldingWordlangdir, curjson,
-                                         lang, githuborg, frontjson, backjson)
-                    if lang in uwcatlangs:
-                        uwcatalog.pop(uwcatlangs.index(lang))
-                        uwcatlangs.pop(uwcatlangs.index(lang))
-                    uwcatalog.append(langcat)
-                    print "=========="
+                    sys.exit(1)
+                print "---> Exporting to unfoldingWord: {0}".format(lang)
+                exportunfoldingWord(status, unfoldingWordlangdir, curjson,
+                                     lang, githuborg, frontjson, backjson)
+                if lang in uwcatlangs:
+                    uwcatalog.pop(uwcatlangs.index(lang))
+                    uwcatlangs.pop(uwcatlangs.index(lang))
+                uwcatalog.append(langcat)
+                print "=========="
+
     catjson = getDump(catalog)
     writePage(catpath, catjson)
-    if unfoldingwordexport:
+    if uwexport:
         uwcatjson = getDump(uwcatalog)
         writePage(uwcatpath, uwcatjson)
         updateUWAdminStatusPage()
