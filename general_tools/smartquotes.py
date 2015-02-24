@@ -25,9 +25,11 @@ def smartquotes(text):
     '''
     command = shlex.split('/bin/pandoc --smart -t plain')
     com = Popen(command, shell=False, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    comout = ''.join(com.communicate(text)).strip()
-    return comout, com.returncode
+    out, err = com.communicate(text.encode('utf-8'))
+    comout = out.decode('utf-8')
+    text = comout.replace(u'\n', u' ').strip()
+    return text
 
 
 if __name__ == '__main__':
-    print smartquotes(sys.stdin.read())[0]
+    print smartquotes(sys.stdin.read())
