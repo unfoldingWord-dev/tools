@@ -128,9 +128,13 @@ def mostRecent(cat):
     '''
     Returns date_modified string that matches the most recent sub catalog.
     '''
-    date_mod = cat['date_modified']
+    try:
+        date_mod = cat['date_modified']
+    except KeyError:
+        date_mod = cat['language']['date_modified']
     for k in cat.keys():
         if not 'date_modified' in cat[k]: continue
+        if not type(cat[k]) == str: continue
         item_date_mod = cat[k].split('date_modified=')[1]
         if int(item_date_mod) > int(date_mod):
             date_mod = item_date_mod
@@ -191,16 +195,18 @@ def bible(langnames):
                 lang_info = getLangInfo(lang_iter, langnames)
                 res_info = { 'project': bible_status[(slug, lang_iter)
                                                      ]['books_published'][bk],
-                         'language': { 'slug': lang_info['lc'],
-                                       'name': lang_info['ln'],
-                                       'direction': lang_info['dir'],
-                                       'date_modified':
+                             'language': { 'slug': lang_info['lc'],
+                                           'name': lang_info['ln'],
+                                           'direction': lang_info['dir'],
+                                           'date_modified':
                                                 bible_status[(slug, lang_iter)
                                                            ]['date_modified'],
-                                     },
-                         'res_catalog': '{0}/{1}/{2}/resources.json'.format(
-                                              obs_v2_api, bk, lang_info['lc'])
+                                         },
+                             'res_catalog': addDate(
+                                          '{0}/{1}/{2}/resources.json'.format(
+                                             obs_v2_api, bk, lang_info['lc']))
                        }
+                res_info['language']['date_modified'] = mostRecent(res_info)
                 languages_cat.append(res_info)
                 langs_processed.append(lang)
         outfile = '{0}/{1}/languages.json'.format(obs_v2_local, bk)
