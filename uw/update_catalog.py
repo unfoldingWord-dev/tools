@@ -124,6 +124,18 @@ def addDate(url):
         dmod = [x['date_modified'] for x in src if 'date_modified' in x][0]
     return u'{0}?date_modified={1}'.format(url, dmod)
 
+def mostRecent(cat):
+    '''
+    Returns date_modified string that matches the most recent sub catalog.
+    '''
+    date_mod = cat['date_modified']
+    for k in cat.keys():
+        if not 'date_modified' in cat[k]: continue
+        item_date_mod = cat[k].split('date_modified=')[1]
+        if int(item_date_mod) > int(date_mod):
+            date_mod = item_date_mod
+    return date_mod
+
 def bible(langnames):
     bible_status = {}
     bible_bks = []
@@ -159,7 +171,7 @@ def bible(langnames):
                                                          obs_v2_api, bk, lang))
                 del slug_cat['books_published']
                 del slug_cat['lang']
-                # Probably update date_modified to today
+                slug_cat['date_modified'] = mostRecent(slug_cat)
                 resources_cat.append(slug_cat)
             outfile = '{0}/{1}/{2}/resources.json'.format(obs_v2_local, bk,
                                                                     lang_iter)
