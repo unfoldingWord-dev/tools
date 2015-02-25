@@ -41,8 +41,8 @@ extxtre = re.compile(ur'\*\* (.*)', re.UNICODE)
 fridre = re.compile(ur'[0-5][0-9]/[0-9][0-9]', re.UNICODE)
 tNre = re.compile(ur'==== Translation Notes.*', re.UNICODE | re.DOTALL)
 itre = re.compile(ur'==== Important Terms: ====(.*?)====', re.UNICODE | re.DOTALL)
-tNtermre = re.compile(ur' \*\*(.*?)\*\* ', re.UNICODE)
-tNtextre = re.compile(ur'\*\* [–-] (.*)', re.UNICODE)
+tNtermre = re.compile(ur' \*\*(.*?)\*\*', re.UNICODE)
+tNtextre = re.compile(ur'[–-] ?(.*)', re.UNICODE)
 tNtextre2 = re.compile(ur'\* (.*)', re.UNICODE)
 pubre = re.compile(ur'tag>.*publish.*', re.UNICODE)
 
@@ -152,7 +152,7 @@ def getFrame(f):
     getAliases(page)
     frame = {}
     frame['id'] = fridre.search(f).group(0).strip().replace('/', '-')
-    frame['tn'] = gettN(page)
+    frame['tn'] = gettN(page, f)
     return frame
 
 def getAliases(page):
@@ -164,15 +164,19 @@ def getAliases(page):
             ktaliases[term] = []
         ktaliases[term].append(alias)
 
-def gettN(page):
+def gettN(page, f):
     tN = []
     text = tNre.search(page).group(0)
+    page_url = u'https://door43.org/{0}'.format(f.split('pages/')[1].rstrip('.txt'))
     for i in text.split('\n'):
-        item = {}
-        tNtermse = tNtermre.search(i)
-        if not tNtermse:
+        if ( not i.strip() or 'Comprehension Questions' in i or u'>>]]**' in i
+            or u'<<]]**' in i or u'====' in i
+            or i.startswith((u'{{tag>', u'~~', u'**[[', u'\\\\')) ):
             continue
-        item['ref'] = tNtermse.group(1)
+        item = {'ref': u''}
+        tNtermse = tNtermre.search(i)
+        if tNtermse:
+            item['ref'] = tNtermse.group(1)
         tNtextse = tNtextre.search(i)
         if not tNtextse:
             tNtextse = tNtextre2.search(i)
