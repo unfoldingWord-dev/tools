@@ -134,7 +134,7 @@ def mostRecent(cat):
         date_mod = cat['language']['date_modified']
     for k in cat.keys():
         if not 'date_modified' in cat[k]: continue
-        if not type(cat[k]) == str: continue
+        if not type(cat[k]) == unicode: continue
         item_date_mod = cat[k].split('date_modified=')[1]
         if int(item_date_mod) > int(date_mod):
             date_mod = item_date_mod
