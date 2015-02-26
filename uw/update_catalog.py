@@ -205,7 +205,7 @@ def bible(langnames):
                              'res_catalog': addDate(
                                           '{0}/{1}/{2}/resources.json'.format(
                                              obs_v2_api, bk, lang_info['lc']))
-                       }
+                           }
                 res_info['language']['date_modified'] = mostRecent(res_info)
                 languages_cat.append(res_info)
                 langs_processed.append(lang)

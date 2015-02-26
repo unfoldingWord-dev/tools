@@ -8,29 +8,57 @@
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
 
-# Run export of OBS to JSON
-/var/www/vhosts/door43.org/tools/obs/json/json_export.py \
-    --unfoldingwordexport >>/tmp/$$.json_export
+help() {
+    echo
+    echo "Publish OBS."
+    echo
+    echo "Usage:"
+    echo "   $PROGNAME -l <LangCode>"
+    echo "   $PROGNAME --help"
+    echo
+    exit 1
+}
 
-# Find exported languages, exit if none
-LANGS=`grep "Exporting to unfoldingWord" /tmp/$$.json_export | cut -f 5 -d ' '`
-[ -z "$LANGS" ] && exit 0
-
-for LANG in $LANGS; do
-    VER=`/var/www/vhosts/door43.org/tools/uw/get_ver.py $LANG`
-    # Create PDF via TeX for languages exported
-    #/var/www/vhosts/door43.org/tools/obs/book/publish_PDF.sh -l $LANG -v $VER
-    /var/www/vhosts/door43.org/tools/obs/book/odt_export.sh -l $LANG
-
-    # Create image symlinks on api.unfoldingword.org
-    /var/www/vhosts/door43.org/tools/uw/makejpgsymlinks.sh -l $LANG
+if [ $# -lt 1 ]; then
+    help
+fi
+while test -n "$1"; do
+    case "$1" in
+        --help|-h)
+            help
+            ;;
+        --lang|-l)
+            LANG="$2"
+            shift
+            ;;
+        *)
+            echo "Unknown argument: $1"
+            help
+            ;;
+    esac
+    shift
 done
+
+if [ -z "$lang" ]; then
+    echo "Error: language to export must be specified."
+    help
+fi
+# Run export of OBS to JSON
+/var/www/vhosts/door43.org/tools/obs/json/json_export.py -l $LANG -e
+RETCODE=$?
+[ $RETCODE -ne 0 ] && exit 1
+
+VER=`/var/www/vhosts/door43.org/tools/uw/get_ver.py $LANG`
+
+# Create PDF via TeX for languages exported
+#/var/www/vhosts/door43.org/tools/obs/book/publish_PDF.sh -l $LANG -v $VER
+/var/www/vhosts/door43.org/tools/obs/book/odt_export.sh -l $LANG
+
+# Create image symlinks on api.unfoldingword.org
+/var/www/vhosts/door43.org/tools/uw/makejpgsymlinks.sh -l $LANG
 
 # Create web reveal.js viewer
 /var/www/vhosts/door43.org/tools/obs/js/reveal_export.py
-
-# Cleanup
-rm -f /tmp/$$.*
 
 # Run update of v2 API
 /var/www/vhosts/door43.org/tools/uw/update_catalog.py

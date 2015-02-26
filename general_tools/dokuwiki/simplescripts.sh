@@ -23,3 +23,7 @@ for x in `find /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages -maxdepth 
     git push origin master
     chown -R apache:apache .
 done
+
+
+# Find files owned by root and chown them to apache
+find meta/ -uid 0 -exec chown 48:48 {} \;

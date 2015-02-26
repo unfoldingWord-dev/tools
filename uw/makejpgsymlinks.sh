@@ -44,6 +44,8 @@ done
 SRC="/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/jpg/1/en"
 LANGDIR="/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/jpg/1/$LANG"
 
+[ -d $LANGDIR ] && echo 'Image links already exist...' && exit 0
+
 # Make directories
 for d in `find $SRC -type d`; do 
     [ "$SRC" == "$d" ] && continue
