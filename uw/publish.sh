@@ -39,7 +39,7 @@ while test -n "$1"; do
     shift
 done
 
-if [ -z "$lang" ]; then
+if [ -z "$LANG" ]; then
     echo "Error: language to export must be specified."
     help
 fi
