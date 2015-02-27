@@ -90,8 +90,9 @@ def obs():
                                     'desc': frontjson['tagline'],
                                     'meta': []
                                   },
-                       'res_catalog': u'{0}/obs/{1}/resources.json'.format(
-                                                    obs_v2_api, e['language'])
+                       'res_catalog': addDate(
+                                         u'{0}/obs/{1}/resources.json'.format(
+                                                   obs_v2_api, e['language']))
                      }
         langs_cat.append(lang_entry)
         del e['string']
