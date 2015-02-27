@@ -98,10 +98,12 @@ def obs():
         del e['direction']
         e['slug'] = 'obs'
         e['name'] = 'Open Bible Stories'
-        e['source'] = u'{0}/{1}/obs-{1}.json'.format(obs_v1_api,
-                                                                e['language'])
-        e['terms'] = u'{0}/{1}/kt-{1}.json'.format(obs_v1_api, e['language'])
-        e['notes'] = u'{0}/{1}/tN-{1}.json'.format(obs_v1_api, e['language'])
+        e['source'] = addDate(u'{0}/{1}/obs-{1}.json'.format(obs_v1_api,
+                                                               e['language']))
+        e['terms'] = addDate(u'{0}/{1}/kt-{1}.json'.format(obs_v1_api,
+                                                               e['language']))
+        e['notes'] = addDate(u'{0}/{1}/tN-{1}.json'.format(obs_v1_api,
+                                                               e['language']))
         outfile = u'{0}/obs/{1}/resources.json'.format(obs_v2_local,
                                                                 e['language'])
         del e['language']
