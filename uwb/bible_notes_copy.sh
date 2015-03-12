@@ -75,15 +75,14 @@ for BOOK in $COMPLETED_BOOKS; do
         [ "${f%/*}" == "$f" ] && DST_DIR="$DST_NOTES/$BOOK"
         FILE="${f##*/}"
         [ -d "$DST_DIR" ] || mkdir -p "$DST_DIR"
-        cp -vn "$f" "$DST_DIR/$FILE"
+        if [ ! -f "$DST_DIR/$FILE" ]; then
+            cp -vn "$f" "$DST_DIR/$FILE"
+            sed -i -e "s/$SRC_LANG\/[bB]ible\/notes/$LANG\/bible\/notes/g" \
+                   -e "s/$SRC_LANG:[bB]ible:notes/$LANG:bible:notes/g" \
+                   -e "s/publish/draft/" \
+                   "$DST_DIR/$FILE"
+        fi
     done
-done
-
-# Update links
-for f in `find "$DST_NOTES" -type f -name '*.txt'`; do
-    sed -i -e "s/$SRC_LANG\/[bB]ible\/notes/$LANG\/bible\/notes/g" \
-           -e "s/$SRC_LANG:[bB]ible:notes/$LANG:bible:notes/g" \
-           "$f"
 done
 
 gitPush () {
