@@ -8,7 +8,7 @@
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
 
-COMPLETED_BOOKS="rut luk tit"
+COMPLETED_BOOKS="rut luk tit key-terms"
 
 help() {
     echo
@@ -70,8 +70,9 @@ fi
 # Copy pages that don't already exist
 for BOOK in $COMPLETED_BOOKS; do
     cd "$SRC_NOTES/$BOOK/"
-    for f in `grep -rIe '{{tag.*publish ' * | cut -f 1 -d ':'`; do
+    for f in `grep -rIe '{{tag.*publish' * | cut -f 1 -d ':'`; do
         DST_DIR="$DST_NOTES/$BOOK/${f%/*}"
+        [ "${f%/*}" == "$f" ] && DST_DIR="$DST_NOTES/$BOOK"
         FILE="${f##*/}"
         [ -d "$DST_DIR" ] || mkdir -p "$DST_DIR"
         cp -vn "$f" "$DST_DIR/$FILE"
@@ -80,8 +81,8 @@ done
 
 # Update links
 for f in `find "$DST_NOTES" -type f -name '*.txt'`; do
-    sed -i -e "s/$SRC_LANG\/bible\/notes/$LANG\/bible\/notes/g" \
-           -e "s/$SRC_LANG:bible:notes/$LANG:bible:notes/g" \
+    sed -i -e "s/$SRC_LANG\/[bB]ible\/notes/$LANG\/bible\/notes/g" \
+           -e "s/$SRC_LANG:[bB]ible:notes/$LANG:bible:notes/g" \
            "$f"
 done
 
