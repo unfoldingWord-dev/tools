@@ -1,3 +1,11 @@
+# -*- coding: utf8 -*-
+#
+#  Copyright (c) 2014 unfoldingWord
+#  http://creativecommons.org/licenses/MIT/
+#  See LICENSE file for details.
+#
+#  Contributors:
+#  Jesse Griffin <jesse@distantshores.org>
 #
 # These are short snippets that are useful for accomplishing certain tasks.
 #
