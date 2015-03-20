@@ -44,6 +44,8 @@
 
         <script>
 
+            var flyOutNotes;
+
             // Full list of configuration options available here:
             // https://github.com/hakimel/reveal.js#configuration
             Reveal.initialize({
@@ -69,10 +71,12 @@
                     { src: 'PATH_JS/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
                     { src: 'PATH_JS/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
                     { src: 'PATH_JS/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
-                    { src: 'PATH_JS/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+                    { src: 'PATH_JS/obs-notes.js', async: true, callback: function() {
+                        flyOutNotes = new FlyOutNotes();
+                        window.addEventListener('hashchange', function() { flyOutNotes.loadNotes() });
+                    } }
                 ]
             });
-
         </script>
 
     </body>
