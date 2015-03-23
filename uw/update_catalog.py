@@ -10,15 +10,17 @@
 #
 
 '''
-Updates the catalog for the translationStudio v2 API.
+Updates the catalog for the translationStudio and unfoldingWord v2 APIs.
 '''
 
 import os
 import sys
 import json
+import time
 import codecs
 import urllib2
 import argparse
+import datetime as dt
 from copy import deepcopy
 
 rtl_langs = ['ar']
@@ -41,7 +43,10 @@ obs_v1_api = u'https://api.unfoldingword.org/obs/txt/1'
 obs_v1_url = u'{0}/obs-catalog.json'.format(obs_v1_api)
 obs_v2_local = u'/var/www/vhosts/api.unfoldingword.org/httpdocs/ts/txt/2'
 obs_v2_api = u'https://api.unfoldingword.org/ts/txt/2'
+uw_v2_api = u'https://api.unfoldingword.org/uw/txt/2/catalog.json'
+uw_v2_local = u'/var/www/vhosts/api.unfoldingword.org/httpdocs/uw/txt/2/catalog.json'
 lang_url = u'http://td.unfoldingword.org/exports/langnames.json'
+ts_obs_langs_url = u'https://api.unfoldingword.org/ts/txt/2/obs/languages.json'
 
 
 def getURL(url):
@@ -72,9 +77,7 @@ def loadJSON(f, t):
     else:
       return json.loads('[]')
 
-def obs():
-    obs_v1 = getURL(obs_v1_url)
-    obs_v1_cat = json.loads(obs_v1)
+def obs(obs_v1_cat):
     langs_cat = []
     # Write OBS catalog for each language
     for e in obs_v1_cat:
@@ -144,15 +147,7 @@ def mostRecent(cat):
             date_mod = item_date_mod
     return date_mod
 
-def bible(langnames):
-    bible_status = {}
-    bible_bks = []
-    langs = set([x[1] for x in bible_slugs])
-    for slug, lang in bible_slugs:
-        stat = getURL(bible_stat.format(slug, lang))
-        bible_status[(slug, lang)] = json.loads(stat)
-        bible_bks += bible_status[(slug, lang)]['books_published'].keys()
-
+def bible(langnames, bible_status, bible_bks, langs):
     bks_set = set(bible_bks)
     for bk in bks_set:
         for lang_iter in langs:
@@ -223,8 +218,8 @@ def getLangInfo(lc, langnames):
         lang_info['dir'] = 'rtl'
     return lang_info
 
-def global_cat():
-    global_cat = []
+def ts_cat():
+    ts_cat = []
     for x in bible_dirs:
         project_dirs.append(x)
     for p in project_dirs:
@@ -243,7 +238,7 @@ def global_cat():
                 meta += [ 'bible-ot' ]
             if 'Bible: NT' in proj_cat[0]['project']['meta']:
                 meta += [ 'bible-nt' ]
-        global_cat.append({ 'slug': p,
+        ts_cat.append({ 'slug': p,
                             'date_modified': dates_list[0],
                             'lang_catalog': u'{0}?date_modified={1}'.format(
                                                      proj_url, dates_list[0]),
@@ -252,13 +247,114 @@ def global_cat():
                           })
     # Write global catalog
     outfile = u'{0}/catalog.json'.format(obs_v2_local)
-    writeFile(outfile, getDump(global_cat))
+    writeFile(outfile, getDump(ts_cat))
+
+def uw_cat(obs_v1_cat, bible_status):
+    # Create Bible section
+    uw_bible = { 'title': 'Bible',
+                 'slug': 'bible',
+                 'langs': []
+               }
+    lang_cat = {}
+    for slug, lang in bible_slugs:
+        date_mod = getSeconds(bible_status[(slug, lang)]['date_modified'])
+        if lang not in lang_cat:
+            lang_cat[lang] = { 'lc': lang,
+                               'mod': date_mod,
+                               'vers': []
+                             }
+        ver = { 'name': bible_status[(slug, lang)]['name'],
+                'slug': bible_status[(slug, lang)]['slug'],
+                'mod': date_mod,
+                'status': bible_status[(slug, lang)]['status'],
+                'toc': []
+              }
+        bk_pub = bible_status[(slug, lang)]['books_published']
+        for x in bk_pub:
+            usfm_name = u'{0}-{1}.usfm'.format(bk_pub[x]['sort'], x.upper())
+            source = usfm_api.format(slug, lang, usfm_name, u'').rstrip('?')
+            source_sig = source.replace('.usfm', '.sig')
+            ver['toc'].append({ 'title': bk_pub[x]['name'],
+                                'slug': x,
+                                'mod': date_mod,
+                                'desc': bk_pub[x]['desc'],
+                                'sort': bk_pub[x]['sort'],
+                                'src': source,
+                                'src_sig': source_sig
+                              })
+        ver['toc'].sort(key=lambda s: s['sort'])
+        for x in ver['toc']:
+            del x['sort']
+        lang_cat[lang]['vers'].append(ver)
+    uw_bible['langs'] = [lang_cat[k] for k in lang_cat.iterkeys()]
+    uw_bible['langs'].sort(key=lambda c: c['lc'])
+
+    # Create OBS section
+    uw_obs = { 'title': 'Open Bible Stories',
+               'slug': 'obs',
+               'langs': []
+             }
+    ts_obs_langs_str = getURL(ts_obs_langs_url)
+    ts_obs_langs = json.loads(ts_obs_langs_str)
+    for e in obs_v1_cat:
+        date_mod = getSeconds(e['date_modified'])
+        for x in ts_obs_langs:
+            if x['language']['slug'] == e['language']:
+                desc = x['project']['desc']
+                name = x['project']['name']
+        slug = u'obs-{0}'.format(e['language'])
+        source = u'{0}/{1}/{2}.json'.format(obs_v1_api, e['language'], slug)
+        source_sig = source.replace('.json', '.sig')
+        entry = { 'lc': e['language'],
+                  'mod': date_mod,
+                  'vers': [{ 'name': name,
+                             'slug': slug,
+                             'mod': date_mod,
+                             'status': e['status'],
+                             'toc': [{ 'title': '',
+                                       'slug': '',
+                                       'mod': date_mod,
+                                       'desc': desc,
+                                       'src': source,
+                                       'src_sig': source_sig
+                                     }]
+                              }]
+                }
+        uw_obs['langs'].append(entry)
+    uw_obs['langs'].sort(key=lambda c: c['lc'])
+
+    # Write combined uW catalog
+    uw_cat = [uw_bible, uw_obs]
+    writeFile(uw_v2_local, getDump(uw_cat))
+
+def getSeconds(date_str):
+    today = ''.join(str(dt.date.today()).rsplit('-')[0:3])
+    date_secs = time.mktime(dt.datetime.strptime(date_str,
+                                                        "%Y%m%d").timetuple())
+    if date_str == today:
+        date_secs = time.mktime(dt.datetime.now().timetuple())
+    return str(int(date_secs))
 
 def main():
-    obs()
+    # OBS
+    obs_v1 = getURL(obs_v1_url)
+    obs_v1_catalog = json.loads(obs_v1)
+    obs(deepcopy(obs_v1_catalog))
+
+    # Bible
     langnames = json.loads(getURL(lang_url))
-    bible(langnames)
-    global_cat()
+    bible_status = {}
+    bible_bks = []
+    langs = set([x[1] for x in bible_slugs])
+    for slug, lang in bible_slugs:
+        stat = getURL(bible_stat.format(slug, lang))
+        bible_status[(slug, lang)] = json.loads(stat)
+        bible_bks += bible_status[(slug, lang)]['books_published'].keys()
+    bible(langnames, bible_status, bible_bks, langs)
+
+    # Global
+    ts_cat()
+    uw_cat(obs_v1_catalog, bible_status)
 
 
 if __name__ == '__main__':
