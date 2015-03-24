@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
 #
-#  Copyright (c) 2015 unfoldingWord
+# Copyright (c) 2015 unfoldingWord
 #  http://creativecommons.org/licenses/MIT/
 #  See LICENSE file for details.
 #
@@ -14,10 +14,23 @@ import glob
 import json
 import gzip
 import re
+import httplib
+
+
+class GoogleConnection(httplib.HTTPConnection):
+    """
+    This class is here to enable with...as functionality for the HHTPConnection
+    """
+
+    def __enter__(self):
+        return self
+
+    # noinspection PyUnusedLocal
+    def __exit__(self, exception_type, exception_val, trace):
+        self.close()
 
 
 class ProcessApiLog:
-
     def __init__(self):
         pass
 
@@ -25,7 +38,9 @@ class ProcessApiLog:
     logFileRoot = '/var/log/nginx/api.unfoldingword.org.log'
 
     settingsFile = os.path.join(os.path.dirname(__file__), 'lastSentToGA.json')
-    hostName = 'https://api.unfoldingword.org'
+    hostName = 'api.unfoldingword.org'
+    # propertyID = 'UA-60106521-2'  # api.unfoldingword.org
+    propertyID = 'UA-37389677-2'  # prayer.hoppenings.net
 
     # initialize last sent date
     lastSent = '20150322'
@@ -113,11 +128,24 @@ class ProcessApiLog:
 
                 # print line.rstrip()
                 requestparts = fields[4].split(' ')
-                request = ProcessApiLog.hostName + requestparts[1]
-                print request
+                ProcessApiLog.send_hit_to_ga(requestparts[1])
 
         # increment the count when finished
         return 1
+
+    @staticmethod
+    def send_hit_to_ga(page):
+
+        with GoogleConnection('www.google-analytics.com') as connection:
+
+            payload = ['v=1', 'tid=' + ProcessApiLog.propertyID, 'cid=555', 't=pageview',
+                       'dh=' + ProcessApiLog.hostName, 'dp=' + page, 'dt=test']
+            connection.request('POST', '/collect', '&'.join(payload))
+            response = connection.getresponse()
+
+            # check the status
+            if response.status != 200:
+                print 'Error ' + str(response.status) + ': ' + response.reason
 
 
 if __name__ == '__main__':
