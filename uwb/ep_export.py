@@ -24,8 +24,8 @@ from etherpad_lite import EtherpadException
 
 
 COMPLETE = [ 'GEN', 'EXO', 'RUT', 'LAM', 'JON',
-             'MAT', 'LUK', 'ACT',
-             'GAL', 'PHP', 'COL'
+             'MAT', 'MRK', 'LUK', 'ACT',
+             'GAL', 'PHP', 'COL', '1TH', '2TH',
              '1TI', '2TI', 'TIT', 'PHM', 'JAS',
              '1JN', '2JN', '3JN', 'JUD', 'REV'
            ]
