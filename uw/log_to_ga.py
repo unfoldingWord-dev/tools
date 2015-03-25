@@ -2,8 +2,8 @@
 # -*- coding: utf8 -*-
 #
 # Copyright (c) 2015 unfoldingWord
-#  http://creativecommons.org/licenses/MIT/
-#  See LICENSE file for details.
+# http://creativecommons.org/licenses/MIT/
+# See LICENSE file for details.
 #
 #  Contributors:
 #  Phil Hopper <phillip_hopper@wycliffeassociates.org>
@@ -15,6 +15,8 @@ import json
 import gzip
 import re
 import httplib
+import logging
+import time
 
 
 class GoogleConnection(httplib.HTTPConnection):
@@ -48,6 +50,11 @@ class ProcessApiLog:
 
     def do_it(self):
 
+        # enable logging for this script
+        logging.basicConfig(filename='event.log', level=logging.DEBUG,
+                            format="%(asctime)s - %(levelname)s - %(message)s")
+        logging.info('Begin sending api.unfoldingword.org log to Google Analytics.')
+
         # Example: api.unfoldingword.org.log-20150314.gz
         logfiles = glob.glob(self.logFileRoot + '-*.gz')
         processedcount = 0
@@ -64,12 +71,20 @@ class ProcessApiLog:
             if filedate > self.currentSent:
                 self.currentSent = filedate
 
+        if processedcount > 0:
+            newdata = {'lastSent': self.currentSent}
+            with open(self.settingsFile, 'w') as settings:
+                json.dump(newdata, settings)
+
         if processedcount == 0:
             print 'Finished. No log files processed'
+            logging.info('Finished. No log files processed')
         elif processedcount == 1:
             print 'Finished. Processed 1 log file.'
+            logging.info('Finished. Processed 1 log file.')
         else:
             print 'Finished. Processed ' + str(processedcount) + ' log files.'
+            logging.info('Finished. Processed ' + str(processedcount) + ' log files.')
 
     def get_last_sent(self):
 
@@ -104,6 +119,11 @@ class ProcessApiLog:
         # [7]referer [8]user_agent [9]forwarded_for
         regex = '([\d\.]+) (.*?) (.*?) \[(.*?)\] "(.*?)" (.*?) (.*?) "(.*?)" "(.*?)" "(.*?)"'
 
+        # regex for parsing the timestamp
+        timestamppattern = '([0-3][0-9])/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/(\d{4})'
+        timestamppattern += ':([0-2][0-9]):([0-5][0-9]):([0-5][0-9])\s(utc|gmt|[+-][0-9]{4})'
+        timestampregex = re.compile(timestamppattern, re.IGNORECASE)
+
         # open the archive and read each line
         with gzip.GzipFile(logfile) as archive:
             for line in archive:
@@ -126,26 +146,31 @@ class ProcessApiLog:
                 if 'https' not in line:
                     continue
 
-                # print line.rstrip()
+                # 21/Mar/2015:04:20:18 +0000
+                timestamp = timestampregex.match(fields[3])
+
                 requestparts = fields[4].split(' ')
-                ProcessApiLog.send_hit_to_ga(requestparts[1])
+                ProcessApiLog.send_hit_to_ga(requestparts[1], timestamp)
 
         # increment the count when finished
         return 1
 
     @staticmethod
-    def send_hit_to_ga(page):
+    def send_hit_to_ga(page, timestamp):
+
+        then = time.mktime(timestamp)
+        queuetime = (time.time() - then) * 1000
 
         with GoogleConnection('www.google-analytics.com') as connection:
-
             payload = ['v=1', 'tid=' + ProcessApiLog.propertyID, 'cid=555', 't=pageview',
-                       'dh=' + ProcessApiLog.hostName, 'dp=' + page, 'dt=test']
+                       'dh=' + ProcessApiLog.hostName, 'dp=' + page, 'qt=' + str(queuetime)]
             connection.request('POST', '/collect', '&'.join(payload))
             response = connection.getresponse()
 
             # check the status
             if response.status != 200:
                 print 'Error ' + str(response.status) + ': ' + response.reason
+                logging.error('Bad HTTP request,  ' + str(response.status) + ': ' + response.reason)
 
 
 if __name__ == '__main__':
