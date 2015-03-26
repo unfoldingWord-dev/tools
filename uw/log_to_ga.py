@@ -9,14 +9,18 @@
 #  Phil Hopper <phillip_hopper@wycliffeassociates.org>
 #
 
-import os
-import glob
-import json
-import gzip
+import calendar
 import re
 import httplib
 import logging
 import time
+import subprocess
+import select
+
+
+# enable logging for this script
+logging.basicConfig(filename='event.log', level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.info('Begin sending api.unfoldingword.org log to Google Analytics.')
 
 
 class GoogleConnection(httplib.HTTPConnection):
@@ -32,147 +36,71 @@ class GoogleConnection(httplib.HTTPConnection):
         self.close()
 
 
-class ProcessApiLog:
-    def __init__(self):
-        pass
+# This is the name of the current log file, and the prefix for log file backups
+logFile = '/var/log/nginx/api.unfoldingword.org.log'
+hostName = 'api.unfoldingword.org'
+# propertyID = 'UA-60106521-2'  # api.unfoldingword.org
+propertyID = 'UA-37389677-2'  # prayer.hoppenings.net
 
-    # This is the name of the current log file, and the prefix for log file backups
-    logFileRoot = '/var/log/nginx/api.unfoldingword.org.log'
 
-    settingsFile = os.path.join(os.path.dirname(__file__), 'lastSentToGA.json')
-    hostName = 'api.unfoldingword.org'
-    # propertyID = 'UA-60106521-2'  # api.unfoldingword.org
-    propertyID = 'UA-37389677-2'  # prayer.hoppenings.net
+def process_this_line(logline):
 
-    # initialize last sent date
-    lastSent = '20150322'
-    currentSent = ''
+    # regex for parsing the log entries
+    # values: [0]ip_address [1]unk [2]remote_user
+    # [3]timestamp [4]request [5]status [6]bytes_sent
+    # [7]referer [8]user_agent [9]forwarded_for
+    regex = '([\d\.]+) (.*?) (.*?) \[(.*?)\] "(.*?)" (.*?) (.*?) "(.*?)" "(.*?)" "(.*?)"'
 
-    def do_it(self):
+    # skip lines produced by check_http
+    if '"check_http' in logline:
+        return
 
-        # enable logging for this script
-        logging.basicConfig(filename='event.log', level=logging.DEBUG,
-                            format="%(asctime)s - %(levelname)s - %(message)s")
-        logging.info('Begin sending api.unfoldingword.org log to Google Analytics.')
+    # skip favicon
+    if 'favicon.ico' in logline:
+        return
 
-        # Example: api.unfoldingword.org.log-20150314.gz
-        logfiles = glob.glob(self.logFileRoot + '-*.gz')
-        processedcount = 0
+    # split the line into fields
+    fields = re.match(regex, logline.rstrip()).groups()
 
-        self.get_last_sent()
+    # skip bots
+    if 'bot' in fields[8]:
+        return
 
-        for logFile in logfiles:
+    # Timestamp example: 21/Mar/2015:04:20:18 +0000
+    timestamp = time.strptime(fields[3], '%d/%b/%Y:%H:%M:%S +0000')
 
-            filedate = self.get_file_date(logFile)
+    requestparts = fields[4].split(' ')
+    # send_hit_to_ga(requestparts[1], timestamp)
 
-            if filedate > self.lastSent:
-                processedcount += self.process_this_file(logFile)
+    then = calendar.timegm(timestamp)
+    queuetime = (time.time() - then) * 1000
 
-            if filedate > self.currentSent:
-                self.currentSent = filedate
+    with GoogleConnection('www.google-analytics.com') as connection:
+        payload = ['v=1', 'tid=' + propertyID, 'cid=555', 't=pageview', 'dh=' + hostName,
+                   'dp=' + requestparts[1], 'qt=' + str(queuetime)]
+        connection.request('POST', '/collect', '&'.join(payload))
+        response = connection.getresponse()
 
-        if processedcount > 0:
-            newdata = {'lastSent': self.currentSent}
-            with open(self.settingsFile, 'w') as settings:
-                json.dump(newdata, settings)
+        # check the status
+        if response.status != 200:
+            print 'Error ' + str(response.status) + ': ' + response.reason
+            logging.error('Bad HTTP request,  ' + str(response.status) + ': ' + response.reason)
 
-        if processedcount == 0:
-            print 'Finished. No log files processed'
-            logging.info('Finished. No log files processed')
-        elif processedcount == 1:
-            print 'Finished. Processed 1 log file.'
-            logging.info('Finished. Processed 1 log file.')
-        else:
-            print 'Finished. Processed ' + str(processedcount) + ' log files.'
-            logging.info('Finished. Processed ' + str(processedcount) + ' log files.')
-
-    def get_last_sent(self):
-
-        if os.path.exists(self.settingsFile):
-
-            data = {}
-
-            try:
-                with open(self.settingsFile) as settings:
-                    data = json.load(settings)
-
-            except ValueError:
-                print self.settingsFile + ' is not a valid json file'
-
-            if data:
-                if 'lastSent' in data:
-                    self.lastSent = data['lastSent']
-
-    @staticmethod
-    def get_file_date(logfile):
-        return logfile[-11:-3]
-
-    @staticmethod
-    def process_this_file(logfile):
-
-        if not os.path.exists(logfile):
-            return 0
-
-        # regex for parsing the log entries
-        # values: [0]ip_address [1]unk [2]remote_user
-        # [3]timestamp [4]request [5]status [6]bytes_sent
-        # [7]referer [8]user_agent [9]forwarded_for
-        regex = '([\d\.]+) (.*?) (.*?) \[(.*?)\] "(.*?)" (.*?) (.*?) "(.*?)" "(.*?)" "(.*?)"'
-
-        # regex for parsing the timestamp
-        timestamppattern = '([0-3][0-9])/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/(\d{4})'
-        timestamppattern += ':([0-2][0-9]):([0-5][0-9]):([0-5][0-9])\s(utc|gmt|[+-][0-9]{4})'
-        timestampregex = re.compile(timestamppattern, re.IGNORECASE)
-
-        # open the archive and read each line
-        with gzip.GzipFile(logfile) as archive:
-            for line in archive:
-
-                # skip lines produced by check_http
-                if '"check_http' in line:
-                    continue
-
-                # skip favicon
-                if 'favicon.ico' in line:
-                    continue
-
-                # split the line into fields
-                fields = re.match(regex, line.rstrip()).groups()
-
-                # skip bots
-                if 'bot' in fields[8]:
-                    continue
-
-                if 'https' not in line:
-                    continue
-
-                # 21/Mar/2015:04:20:18 +0000
-                timestamp = timestampregex.match(fields[3])
-
-                requestparts = fields[4].split(' ')
-                ProcessApiLog.send_hit_to_ga(requestparts[1], timestamp)
-
-        # increment the count when finished
-        return 1
-
-    @staticmethod
-    def send_hit_to_ga(page, timestamp):
-
-        then = time.mktime(timestamp)
-        queuetime = (time.time() - then) * 1000
-
-        with GoogleConnection('www.google-analytics.com') as connection:
-            payload = ['v=1', 'tid=' + ProcessApiLog.propertyID, 'cid=555', 't=pageview',
-                       'dh=' + ProcessApiLog.hostName, 'dp=' + page, 'qt=' + str(queuetime)]
-            connection.request('POST', '/collect', '&'.join(payload))
-            response = connection.getresponse()
-
-            # check the status
-            if response.status != 200:
-                print 'Error ' + str(response.status) + ': ' + response.reason
-                logging.error('Bad HTTP request,  ' + str(response.status) + ': ' + response.reason)
+    return
 
 
 if __name__ == '__main__':
-    lp = ProcessApiLog()
-    lp.do_it()
+
+    # This is the name of the current log file
+    logFile = '/var/log/nginx/api.unfoldingword.org.log'
+
+    f = subprocess.Popen(['tail', '-F', logFile], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = select.poll()
+    p.register(f.stdout)
+
+    while True:
+        if p.poll(1):
+            line = f.stdout.readline()
+            process_this_line(line)
+            print line
+        time.sleep(1)
