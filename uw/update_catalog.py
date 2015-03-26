@@ -324,7 +324,12 @@ def uw_cat(obs_v1_cat, bible_status):
     uw_obs['langs'].sort(key=lambda c: c['lc'])
 
     # Write combined uW catalog
-    uw_cat = [uw_bible, uw_obs]
+    mods = [int(x['mod']) for x in uw_bible['langs']]
+    mods += [int(x['mod']) for x in uw_obs['langs']]
+    mods.sort(reverse=True)
+    uw_cat = { 'cat': [uw_bible, uw_obs],
+               'mod': mods[0],
+             }
     writeFile(uw_v2_local, getDump(uw_cat))
 
 def getSeconds(date_str):
