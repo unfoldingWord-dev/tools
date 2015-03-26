@@ -19,13 +19,13 @@ import json
 import shlex
 import urllib2
 from subprocess import *
+from urllib import urlencode
 from base64 import b64encode
 
 
 catalog_url = u'https://api.unfoldingword.org/ts/txt/2/catalog.json'
 source_keys = [u'usfm', u'terms', u'source', u'notes']
-sign_com = '/usr/local/bin/openssl dgst -sha384 -sign {0}'
-key = '/etc/pki/uw/uW-sk.pem'
+sign_com = '/usr/local/bin/openssl dgst -sha384 -sign /etc/pki/uw/uW-sk.pem'
 api = u'http://api.unfoldingword.org:9098/'
 
 
@@ -34,8 +34,7 @@ def getURL(url):
         request = urllib2.urlopen(url).read()
         return request
     except:
-        print '  => ERROR retrieving {0}\nCheck the URL'.format(url)
-        return
+        return False
 
 def getContent(cat):
     content = []
@@ -51,7 +50,7 @@ def getContent(cat):
     return content
 
 def sign(content):
-    command = shlex.split(sign_com.format(content))
+    command = shlex.split(sign_com)
     com = Popen(command, shell=False, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     out, err = com.communicate(content)
     return b64encode(out)
@@ -70,9 +69,14 @@ def upload(sig, content, si):
 def main():
     cat = json.loads(getURL(catalog_url))
     content_list = getContent(cat)
-    for x in content_list[:1]:
-        content = getURL(catalog_url)
+    for x in content_list:
+        content = getURL(x)
+        if not content:
+            print 'skipped {0}'.format(x)
+            continue
         sig = sign(content)
+        print x
+        print sig
         upload(sig, x, 'uW')
         break
 
