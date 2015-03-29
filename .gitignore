@@ -1,2 +1,4 @@
 *.py[cod]
 local_settings.py
+/nbproject/private/
+/.idea/
