@@ -47,6 +47,10 @@ def getContent(cat):
                     if key in i:
                         if i[key] not in content:
                             content.append(i[key])
+                            if '/obs-' in i[key]:
+                                pdf = u'{0}-v{1}.pdf'.format(i[key].split(
+                      '.json')[0], i['status']['version'].replace(u'.', u'_'))
+                                content.append(pdf)
     return content
 
 def sign(content):
