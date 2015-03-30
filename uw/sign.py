@@ -18,8 +18,8 @@ import sys
 import json
 import shlex
 import urllib2
+import requests
 from subprocess import *
-from urllib import urlencode
 from base64 import b64encode
 
 
@@ -56,27 +56,26 @@ def sign(content):
     return b64encode(out)
 
 def upload(sig, content, si):
-    payload = json.dumps({ 'content': content,
-                           'sig': sig,
-                           'slug': si
-                        })
-    req = urllib2.Request(api, payload, {'Content-Type': 'application/json'})
-    f = urllib2.urlopen(req)
-    response = f.read()
-    f.close()
-    print response
+    payload = { 'data': { 'content': content,
+                          'sig': sig,
+                          'slug': si
+                        }
+              }
+    r = requests.post(api, data=json.dumps(payload),
+                                 headers={'Content-Type': 'application/json'})
+    print r.text
 
 def main():
     cat = json.loads(getURL(catalog_url))
     content_list = getContent(cat)
+    print u'Signing...'
     for x in content_list:
         content = getURL(x)
         if not content:
-            print 'skipped {0}'.format(x)
+            print 'No content: {0}'.format(x)
             continue
+        print u'-> {0}'.format(x)
         sig = sign(content)
-        print x
-        print sig
         upload(sig, x, 'uW')
         break
 
