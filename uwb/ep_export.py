@@ -23,7 +23,7 @@ from etherpad_lite import EtherpadLiteClient
 from etherpad_lite import EtherpadException
 
 
-COMPLETE = [ 'GEN', 'EXO', 'RUT', 'LAM', 'JON',
+COMPLETE = [ 'GEN', 'EXO', 'RUT', 'LAM', 'JON', 'ZEC',
              'MAT', 'MRK', 'LUK', 'ACT',
              'GAL', 'PHP', 'COL', '1TH', '2TH',
              '1TI', '2TI', 'TIT', 'PHM', 'JAS',
