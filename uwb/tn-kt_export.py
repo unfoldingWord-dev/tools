@@ -180,7 +180,10 @@ def gettN(page, f):
         tNtextse = tNtextre.search(i)
         if not tNtextse:
             tNtextse = tNtextre2.search(i)
-        item_text = tNtextse.group(1).strip()
+        try:
+            item_text = tNtextse.group(1).strip()
+        except AttributeError:
+            item_text = i
         item['text'] = getHTML(item_text)
         tN.append(item)
     return tN
