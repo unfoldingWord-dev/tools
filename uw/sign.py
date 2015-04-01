@@ -81,7 +81,6 @@ def main():
         print u'-> {0}'.format(x)
         sig = sign(content)
         upload(sig, x, 'uW')
-        break
 
 
 if __name__ == '__main__':
