@@ -66,9 +66,6 @@ for f in `find "$DEST" -type f -name '*.txt'`; do
         "$f"
 done
 
-# Set permissions
-chown -R apache:apache "$DEST"
-
 # function for git work
 gitPush () {
     cd "$1"
@@ -81,3 +78,6 @@ gitPush () {
 if [ -d "$PAGES/$LANG/.git" ]; then
     gitPush "$DEST" "Added source for notes and key terms."
 fi
+
+# Set permissions
+chown -R apache:apache "$DEST"
