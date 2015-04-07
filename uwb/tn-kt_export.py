@@ -42,7 +42,7 @@ fridre = re.compile(ur'[0-5][0-9]/[0-9][0-9]', re.UNICODE)
 tNre = re.compile(ur'==== Translation Notes.*', re.UNICODE | re.DOTALL)
 itre = re.compile(ur'==== Important Terms: ====(.*?)====', re.UNICODE | re.DOTALL)
 tNtermre = re.compile(ur' \*\*(.*?)\*\*', re.UNICODE)
-tNtextre = re.compile(ur'[–-] ?(.*)', re.UNICODE)
+tNtextre = re.compile(ur' [–-] ?(.*)', re.UNICODE)
 tNtextre2 = re.compile(ur'\* (.*)', re.UNICODE)
 pubre = re.compile(ur'tag>.*publish.*', re.UNICODE)
 
