@@ -261,7 +261,8 @@ def uwQA(jsd, lang, status, frontj, backj):
     framelist = []
     for c in jsonlang['chapters']:
         for f in c['frames']:
-            framelist.append(f['id'])
+            if len(f['text']) > 10:
+                framelist.append(f['id'])
     frameset = set(framelist)
     obslangdiff = obsframeset.difference(frameset)
     if obslangdiff:
@@ -275,7 +276,6 @@ def uwQA(jsd, lang, status, frontj, backj):
         for x in langobsdiff:
             print x
         flag = False
-    # Tests passed, return true
     return flag
 
 def updateUWAdminStatusPage():
@@ -327,10 +327,13 @@ if __name__ == '__main__':
         required=True, help="Language code of resource.")
     parser.add_argument('-e', '--export', dest="uwexport", default=False,
         action='store_true', help="Export to unfoldingWord.")
+    parser.add_argument('-t', '--testexport', dest="testexport", default=False,
+        action='store_true', help="Test export to unfoldingWord.")
 
     args = parser.parse_args(sys.argv[1:])
     lang = args.lang
     uwexport = args.uwexport
+    testexport = args.testexport
     
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
     langdict = loadLangStrings(langnames)
@@ -385,6 +388,15 @@ if __name__ == '__main__':
         ( [x for x in catalog if x['language'] ==
                                         lang][0]['date_modified']) = today
         writePage(jsonlangfilepath, curjson)
+    if testexport:
+        print 'Testing {0} export...'.format(lang)
+        frontjson = getFrontMatter(lang, today)
+        backjson = getBackMatter(lang, today)
+        if not uwQA(jsonlang, lang, status, frontjson, backjson):
+            print '---> QA Failed.'
+            sys.exit(1)
+        print '---> QA Passed.'
+        sys.exit()
     if uwexport:
         try:
             pw = open('/root/.github_pass', 'r').read().strip()
