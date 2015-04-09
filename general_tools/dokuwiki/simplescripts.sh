@@ -10,6 +10,12 @@
 # These are short snippets that are useful for accomplishing certain tasks.
 #
 
+# Seds to fix image links and Zim Wiki content headers
+sed -i -e 's/..\/..\/images/https:\/\/api.unfoldingword.org\/obs\/jpg\/1\/en\/360px/' \
+    -e 's/obs-/obs-fa-/' -e '/Content-Type/d' -e '/Wiki-Format/d'
+# Adds DW italic (reference) markers to last line of file.
+sed -i -e '$s/^/\/\//' -e '$s/$/\/\//'
+
 # Adds comprehension questions for Bible books
 for f in `find . -maxdepth 1 -type d`; do
     [ -d "$f/questions/comprehension" ] && continue
@@ -31,6 +37,12 @@ for f in `find . -maxdepth 1 -type d`; do
     done
     rm -f $bk/questions/comprehension/questions.txt
     echo -e "~~NOCACHE~~\n\n<nspages en:bible:notes:$bk:questions:comprehension -title -naturalOrder -simpleList -exclude:home -textPages=\"$book Comprehension Questions\">" > $bk/questions/comprehension/home.txt
+done
+
+# Add '~~DISCUSSION~~' to pages that don't already have it
+for f in `ls`; do
+    grep -q 'DISCUSSION' $f && continue
+    echo -e '\n~~DISCUSSION~~' >>$f;
 done
 
 # Add '~~NOCACHE~~' to pages that are using tags and don't already have it
