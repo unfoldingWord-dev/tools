@@ -67,7 +67,9 @@ def upload(sig, content, si):
               }
     r = requests.post(api, data=json.dumps(payload),
                                  headers={'Content-Type': 'application/json'})
-    print r.text
+    if 'ok' not in r.text:
+        print x
+        print u'-> {0}'.fomat(r.text)
 
 def main():
     cat = json.loads(getURL(catalog_url))
@@ -78,7 +80,6 @@ def main():
         if not content:
             print 'No content: {0}'.format(x)
             continue
-        print u'-> {0}'.format(x)
         sig = sign(content)
         upload(sig, x, 'uW')
 
