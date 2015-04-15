@@ -16,7 +16,9 @@ Signs all content in tS catalog.
 import os
 import sys
 import json
+import time
 import shlex
+import codecs
 import urllib2
 import requests
 from subprocess import *
@@ -27,6 +29,7 @@ catalog_url = u'https://api.unfoldingword.org/ts/txt/2/catalog.json'
 source_keys = [u'usfm', u'terms', u'source', u'notes']
 sign_com = '/usr/local/bin/openssl dgst -sha384 -sign /etc/pki/uw/uW-sk.pem'
 api = u'http://api.unfoldingword.org:9098/'
+working_dir = '/dev/shm/check_sig'
 
 
 def getURL(url):
@@ -71,6 +74,68 @@ def upload(sig, content, si):
         print x
         print u'-> {0}'.fomat(r.text)
 
+def checkSig(content, sig, slug):
+    # Based on https://github.com/unfoldingWord-dev/sigadd/blob/master/index.py
+    '''
+    Checks if a signature is valid
+    :param path: the path to the content that was signed
+    :param sig: the signature that will be validated
+    :param slug: the SI slug
+    :return:
+    '''
+    ts = time.time()
+    vk_url = '{0}/si/{1}-vk.pem'.format(pki_base, slug)
+    if slug == 'uW':
+        vk_url = '{0}/{1}-vk.pem'.format(pki_base, slug)
+
+    # init working dir
+    if not os.path.exists(working_dir):
+        print 'initializing working directory in '+working_dir
+        os.makedirs(working_dir)
+
+    # download the si
+    vk_path = '{0}/{1}.pem'.format(working_dir, ts)
+    try:
+        f = urllib.URLopener()
+        f.retrieve(vk_url, vk_path)
+        f.close()
+    except Exception as e:
+        print e
+        return False
+
+    # prepare the content sig
+    sig_path = '{0}/{1}.sig'.format(working_dir, ts)
+    sigf = open(sig_path, 'w')
+    sigf.write(base64.b64decode(sig))
+    sigf.close()
+
+    # write content to file so OpenSSL can check it
+    content_path = '{0}/{1}.content'.format(working_dir, ts)
+    try:
+        f = codecs.open(content_path, 'w', 'utf-8')
+        f.write(content)
+        f.close()
+    except Exception as e:
+        print e
+        return False
+
+    # Use openssl to verify signature
+    command_str = 'openssl dgst -sha384 -verify '+vk_path+' -signature '+sig_path+' '+content_path
+    command = shlex.split(command_str)
+    com = Popen(command, shell=False, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    out, err = com.communicate()
+
+    # cleanup
+    os.remove(vk_path)
+    os.remove(sig_path)
+    os.remove(content_path)
+
+    print err
+    print out
+
+    return out.strip() == 'Verified OK'
+
+
 def main():
     cat = json.loads(getURL(catalog_url))
     content_list = getContent(cat)
@@ -79,6 +144,9 @@ def main():
         content = getURL(x)
         if not content:
             print 'No content: {0}'.format(x)
+            continue
+        if checkSig(content, sig, 'uW'):
+            print "Sig good: {0}".format(x)
             continue
         sig = sign(content)
         upload(sig, x, 'uW')
