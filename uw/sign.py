@@ -107,8 +107,9 @@ def checkSig(content, sig, slug):
 
     # prepare the content sig
     sig_path = '{0}/{1}.sig'.format(working_dir, ts)
+    uw_sig = [x['sig'] for x in sig if 'si' == 'uW' ]
     sigf = open(sig_path, 'w')
-    sigf.write(b64decode(sig))
+    sigf.write(sig[0])
     sigf.close()
 
     # write content to file so OpenSSL can check it
