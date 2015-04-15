@@ -20,6 +20,7 @@ import time
 import shlex
 import codecs
 import urllib2
+import urllib
 import requests
 from subprocess import *
 from base64 import b64encode
@@ -30,6 +31,7 @@ source_keys = [u'usfm', u'terms', u'source', u'notes']
 sign_com = '/usr/local/bin/openssl dgst -sha384 -sign /etc/pki/uw/uW-sk.pem'
 api = u'http://api.unfoldingword.org:9098/'
 working_dir = '/dev/shm/check_sig'
+pki_base = 'https://pki.unfoldingword.org'
 
 
 def getURL(url):
@@ -106,7 +108,7 @@ def checkSig(content, sig, slug):
     # prepare the content sig
     sig_path = '{0}/{1}.sig'.format(working_dir, ts)
     sigf = open(sig_path, 'w')
-    sigf.write(base64.b64decode(sig))
+    sigf.write(b64decode(sig))
     sigf.close()
 
     # write content to file so OpenSSL can check it
