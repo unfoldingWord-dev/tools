@@ -145,9 +145,11 @@ def main():
         if not content:
             print 'No content: {0}'.format(x)
             continue
-        if checkSig(content, sig, 'uW'):
-            print "Sig good: {0}".format(x)
-            continue
+        existing_sig = getURL('{0}.sig'.format(x.rsplit('.', 1)[0]))
+        if existing_sig:
+            if checkSig(content, existing_sig, 'uW'):
+                print "Sig good: {0}".format(x)
+                continue
         sig = sign(content)
         upload(sig, x, 'uW')
 
