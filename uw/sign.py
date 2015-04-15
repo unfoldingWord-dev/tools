@@ -133,9 +133,6 @@ def checkSig(content, sig, slug):
     os.remove(sig_path)
     os.remove(content_path)
 
-    print err
-    print out
-
     return out.strip() == 'Verified OK'
 
 
