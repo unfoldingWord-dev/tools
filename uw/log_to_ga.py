@@ -85,7 +85,8 @@ def process_this_line(logline):
     requestparts = fields[4].split(' ')
     # send_hit_to_ga(requestparts[1], timestamp)
 
-    with GoogleConnection('www.google-analytics.com') as connection:
+    # HTTP_PORT or HTTPS_PORT
+    with GoogleConnection('www.google-analytics.com', httplib.HTTPS_PORT) as connection:
 
         payload = ['v=1', 'tid=' + propertyID, 'cid=555', 't=pageview', 'dh=' + hostName,
                    'dp=' + requestparts[1]]
@@ -109,7 +110,7 @@ if __name__ == '__main__':
     # Explanation: -n sets the number of lines to read immediately when starting.
     #              -F sets the file name to tail, and being upper case it tells tail to
     #                 retry opening the file if it fails, like when the log file is rotated.
-    f = subprocess.Popen(['tail', '-n', '1', '-F', logFile], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    f = subprocess.Popen(['tail', '-n', '0', '-F', logFile], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     p = select.poll()
     p.register(f.stdout)
 
