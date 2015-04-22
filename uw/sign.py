@@ -136,10 +136,13 @@ def checkSig(content, sig, slug):
     return out.strip() == 'Verified OK'
 
 
-def main():
+def main(test):
     cat = json.loads(getURL(catalog_url))
     content_list = getContent(cat)
-    print u'Signing...'
+    if test:
+        print u'Testing...'
+    else:
+        print u'Signing...'
     for x in content_list:
         content = getURL(x)
         if not content:
@@ -150,9 +153,19 @@ def main():
             if checkSig(content, existing_sig, 'uW'):
                 print "Sig good: {0}".format(x)
                 continue
+        if test:
+            print "!! SIG FAILURE: {0}".format(x)
+            continue
         sig = sign(content)
         upload(sig, x, 'uW')
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('-t', '--test', dest="test", default=False,
+        action='store_true', help="Test signatures only.")
+
+    args = parser.parse_args(sys.argv[1:])
+
+    main(args.test)
