@@ -19,11 +19,13 @@ import json
 import time
 import shlex
 import codecs
-import urllib2
+import shutil
 import urllib
+import urllib2
+import argparse
 import requests
 from subprocess import *
-from base64 import b64encode
+from base64 import b64encode, b64decode
 
 
 catalog_url = u'https://api.unfoldingword.org/ts/txt/2/catalog.json'
@@ -55,7 +57,7 @@ def getContent(cat):
                             if '/obs-' in i[key]:
                                 pdf = u'{0}-v{1}.pdf'.format(i[key].split(
                       '.json')[0], i['status']['version'].replace(u'.', u'_'))
-                                content.append(pdf)
+                                #content.append(pdf)
     return content
 
 def sign(content):
@@ -90,33 +92,29 @@ def checkSig(content, sig, slug):
     if slug == 'uW':
         vk_url = '{0}/{1}-vk.pem'.format(pki_base, slug)
 
-    # init working dir
-    if not os.path.exists(working_dir):
-        print 'initializing working directory in '+working_dir
-        os.makedirs(working_dir)
-
     # download the si
     vk_path = '{0}/{1}.pem'.format(working_dir, ts)
-    try:
-        f = urllib.URLopener()
-        f.retrieve(vk_url, vk_path)
-        f.close()
-    except Exception as e:
-        print e
-        return False
+    if not os.path.exists(vk_path):
+        try:
+            f = urllib.URLopener()
+            f.retrieve(vk_url, vk_path)
+            f.close()
+        except Exception as e:
+            print e
+            return False
 
     # prepare the content sig
     sig_path = '{0}/{1}.sig'.format(working_dir, ts)
-    uw_sig = [x['sig'] for x in sig if 'si' == 'uW' ]
+    uw_sig = [x['sig'] for x in sig if x['si'] == 'uW']
     sigf = open(sig_path, 'w')
-    sigf.write(sig[0])
+    sigf.write(b64decode(uw_sig[0]))
     sigf.close()
 
     # write content to file so OpenSSL can check it
     content_path = '{0}/{1}.content'.format(working_dir, ts)
     try:
         f = codecs.open(content_path, 'w', 'utf-8')
-        f.write(content)
+        f.write(content.decode('utf-8'))
         f.close()
     except Exception as e:
         print e
@@ -128,11 +126,6 @@ def checkSig(content, sig, slug):
     com = Popen(command, shell=False, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     out, err = com.communicate()
 
-    # cleanup
-    os.remove(vk_path)
-    os.remove(sig_path)
-    os.remove(content_path)
-
     return out.strip() == 'Verified OK'
 
 
@@ -140,24 +133,25 @@ def main(test):
     cat = json.loads(getURL(catalog_url))
     content_list = getContent(cat)
     if test:
-        print u'Testing...'
+        print u'Testing'
     else:
         print u'Signing...'
     for x in content_list:
         content = getURL(x)
         if not content:
-            print 'No content: {0}'.format(x)
             continue
         existing_sig = getURL('{0}.sig'.format(x.rsplit('.', 1)[0]))
         if existing_sig:
-            if checkSig(content, existing_sig, 'uW'):
-                print "Sig good: {0}".format(x)
+            if checkSig(content, json.loads(existing_sig), 'uW'):
+                sys.stdout.write('.')
+                sys.stdout.flush()
                 continue
         if test:
             print "!! SIG FAILURE: {0}".format(x)
             continue
         sig = sign(content)
         upload(sig, x, 'uW')
+        print "Signed: {0}".format(x)
 
 
 if __name__ == '__main__':
@@ -168,4 +162,12 @@ if __name__ == '__main__':
 
     args = parser.parse_args(sys.argv[1:])
 
+    # init working dir
+    if not os.path.exists(working_dir):
+        print 'initializing working directory in '+working_dir
+        os.makedirs(working_dir)
+
     main(args.test)
+
+    print 'Done'
+    shutil.rmtree(working_dir)
