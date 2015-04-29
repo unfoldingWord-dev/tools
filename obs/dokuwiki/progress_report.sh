@@ -27,7 +27,7 @@ echo -n "Published languages (" >>"$PROGRESS_FILE"
 wget -U 'd43' -q -O - $PUB_URL | grep 'language' >/tmp/published_langs.txt
 PUB_LANGS=`cat /tmp/published_langs.txt | tr '}' '\n' | grep -c language`
 echo -n "$PUB_LANGS): " >>"$PROGRESS_FILE"
-cat /tmp/published_langs.txt | cut -f 2 -d ':' | cut -f 2 -d '"' | tr '\n' ' ' >>"$PROGRESS_FILE"
+cat /tmp/published_langs.txt | tr '}' '\n' | grep -o "language.*" | cut -f 2 -d ' ' | tr '\n' ' ' | tr '\n' ' ' | tr -d '"' | tr -d ',' >>"$PROGRESS_FILE"
 
 echo >>"$PROGRESS_FILE"
 echo >>"$PROGRESS_FILE"
