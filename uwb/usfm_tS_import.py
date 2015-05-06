@@ -29,9 +29,9 @@ import datetime
 
 chunkurl = u'https://api.unfoldingword.org/ts/txt/2/{0}/en/ulb/chunks.json'
 outtmp = '/var/www/vhosts/api.unfoldingword.org/httpdocs/{0}/txt/1/{0}-{1}'
-idre = re.compile(ur'\\id.*', re.UNICODE)
+idre = re.compile(ur'\\id (\w+)', re.UNICODE)
 chpre = re.compile(ur'\\c [0-9]* ', re.UNICODE)
-bknmre = re.compile(ur'\\h .*', re.UNICODE)
+bknmre = re.compile(ur'\\h (.*)', re.UNICODE)
 books = { u'GEN': [ u'Genesis', '01' ],
           u'EXO': [ u'Exodus', '02' ],
           u'LEV': [ u'Leviticus', '03' ],
@@ -117,14 +117,18 @@ def main(resource, lang, slug, name, checking, contrib, ver):
     for path in files:
         lines = codecs.open(path, encoding='utf-8').readlines()
         book = getRE('\n'.join(lines[:10]), idre)
-        bookname = getRE('\n'.join(lines[:10]), bknmre)
-        if not book: continue
-        verses = getVerses(book)
-        if not verses: continue
         print book
-        newlines = addSections(lines, verses)
-        book_name = '{0}-{1}.usfm'.format(books[book][1], book)
-        writeFile('{0}/{1}'.format(outdir, book_name), u''.join(newlines))
+        bookname = getRE('\n'.join(lines[:10]), bknmre)
+        if not book:
+            print "No book"
+            continue
+        verses = getVerses(book)
+        #if not verses:
+            #print "No verses"
+            #continue
+        #newlines = addSections(lines, verses)
+        #book_name = '{0}-{1}.usfm'.format(books[book][1], book)
+        #writeFile('{0}/{1}'.format(outdir, book_name), u''.join(newlines))
         meta = ['Bible: OT']
         if int(books[book][1]) > 39:
             meta = ['Bible: NT']
@@ -133,6 +137,8 @@ def main(resource, lang, slug, name, checking, contrib, ver):
                                           'sort': books[book][1],
                                           'desc': ''
                                         }
+    del books_published['psa']
+    del books_published['isa']
     status = { "slug": slug.lower(),
                "name": name,
                "lang": lang,
@@ -180,7 +186,7 @@ def getRE(text, regex):
     se = regex.search(text)
     if not se:
         return False
-    return se.group(0).split()[1]
+    return se.group(1).strip()
 
 def writeJSON(outfile, p):
     '''
