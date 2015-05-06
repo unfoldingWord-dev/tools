@@ -23,6 +23,7 @@ import codecs
 import datetime
 
 
+DEBUG = False
 root = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo'
 pages = os.path.join(root, 'pages')
 api = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
@@ -45,7 +46,7 @@ fridre = re.compile(ur'[0-5][0-9]-[0-9][0-9]', re.UNICODE)
 tNre = re.compile(ur'==== Translation Notes.*', re.UNICODE | re.DOTALL)
 itre = re.compile(ur'==== Important Terms: ====(.*?)====', re.UNICODE | re.DOTALL)
 tNtermre = re.compile(ur' \*\*(.*?)\*\* ', re.UNICODE)
-tNtextre = re.compile(ur'\*\* [–-] (.*)', re.UNICODE)
+tNtextre = re.compile(ur'\*\*  ?[–-]  ?(.*)', re.UNICODE)
 
 # Regexes for DW to HTML conversion
 boldstartre = re.compile(ur'([ ,.])(\*\*)', re.UNICODE)
@@ -146,6 +147,7 @@ def getDump(j):
     return json.dumps(j, indent=2, sort_keys=True)
 
 def getFrame(f):
+    if DEBUG: print f
     page = codecs.open(f, 'r', encoding='utf-8').read()
     getAliases(page)
     frame = {}
@@ -170,6 +172,7 @@ def gettN(page):
         tNtermse = tNtermre.search(i)
         if not tNtermse:
             continue
+        if DEBUG: print i
         item['ref'] = tNtermse.group(1)
         item['text'] = tNtextre.search(i).group(1).strip()
         item['text'] = getHTML(item['text'])
