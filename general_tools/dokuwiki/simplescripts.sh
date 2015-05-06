@@ -10,6 +10,55 @@
 # These are short snippets that are useful for accomplishing certain tasks.
 #
 
+sed -i "s/topic>/topic>:en:bible?/" $f
+
+ktupdater () {
+    cd /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/obe/$1
+    for x in `ls`; do
+       name=${x%%.txt}
+       for f in `grep -re "en:bible:notes:key-terms:$name" ../../bible/* | grep txt | cut -f 1 -d ':'`; do
+           sed -i "s/en:bible:notes:key-terms:$name/en:obe:$1:$name/g" $f
+           echo "$name in $f"
+       done
+    done
+}
+
+ktupdater kt
+ktupdater other
+
+cd /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en
+for x in `grep -re 'en:obs:notes:key-terms:home' * | grep txt | cut -f 1 -d ':'`; do
+    sed -i "s/en:obs:notes:key-terms:home/en:obe:ktobs/g" $x
+done
+
+cd /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/obe/kt
+for x in `ls`; do
+    if [ -f "../../obs/notes/key-terms/$x" ]; then
+       name=${x%%.txt}
+       for f in `grep -re "en:obs:notes:key-terms\/$name" ../../* | grep txt | cut -f 1 -d ':'`; do
+           sed -i "s/en:obs:notes:key-terms\/$name/en:obe:kt:$name/g" $f
+       done
+    fi
+done
+
+cd /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/obe/other
+for x in `ls`; do
+    if [ -f "../../obs/notes/key-terms/$x" ]; then
+       name=${x%%.txt}
+       for f in `grep -re "en:obs:notes:key-terms\/$name" ../../* | grep txt | cut -f 1 -d ':'`; do
+           sed -i "s/en:obs:notes:key-terms\/$name/en:obe:other:$name/g" $f
+       done
+    fi
+done
+
+replacer () { 
+    cd /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/
+    for f in `grep -re "en:obs:notes:key-terms\/$1" * | grep txt | cut -f 1 -d ':'`; do
+        echo $f
+        sed -i "s/en:obs:notes:key-terms\/$1/en:obe:$3:$2/g" $f
+    done
+}
+
 # Seds to fix image links and Zim Wiki content headers
 sed -i -e 's/..\/..\/images/https:\/\/api.unfoldingword.org\/obs\/jpg\/1\/en\/360px/' \
     -e 's/obs-/obs-fa-/' -e '/Content-Type/d' -e '/Wiki-Format/d'
