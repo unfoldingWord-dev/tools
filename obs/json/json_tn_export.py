@@ -47,6 +47,9 @@ tNre = re.compile(ur'==== Translation Notes.*', re.UNICODE | re.DOTALL)
 itre = re.compile(ur'==== Important Terms: ====(.*?)====', re.UNICODE | re.DOTALL)
 tNtermre = re.compile(ur' \*\*(.*?)\*\* ', re.UNICODE)
 tNtextre = re.compile(ur'\*\*  ?[–-]  ?(.*)', re.UNICODE)
+qre = re.compile(ur'[–-] \*\*(.*)\*\*', re.UNICODE)
+are = re.compile(ur'\* ?//(.*)//', re.UNICODE)
+refre = re.compile(ur'\[(.*?)]', re.UNICODE)
 
 # Regexes for DW to HTML conversion
 boldstartre = re.compile(ur'([ ,.])(\*\*)', re.UNICODE)
@@ -111,7 +114,6 @@ def getKTExamples(page):
     return examples
 
 def getHTML(text):
-    # add ul/li
     text = boldstartre.sub(ur'\1<b>', text)
     text = boldstopre.sub(ur'</b>\2', text)
     text = boldstartre2.sub(ur'<b>', text)
@@ -154,6 +156,30 @@ def getFrame(f):
     frame['id'] = fridre.search(f).group(0).strip()
     frame['tn'] = gettN(page)
     return frame
+
+def getCQ(f):
+    page = codecs.open(f, 'r', encoding='utf-8').read()
+    story = {}
+    story['id'] = f.rsplit('/')[-1].rstrip('.txt')
+    story['cq'] = getQandA(page)
+    return story
+
+def getQandA(text):
+    cq = []
+    for line in text.splitlines():
+        if not line.startswith(u'  '): continue
+        if qre.search(line):
+            item = {}
+            item['q'] = qre.search(line).group(1).strip()
+        elif are.search(line):
+            item['a'] = are.search(line).group(1).strip()
+            item['ref'] = refre.findall(item['a'])
+            item['a'] = item['a'].split('[')[0].strip()
+            cq.append(item)
+            continue
+        else:
+            print line
+    return cq
 
 def getAliases(page):
     text = itre.search(page).group(1).strip()
@@ -209,8 +235,20 @@ def runtN(lang, today):
     frames.append({'date_modified': today})
     writeJSON('{0}/tN-{1}.json'.format(apipath, lang), frames)
 
+def runCQ(lang, today):
+    CQpath = os.path.join(pages, lang, 'obs/notes/questions')
+    apipath = os.path.join(api, lang)
+    stories = []
+    for f in glob.glob('{0}/*.txt'.format(CQpath)):
+        if 'home.txt' in f: continue
+        stories.append(getCQ(f))
+    stories.sort(key=lambda x: x['id'])
+    stories.append({'date_modified': today})
+    writeJSON('{0}/CQ-{1}.json'.format(apipath, lang), stories)
+
 
 if __name__ == '__main__':
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
     runtN('en', today)
     runKT('en', today)
+    runCQ('en', today)
