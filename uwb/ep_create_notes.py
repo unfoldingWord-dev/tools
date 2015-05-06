@@ -57,4 +57,5 @@ if __name__ == '__main__':
             print link.format(pad_name)
         except EtherpadException as e:
             print '{0}: {1}'.format(e, pad_name)
-        break
+        except UnicodeEncodeError:
+            print 'Unicode error on {0}'.format(pad_name)
