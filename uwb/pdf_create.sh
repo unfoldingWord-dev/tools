@@ -18,6 +18,7 @@ book_export () {
     BOOK_PDF="/tmp/$1.pdf"
     rm -f $BOOK_HTML
     cd $NOTES
+    # Get all the pages
     for f in `find "$1" -type f | grep -v 'home.txt' | sort`; do
         wget -U 'me' "$NOTES_URL/${f%%.txt}" -O - \
             | grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' \
@@ -25,18 +26,29 @@ book_export () {
             >> $BOOK_HTML
     done
     echo '<h1>Key Terms</h1>' >> $BOOK_HTML
+    # Get the linked key terms
     for term in `grep -oP '"\/en\/obe.*?"' $BOOK_HTML | tr -d '"' | sort | uniq`; do
         wget -U 'me' ${OBE_URL}${term} -O - \
             | grep -v ' href="\/tag\/' \
-            >> $BOOK_HTML
+            > /tmp/$$.tmp
+
+        linkname=`head -3 /tmp/$$.tmp | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"'`
+        echo -n 's/' >> /tmp/$$.sed
+        echo -n $term | sed -e 's/[]\/$*.^|[]/\\&/g' >> /tmp/$$.sed
+        echo -n '/#' >> /tmp/$$.sed
+        echo "$linkname/g" >> /tmp/$$.sed
+
+        cat /tmp/$$.tmp >> $BOOK_HTML
     done
 
     # Link Fixes
-    sed -i "s/\/en\/obe\/other\//#/" $BOOK_HTML
-    sed -i "s/\/en\/obe\/kt\//#/" $BOOK_HTML
+    sed -i -f /tmp/$$.sed $BOOK_HTML
 
     pandoc --template=$TEMPLATE -S --toc --toc-depth=1 -o $BOOK_PDF $BOOK_HTML
     echo "See $BOOK_PDF"
 }
 
 book_export $1
+
+# Remove tmp files
+rm -f /tmp/$$.*
