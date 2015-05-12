@@ -14,17 +14,33 @@ OBE_URL='https://door43.org/_export/xhtmlbody/'
 TEMPLATE=/var/www/vhosts/door43.org/tools/general_tools/pandoc_pdf_template.tex
 
 book_export () {
+    BOOK_TMP="/tmp/$$.html"
     BOOK_HTML="/tmp/$1.html"
     BOOK_PDF="/tmp/$1.pdf"
-    rm -f $BOOK_HTML
+    echo '<h1>Text and Notes</h1>' > $BOOK_HTML
     cd $NOTES
     # Get all the pages
     for f in `find "$1" -type f | grep -v 'home.txt' | sort`; do
         wget -U 'me' "$NOTES_URL/${f%%.txt}" -O - \
             | grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' \
             | grep -v ' href="\/tag\/' \
-            >> $BOOK_HTML
+            >> $BOOK_TMP
     done
+    # Remove TFT
+    TFT=false
+    while read line; do
+        if [ "$line" == '<h2 class="sectionedit2" id="tft">TFT:</h2>' ]; then
+            TFT=true
+            continue
+        fi
+        if [ "${line:0:25}" == '<!-- EDIT2 SECTION "TFT:"' ]; then
+            TFT=false
+            continue
+        fi
+        $TFT && continue
+        echo "$line" >>$BOOK_HTML
+    done < $BOOK_TMP
+
     echo '<h1>Key Terms</h1>' >> $BOOK_HTML
     # Get the linked key terms
     for term in `grep -oP '"\/en\/obe.*?"' $BOOK_HTML | tr -d '"' | sort | uniq`; do
