@@ -10,6 +10,12 @@
 # These are short snippets that are useful for accomplishing certain tasks.
 #
 
+
+# Remove lame zero width junk (​) with
+    sed -i 's/\xe2\x80\x8b//g' inputfile
+
+
+
 sed -i "s/topic>/topic>:en:bible?/" $f
 
 ktupdater () {
