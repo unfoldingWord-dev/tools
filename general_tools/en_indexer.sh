@@ -10,5 +10,7 @@ index () {
     done
 }
 
+index /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/notes notes
+index /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/obe obe
 index /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/ta ta
 index /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible bible
