@@ -59,7 +59,11 @@ book_export () {
 
     # Link Fixes
     sed -i -f /tmp/$$.sed $BOOK_HTML
+    sed -i 's/\/en\/bible.*"/"/' $BOOK_HTML
+    sed -i 's/\/en\/obs.*"/"/' $BOOK_HTML
 
+    # Create PDF
+    sed -i 's/\xe2\x80\x8b//g' $BOOK_HTML
     pandoc --template=$TEMPLATE -S --toc --toc-depth=1 -o $BOOK_PDF $BOOK_HTML
     echo "See $BOOK_PDF"
 }
