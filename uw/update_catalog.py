@@ -108,6 +108,8 @@ def obs(obs_v1_cat):
                                                                e['language']))
         e['notes'] = addDate(u'{0}/{1}/tN-{1}.json'.format(obs_v1_api,
                                                                e['language']))
+        e['checking_questions'] = addDate(u'{0}/{1}/CQ-{1}.json'.format(obs_v1_api,
+                                                               e['language']))
         e['date_modified'] = mostRecent(e)
         outfile = u'{0}/obs/{1}/resources.json'.format(obs_v2_local,
                                                                 e['language'])
@@ -172,6 +174,9 @@ def bible(langnames, bible_status, bible_bks, langs):
                                                              obs_v2_api, lang))
                 slug_cat['notes'] = addDate('{0}/{1}/{2}/notes.json'.format(
                                                          obs_v2_api, bk, lang))
+                # 05/13/15 JL: please finish me!
+                slug_cat['checking_questions'] = ''
+
                 del slug_cat['books_published']
                 del slug_cat['lang']
                 slug_cat['date_modified'] = mostRecent(slug_cat)
