@@ -20,7 +20,7 @@ book_export () {
     rm -f $BOOK_HTML
     cd $NOTES
     # Get all the pages
-    for f in `find "$1" -type f | grep -v 'home.txt' | sort`; do
+    for f in `find "$1" -type f -name '[0-9]*.txt' | grep -v 'asv-ulb' | sort`; do
         wget -U 'me' "$NOTES_URL/${f%%.txt}" -O - \
             | grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' \
             | grep -v ' href="\/tag\/' \
