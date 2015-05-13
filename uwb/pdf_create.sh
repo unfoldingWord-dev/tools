@@ -9,8 +9,8 @@
 #  Jesse Griffin <jesse@distantshores.org>
 
 NOTES='/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes'
-NOTES_URL='https://door43.org/_export/xhtmlbody/en/bible/notes'
-OBE_URL='https://door43.org/_export/xhtmlbody/'
+BASE_URL='https://door43.org/_export/xhtmlbody'
+NOTES_URL="$BASE_URL/en/bible/notes"
 TEMPLATE=/var/www/vhosts/door43.org/tools/general_tools/pandoc_pdf_template.tex
 
 book_export () {
@@ -44,13 +44,30 @@ book_export () {
     echo '<h1>Key Terms</h1>' >> $BOOK_HTML
     # Get the linked key terms
     for term in `grep -oP '"\/en\/obe.*?"' $BOOK_HTML | tr -d '"' | sort | uniq`; do
-        wget -U 'me' ${OBE_URL}${term} -O - \
+        wget -U 'me' ${BASE_URL}${term} -O - \
             | grep -v ' href="\/tag\/' \
             > /tmp/$$.tmp
 
         linkname=`head -3 /tmp/$$.tmp | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"'`
         echo -n 's/' >> /tmp/$$.sed
         echo -n $term | sed -e 's/[]\/$*.^|[]/\\&/g' >> /tmp/$$.sed
+        echo -n '"/#' >> /tmp/$$.sed
+        echo -n "$linkname" >> /tmp/$$.sed
+        echo '"/g' >> /tmp/$$.sed
+
+        cat /tmp/$$.tmp >> $BOOK_HTML
+    done
+
+    echo '<h1>translationAcademy</h1>' >> $BOOK_HTML
+    # Get the linked tA
+    for ta in `grep -oP '"\/en\/ta.*?"' $BOOK_HTML | tr -d '"' | sort | uniq`; do
+        wget -U 'me' ${BASE_URL}${ta} -O - \
+            | grep -v ' href="\/tag\/' \
+            > /tmp/$$.tmp
+
+        linkname=`head -3 /tmp/$$.tmp | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"'`
+        echo -n 's/' >> /tmp/$$.sed
+        echo -n $ta | sed -e 's/[]\/$*.^|[]/\\&/g' >> /tmp/$$.sed
         echo -n '"/#' >> /tmp/$$.sed
         echo -n "$linkname" >> /tmp/$$.sed
         echo '"/g' >> /tmp/$$.sed
