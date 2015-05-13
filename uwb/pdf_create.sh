@@ -12,6 +12,7 @@
 ### To do:
 # -> Fix TOC to support 3 digit chapter numbers (or remove chp nums)
 # -> Fix pandoc to support images, or fix pandoc-dev list spacing
+# -> Fix ulem not on server
 
 NOTES='/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes'
 BASE_URL='https://door43.org/_export/xhtmlbody'
