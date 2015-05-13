@@ -87,7 +87,7 @@ book_export () {
         -e 's/"\/_media/"https:\/\/door43.org\/_media/g' \
         $BOOK_HTML
 
-    BOOK_NAME=`grep -m 1 'Chapter 01 Comp' $BOOK_HTML | cut -f 5 -d '>' | cut -f 1 -d ' '`
+    BOOK_NAME=`grep -m 1 'Chapter 01 Comp' $BOOK_HTML | cut -f 5 -d '>' | cut -d 'C' -f 1`
     # Create PDF
     pandoc --template=$TEMPLATE -S --toc --toc-depth=1 -V toc-depth=0 \
         -V documentclass=memoir -V title="$BOOK_NAME Text and Notes" \
