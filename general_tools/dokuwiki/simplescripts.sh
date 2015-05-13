@@ -10,6 +10,12 @@
 # These are short snippets that are useful for accomplishing certain tasks.
 #
 
+# Remove link names from key term links
+for f in `find . -type f -name '[0-9]*.txt'`; do
+    sed -i -e '/:kt:/s/|.*\]\]/\]\]/' \
+        -e '/:other:/s/|.*\]\]/\]\]/' \
+        $f
+done
 
 # Remove lame zero width junk (​) with
     sed -i 's/\xe2\x80\x8b//g' inputfile
