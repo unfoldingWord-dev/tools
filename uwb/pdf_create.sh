@@ -17,7 +17,6 @@ book_export () {
     BOOK_TMP="/tmp/$$.html"
     BOOK_HTML="/tmp/$1.html"
     BOOK_PDF="/tmp/$1.pdf"
-    echo '<h1>Text and Notes</h1>' > $BOOK_HTML
     cd $NOTES
     # Get all the pages
     for f in `find "$1" -type f | grep -v 'home.txt' | sort`; do
@@ -62,9 +61,16 @@ book_export () {
     sed -i 's/\/en\/bible.*"/"/' $BOOK_HTML
     sed -i 's/\/en\/obs.*"/"/' $BOOK_HTML
 
+    # Cleanup
+    sed -i -e 's/\xe2\x80\x8b//g' -e '/^<hr>/d' -e '/&lt;&lt;/d' \
+        -e 's/<\/span>/<\/span> /g' \
+        $BOOK_HTML
+
+    BOOK_NAME=`grep -m 1 'Chapter 01 Comp' $BOOK_HTML | cut -f 5 -d '>' | cut -f 1 -d ' '`
     # Create PDF
-    sed -i 's/\xe2\x80\x8b//g' $BOOK_HTML
-    pandoc --template=$TEMPLATE -S --toc --toc-depth=1 -o $BOOK_PDF $BOOK_HTML
+    pandoc --template=$TEMPLATE -S --toc --toc-depth=1 -V toc-depth=0 \
+        -V documentclass=memoir -V title="$BOOK_NAME Text and Notes" \
+        -o $BOOK_PDF $BOOK_HTML
     echo "See $BOOK_PDF"
 }
 
