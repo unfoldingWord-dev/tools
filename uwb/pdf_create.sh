@@ -17,6 +17,7 @@ book_export () {
     BOOK_TMP="/tmp/$$.html"
     BOOK_HTML="/tmp/$1.html"
     BOOK_PDF="/tmp/$1.pdf"
+    rm -f $BOOK_HTML
     cd $NOTES
     # Get all the pages
     for f in `find "$1" -type f | grep -v 'home.txt' | sort`; do
@@ -50,8 +51,9 @@ book_export () {
         linkname=`head -3 /tmp/$$.tmp | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"'`
         echo -n 's/' >> /tmp/$$.sed
         echo -n $term | sed -e 's/[]\/$*.^|[]/\\&/g' >> /tmp/$$.sed
-        echo -n '/#' >> /tmp/$$.sed
-        echo "$linkname/g" >> /tmp/$$.sed
+        echo -n '"/#' >> /tmp/$$.sed
+        echo -n "$linkname" >> /tmp/$$.sed
+        echo '"/g' >> /tmp/$$.sed
 
         cat /tmp/$$.tmp >> $BOOK_HTML
     done
