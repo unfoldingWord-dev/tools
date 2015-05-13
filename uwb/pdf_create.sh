@@ -83,6 +83,7 @@ book_export () {
     # Cleanup
     sed -i -e 's/\xe2\x80\x8b//g' -e '/^<hr>/d' -e '/&lt;&lt;/d' \
         -e 's/<\/span>/<\/span> /g' -e 's/jpg[?a-zA-Z=;&0-9]*"/jpg"/g' \
+        -e '/jpg"/d' \
         -e 's/"\/_media/"https:\/\/door43.org\/_media/g' \
         $BOOK_HTML
 
