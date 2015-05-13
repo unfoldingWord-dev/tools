@@ -1,4 +1,4 @@
-\documentclass[$if(fontsize)$$fontsize$,$endif$$if(lang)$$lang$,$endif$$if(papersize)$$papersize$,$endif$$for(classoption)$$classoption$$sep$,$endfor$]{$documentclass$}
+\documentclass[$if(fontsize)$$fontsize$,$endif$$if(lang)$$lang$,$endif$$if(papersize)$$papersize$,$endif$$for(classoption)$$classoption$$sep$,$endfor$,openany]{$documentclass$}
 $if(fontfamily)$
 \usepackage{$fontfamily$}
 $else$
@@ -18,15 +18,8 @@ $if(euro)$
   \usepackage{eurosym}
 $endif$
 \usepackage[vmargin=2cm,hmargin=2cm]{geometry}
-\else % if luatex or xelatex
-  \ifxetex
-    \usepackage{mathspec}
-    \usepackage{xltxtra,xunicode}
-  \else
-    \usepackage{fontspec}
-  \fi
-  \defaultfontfeatures{Mapping=tex-text,Scale=MatchLowercase}
-  \newcommand{\euro}{€}
+\pagestyle{empty} 
+\chapterstyle{bringhurst}
 $if(mainfont)$
     \setmainfont{$mainfont$}
 $endif$
