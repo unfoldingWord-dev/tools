@@ -82,7 +82,8 @@ book_export () {
 
     # Cleanup
     sed -i -e 's/\xe2\x80\x8b//g' -e '/^<hr>/d' -e '/&lt;&lt;/d' \
-        -e 's/<\/span>/<\/span> /g' \
+        -e 's/<\/span>/<\/span> /g' -e 's/jpg[?a-zA-Z=;&0-9]*"/jpg"/g' \
+        -e 's/"\/_media/"https:\/\/door43.org\/_media/g' \
         $BOOK_HTML
 
     BOOK_NAME=`grep -m 1 'Chapter 01 Comp' $BOOK_HTML | cut -f 5 -d '>' | cut -f 1 -d ' '`
