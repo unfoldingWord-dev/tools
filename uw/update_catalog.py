@@ -97,7 +97,6 @@ def obs(obs_v1_cat):
                                          u'{0}/obs/{1}/resources.json'.format(
                                                    obs_v2_api, e['language']))
                      }
-        langs_cat.append(lang_entry)
         del e['string']
         del e['direction']
         e['slug'] = 'obs'
@@ -111,6 +110,8 @@ def obs(obs_v1_cat):
         e['checking_questions'] = addDate(u'{0}/{1}/CQ-{1}.json'.format(obs_v1_api,
                                                                e['language']))
         e['date_modified'] = mostRecent(e)
+        lang_entry['language']['date_modified'] = e['date_modified']
+        langs_cat.append(lang_entry)
         outfile = u'{0}/obs/{1}/resources.json'.format(obs_v2_local,
                                                                 e['language'])
         del e['language']
