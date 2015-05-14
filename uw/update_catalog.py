@@ -92,10 +92,7 @@ def obs(obs_v1_cat):
                        'project': { 'name': frontjson['name'],
                                     'desc': frontjson['tagline'],
                                     'meta': []
-                                  },
-                       'res_catalog': addDate(
-                                         u'{0}/obs/{1}/resources.json'.format(
-                                                   obs_v2_api, e['language']))
+                                  }
                      }
         del e['string']
         del e['direction']
@@ -107,15 +104,19 @@ def obs(obs_v1_cat):
                                                                e['language']))
         e['notes'] = addDate(u'{0}/{1}/tN-{1}.json'.format(obs_v1_api,
                                                                e['language']))
-        e['checking_questions'] = addDate(u'{0}/{1}/CQ-{1}.json'.format(obs_v1_api,
-                                                               e['language']))
+        e['checking_questions'] = addDate(u'{0}/{1}/CQ-{1}.json'.format(
+                                                   obs_v1_api, e['language']))
         e['date_modified'] = mostRecent(e)
-        lang_entry['language']['date_modified'] = e['date_modified']
-        langs_cat.append(lang_entry)
         outfile = u'{0}/obs/{1}/resources.json'.format(obs_v2_local,
                                                                 e['language'])
+        lang = e['language']
         del e['language']
         writeFile(outfile, getDump([e]))
+
+        lang_entry['res_catalog'] = addDate(
+                                         u'{0}/obs/{1}/resources.json'.format(
+                                                   obs_v2_api, lang))
+        langs_cat.append(lang_entry)
     # Write global OBS catalog
     outfile = u'{0}/obs/languages.json'.format(obs_v2_local)
     writeFile(outfile, getDump(langs_cat))
