@@ -113,9 +113,8 @@ def obs(obs_v1_cat):
         del e['language']
         writeFile(outfile, getDump([e]))
 
-        lang_entry['res_catalog'] = addDate(
-                                         u'{0}/obs/{1}/resources.json'.format(
-                                                   obs_v2_api, lang))
+        lang_entry['res_catalog'] = u'{0}/obs/{1}/resources.json?date_modified={2}'.format(
+                                                   obs_v2_api, lang, e['date_modified'])
         langs_cat.append(lang_entry)
     # Write global OBS catalog
     outfile = u'{0}/obs/languages.json'.format(obs_v2_local)
