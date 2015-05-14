@@ -23,10 +23,10 @@ from etherpad_lite import EtherpadLiteClient
 from etherpad_lite import EtherpadException
 
 
-COMPLETE = [ 'GEN', 'EXO', 'RUT', 'LAM', 'JON', 'ZEC',
-             'MAT', 'MRK', 'LUK', 'ACT',
-             'GAL', 'PHP', 'COL', '1TH', '2TH',
-             '1TI', '2TI', 'TIT', 'PHM', 'JAS',
+COMPLETE = [ 'GEN', 'EXO', 'DUE', 'RUT', 'ISA', 'LAM', 'JON',
+             'MAT', 'MRK', 'LUK', 'JHN', 'ACT', '1CO',
+             'GAL', 'EPH', 'PHP', 'COL', '1TH', '2TH',
+             '1TI', '2TI', 'TIT', 'PHM', 'JAS', '1PE', '2PE',
              '1JN', '2JN', '3JN', 'JUD', 'REV'
            ]
 names = { 'ULB': 'unfoldingWord Literal Bible',
