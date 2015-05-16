@@ -112,8 +112,8 @@ if __name__ == '__main__':
 
     with open('import_ccsa_licenses.log', 'w') as log:
 
-        # os.chdir('/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages')
-        os.chdir('/var/www/html/dokuwiki/data/gitrepo/pages/')
+        os.chdir('/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages')  # production
+        # os.chdir('/var/www/html/dokuwiki/data/gitrepo/pages/')            # developer debugging
 
         log.write("Beginning import.\n")
 
