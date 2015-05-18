@@ -8,6 +8,10 @@
 #  Contributors:
 #  Phil Hopper <phillip_hopper@wycliffeassociates.org>
 #
+# References:
+#    https://developers.google.com/analytics/devguides/collection/protocol/v1/reference
+#    https://developers.google.com/analytics/devguides/collection/protocol/v1/devguide
+#
 
 import os
 import re
@@ -86,7 +90,7 @@ def process_this_line(logline):
     # send_hit_to_ga(requestparts[1], timestamp)
 
     # HTTP_PORT or HTTPS_PORT
-    with GoogleConnection('www.google-analytics.com', httplib.HTTPS_PORT) as connection:
+    with GoogleConnection('ssl.google-analytics.com', httplib.HTTPS_PORT) as connection:
 
         payload = ['v=1', 'tid=' + propertyID, 'cid=555', 't=pageview', 'dh=' + hostName,
                    'dp=' + requestparts[1]]
