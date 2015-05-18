@@ -131,18 +131,20 @@ if __name__ == '__main__':
 
             if code != 'en':
 
+                dw_code = code.replace('_', '-').lower()
+
                 # get the new document
                 log.write('Getting ' + code + " from creativecommons.org.\n")
                 md = get_translation(code)
 
                 # check for the namespace
-                if not os.path.exists(code):
-                    log.write('Namespace ' + code + " does not exist.\n")
-                    print 'Namespace ' + code + ' does not exist.'
+                if not os.path.exists(dw_code):
+                    log.write('Namespace ' + dw_code + " does not exist.\n")
+                    print 'Namespace ' + dw_code + ' does not exist.'
 
                 else:
                     # directory
-                    dir_name = code + '/legal'
+                    dir_name = dw_code + '/legal'
                     if not os.path.exists(dir_name):
                         os.makedirs(dir_name)
 
