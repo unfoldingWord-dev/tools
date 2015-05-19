@@ -13,8 +13,17 @@
 import codecs
 import httplib
 import lxml.html as html
-import os
 import re
+import sys
+
+sys.path.append('/var/www/vhosts/door43.org/tools/general_tools')
+# noinspection PyBroadException
+try:
+    from git_wrapper import *
+except:
+    print "Please verify that"
+    print "/var/www/vhosts/door43.org/tools/general_tools exists."
+    sys.exit(1)
 
 
 class SelfClosingConnection(httplib.HTTPConnection):
@@ -153,9 +162,11 @@ if __name__ == '__main__':
                     exists = False
                     if os.path.exists(file_name):
                         exists = True
-                        os.rename(file_name, file_name + '.bak')
-                        log.write('File ' + file_name + " backed up.\n")
-                        print 'File ' + file_name + ' backed up.'
+
+                        # DO NOT make a backup
+                        # os.rename(file_name, file_name + '.bak')
+                        # log.write('File ' + file_name + " backed up.\n")
+                        # print 'File ' + file_name + ' backed up.'
 
                     with codecs.open(file_name, 'w', 'utf-8') as file_out:
                         file_out.write(md)
@@ -166,6 +177,13 @@ if __name__ == '__main__':
                         else:
                             log.write('File ' + file_name + " created.\n")
                             print 'File ' + file_name + ' created.'
+
+        # push to github
+        log.write("Pushing to Github.\n")
+        print 'Pushing to Github.'
+        dokuwiki_dir = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/'
+        gitCommit(dokuwiki_dir, u'Updated license.txt from creativecommons.org.')
+        gitPush(dokuwiki_dir)
 
         log.write('Finished')
         os.chdir(cwdir)
