@@ -158,3 +158,4 @@ if __name__ == '__main__':
                                                      help="Source directory.")
     args = parser.parse_args(sys.argv[1:])
     main(args.sourcedir)
+    ### chown -R syncthing:syncthing /var/www/vhosts/api.unfoldingword.org/httpdocs/
