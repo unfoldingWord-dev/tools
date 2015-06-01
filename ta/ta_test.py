@@ -22,6 +22,7 @@ class SelfClosingEtherpad(EtherpadLiteClient):
     def __init__(self):
         super(SelfClosingEtherpad, self).__init__()
 
+        # noinspection PyBroadException
         try:
             pw = open('/usr/share/httpd/.ssh/ep_api_key', 'r').read().strip()
             self.base_params = {'apikey': pw}
@@ -36,6 +37,14 @@ class SelfClosingEtherpad(EtherpadLiteClient):
     # noinspection PyUnusedLocal
     def __exit__(self, exception_type, exception_val, trace):
         return
+
+
+class PageData(object):
+    def __init__(self, section_name, page_id, yaml_data, page_text):
+        self.section_name = section_name
+        self.page_id = page_id
+        self.yaml_data = yaml_data
+        self.page_text = page_text
 
 
 def parse_ta_modules(raw_text):
@@ -86,15 +95,17 @@ def parse_ta_modules(raw_text):
     return returnval
 
 
-def process_ta_pages(e_pad, sections):
+def get_ta_pages(e_pad, sections):
     """
 
     :param e_pad: SelfClosingEtherpad
     :param sections: {}
-    :return:
+    :return: []
     """
 
     regex = re.compile(r"(---\s*\n)(.+)(---\s*\n)(.*)$", re.DOTALL)
+
+    pages = []
 
     for section_key in sections.keys():
 
@@ -102,16 +113,44 @@ def process_ta_pages(e_pad, sections):
 
             # get the page
             try:
-                page_text = e_pad.getText(padID=pad_id)
-                match = regex.match(page_text['text'])
+                page_raw = e_pad.getText(padID=pad_id)
+                match = regex.match(page_raw['text'])
                 if match:
-                    page_info = yaml.load(match.group(2))
-                    print match.group(4)
+                    pages.append(PageData(section_key, pad_id, yaml.load(match.group(2)), match.group(4)))
+                else:
+                    print 'Not able to retrieve ' + pad_id
 
             except EtherpadException as e:
                 print e.message + ': ' + pad_id
 
-    return ''
+    return pages
+
+
+def make_dependency_chart(sections, pages):
+
+    chart_lines = []
+    chart_file = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/ta/dependencies.txt'
+
+    # header
+    chart_lines.append("<graphviz dot right>\ndigraph finite_state_machine {\n")
+    chart_lines.append("rankdir=BT;\n")
+    chart_lines.append("size=\"9,5\";\n")
+
+    # sections
+    chart_lines.append("")
+    for section_key in sections.keys():
+        chart_lines.append(section_key)
+
+    # pages
+    for page in pages:
+        chart_lines.append("")
+
+    chart_lines.append("")
+    chart_lines.append("")
+    chart_lines.append("")
+
+    chart_lines.append("}\n</graphviz>\n")
+    chart_lines.append("~~NOCACHE~~\n")
 
 
 if __name__ == '__main__':
@@ -120,5 +159,5 @@ if __name__ == '__main__':
 
         text = ep.getText(padID='ta-modules')
         ta_sections = parse_ta_modules(text['text'])
-
-        process_ta_pages(ep, ta_sections)
+        ta_pages = get_ta_pages(ep, ta_sections)
+        make_dependency_chart(ta_sections, ta_pages)
