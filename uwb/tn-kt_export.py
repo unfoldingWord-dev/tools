@@ -189,9 +189,9 @@ def gettN(page, f):
     return tN
 
 def runKT(lang, today):
-    ktpath = os.path.join(pages, lang, 'bible/notes/key-terms')
+    ktpath = os.path.join(pages, lang, 'obe')
     keyterms = []
-    for f in glob.glob('{0}/*.txt'.format(ktpath)):
+    for f in glob.glob('{0}/*/*.txt'.format(ktpath)):
         if 'home.txt' in f or '1-discussion-topic.txt' in f: continue
         kt = getKT(f)
         if kt:
