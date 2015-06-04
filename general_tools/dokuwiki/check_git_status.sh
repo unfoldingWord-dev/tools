@@ -15,7 +15,9 @@ echo 'Checking namespaces for outstanding git issues...'
 for d in `find $PAGES -maxdepth 1 -type d`; do
     cd $d
     DIRNAME=${d##*/}
-    [ "$DIRNAME" == "" ] && continue
+    [ "$DIRNAME" == ".git" ] && continue
+    [ "$DIRNAME" == "playground" ] && continue
+    [ "$DIRNAME" == "" ] && DIRNAME="pages"
     STATUS=`git status --porcelain 2>&1`
     if [ "$?" != "0" ]; then
         echo "Problem in $DIRNAME"
