@@ -59,7 +59,11 @@ def getKT(f):
     if not pubre.search(page): return False
     kt = {}
     kt['filename'] = f.rsplit('/', 1)[1].replace('.txt', '')
-    kt['term'] = ktre.search(page).group(1).strip()
+    ktse = ktre.search(page)
+    if not ktse:
+        print 'Term not found for {}'.format(kt['filename'])
+        return False
+    kt['term'] = ktse.group(1).strip()
     kt['sub'] = getKTSub(page)
     kt['def_title'], kt['def'] = getKTDef(page)
     if not kt['def_title']:
