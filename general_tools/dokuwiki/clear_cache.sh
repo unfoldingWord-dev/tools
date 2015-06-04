@@ -9,8 +9,9 @@
 #  Jesse Griffin <jesse@distantshores.org>
 
 ROOT=/var/www/vhosts/door43.org/httpdocs
+HOST=`hostname`
 touch $ROOT/conf/local.php
 touch $ROOT/inc/parser/xhtml.php
 
-wget -O /dev/null -q https://door43.org/lib/exe/js.php?purge=true
-wget -O /dev/null -q https://door43.org/lib/exe/css.php?purge=true
+wget -O /dev/null -q https://$HOST/lib/exe/js.php?purge=true
+wget -O /dev/null -q https://$HOST/lib/exe/css.php?purge=true
