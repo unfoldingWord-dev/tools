@@ -31,13 +31,13 @@ words_path = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/ulb/v1/s
 phrases_path = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/ulb/v1/phrase_subs.txt'
 asvp = re.compile(ur'[tT]ranslation 4 .*$', re.UNICODE)
 LICENSE = u'''~~NOCACHE~~
-\mt unfoldingWord | Literal Bible
+\mt Unlocked Literal Bible
 
 \p \\bd an unrestricted Bible intended for translation into any language \\bd*
 
-\p \em http://unfoldingWord.org/Bible \em*
+\p \em http://unfoldingWord.org/bible \em*
 
-\p unfoldingWord Literal Bible, v. 0.1
+\p Unlocked Literal Bible, v. 0.1
 
 This work is based on \em The American Standard Version \em*, which is in the public domain.
 
@@ -173,7 +173,7 @@ def writeFile(f, content):
 
 def ulbize(l):
   s = u''.join(l)
-  return asvp.sub(ur"unfoldingWord | Literal Bible", s)
+  return asvp.sub(ur"Unlocked Literal Bible", s)
 
 
 def convert(lines, words, phrases):

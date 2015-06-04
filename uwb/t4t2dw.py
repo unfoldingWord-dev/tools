@@ -27,13 +27,13 @@ import argparse
 import datetime
 
 LICENSE = u'''~~NOCACHE~~
-\mt unfoldingWord | Translator's Bible
+\mt Unlocked Dynamic Bible
 
 \p \\bd an unrestricted Bible intended for translation into any language \\bd*
 
-\p \em http://unfoldingWord.org/Bible \em*
+\p \em http://unfoldingWord.org/bible \em*
 
-\p unfoldingWord Translator's Bible, v. 0.1
+\p Unlocked Dynamic Bible, v. 0.1
 
 This work is based on \em The Translation for Translators \em* by Ellis Deibler, available under the terms of a Creative Commons Attribution-ShareAlike 4.0 International License (http://creativecommons.org/licenses/by-sa/4.0/).
 
@@ -224,7 +224,7 @@ def writeFile(f, content):
 
 def utbize(l):
   s = u''.join(l)
-  return t4tp.sub(ur"unfoldingWord | Translator's Bible", s)
+  return t4tp.sub(ur"Unlocked Dynamic Bible", s)
 
 
 def convert(f):

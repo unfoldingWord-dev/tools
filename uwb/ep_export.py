@@ -23,14 +23,14 @@ from etherpad_lite import EtherpadLiteClient
 from etherpad_lite import EtherpadException
 
 
-COMPLETE = [ 'GEN', 'EXO', 'DUE', 'RUT', 'ISA', 'LAM', 'JON',
-             'MAT', 'MRK', 'LUK', 'JHN', 'ACT', '1CO',
-             'GAL', 'EPH', 'PHP', 'COL', '1TH', '2TH',
-             '1TI', '2TI', 'TIT', 'PHM', 'JAS', '1PE', '2PE',
-             '1JN', '2JN', '3JN', 'JUD', 'REV'
+COMPLETE = [ 'GEN', 'EXO', 'DUE', 'JDG', 'RUT', '1CH', 'NEH',
+             'JOB', 'ISA', 'LAM', 'JOL', 'JON', 'NAH', 'HAB', 'ZEC',
+             'MAT', 'MRK', 'LUK', 'JHN', 'ACT', 'ROM', '1CO', '2CO', 'GAL',
+             'EPH', 'PHP', 'COL', '1TH', '2TH', '1TI', '2TI', 'TIT', 'PHM',
+             'HEB', 'JAS', '1PE', '2PE', '1JN', '2JN', '3JN', 'JUD', 'REV'
            ]
-names = { 'ULB': 'unfoldingWord Literal Bible',
-          'UDB': 'unfoldingWord Dynamic Bible'
+names = { 'ULB': 'Unlocked Literal Bible',
+          'UDB': 'Unlocked Dynamic Bible'
         }
 baseout = '/var/www/vhosts/api.unfoldingword.org/httpdocs/{0}/txt/1/{0}-{1}'
 draftout = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/{1}/{0}/ep/'
@@ -46,7 +46,7 @@ LICENSE = u'''\mt {1}
 
 \p \\bd an unrestricted Bible intended for translation into any language \\bd*
 
-\p \em http://unfoldingWord.org/Bible \em*
+\p \em http://unfoldingWord.org/bible \em*
 
 \p {1}, v. {0}
 
@@ -66,8 +66,6 @@ LICENSE = u'''\mt {1}
 
 \p \\bd Attribution \\bd* — You must attribute the work as follows: "Original work available at http://openbiblestories.com." Attribution statements in derivative works should not in any way suggest that we endorse you or your use of this work.
 \p \\bd ShareAlike \\bd* — If you remix, transform, or build upon the material, you must distribute your contributions under the same license as the original.
-
-\p Use of trademarks: \\bd unfoldingWord \\bd* is a trademark of Distant Shores Media and may not be included on any derivative works created from this content.  Unaltered content from http://unfoldingWord.org must include the \\bd unfoldingWord \\bd* logo when distributed to others. But if you alter the content in any way, you must remove the \\bd unfoldingWord \\bd* logo before distributing your work.
 '''
 books = { u'GEN': [ u'Genesis', '01' ],
           u'EXO': [ u'Exodus', '02' ],

@@ -10,7 +10,7 @@
 
 
 """
-This script publishes the unfoldingWord Bible into the tS v2 API.
+This script publishes the Unlocked Bible into the tS v2 API.
 
 Requires that https://github.com/Door43/USFM-Tools be checked out to
 /var/www/vhosts/door43.org/USFM-Tools or be on the path
