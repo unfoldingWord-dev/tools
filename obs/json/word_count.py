@@ -32,10 +32,10 @@ def count(lang):
 
     text = []
     for chp in content_json['chapters']:
+        text.append(chp['title'])
         for frame in chp['frames']:
-            if 'text' not in frame:
-                continue
-            text.append(frame['text'])
+            if 'text' in frame:
+                text.append(frame['text'])
     text_str = u'\n'.join(text)
     writeFile('/tmp/obs-{0}.txt'.format(lang), text_str)
     print 'Words in {0}: {1}'.format(lang, len(text_str.split()))
