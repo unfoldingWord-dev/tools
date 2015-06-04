@@ -11,7 +11,6 @@
 PROGNAME="${0##*/}"
 PAGES=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/
 
-echo 'Checking namespaces for outstanding git issues...'
 for d in `find $PAGES -maxdepth 1 -type d`; do
     cd $d
     DIRNAME=${d##*/}
