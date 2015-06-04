@@ -34,7 +34,7 @@ bible_dirs = [
   'jer', 'jhn', 'job', 'jol', 'jon', 'jos', 'jud', 'lam', 'lev',
   'luk', 'mal', 'mat', 'mic', 'mrk', 'nam', 'neh', 'num', 'oba',
   'phm', 'php', 'pro', 'rev', 'rom', 'rut', 'sng', 'tit', 'zec',
-  'zep'
+  'zep', 'isa'
 ]
 bible_slugs = [('udb', 'en'), ('ulb', 'en'), ('avd', 'ar')]
 usfm_api = u'https://api.unfoldingword.org/{0}/txt/1/{0}-{1}/{2}?{3}'
