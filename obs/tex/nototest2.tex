@@ -1,0 +1,71 @@
+%\useregime[utf]
+\enableregime[utf]
+%\enabletrackers[afm.loading,fonts.missing,fonts.warnings,fonts.names,fonts.specifications,fonts.scaling,system.dump] % For Debugging
+\enabletrackers[afm.loading,fonts.missing,fonts.warnings,system.dump] % For Debugging
+\mainlanguage[en]
+\usemodule[simplefonts]
+\starttypescript[noto]
+    % Standard Font Features listed in: /opt/context/tex/texmf-context/tex/context/base/font-pre.mkiv
+    \definefontfeature[arabicFEA][mode=node,language=dflt,script=arab,init=yes,medi=yes,fina=yes,isol=yes,calt=yes,rlig=yes,tlig=yes,trep=yes,curs=yes,kern=yes,mark=yes]
+    \definefallbackfamily [noto][ss] [NotoSansEthiopic] [range=0x1200-0x1399,0x2d80-0x2dde,0xab01-0xab2e]
+    \definefallbackfamily [noto][ss] [NotoSansArmenian] [range=0x0531-0x058f,0xfb13-0xfb17]
+    \definefallbackfamily [noto][ss] [NotoNaskhArabic] [range=arabic, features=arabicFEA]
+    \definefallbackfamily [noto][rm] [NotoSansEthiopic] [range=0x1200-0x1399,0x2d80-0x2dde,0xab01-0xab2e]
+    \definefallbackfamily [noto][rm] [NotoSerifArmenian] [range=0x0531-0x058f,0xfb13-0xfb17]
+    \definefallbackfamily [noto][rm] [NotoNaskhArabic] [range=arabic, features=arabicFEA]
+    \definefallbackfamily [noto][it] [NotoSansEthiopic] [range=0x1200-0x1399,0x2d80-0x2dde,0xab01-0xab2e, features=slanted]
+    \definefallbackfamily [noto][it] [NotoSerifArmenian] [range=0x0531-0x058f,0xfb13-0xfb17, features=slanted]
+    \definefallbackfamily [noto][it] [NotoNaskhArabic] [range=arabic, features=arabicFEA,slanted]
+    \definefallbackfamily [noto][sl] [NotoSansEthiopic] [range=0x1200-0x1399,0x2d80-0x2dde,0xab01-0xab2e, features=slanted]
+    \definefallbackfamily [noto][sl] [NotoSerifArmenian] [range=0x0531-0x058f,0xfb13-0xfb17, features=slanted]
+    \definefallbackfamily [noto][sl] [NotoNaskhArabic] [range=arabic, features=arabicFEA,slanted]
+    \definefontfamily     [noto][ss] [NotoSans]
+    \definefontfamily     [noto][rm] [NotoSerif]
+    \definefontfamily     [noto][it] [NotoSans]
+    \definefontfamily     [noto][sl] [NotoSans]
+    \definefontfamily     [noto][mm] [modern]
+\stoptypescript
+\setupbodyfont[noto,sans]
+\usetypescript[noto][uc]
+
+% Enables clickable URLS and TOC
+\setupinteraction[state=start, color=blue, style=normal]
+\setupcombinedlist[content][interaction=all,color=blue]
+%\setuphead[section][style=\tfd, number=no, before={\blank[big]}, after={\blank[big]}, align={middle, lesshyphenation, verytolerant}]
+\setuphead[section][style=\tfd, number=no, before={\par\par}, after={\par\par}, align={middle, lesshyphenation, verytolerant}]
+
+% Enables index (bookmarks) in PDF document
+\placebookmarks[section][section,force=yes]
+\setupinteractionscreen[option=bookmark]
+
+% and finaly we activate this package.
+
+\starttext
+\placecontent[extras={25=page},alternative=c]
+\section{The Examples}
+\newtoks\amtoks \newtoks\ettoks \newtoks\prtoks \newtoks\rutoks \newtoks\artoks
+\amtoks={հայերեն} \rutoks={ру́сский язы́к} \ettoks={አማርኛ} \prtoks={língua portuguesa, português} \artoks={\textdir TRT{من أين أنت؟} \textdir TLT}
+Testing, testing, just some standard Latin script options: \the\prtoks \\
+Here is some Ethiopic (the defined fallback should switch to Amharic without extra coding in this source text): \the\ettoks \\
+And this is Russian (since cyrillic is already in NotoSans by default, no fallback is defined to handle this): \the\rutoks \\
+Here is Amenian (with NotoSansArmenian): \the\amtoks \\
+And here is some Arabic (using NotoNaskhArabic): \the\artoks \\
+\section{The Style Examples}
+rm: {\rm {\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} \\ {\the\artoks\relax} \\ \setupnarrower[middle=12pt]\startnarrower tfc: \tfc{{\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} \\ {\the\artoks\relax}} \stopnarrower} \\
+em: {\em {\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} \\ {\the\artoks\relax} \\ \setupnarrower[middle=12pt]\startnarrower tfc: \tfc{{\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} \\ {\the\artoks\relax}} \stopnarrower} \\
+bf: {\bf {\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} \\ {\the\artoks\relax} \\ \setupnarrower[middle=12pt]\startnarrower tfc: \tfc{{\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} \\ {\the\artoks\relax}} \stopnarrower} \\
+it: {\it {\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} \\ {\the\artoks\relax} \\ \setupnarrower[middle=12pt]\startnarrower tfc: \tfc{{\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} \\ {\the\artoks\relax}} \stopnarrower} \\
+it: {\sl {\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} \\ {\the\artoks\relax} \\ \setupnarrower[middle=12pt]\startnarrower tfc: \tfc{{\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} \\ {\the\artoks\relax}} \stopnarrower} \\
+bi: {\bi {\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} \\ {\the\artoks\relax} \\ \setupnarrower[middle=12pt]\startnarrower tfc: \tfc{{\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} \\ {\the\artoks\relax}} \stopnarrower} \\
+bs: {\bs {\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} \\ {\the\artoks\relax} \\ \setupnarrower[middle=12pt]\startnarrower tfc: \tfc{{\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} \\ {\the\artoks\relax}} \stopnarrower} \\
+tt: {\tt {\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} \\ {\the\artoks\relax} \\ \setupnarrower[middle=12pt]\startnarrower tfc: \tfc{{\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} \\ {\the\artoks\relax}} \stopnarrower} \\
+sc: {\sc {\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} \\ {\the\artoks\relax} \\ \setupnarrower[middle=12pt]\startnarrower tfc: \tfc{{\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} \\ {\the\artoks\relax}} \stopnarrower} \\
+%mm: {\mm {\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} {\the\artoks\relax} \\ \setupnarrower[middle=12pt]\startnarrower tfc: \tfc{{\the\prtoks\relax} {\the\ettoks\relax} {\the\amtoks\relax} {\the\rutoks\relax} {\the\artoks\relax}} \stopnarrower} \\
+\section{The End}
+\startitemize
+\item {\the\ettoks\relax}
+\item {\the\ettoks\relax}
+\item {\the\ettoks\relax}
+\stopitemize
+The End.
+\stoptext
