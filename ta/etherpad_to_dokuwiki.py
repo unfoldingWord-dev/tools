@@ -9,13 +9,16 @@
 #  Phil Hopper <phillip_hopper@wycliffeassociates.org>
 #
 #
+import atexit
 import codecs
+from etherpad_lite import EtherpadLiteClient, EtherpadException
 from itertools import ifilter
+import logging
 import os
 import re
 import sys
+import time
 import yaml
-from etherpad_lite import EtherpadLiteClient, EtherpadException
 
 # YAML file heading data format:
 #
@@ -30,6 +33,13 @@ from etherpad_lite import EtherpadLiteClient, EtherpadException
 # ---
 #
 # Derived URL = en/ta/vol1/section_name/testmod1
+
+# enable logging for this script
+logging.basicConfig(filename='event.log', level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+
+@atexit.register
+def exit_logger():
+    logging.shutdown()
 
 
 class SelfClosingEtherpad(EtherpadLiteClient):
@@ -92,6 +102,15 @@ class PageData(object):
         self.page_text = page_text
 
 
+def log_this(string_to_log, is_error=False):
+    print string_to_log
+
+    if is_error:
+        logging.error(string_to_log)
+    else:
+        logging.info(string_to_log)
+
+
 def quote_str(string_value):
     return '"' + string_value.replace('"', '') + '"'
 
@@ -147,6 +166,34 @@ def parse_ta_modules(raw_text):
     return returnval
 
 
+def get_last_changed(e_pad, sections):
+    """
+
+    :param e_pad: SelfClosingEtherpad
+    :param sections: SectionData[]
+    :return: int
+    """
+
+    last_change = 0
+
+    for section in sections:
+
+        for pad_id in section.page_list:
+
+            # get last edited
+            try:
+                page_info = e_pad.getLastEdited(padID=pad_id)
+                if page_info['lastEdited'] > last_change:
+                    last_change = page_info['lastEdited']
+
+            except EtherpadException as e:
+                if e.message != 'padID does not exist':
+                    log_this(e.message + ': ' + pad_id, True)
+
+    # etherpad returns lastEdited in milliseconds
+    return int(last_change / 1000)
+
+
 def get_ta_pages(e_pad, sections):
     """
 
@@ -171,10 +218,10 @@ def get_ta_pages(e_pad, sections):
                 if match:
                     pages.append(PageData(section_key, pad_id, yaml.load(match.group(2)), match.group(4)))
                 else:
-                    print 'Not able to retrieve ' + pad_id
+                    log_this('Not able to retrieve ' + pad_id)
 
             except EtherpadException as e:
-                print e.message + ': ' + pad_id
+                log_this(e.message + ': ' + pad_id, True)
 
     return pages
 
@@ -245,12 +292,37 @@ def make_dependency_chart(sections, pages):
 
 if __name__ == '__main__':
 
+    log_this('Checking for changes in Etherpad.')
+
+    # get the last run time
+    last_checked = 0
+    last_file = '.lastEpToDwRun'
+    if os.path.isfile(last_file):
+        with open(last_file, 'r') as f:
+            last_checked = int(float(f.read()))
+
+    haschanged = False
+    ta_pages = None
+
     with SelfClosingEtherpad() as ep:
 
         text = ep.getText(padID='ta-modules')
         ta_sections = parse_ta_modules(text['text'])
-        ta_pages = get_ta_pages(ep, ta_sections)
+        if get_last_changed(ep, ta_sections) > last_checked:
+            haschanged = True
 
-    make_dependency_chart(ta_sections, ta_pages)
+        if haschanged:
+            ta_pages = get_ta_pages(ep, ta_sections)
 
-    print 'Finished.'
+    if haschanged:
+        log_this('Generating dependency chart.')
+        make_dependency_chart(ta_sections, ta_pages)
+
+    # remember last_checked for the next time
+    with open(last_file, 'w') as f:
+        f.write(str(time.time()))
+
+    if haschanged:
+        log_this('Finished updating.')
+    else:
+        log_this('No changes found.')
