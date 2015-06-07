@@ -290,6 +290,32 @@ def make_dependency_chart(sections, pages):
         file_out.write(file_text)
 
 
+def make_dokuwiki_pages(pages):
+
+    # pages
+    for page in pages:
+        assert isinstance(page, PageData)
+
+        page_file = ''
+        data_good = False
+
+        # get the file name from the yaml data
+        if 'volume' in page.yaml_data and page.yaml_data['volume'] and str(page.yaml_data['volume']).strip():
+            page_file = 'en/ta/vol' + str(page.yaml_data['volume']).strip()
+
+            if 'manual' in page.yaml_data and page.yaml_data['manual'] and str(page.yaml_data['manual']).strip():
+                page_file += '/' + str(page.yaml_data['manual']).strip()
+
+                if 'slug' in page.yaml_data and page.yaml_data['slug'] and str(page.yaml_data['slug']).strip():
+                    page_file += '/' + str(page.yaml_data['slug']).strip()
+                    data_good = True
+
+        if data_good:
+            print 'Generating Dokuwiki page: ' + page_file
+        else:
+            log_this('Yaml data for page is incomplete: ' + page.page_id)
+
+
 if __name__ == '__main__':
 
     log_this('Checking for changes in Etherpad.')
@@ -317,6 +343,8 @@ if __name__ == '__main__':
     if haschanged:
         log_this('Generating dependency chart.')
         make_dependency_chart(ta_sections, ta_pages)
+        log_this('Generating Dokuwiki pages.')
+        make_dokuwiki_pages(ta_pages)
 
     # remember last_checked for the next time
     with open(last_file, 'w') as f:
