@@ -112,8 +112,8 @@ def log_this(string_to_log, is_error=False):
         logging.error(string_to_log)
         global error_count
         error_count += 1
-    else:
-        logging.info(string_to_log)
+    # else:
+    #    logging.info(string_to_log)
 
 
 def log_error(string_to_log):
