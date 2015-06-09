@@ -34,8 +34,11 @@ import yaml
 #
 # Derived URL = en/ta/vol1/section_name/testmod1
 
+error_count = 0
+
 # enable logging for this script
 logging.basicConfig(filename='event.log', level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+
 
 @atexit.register
 def exit_logger():
@@ -107,8 +110,14 @@ def log_this(string_to_log, is_error=False):
 
     if is_error:
         logging.error(string_to_log)
+        global error_count
+        error_count += 1
     else:
         logging.info(string_to_log)
+
+
+def log_error(string_to_log):
+    log_this(string_to_log, True)
 
 
 def quote_str(string_value):
@@ -188,10 +197,50 @@ def get_last_changed(e_pad, sections):
 
             except EtherpadException as e:
                 if e.message != 'padID does not exist':
-                    log_this(e.message + ': ' + pad_id, True)
+                    log_error(e.message + ': ' + pad_id)
 
     # etherpad returns lastEdited in milliseconds
     return int(last_change / 1000)
+
+
+def get_page_yaml_data(pad_id, raw_yaml_text):
+
+    returnval = {}
+
+    # convert windows line endings
+    cleaned = raw_yaml_text.replace("\r\n", "\n")
+
+    # split into individual values, removing empty lines
+    parts = filter(bool, cleaned.split("\n"))
+
+    # check each value
+    for part in parts:
+
+        # split into name and value
+        pieces = part.split(':', 1)
+
+        # must be 2 pieces
+        if len(pieces) != 2:
+            log_error('Bad yaml format in ' + pad_id + ' => ' + part)
+            return None
+
+        # try to parse
+        # noinspection PyBroadException
+        try:
+            parsed = yaml.load(part)
+
+        except:
+            log_error('Not able to parse yaml value for ' + pad_id + ' => ' + part)
+            return None
+
+        # add the successfully parsed value to the dictionary
+        for key in parsed.keys():
+            returnval[key] = parsed[key]
+
+    if not check_yaml_values(pad_id, returnval):
+        returnval['invalid'] = True
+
+    return returnval
 
 
 def get_ta_pages(e_pad, sections):
@@ -216,12 +265,28 @@ def get_ta_pages(e_pad, sections):
                 page_raw = e_pad.getText(padID=pad_id)
                 match = regex.match(page_raw['text'])
                 if match:
-                    pages.append(PageData(section_key, pad_id, yaml.load(match.group(2)), match.group(4)))
+
+                    # check for valid yaml data
+                    yaml_data = get_page_yaml_data(pad_id, match.group(2))
+                    if yaml_data is None:
+                        continue
+
+                    if yaml_data == {}:
+                        log_error('No yaml data found for ' + pad_id)
+                        continue
+
+                    pages.append(PageData(section_key, pad_id, yaml_data, match.group(4)))
                 else:
-                    log_this('Not able to retrieve ' + pad_id)
+                    log_error('Not able to retrieve ' + pad_id)
 
             except EtherpadException as e:
-                log_this(e.message + ': ' + pad_id, True)
+                if e.message == 'padID does not exist':
+                    log_error('Pad not found: ' + pad_id)
+                else:
+                    log_error(e.message + ': ' + pad_id)
+
+            except Exception as ex:
+                log_error(str(ex))
 
     return pages
 
@@ -230,13 +295,12 @@ def make_dependency_chart(sections, pages):
 
     chart_lines = []
     dir_name = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/ta'
-    # dir_name = '/var/www/projects/dokuwiki/data//gitrepo/pages/en/ta'
+    # dir_name = '/var/www/projects/dokuwiki/data/gitrepo/pages/en/ta'
     chart_file = dir_name + '/dependencies.txt'
 
     # header
     chart_lines.append('<graphviz dot right>\ndigraph finite_state_machine {')
     chart_lines.append('rankdir=BT;')
-    # chart_lines.append('size="9,11";')
     chart_lines.append('graph [fontname="Arial"];')
     chart_lines.append('node [shape=oval, fontname="Arial", fontsize=12, style=filled, fillcolor="#dddddd"];')
     chart_lines.append('edge [arrowsize=1.4];')
@@ -248,32 +312,34 @@ def make_dependency_chart(sections, pages):
     # pages
     for page in pages:
         assert isinstance(page, PageData)
-        print 'Processing page: ' + page.page_id
+        print 'Processing page for map: ' + page.page_id
 
-        if 'slug' in page.yaml_data:
+        # check for invalid yaml data
+        if 'invalid' in page.yaml_data:
+            continue
 
-            # get the color for the section
-            fill_color = next(ifilter(lambda sec: sec.name == page.section_name, sections), None).color
+        # get the color for the section
+        fill_color = next(ifilter(lambda sec: sec.name == page.section_name, sections), '#dddddd').color
 
-            # create the node
-            chart_lines.append(quote_str(page.yaml_data['slug']) + ' [fillcolor="' + fill_color + '"]')
+        # create the node
+        chart_lines.append(quote_str(page.yaml_data['slug']) + ' [fillcolor="' + fill_color + '"]')
 
-            # dependency arrows
-            if 'dependencies' in page.yaml_data:
-                dependencies = page.yaml_data['dependencies']
-                if isinstance(dependencies, list):
-                    for dependency in dependencies:
-                        chart_lines.append(quote_str(dependency) + ' -> ' + quote_str(page.yaml_data['slug']))
-
-                else:
-                    if isinstance(dependencies, str):
-                        chart_lines.append(quote_str(dependencies) + ' -> ' + quote_str(page.yaml_data['slug']))
-
-                    else:
-                        chart_lines.append(quote_str(page.section_name) + ' -> ' + quote_str(page.yaml_data['slug']))
+        # dependency arrows
+        if 'dependencies' in page.yaml_data:
+            dependencies = page.yaml_data['dependencies']
+            if isinstance(dependencies, list):
+                for dependency in dependencies:
+                    chart_lines.append(quote_str(dependency) + ' -> ' + quote_str(page.yaml_data['slug']))
 
             else:
-                chart_lines.append(quote_str(page.section_name) + ' -> ' + quote_str(page.yaml_data['slug']))
+                if isinstance(dependencies, str):
+                    chart_lines.append(quote_str(dependencies) + ' -> ' + quote_str(page.yaml_data['slug']))
+
+                else:
+                    chart_lines.append(quote_str(page.section_name) + ' -> ' + quote_str(page.yaml_data['slug']))
+
+        else:
+            chart_lines.append(quote_str(page.section_name) + ' -> ' + quote_str(page.yaml_data['slug']))
 
     # footer
     chart_lines.append('}\n</graphviz>')
@@ -290,30 +356,98 @@ def make_dependency_chart(sections, pages):
         file_out.write(file_text)
 
 
+def check_yaml_values(pad_id, yaml_data):
+
+    returnval = True
+
+    # check the required yaml values
+    if not check_value_is_valid_int(pad_id, 'volume', yaml_data):
+        returnval = False
+
+    if not check_value_is_valid_string(pad_id, 'manual', yaml_data):
+        returnval = False
+
+    if not check_value_is_valid_string(pad_id, 'slug', yaml_data):
+        returnval = False
+    else:
+        # slug cannot contain a dash, only underscores
+        test_slug = str(yaml_data['slug']).strip()
+        if '-' in test_slug:
+            log_error('Slug values cannot contain hyphen (dash): ' + pad_id)
+            returnval = False
+
+    return returnval
+
+
+def check_value_is_valid_string(pad_id, value_to_check, yaml_data):
+
+    if value_to_check not in yaml_data:
+        log_error('"' + value_to_check + '" data value for page is missing: ' + pad_id)
+        return False
+
+    if not yaml_data[value_to_check]:
+        log_error('"' + value_to_check + '" data value for page is blank: ' + pad_id)
+        return False
+
+    data_value = yaml_data[value_to_check]
+
+    if not isinstance(data_value, str) and not isinstance(data_value, unicode):
+        log_error('"' + value_to_check + '" data value for page is not a string: ' + pad_id)
+        return False
+
+    if not data_value.strip():
+        log_error('"' + value_to_check + '" data value for page is blank: ' + pad_id)
+        return False
+
+    return True
+
+
+# noinspection PyBroadException
+def check_value_is_valid_int(pad_id, value_to_check, yaml_data):
+
+    if value_to_check not in yaml_data:
+        log_error('"' + value_to_check + '" data value for page is missing: ' + pad_id)
+        return False
+
+    if not yaml_data[value_to_check]:
+        log_error('"' + value_to_check + '" data value for page is blank: ' + pad_id)
+        return False
+
+    data_value = yaml_data[value_to_check]
+
+    if not isinstance(data_value, int):
+        try:
+            data_value = int(data_value)
+        except:
+            try:
+                data_value = int(float(data_value))
+            except:
+                return False
+
+    return isinstance(data_value, int)
+
+
 def make_dokuwiki_pages(pages):
+
+    pages_generated = 0
 
     # pages
     for page in pages:
         assert isinstance(page, PageData)
 
-        page_file = ''
-        data_good = False
+        # check for invalid yaml data
+        if 'invalid' in page.yaml_data:
+            continue
 
         # get the file name from the yaml data
-        if 'volume' in page.yaml_data and page.yaml_data['volume'] and str(page.yaml_data['volume']).strip():
-            page_file = 'en/ta/vol' + str(page.yaml_data['volume']).strip()
+        page_file = 'en/ta/vol' + str(page.yaml_data['volume']).strip()
+        page_file += '/' + str(page.yaml_data['manual']).strip()
+        page_file += '/' + str(page.yaml_data['slug']).strip()
 
-            if 'manual' in page.yaml_data and page.yaml_data['manual'] and str(page.yaml_data['manual']).strip():
-                page_file += '/' + str(page.yaml_data['manual']).strip()
+        print 'Generating Dokuwiki page: ' + page_file
+        pages_generated += 1
 
-                if 'slug' in page.yaml_data and page.yaml_data['slug'] and str(page.yaml_data['slug']).strip():
-                    page_file += '/' + str(page.yaml_data['slug']).strip()
-                    data_good = True
-
-        if data_good:
-            print 'Generating Dokuwiki page: ' + page_file
-        else:
-            log_this('Yaml data for page is incomplete: ' + page.page_id)
+    log_this('Generated ' + str(pages_generated) + ' Dokuwiki pages.')
 
 
 if __name__ == '__main__':
@@ -347,8 +481,11 @@ if __name__ == '__main__':
         make_dokuwiki_pages(ta_pages)
 
     # remember last_checked for the next time
-    with open(last_file, 'w') as f:
-        f.write(str(time.time()))
+    if error_count == 0:
+        with open(last_file, 'w') as f:
+            f.write(str(time.time()))
+    else:
+        log_this(str(error_count) + ' errors have been logged.')
 
     if haschanged:
         log_this('Finished updating.')
