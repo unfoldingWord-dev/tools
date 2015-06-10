@@ -20,7 +20,7 @@ import sys
 import time
 import yaml
 
-LOGFILE='/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/playground/ta_import.log.txt'
+LOGFILE = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/playground/ta_import.log.txt'
 
 # YAML file heading data format:
 #
@@ -39,6 +39,10 @@ LOGFILE='/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/playground/ta_im
 error_count = 0
 
 # enable logging for this script
+log_dir = os.path.dirname(LOGFILE)
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, 0755)
+
 if os.path.exists(LOGFILE):
     os.remove(LOGFILE)
 logging.basicConfig(filename=LOGFILE, level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -255,7 +259,7 @@ def get_ta_pages(e_pad, sections):
     :return: PageData[]
     """
 
-    regex = re.compile(r"(---\s*\n)(.+)(---\s*\n)(.*)$", re.DOTALL)
+    regex = re.compile(r"(---\s*\n)(.+)(^-{3}\s*\n)+?(.*)$", re.DOTALL | re.MULTILINE)
 
     pages = []
 
