@@ -8,8 +8,8 @@ index () {
     for f in `find * -type f | sort -r`; do
         f=${f%%.txt}
         f=${f//\//%3A}
-        #echo "https://door43.org/lib/exe/indexer.php?id=en%3A$2%3A$f&$(date +%s)"
-        wget -q -U 'd43' -O /dev/null "https://door43.org/lib/exe/indexer.php?id=en%3A$2%3A$f&$(date +%s)"
+        #echo "https://door43.org/lib/exe/indexer.php?id=en%3A$2%3A$f"
+        wget -q -U 'd43' -O /dev/null "https://door43.org/lib/exe/indexer.php?id=en%3A$2%3A$f"
     done
 }
 
