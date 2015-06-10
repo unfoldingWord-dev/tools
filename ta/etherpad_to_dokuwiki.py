@@ -20,6 +20,8 @@ import sys
 import time
 import yaml
 
+LOGFILE='/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/playground/ta_import.log.txt'
+
 # YAML file heading data format:
 #
 # ---
@@ -37,7 +39,9 @@ import yaml
 error_count = 0
 
 # enable logging for this script
-logging.basicConfig(filename='/tmp/ta_import.log', level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+if os.path.exists(LOGFILE):
+    os.remove(LOGFILE)
+logging.basicConfig(filename=LOGFILE, level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
 @atexit.register
@@ -109,7 +113,7 @@ def log_this(string_to_log, is_error=False):
     print string_to_log
 
     if is_error:
-        logging.error(string_to_log)
+        logging.error('{0}\n'.format(string_to_log))
         global error_count
         error_count += 1
     # else:
