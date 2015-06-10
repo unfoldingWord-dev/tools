@@ -6,8 +6,10 @@
 index () {
     cd $1
     for f in `find * -type f | sort -r`; do
-        #echo "http://door43.org/en/$2/${f%%.txt}"
-        wget -q -U 'd43' -O /dev/null http://door43.org/en/$2/${f%%.txt}
+        f=${f%%.txt}
+        f=${f//\//%3A}
+        #echo "https://door43.org/lib/exe/indexer.php?id=en%3A$2%3A$f&$(date +%s)"
+        wget -q -U 'd43' -O /dev/null "https://door43.org/lib/exe/indexer.php?id=en%3A$2%3A$f&$(date +%s)"
     done
 }
 
