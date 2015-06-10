@@ -37,7 +37,7 @@ import yaml
 error_count = 0
 
 # enable logging for this script
-logging.basicConfig(filename='event.log', level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(filename='/tmp/ta_import.log', level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
 @atexit.register
