@@ -11,6 +11,7 @@
 #
 import atexit
 import codecs
+from datetime import datetime
 from etherpad_lite import EtherpadLiteClient, EtherpadException
 from itertools import ifilter
 import logging
@@ -45,7 +46,7 @@ if not os.path.exists(log_dir):
 
 if os.path.exists(LOGFILE):
     os.remove(LOGFILE)
-logging.basicConfig(filename=LOGFILE, level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(filename=LOGFILE, level=logging.DEBUG, format="%(message)s")
 
 
 @atexit.register
@@ -113,19 +114,19 @@ class PageData(object):
         self.page_text = page_text
 
 
-def log_this(string_to_log, is_error=False):
+def log_this(string_to_log, top_level=False):
     print string_to_log
-
-    if is_error:
-        logging.error('{0}\n'.format(string_to_log))
-        global error_count
-        error_count += 1
-    # else:
-    #    logging.info(string_to_log)
+    if top_level:
+        logging.info('\n{0}'.format(string_to_log))
+    else:
+        logging.info('* {0}'.format(string_to_log))
 
 
 def log_error(string_to_log):
-    log_this(string_to_log, True)
+
+    global error_count
+    error_count += 1
+    log_this(string_to_log)
 
 
 def quote_str(string_value):
@@ -268,6 +269,8 @@ def get_ta_pages(e_pad, sections):
 
         for pad_id in section.page_list:
 
+            log_this('Processing page: ' + pad_id, True)
+
             # get the page
             try:
                 page_raw = e_pad.getText(padID=pad_id)
@@ -288,10 +291,7 @@ def get_ta_pages(e_pad, sections):
                     log_error('Not able to retrieve ' + pad_id)
 
             except EtherpadException as e:
-                if e.message == 'padID does not exist':
-                    log_error('Pad not found: ' + pad_id)
-                else:
-                    log_error(e.message + ': ' + pad_id)
+                log_error(e.message)
 
             except Exception as ex:
                 log_error(str(ex))
@@ -320,7 +320,7 @@ def make_dependency_chart(sections, pages):
     # pages
     for page in pages:
         assert isinstance(page, PageData)
-        print 'Processing page for map: ' + page.page_id
+        log_this('Processing page ' + page.page_id)
 
         # check for invalid yaml data
         if 'invalid' in page.yaml_data:
@@ -460,7 +460,8 @@ def make_dokuwiki_pages(pages):
 
 if __name__ == '__main__':
 
-    log_this('Checking for changes in Etherpad.')
+    log_this('==== Last run: ' + datetime.utcnow().strftime('%Y-%M-%d %H:%M') + ' UTC ====', True)
+    log_this('Checking for changes in Etherpad', True)
 
     # get the last run time
     last_checked = 0
@@ -478,24 +479,25 @@ if __name__ == '__main__':
         ta_sections = parse_ta_modules(text['text'])
         if get_last_changed(ep, ta_sections) > last_checked:
             haschanged = True
+            log_this('Changes found')
 
         if haschanged:
             ta_pages = get_ta_pages(ep, ta_sections)
 
     if haschanged:
-        log_this('Generating dependency chart.')
+        log_this('Generating dependency chart', True)
         make_dependency_chart(ta_sections, ta_pages)
-        log_this('Generating Dokuwiki pages.')
-        make_dokuwiki_pages(ta_pages)
+        # log_this('Generating Dokuwiki pages.', True)
+        # make_dokuwiki_pages(ta_pages)
 
     # remember last_checked for the next time
     if error_count == 0:
         with open(last_file, 'w') as f:
             f.write(str(time.time()))
     else:
-        log_this(str(error_count) + ' errors have been logged.')
+        log_this(str(error_count) + ' errors have been logged', True)
 
     if haschanged:
-        log_this('Finished updating.')
+        log_this('Finished updating', True)
     else:
-        log_this('No changes found.')
+        log_this('No changes found', True)
