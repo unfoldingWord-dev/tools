@@ -242,6 +242,10 @@ def get_page_yaml_data(pad_id, raw_yaml_text):
             log_error('Not able to parse yaml value for ' + pad_id + ' => ' + part)
             return None
 
+        if not isinstance(parsed, dict):
+            log_error('Yaml parse did not return the expected type for ' + pad_id + ' => ' + part)
+            return None
+
         # add the successfully parsed value to the dictionary
         for key in parsed.keys():
             returnval[key] = parsed[key]
