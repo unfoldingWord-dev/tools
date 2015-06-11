@@ -460,7 +460,7 @@ def make_dokuwiki_pages(pages):
 
 if __name__ == '__main__':
 
-    log_this('Most recent run: ' + datetime.utcnow().strftime('%Y-%M-%d %H:%M') + ' UTC', True)
+    log_this('Most recent run: ' + datetime.utcnow().strftime('%Y-%m-%d %H:%M') + ' UTC', True)
     log_this('Checking for changes in Etherpad', True)
 
     # get the last run time
