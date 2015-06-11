@@ -117,9 +117,11 @@ class PageData(object):
 def log_this(string_to_log, top_level=False):
     print string_to_log
     if top_level:
-        logging.info('\n=== {0} ==='.format(string_to_log))
+        msg = u'\n=== {0} ==='.format(string_to_log)
     else:
-        logging.info('  * {0}'.format(string_to_log))
+        msg = u'  * {0}'.format(string_to_log)
+
+    logging.info(msg)
 
 
 def log_error(string_to_log):
