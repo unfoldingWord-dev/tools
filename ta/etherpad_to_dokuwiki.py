@@ -117,9 +117,9 @@ class PageData(object):
 def log_this(string_to_log, top_level=False):
     print string_to_log
     if top_level:
-        logging.info('\n{0}'.format(string_to_log))
+        logging.info('\n=== {0} ==='.format(string_to_log))
     else:
-        logging.info('* {0}'.format(string_to_log))
+        logging.info('  * {0}'.format(string_to_log))
 
 
 def log_error(string_to_log):
@@ -460,7 +460,7 @@ def make_dokuwiki_pages(pages):
 
 if __name__ == '__main__':
 
-    log_this('==== Last run: ' + datetime.utcnow().strftime('%Y-%M-%d %H:%M') + ' UTC ====', True)
+    log_this('Most recent run: ' + datetime.utcnow().strftime('%Y-%M-%d %H:%M') + ' UTC', True)
     log_this('Checking for changes in Etherpad', True)
 
     # get the last run time
