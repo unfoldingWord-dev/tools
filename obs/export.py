@@ -30,8 +30,8 @@ api_url_jpg = u'https://api.unfoldingword.org/obs/jpg/1'
 api_test_door43 = u'http://test.door43.org'  # this one is http and not https
 api_abs = u'/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1'
 
-#MAX_CHAPTERS = 0
-MAX_CHAPTERS = 4
+MAX_CHAPTERS = 0
+#MAX_CHAPTERS = 4
 #MAX_CHAPTERS = 2
 MATCH_ALL = 0
 MATCH_ONE = 0
@@ -86,7 +86,7 @@ def TRUTH(b):
     return "true" if b else "false"
 
 def checkForStandardKeysJSON():
-    global body_json
+    global body_json # Cannot pass dictionary via regex framework
     #------------------------------  header/footer spacing and body font-face
     if 'textwidth' not in body_json.keys(): body_json['textwidth'] = '308.9pt' # At 72.27 pt/inch this is width of each figure
     if 'topspace' not in body_json.keys(): body_json['topspace'] = '10pt' # nice for en,fr,es
