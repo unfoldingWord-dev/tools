@@ -462,15 +462,15 @@ def make_dokuwiki_pages(pages):
             page_dir += '/' + str(page.yaml_data['manual']).strip()
             page_dir = page_dir.lower()
 
-            if not os.path.exists(page_dir):
-                os.makedirs(page_dir, 0755)
+            actual_dir = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/' + page_dir
+            if not os.path.exists(actual_dir):
+                os.makedirs(actual_dir, 0755)
 
             # get the file name from the yaml data
-            page_file = page_dir + '/' + str(page.yaml_data['slug']).strip() + '.txt'
-            page_file = page_file.lower()
+            page_file = str(page.yaml_data['slug']).strip().lower() + '.txt'
 
-            log_this('Generating Dokuwiki page: ' + page_file)
-            page_file = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/' + page_file
+            log_this('Generating Dokuwiki page: ' + page_dir + '/' + page_file)
+            page_file = actual_dir + '/' + page_file
 
             # get the markdown
             md = '===== ' + page.yaml_data['title'] + " =====\n\n"
