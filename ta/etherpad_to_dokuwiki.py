@@ -232,7 +232,7 @@ def get_page_yaml_data(pad_id, raw_yaml_text):
 
         # must be 2 pieces
         if len(pieces) != 2:
-            log_error('Bad yaml format in ' + pad_id + ' => ' + part)
+            log_error('Bad yaml format => ' + part)
             return None
 
         # try to parse
@@ -241,11 +241,11 @@ def get_page_yaml_data(pad_id, raw_yaml_text):
             parsed = yaml.load(part)
 
         except:
-            log_error('Not able to parse yaml value for ' + pad_id + ' => ' + part)
+            log_error('Not able to parse yaml value => ' + part)
             return None
 
         if not isinstance(parsed, dict):
-            log_error('Yaml parse did not return the expected type for ' + pad_id + ' => ' + part)
+            log_error('Yaml parse did not return the expected type => ' + part)
             return None
 
         # add the successfully parsed value to the dictionary
@@ -390,6 +390,9 @@ def check_yaml_values(pad_id, yaml_data):
             log_error('Slug values cannot contain hyphen (dash): ' + pad_id)
             returnval = False
 
+    if not check_value_is_valid_string(pad_id, 'title', yaml_data):
+        returnval = False
+
     return returnval
 
 
@@ -453,15 +456,36 @@ def make_dokuwiki_pages(pages):
         if 'invalid' in page.yaml_data:
             continue
 
-        # get the file name from the yaml data
-        page_file = 'en/ta/vol' + str(page.yaml_data['volume']).strip()
-        page_file += '/' + str(page.yaml_data['manual']).strip()
-        page_file += '/' + str(page.yaml_data['slug']).strip()
+        try:
+            # get the directory name from the yaml data
+            page_dir = 'en/ta/vol' + str(page.yaml_data['volume']).strip()
+            page_dir += '/' + str(page.yaml_data['manual']).strip()
+            page_dir = page_dir.lower()
 
-        print 'Generating Dokuwiki page: ' + page_file
-        pages_generated += 1
+            if not os.path.exists(page_dir):
+                os.makedirs(page_dir, 0755)
 
-    log_this('Generated ' + str(pages_generated) + ' Dokuwiki pages.')
+            # get the file name from the yaml data
+            page_file = page_dir + '/' + str(page.yaml_data['slug']).strip() + '.txt'
+            page_file = page_file.lower()
+
+            log_this('Generating Dokuwiki page: ' + page_file)
+            page_file = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/' + page_file
+
+            # get the markdown
+            md = '===== ' + page.yaml_data['title'] + " =====\n\n"
+            md += page.page_text
+
+            # write the file
+            with codecs.open(page_file, 'w', 'utf-8') as file_out:
+                file_out.write(md)
+
+            pages_generated += 1
+
+        except Exception as ex:
+            log_error(str(ex))
+
+    log_this('Generated ' + str(pages_generated) + ' Dokuwiki pages.', True)
 
 
 if __name__ == '__main__':
@@ -493,8 +517,8 @@ if __name__ == '__main__':
     if has_changed:
         log_this('Generating dependency chart', True)
         make_dependency_chart(ta_sections, ta_pages)
-        # log_this('Generating Dokuwiki pages.', True)
-        # make_dokuwiki_pages(ta_pages)
+        log_this('Generating Dokuwiki pages.', True)
+        make_dokuwiki_pages(ta_pages)
 
     # remember last_checked for the next time
     if error_count == 0:
