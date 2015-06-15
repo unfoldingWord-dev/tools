@@ -399,21 +399,21 @@ def check_yaml_values(pad_id, yaml_data):
 def check_value_is_valid_string(pad_id, value_to_check, yaml_data):
 
     if value_to_check not in yaml_data:
-        log_error('"' + value_to_check + '" data value for page is missing: ' + pad_id)
+        log_error('"' + value_to_check + '" data value for page is missing')
         return False
 
     if not yaml_data[value_to_check]:
-        log_error('"' + value_to_check + '" data value for page is blank: ' + pad_id)
+        log_error('"' + value_to_check + '" data value for page is blank')
         return False
 
     data_value = yaml_data[value_to_check]
 
     if not isinstance(data_value, str) and not isinstance(data_value, unicode):
-        log_error('"' + value_to_check + '" data value for page is not a string: ' + pad_id)
+        log_error('"' + value_to_check + '" data value for page is not a string')
         return False
 
     if not data_value.strip():
-        log_error('"' + value_to_check + '" data value for page is blank: ' + pad_id)
+        log_error('"' + value_to_check + '" data value for page is blank')
         return False
 
     return True
@@ -467,10 +467,12 @@ def make_dokuwiki_pages(pages):
                 os.makedirs(actual_dir, 0755)
 
             # get the file name from the yaml data
-            page_file = str(page.yaml_data['slug']).strip().lower() + '.txt'
+            page_file = str(page.yaml_data['slug']).strip().lower()
 
-            log_this('Generating Dokuwiki page: ' + page_dir + '/' + page_file)
-            page_file = actual_dir + '/' + page_file
+            log_this('Generating Dokuwiki page: [[https://door43.org/' + page_dir
+                     + '/' + page_file + '|' + page_dir + '/' + page_file + '.txt]]')
+
+            page_file = actual_dir + '/' + page_file + '.txt'
 
             # get the markdown
             md = '===== ' + page.yaml_data['title'] + " =====\n\n"
