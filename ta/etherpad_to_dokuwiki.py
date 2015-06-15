@@ -294,7 +294,7 @@ def get_ta_pages(e_pad, sections):
 
                     pages.append(PageData(section_key, pad_id, yaml_data, match.group(4)))
                 else:
-                    log_error('Not able to retrieve ' + pad_id)
+                    log_error('Yaml header not found ' + pad_id)
 
             except EtherpadException as e:
                 log_error(e.message)
@@ -476,7 +476,7 @@ if __name__ == '__main__':
         with open(last_file, 'r') as f:
             last_checked = int(float(f.read()))
 
-    haschanged = False
+    has_changed = False
     ta_pages = None
 
     with SelfClosingEtherpad() as ep:
@@ -484,13 +484,13 @@ if __name__ == '__main__':
         text = ep.getText(padID='ta-modules')
         ta_sections = parse_ta_modules(text['text'])
         if get_last_changed(ep, ta_sections) > last_checked:
-            haschanged = True
+            has_changed = True
             log_this('Changes found')
 
-        if haschanged:
+        if has_changed:
             ta_pages = get_ta_pages(ep, ta_sections)
 
-    if haschanged:
+    if has_changed:
         log_this('Generating dependency chart', True)
         make_dependency_chart(ta_sections, ta_pages)
         # log_this('Generating Dokuwiki pages.', True)
@@ -503,7 +503,7 @@ if __name__ == '__main__':
     else:
         log_this(str(error_count) + ' errors have been logged', True)
 
-    if haschanged:
+    if has_changed:
         log_this('Finished updating', True)
     else:
         log_this('No changes found', True)
