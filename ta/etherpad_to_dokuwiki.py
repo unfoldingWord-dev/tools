@@ -498,7 +498,7 @@ def make_dokuwiki_pages(pages):
             md = '===== ' + page.yaml_data['title'] + " =====\n\n"
 
             if question:
-                md += 'This module answers the question: ' + question + "\\"
+                md += 'This module answers the question: ' + question + "\\\\\n"
 
             if dependencies:
                 md += 'Before you start this module have you learned about: ' + dependencies + "\n\n"
