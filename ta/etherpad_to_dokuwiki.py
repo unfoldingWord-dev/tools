@@ -375,13 +375,13 @@ def check_yaml_values(pad_id, yaml_data):
     returnval = True
 
     # check the required yaml values
-    if not check_value_is_valid_int(pad_id, 'volume', yaml_data):
+    if not check_value_is_valid_int('volume', yaml_data):
         returnval = False
 
-    if not check_value_is_valid_string(pad_id, 'manual', yaml_data):
+    if not check_value_is_valid_string('manual', yaml_data):
         returnval = False
 
-    if not check_value_is_valid_string(pad_id, 'slug', yaml_data):
+    if not check_value_is_valid_string('slug', yaml_data):
         returnval = False
     else:
         # slug cannot contain a dash, only underscores
@@ -390,13 +390,13 @@ def check_yaml_values(pad_id, yaml_data):
             log_error('Slug values cannot contain hyphen (dash): ' + pad_id)
             returnval = False
 
-    if not check_value_is_valid_string(pad_id, 'title', yaml_data):
+    if not check_value_is_valid_string('title', yaml_data):
         returnval = False
 
     return returnval
 
 
-def check_value_is_valid_string(pad_id, value_to_check, yaml_data):
+def check_value_is_valid_string(value_to_check, yaml_data):
 
     if value_to_check not in yaml_data:
         log_error('"' + value_to_check + '" data value for page is missing')
@@ -420,14 +420,14 @@ def check_value_is_valid_string(pad_id, value_to_check, yaml_data):
 
 
 # noinspection PyBroadException
-def check_value_is_valid_int(pad_id, value_to_check, yaml_data):
+def check_value_is_valid_int(value_to_check, yaml_data):
 
     if value_to_check not in yaml_data:
-        log_error('"' + value_to_check + '" data value for page is missing: ' + pad_id)
+        log_error('"' + value_to_check + '" data value for page is missing')
         return False
 
     if not yaml_data[value_to_check]:
-        log_error('"' + value_to_check + '" data value for page is blank: ' + pad_id)
+        log_error('"' + value_to_check + '" data value for page is blank')
         return False
 
     data_value = yaml_data[value_to_check]
@@ -442,6 +442,22 @@ def check_value_is_valid_int(pad_id, value_to_check, yaml_data):
                 return False
 
     return isinstance(data_value, int)
+
+
+def get_yaml_string(value_name, yaml_data):
+
+    if value_name not in yaml_data:
+        return ''
+
+    if not yaml_data[value_name]:
+        return ''
+
+    data_value = yaml_data[value_name]
+
+    if not isinstance(data_value, str) and not isinstance(data_value, unicode):
+        data_value = str(data_value)
+
+    return data_value.strip()
 
 
 def make_dokuwiki_pages(pages):
@@ -475,8 +491,22 @@ def make_dokuwiki_pages(pages):
             page_file = actual_dir + '/' + page_file + '.txt'
 
             # get the markdown
+            question = get_yaml_string('question', page.yaml_data)
+            dependencies = get_yaml_string('dependencies', page.yaml_data)
+            recommended = get_yaml_string('recommended', page.yaml_data)
+
             md = '===== ' + page.yaml_data['title'] + " =====\n\n"
-            md += page.page_text
+
+            if question:
+                md += 'This module answers the question: ' + question + "\\"
+
+            if dependencies:
+                md += 'Before you start this module have you learned about: ' + dependencies + "\n\n"
+
+            md += page.page_text + "\n\n"
+
+            if recommended:
+                md += 'Next we recommend you learn about: ' + recommended
 
             # write the file
             with codecs.open(page_file, 'w', 'utf-8') as file_out:
