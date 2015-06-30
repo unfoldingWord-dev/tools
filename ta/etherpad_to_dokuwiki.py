@@ -460,6 +460,22 @@ def get_yaml_string(value_name, yaml_data):
     return data_value.strip()
 
 
+def get_yaml_object(value_name, yaml_data):
+
+    if value_name not in yaml_data:
+        return ''
+
+    if not yaml_data[value_name]:
+        return ''
+
+    data_value = yaml_data[value_name]
+
+    if not isinstance(data_value, str) and not isinstance(data_value, unicode):
+        return data_value
+
+    return data_value.strip()
+
+
 def make_dokuwiki_pages(pages):
 
     pages_generated = 0
@@ -492,8 +508,8 @@ def make_dokuwiki_pages(pages):
 
             # get the markdown
             question = get_yaml_string('question', page.yaml_data)
-            dependencies = page.yaml_data['dependencies']
-            recommended = page.yaml_data['recommended']
+            dependencies = get_yaml_object('dependencies', page.yaml_data)
+            recommended = get_yaml_object('recommended', page.yaml_data)
 
             md = '===== ' + page.yaml_data['title'] + " =====\n\n"
 
@@ -502,14 +518,14 @@ def make_dokuwiki_pages(pages):
 
             if dependencies:
                 md += 'Before you start this module have you learned about:'
-                md += output_list(dependencies)
+                md += output_list(pages, dependencies)
                 md += "\n\n"
 
             md += page.page_text + "\n\n"
 
             if recommended:
                 md += 'Next we recommend you learn about:'
-                md += output_list(recommended)
+                md += output_list(pages, recommended)
                 md += "\n\n"
 
             # write the file
@@ -524,20 +540,50 @@ def make_dokuwiki_pages(pages):
     log_this('Generated ' + str(pages_generated) + ' Dokuwiki pages.', True)
 
 
-def output_list(option_list):
+def output_list(pages, option_list):
 
     md = ''
 
     if isinstance(option_list, list):
         if len(option_list) == 1:
-            md += ' ' + option_list[0]
+            link = get_page_link_by_slug(pages, option_list[0])
+            if link:
+                md += ' ' + link
+            else:
+                log_error('Linked page not found: ' + option_list[0])
         else:
             for option in option_list:
-                md += "\n  - " + option
+                link = get_page_link_by_slug(pages, option)
+                if link:
+                    md += "\n  * " + link
+                else:
+                    log_error('Linked page not found: ' + option)
     else:
-        md += ' ' + option_list
+        link = get_page_link_by_slug(pages, option_list)
+        if link:
+            md += ' ' + link
+        else:
+            log_error('Linked page not found: ' + option_list)
 
     return md
+
+
+def get_page_link_by_slug(pages, slug):
+    found = [page for page in pages if page.yaml_data['slug'].strip().lower() == slug]
+    if len(found) == 0:
+        return ''
+
+    return '[[' + get_page_url(found[0]) + '|' + found[0].yaml_data['title'] + ']]'
+
+
+def get_page_url(page):
+    page_dir = 'en/ta/vol' + str(page.yaml_data['volume']).strip()
+    page_dir += '/' + str(page.yaml_data['manual']).strip()
+    page_dir = page_dir.lower()
+
+    page_file = str(page.yaml_data['slug']).strip().lower()
+
+    return 'https://door43.org/' + page_dir + '/' + page_file
 
 
 if __name__ == '__main__':
