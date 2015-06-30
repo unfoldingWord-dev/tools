@@ -492,8 +492,8 @@ def make_dokuwiki_pages(pages):
 
             # get the markdown
             question = get_yaml_string('question', page.yaml_data)
-            dependencies = get_yaml_string('dependencies', page.yaml_data)
-            recommended = get_yaml_string('recommended', page.yaml_data)
+            dependencies = page.yaml_data['dependencies']
+            recommended = page.yaml_data['recommended']
 
             md = '===== ' + page.yaml_data['title'] + " =====\n\n"
 
@@ -501,12 +501,16 @@ def make_dokuwiki_pages(pages):
                 md += 'This module answers the question: ' + question + "\\\\\n"
 
             if dependencies:
-                md += 'Before you start this module have you learned about: ' + dependencies + "\n\n"
+                md += 'Before you start this module have you learned about:'
+                md += output_list(dependencies)
+                md += "\n\n"
 
             md += page.page_text + "\n\n"
 
             if recommended:
-                md += 'Next we recommend you learn about: ' + recommended
+                md += 'Next we recommend you learn about:'
+                md += output_list(recommended)
+                md += "\n\n"
 
             # write the file
             with codecs.open(page_file, 'w', 'utf-8') as file_out:
@@ -518,6 +522,22 @@ def make_dokuwiki_pages(pages):
             log_error(str(ex))
 
     log_this('Generated ' + str(pages_generated) + ' Dokuwiki pages.', True)
+
+
+def output_list(option_list):
+
+    md = ''
+
+    if isinstance(option_list, list):
+        if len(option_list) == 1:
+            md += ' ' + option_list[0]
+        else:
+            for option in option_list:
+                md += "\n  - " + option
+    else:
+        md += ' ' + option_list
+
+    return md
 
 
 if __name__ == '__main__':
