@@ -75,7 +75,7 @@ def upload(sig, content, si):
     r = requests.post(api, data=json.dumps(payload),
                                  headers={'Content-Type': 'application/json'})
     if 'ok' not in r.text:
-        print x
+        print content
         print u'-> {0}'.format(r.text)
 
 def checkSig(content, sig, slug):
