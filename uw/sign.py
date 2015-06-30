@@ -76,7 +76,7 @@ def upload(sig, content, si):
                                  headers={'Content-Type': 'application/json'})
     if 'ok' not in r.text:
         print x
-        print u'-> {0}'.fomat(r.text)
+        print u'-> {0}'.format(r.text)
 
 def checkSig(content, sig, slug):
     # Based on https://github.com/unfoldingWord-dev/sigadd/blob/master/index.py
