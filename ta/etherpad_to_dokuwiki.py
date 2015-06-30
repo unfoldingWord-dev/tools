@@ -569,7 +569,7 @@ def output_list(pages, option_list):
 
 
 def get_page_link_by_slug(pages, slug):
-    found = [page for page in pages if page.yaml_data['slug'].strip().lower() == slug]
+    found = [page for page in pages if page.yaml_data['slug'].strip().lower() == slug.strip().lower()]
     if len(found) == 0:
         return ''
 
