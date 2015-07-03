@@ -580,13 +580,13 @@ def get_page_link_by_slug(pages, slug):
 
 
 def get_page_url(page):
-    page_dir = 'en/ta/vol' + str(page.yaml_data['volume']).strip()
-    page_dir += '/' + str(page.yaml_data['manual']).strip()
+    page_dir = 'en:ta:vol' + str(page.yaml_data['volume']).strip()
+    page_dir += ':' + str(page.yaml_data['manual']).strip()
     page_dir = page_dir.lower()
 
     page_file = str(page.yaml_data['slug']).strip().lower()
 
-    return 'https://door43.org/' + page_dir + '/' + page_file
+    return page_dir + ':' + page_file
 
 
 if __name__ == '__main__':
