@@ -221,6 +221,9 @@ def get_page_yaml_data(pad_id, raw_yaml_text):
     # convert windows line endings
     cleaned = raw_yaml_text.replace("\r\n", "\n")
 
+    # replace curly quotes
+    cleaned = cleaned.replace(u'“', '"').replace(u'”', '"')
+
     # split into individual values, removing empty lines
     parts = filter(bool, cleaned.split("\n"))
 
