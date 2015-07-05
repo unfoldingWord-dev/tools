@@ -214,7 +214,7 @@ def get_last_changed(e_pad, sections):
     return int(last_change / 1000)
 
 
-def get_page_yaml_data(pad_id, raw_yaml_text):
+def get_page_yaml_data(raw_yaml_text):
 
     returnval = {}
 
@@ -255,7 +255,7 @@ def get_page_yaml_data(pad_id, raw_yaml_text):
         for key in parsed.keys():
             returnval[key] = parsed[key]
 
-    if not check_yaml_values(pad_id, returnval):
+    if not check_yaml_values(returnval):
         returnval['invalid'] = True
 
     return returnval
@@ -287,7 +287,7 @@ def get_ta_pages(e_pad, sections):
                 if match:
 
                     # check for valid yaml data
-                    yaml_data = get_page_yaml_data(pad_id, match.group(2))
+                    yaml_data = get_page_yaml_data(match.group(2))
                     if yaml_data is None:
                         continue
 
@@ -373,24 +373,27 @@ def make_dependency_chart(sections, pages):
         file_out.write(file_text)
 
 
-def check_yaml_values(pad_id, yaml_data):
+def check_yaml_values(yaml_data):
 
     returnval = True
 
     # check the required yaml values
     if not check_value_is_valid_int('volume', yaml_data):
+        log_error('Volume value is not valid.')
         returnval = False
 
     if not check_value_is_valid_string('manual', yaml_data):
+        log_error('Manual value is not valid.')
         returnval = False
 
     if not check_value_is_valid_string('slug', yaml_data):
+        log_error('Volume value is not valid.')
         returnval = False
     else:
         # slug cannot contain a dash, only underscores
         test_slug = str(yaml_data['slug']).strip()
         if '-' in test_slug:
-            log_error('Slug values cannot contain hyphen (dash): ' + pad_id)
+            log_error('Slug values cannot contain hyphen (dash).')
             returnval = False
 
     if not check_value_is_valid_string('title', yaml_data):
