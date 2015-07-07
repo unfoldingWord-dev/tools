@@ -582,7 +582,7 @@ def get_page_link_by_slug(pages, slug):
     if len(found) == 0:
         return ''
 
-    return '<a href="#' + found[0].yaml_data['slug'] + '">' + found[0].yaml_data['title'] + '</a>'
+    return '<a href="#' + found[0].yaml_data['slug'].lower() + '">' + found[0].yaml_data['title'] + '</a>'
 
 
 if __name__ == '__main__':
