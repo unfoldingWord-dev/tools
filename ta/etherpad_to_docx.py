@@ -13,15 +13,24 @@ import atexit
 import codecs
 from datetime import datetime
 from etherpad_lite import EtherpadLiteClient, EtherpadException
-from itertools import ifilter
 import logging
 import os
 import re
+import shlex
+from subprocess import Popen, PIPE
 import sys
-import time
 import yaml
 
-LOGFILE = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/playground/ta_import.log.txt'
+LOGFILE = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/playground/ta_export.log.txt'
+DOCXFILE = '/var/www/vhosts/api.unfoldingword.org/httpdocs/ta_export.docx'
+HTMLFILE = '/var/www/vhosts/api.unfoldingword.org/httpdocs/ta_export.html'
+
+H1REGEX = re.compile(r"(.*?)((?:<p>)?======\s*)(.*?)(\s*======(?:</p>)?)(.*?)", re.DOTALL | re.MULTILINE)
+H2REGEX = re.compile(r"(.*?)((?:<p>)?=====\s*)(.*?)(\s*=====(?:</p>)?)(.*?)", re.DOTALL | re.MULTILINE)
+H3REGEX = re.compile(r"(.*?)((?:<p>)?====\s*)(.*?)(\s*====(?:</p>)?)(.*?)", re.DOTALL | re.MULTILINE)
+H4REGEX = re.compile(r"(.*?)((?:<p>)?===\s*)(.*?)(\s*===(?:</p>)?)(.*?)", re.DOTALL | re.MULTILINE)
+H5REGEX = re.compile(r"(.*?)((?:<p>)?==\s*)(.*?)(\s*==(?:</p>)?)(.*?)", re.DOTALL | re.MULTILINE)
+LINKREGEX = re.compile(r"(.*?)(\[\[?)(.*?)(]]?)(.*?)", re.DOTALL | re.MULTILINE)
 
 # YAML file heading data format:
 #
@@ -58,6 +67,7 @@ class SelfClosingEtherpad(EtherpadLiteClient):
     """
     This class is here to enable with...as functionality for the EtherpadLiteClient
     """
+
     def __init__(self):
         super(SelfClosingEtherpad, self).__init__()
 
@@ -125,7 +135,6 @@ def log_this(string_to_log, top_level=False):
 
 
 def log_error(string_to_log):
-
     global error_count
     error_count += 1
     log_this(string_to_log)
@@ -148,7 +157,7 @@ def parse_ta_modules(raw_text):
 
     # remove everything before the first ======
     pos = raw_text.find("\n======")
-    tmpstr = raw_text[pos+7:]
+    tmpstr = raw_text[pos + 7:]
 
     # break at "\n======" for major sections
     arr = tmpstr.split("\n======")
@@ -214,8 +223,7 @@ def get_last_changed(e_pad, sections):
     return int(last_change / 1000)
 
 
-def get_page_yaml_data(raw_yaml_text):
-
+def get_page_yaml_data(pad_id, raw_yaml_text):
     returnval = {}
 
     # convert windows line endings
@@ -255,7 +263,7 @@ def get_page_yaml_data(raw_yaml_text):
         for key in parsed.keys():
             returnval[key] = parsed[key]
 
-    if not check_yaml_values(returnval):
+    if not check_yaml_values(pad_id, returnval):
         returnval['invalid'] = True
 
     return returnval
@@ -287,7 +295,7 @@ def get_ta_pages(e_pad, sections):
                 if match:
 
                     # check for valid yaml data
-                    yaml_data = get_page_yaml_data(match.group(2))
+                    yaml_data = get_page_yaml_data(pad_id, match.group(2))
                     if yaml_data is None:
                         continue
 
@@ -308,92 +316,23 @@ def get_ta_pages(e_pad, sections):
     return pages
 
 
-def make_dependency_chart(sections, pages):
-
-    chart_lines = []
-    dir_name = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/ta'
-    # dir_name = '/var/www/projects/dokuwiki/data/gitrepo/pages/en/ta'
-    chart_file = dir_name + '/dependencies.txt'
-
-    # header
-    chart_lines.append('<graphviz dot right>\ndigraph finite_state_machine {')
-    chart_lines.append('rankdir=BT;')
-    chart_lines.append('graph [fontname="Arial"];')
-    chart_lines.append('node [shape=oval, fontname="Arial", fontsize=12, style=filled, fillcolor="#dddddd"];')
-    chart_lines.append('edge [arrowsize=1.4];')
-
-    # sections
-    for section in sections:
-        chart_lines.append(quote_str(section.name) + ' [fillcolor="' + section.color + '"]')
-
-    # pages
-    for page in pages:
-        assert isinstance(page, PageData)
-        log_this('Processing page ' + page.page_id)
-
-        # check for invalid yaml data
-        if 'invalid' in page.yaml_data:
-            continue
-
-        # get the color for the section
-        fill_color = next(ifilter(lambda sec: sec.name == page.section_name, sections), '#dddddd').color
-
-        # create the node
-        chart_lines.append(quote_str(page.yaml_data['slug']) + ' [fillcolor="' + fill_color + '"]')
-
-        # dependency arrows
-        if 'dependencies' in page.yaml_data:
-            dependencies = page.yaml_data['dependencies']
-            if isinstance(dependencies, list):
-                for dependency in dependencies:
-                    chart_lines.append(quote_str(dependency) + ' -> ' + quote_str(page.yaml_data['slug']))
-
-            else:
-                if isinstance(dependencies, str):
-                    chart_lines.append(quote_str(dependencies) + ' -> ' + quote_str(page.yaml_data['slug']))
-
-                else:
-                    chart_lines.append(quote_str(page.section_name) + ' -> ' + quote_str(page.yaml_data['slug']))
-
-        else:
-            chart_lines.append(quote_str(page.section_name) + ' -> ' + quote_str(page.yaml_data['slug']))
-
-    # footer
-    chart_lines.append('}\n</graphviz>')
-    chart_lines.append('~~NOCACHE~~')
-
-    # join the lines
-    file_text = "\n".join(chart_lines)
-
-    # write the Graphviz file
-    if not os.path.exists(dir_name):
-        os.makedirs(dir_name)
-
-    with codecs.open(chart_file, 'w', 'utf-8') as file_out:
-        file_out.write(file_text)
-
-
-def check_yaml_values(yaml_data):
-
+def check_yaml_values(pad_id, yaml_data):
     returnval = True
 
     # check the required yaml values
     if not check_value_is_valid_int('volume', yaml_data):
-        log_error('Volume value is not valid.')
         returnval = False
 
     if not check_value_is_valid_string('manual', yaml_data):
-        log_error('Manual value is not valid.')
         returnval = False
 
     if not check_value_is_valid_string('slug', yaml_data):
-        log_error('Volume value is not valid.')
         returnval = False
     else:
         # slug cannot contain a dash, only underscores
         test_slug = str(yaml_data['slug']).strip()
         if '-' in test_slug:
-            log_error('Slug values cannot contain hyphen (dash).')
+            log_error('Slug values cannot contain hyphen (dash): ' + pad_id)
             returnval = False
 
     if not check_value_is_valid_string('title', yaml_data):
@@ -403,7 +342,6 @@ def check_yaml_values(yaml_data):
 
 
 def check_value_is_valid_string(value_to_check, yaml_data):
-
     if value_to_check not in yaml_data:
         log_error('"' + value_to_check + '" data value for page is missing')
         return False
@@ -427,7 +365,6 @@ def check_value_is_valid_string(value_to_check, yaml_data):
 
 # noinspection PyBroadException
 def check_value_is_valid_int(value_to_check, yaml_data):
-
     if value_to_check not in yaml_data:
         log_error('"' + value_to_check + '" data value for page is missing')
         return False
@@ -451,7 +388,6 @@ def check_value_is_valid_int(value_to_check, yaml_data):
 
 
 def get_yaml_string(value_name, yaml_data):
-
     if value_name not in yaml_data:
         return ''
 
@@ -467,7 +403,6 @@ def get_yaml_string(value_name, yaml_data):
 
 
 def get_yaml_object(value_name, yaml_data):
-
     if value_name not in yaml_data:
         return ''
 
@@ -482,9 +417,86 @@ def get_yaml_object(value_name, yaml_data):
     return data_value.strip()
 
 
-def make_dokuwiki_pages(pages):
+def make_docx(pages):
+    divs = make_html(pages)
+    regex = re.compile(r"^(.*<body>)(.*?)(</body>.*)$", re.DOTALL | re.MULTILINE)
+    body = ''
 
+    with open(os.path.dirname(os.path.realpath(__file__)) + '/ta_export.html', 'r') as f:
+        html = f.read()
+
+    # pages
+    for div in divs:
+        body += div + "\n"
+
+    match = regex.search(html)
+    if match:
+        html = match.group(1) + "\n" + body + match.group(3)
+
+        html_to_docx(html)
+        with codecs.open(HTMLFILE, 'w', 'utf-8') as out_file:
+            out_file.write(html)
+
+
+def markdown_to_html(markdown):
+    """
+    Runs markdown through pandoc to convert to html
+    """
+
+    markdown = markdown.replace("\\\\\n", "<br>\n")
+
+    command = shlex.split('/usr/bin/pandoc -f markdown_phpextra -t html')
+    com = Popen(command, shell=False, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    out, err = com.communicate(markdown.encode('utf-8'))
+    html = out.decode('utf-8')
+
+    # fix some things pandoc doesn't convert
+    # <p>====== is h1
+    # <p>== is h5
+    html = H1REGEX.sub(r'\1<h1>\3</h1>\5', html)
+    html = H2REGEX.sub(r'\1<h2>\3</h2>\5', html)
+    html = H3REGEX.sub(r'\1<h3>\3</h3>\5', html)
+    html = H4REGEX.sub(r'\1<h4>\3</h4>\5', html)
+    html = H5REGEX.sub(r'\1<h5>\3</h5>\5', html)
+    html = re.sub(LINKREGEX, convert_link, html)
+
+    return html
+
+
+def html_to_docx(html):
+    command = shlex.split('/usr/bin/pandoc -f html -t docx -o "' + DOCXFILE + '"')
+    com = Popen(command, shell=False, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    out, err = com.communicate(html.encode('utf-8'))
+
+    if len(err) > 0:
+        log_this(err, True)
+    else:
+        log_this('Generated document: [[https://api.unfoldingword.org/ta_export.docx]]', True)
+
+
+def convert_link(match):
+    parts = match.group(3).split('|')
+    if isinstance(parts, list):
+        return match.group(1) + '<a href="' + dokuwiki_to_html_link(parts[0]) + '">' + parts[1] + '</a>' + \
+            match.group(5)
+    else:
+        return match.group(1) + '<a href="' + dokuwiki_to_html_link(parts) + '">' + parts + '</a>' + match.group(5)
+
+
+def dokuwiki_to_html_link(dokuwiki_link):
+    # if this is a dokuwiki link, convert it
+    if ':' in dokuwiki_link:
+        if dokuwiki_link[:1] == ':':
+            dokuwiki_link = dokuwiki_link[1:]
+
+        return 'https://door43.org/' + dokuwiki_link.replace(':', '/')
+
+    return dokuwiki_link
+
+
+def make_html(pages):
     pages_generated = 0
+    divs = []
 
     # pages
     for page in pages:
@@ -495,22 +507,10 @@ def make_dokuwiki_pages(pages):
             continue
 
         try:
-            # get the directory name from the yaml data
-            page_dir = 'en/ta/vol' + str(page.yaml_data['volume']).strip()
-            page_dir += '/' + str(page.yaml_data['manual']).strip()
-            page_dir = page_dir.lower()
+            # get the slug from the yaml data
+            slug = str(page.yaml_data['slug']).strip().lower()
 
-            actual_dir = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/' + page_dir
-            if not os.path.exists(actual_dir):
-                os.makedirs(actual_dir, 0755)
-
-            # get the file name from the yaml data
-            page_file = str(page.yaml_data['slug']).strip().lower()
-
-            log_this('Generating Dokuwiki page: [[https://door43.org/' + page_dir
-                     + '/' + page_file + '|' + page_dir + '/' + page_file + '.txt]]')
-
-            page_file = actual_dir + '/' + page_file + '.txt'
+            log_this('Generating page: ' + slug)
 
             # get the markdown
             question = get_yaml_string('question', page.yaml_data)
@@ -518,6 +518,7 @@ def make_dokuwiki_pages(pages):
             recommended = get_yaml_object('recommended', page.yaml_data)
 
             md = '===== ' + page.yaml_data['title'] + " =====\n\n"
+            md += '<a name="' + slug + '"></a>'
 
             if question:
                 md += 'This module answers the question: ' + question + "\\\\\n"
@@ -534,20 +535,22 @@ def make_dokuwiki_pages(pages):
                 md += output_list(pages, recommended)
                 md += "\n\n"
 
-            # write the file
-            with codecs.open(page_file, 'w', 'utf-8') as file_out:
-                file_out.write(md)
+            div = "<div class=\"page\">\n"
+            div += markdown_to_html(md) + "\n"
+            div += "</div>\n"
+
+            divs.append(div)
 
             pages_generated += 1
 
         except Exception as ex:
             log_error(str(ex))
 
-    log_this('Generated ' + str(pages_generated) + ' Dokuwiki pages.', True)
+    log_this('Generated ' + str(pages_generated) + ' pages.', True)
+    return divs
 
 
 def output_list(pages, option_list):
-
     md = ''
 
     if isinstance(option_list, list):
@@ -579,30 +582,12 @@ def get_page_link_by_slug(pages, slug):
     if len(found) == 0:
         return ''
 
-    return '[[' + get_page_url(found[0]) + '|' + found[0].yaml_data['title'] + ']]'
-
-
-def get_page_url(page):
-    page_dir = 'en:ta:vol' + str(page.yaml_data['volume']).strip()
-    page_dir += ':' + str(page.yaml_data['manual']).strip()
-    page_dir = page_dir.lower()
-
-    page_file = str(page.yaml_data['slug']).strip().lower()
-
-    return page_dir + ':' + page_file
+    return '<a href="#' + found[0].yaml_data['slug'].lower() + '">' + found[0].yaml_data['title'] + '</a>'
 
 
 if __name__ == '__main__':
 
     log_this('Most recent run: ' + datetime.utcnow().strftime('%Y-%m-%d %H:%M') + ' UTC', True)
-    log_this('Checking for changes in Etherpad', True)
-
-    # get the last run time
-    last_checked = 0
-    last_file = '.lastEpToDwRun'
-    if os.path.isfile(last_file):
-        with open(last_file, 'r') as f:
-            last_checked = int(float(f.read()))
 
     has_changed = False
     ta_pages = None
@@ -611,27 +596,12 @@ if __name__ == '__main__':
 
         text = ep.getText(padID='ta-modules')
         ta_sections = parse_ta_modules(text['text'])
-        if get_last_changed(ep, ta_sections) > last_checked:
-            has_changed = True
-            log_this('Changes found')
+        ta_pages = get_ta_pages(ep, ta_sections)
 
-        if has_changed:
-            ta_pages = get_ta_pages(ep, ta_sections)
+    log_this('Generating Word document.', True)
+    make_docx(ta_pages)
 
-    if has_changed:
-        log_this('Generating dependency chart', True)
-        make_dependency_chart(ta_sections, ta_pages)
-        log_this('Generating Dokuwiki pages.', True)
-        make_dokuwiki_pages(ta_pages)
-
-    # remember last_checked for the next time
-    if error_count == 0:
-        with open(last_file, 'w') as f:
-            f.write(str(time.time()))
-    else:
+    if error_count != 0:
         log_this(str(error_count) + ' errors have been logged', True)
 
-    if has_changed:
-        log_this('Finished updating', True)
-    else:
-        log_this('No changes found', True)
+    log_this('Finished generating docx', True)
