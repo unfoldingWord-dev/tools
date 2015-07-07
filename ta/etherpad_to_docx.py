@@ -10,6 +10,7 @@
 #
 #
 import atexit
+import codecs
 from datetime import datetime
 from etherpad_lite import EtherpadLiteClient, EtherpadException
 import logging
@@ -433,7 +434,7 @@ def make_docx(pages):
         html = match.group(1) + "\n" + body + match.group(3)
 
         html_to_docx(html)
-        with open(HTMLFILE, 'w') as out_file:
+        with codecs.open(HTMLFILE, 'w', 'utf-8') as out_file:
             out_file.write(html)
 
 
@@ -536,7 +537,7 @@ def make_html(pages):
 
             div = "<div class=\"page\">\n"
             div += markdown_to_html(md) + "\n"
-            div += "</div>\nPAGEBREAK\n"
+            div += "</div>\n"
 
             divs.append(div)
 
