@@ -24,6 +24,7 @@ import yaml
 LOGFILE = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/playground/ta_export.log.txt'
 DOCXFILE = '/var/www/vhosts/api.unfoldingword.org/httpdocs/ta_export.docx'
 HTMLFILE = '/var/www/vhosts/api.unfoldingword.org/httpdocs/ta_export.html'
+FRONTMATTER = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/legal/license.txt'
 
 H1REGEX = re.compile(r"(.*?)((?:<p>)?======\s*)(.*?)(\s*======(?:</p>)?)(.*?)", re.DOTALL | re.MULTILINE)
 H2REGEX = re.compile(r"(.*?)((?:<p>)?=====\s*)(.*?)(\s*=====(?:</p>)?)(.*?)", re.DOTALL | re.MULTILINE)
@@ -89,11 +90,10 @@ class SelfClosingEtherpad(EtherpadLiteClient):
 
 
 class SectionData(object):
-    def __init__(self, name, page_list=None, color='yellow'):
+    def __init__(self, name, page_list=None):
         if not page_list:
             page_list = []
         self.name = self.get_name(name)
-        self.color = color
         self.page_list = page_list
 
     @staticmethod
@@ -152,8 +152,6 @@ def parse_ta_modules(raw_text):
     """
 
     returnval = []
-    colors = ['#ff9999', '#99ff99', '#9999ff', '#ffff99', '#99ffff', '#ff99ff', '#cccccc']
-    color_index = 0
 
     # remove everything before the first ======
     pos = raw_text.find("\n======")
@@ -189,8 +187,7 @@ def parse_ta_modules(raw_text):
         no_dupes = set(urls)
 
         # add the list of URLs to the dictionary
-        returnval.append(SectionData(section_name, no_dupes, colors[color_index]))
-        color_index += 1
+        returnval.append(SectionData(section_name, no_dupes))
 
     return returnval
 
@@ -269,7 +266,7 @@ def get_page_yaml_data(pad_id, raw_yaml_text):
     return returnval
 
 
-def get_ta_pages(e_pad, sections):
+def get_vol1_pages(e_pad, sections):
     """
 
     :param e_pad: SelfClosingEtherpad
@@ -301,6 +298,12 @@ def get_ta_pages(e_pad, sections):
 
                     if yaml_data == {}:
                         log_error('No yaml data found for ' + pad_id)
+                        continue
+
+                    if not check_value_is_valid_int('volume', yaml_data):
+                        continue
+
+                    if int(yaml_data['volume']) != 1:
                         continue
 
                     pages.append(PageData(section_key, pad_id, yaml_data, match.group(4)))
@@ -464,7 +467,7 @@ def markdown_to_html(markdown):
 
 
 def html_to_docx(html):
-    command = shlex.split('/usr/bin/pandoc -f html -t docx -o "' + DOCXFILE + '"')
+    command = shlex.split('/usr/bin/pandoc --toc --toc-depth=1 -f html -t docx -o "' + DOCXFILE + '"')
     com = Popen(command, shell=False, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     out, err = com.communicate(html.encode('utf-8'))
 
@@ -484,6 +487,11 @@ def convert_link(match):
 
 
 def dokuwiki_to_html_link(dokuwiki_link):
+
+    # if this is already a valid URL, return it unchanged
+    if dokuwiki_link[:4].lower() == 'http':
+        return dokuwiki_link
+
     # if this is a dokuwiki link, convert it
     if ':' in dokuwiki_link:
         if dokuwiki_link[:1] == ':':
@@ -497,6 +505,24 @@ def dokuwiki_to_html_link(dokuwiki_link):
 def make_html(pages):
     pages_generated = 0
     divs = []
+
+    # get the front matter
+    with codecs.open(FRONTMATTER, 'r', 'utf-8') as f:
+        fm = f.read()
+
+    if fm:
+        log_this('Generating license page')
+
+        md = u'<a name="license"></a>' + u"\n\n"
+        md += fm
+
+        div = u"<div class=\"page\">\n"
+        div += markdown_to_html(md) + u"\n"
+        div += u"</div>\n"
+
+        divs.append(div)
+
+        pages_generated += 1
 
     # pages
     for page in pages:
@@ -517,27 +543,27 @@ def make_html(pages):
             dependencies = get_yaml_object('dependencies', page.yaml_data)
             recommended = get_yaml_object('recommended', page.yaml_data)
 
-            md = '===== ' + page.yaml_data['title'] + " =====\n\n"
-            md += '<a name="' + slug + '"></a>'
+            md = u'<a name="' + slug + '"></a>' + u"\n"
+            md += u'====== ' + page.yaml_data['title'] + u" ======\n\n"
 
             if question:
-                md += 'This module answers the question: ' + question + "\\\\\n"
+                md += u'This module answers the question: ' + question + u"\\\\\n"
 
             if dependencies:
-                md += 'Before you start this module have you learned about:'
+                md += u'Before you start this module have you learned about:'
                 md += output_list(pages, dependencies)
-                md += "\n\n"
+                md += u"\n\n"
 
-            md += page.page_text + "\n\n"
+            md += page.page_text + u"\n\n"
 
             if recommended:
-                md += 'Next we recommend you learn about:'
+                md += u'Next we recommend you learn about:'
                 md += output_list(pages, recommended)
-                md += "\n\n"
+                md += u"\n\n"
 
-            div = "<div class=\"page\">\n"
-            div += markdown_to_html(md) + "\n"
-            div += "</div>\n"
+            div = u"<div class=\"page\">\n"
+            div += markdown_to_html(md) + u"\n"
+            div += u"</div>\n"
 
             divs.append(div)
 
@@ -596,7 +622,7 @@ if __name__ == '__main__':
 
         text = ep.getText(padID='ta-modules')
         ta_sections = parse_ta_modules(text['text'])
-        ta_pages = get_ta_pages(ep, ta_sections)
+        ta_pages = get_vol1_pages(ep, ta_sections)
 
     log_this('Generating Word document.', True)
     make_docx(ta_pages)
