@@ -543,8 +543,8 @@ def make_html(pages):
             dependencies = get_yaml_object('dependencies', page.yaml_data)
             recommended = get_yaml_object('recommended', page.yaml_data)
 
-            md = u'<a name="' + slug + '"></a>' + u"\n"
-            md += u'====== ' + page.yaml_data['title'] + u" ======\n\n"
+            md = u'<a name="' + slug + '">&nbsp;</a>' + u"\n"
+            md += u'<h1>' + page.yaml_data['title'] + u"</h1>\n\n"
 
             if question:
                 md += u'This module answers the question: ' + question + u"\\\\\n"
