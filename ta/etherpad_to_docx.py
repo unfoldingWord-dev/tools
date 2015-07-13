@@ -76,6 +76,8 @@ class SelfClosingEtherpad(EtherpadLiteClient):
         try:
             pw = open('/usr/share/httpd/.ssh/ep_api_key', 'r').read().strip()
             self.base_params = {'apikey': pw}
+
+            self.base_url = 'https://pad.door43.org/api'
         except:
             e1 = sys.exc_info()[0]
             print 'Problem logging into Etherpad via API: {0}'.format(e1)
@@ -179,15 +181,18 @@ def parse_ta_modules(raw_text):
             if match:
                 pos = match.group(1).rfind("/")
                 if pos > -1:
+                    test_url = match.group(1)[pos + 1:]
                     urls.append(match.group(1)[pos + 1:])
                 else:
+                    test_url = match.group(1)
                     urls.append(match.group(1))
 
-        # remove duplicates
-        no_dupes = set(urls)
+                # do not add a duplicate
+                if test_url not in urls:
+                    urls.append(test_url)
 
         # add the list of URLs to the dictionary
-        returnval.append(SectionData(section_name, no_dupes))
+        returnval.append(SectionData(section_name, urls))
 
     return returnval
 
@@ -467,14 +472,16 @@ def markdown_to_html(markdown):
 
 
 def html_to_docx(html):
-    command = shlex.split('/usr/bin/pandoc --toc --toc-depth=1 -f html -t docx -o "' + DOCXFILE + '"')
+    command = shlex.split('/usr/bin/pandoc --filter ./insert_pagebreaks_filter --toc --toc-depth=1 -f html -t docx -o "' + DOCXFILE + '"')
     com = Popen(command, shell=False, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     out, err = com.communicate(html.encode('utf-8'))
 
     if len(err) > 0:
         log_this(err, True)
     else:
-        log_this('Generated document: [[https://api.unfoldingword.org/ta_export.docx]]', True)
+        log_this('Generated document: ' +
+                 '[[https://api.unfoldingword.org/ta_export.docx|https://api.unfoldingword.org/ta_export.docx]]',
+                 True)
 
 
 def convert_link(match):
@@ -516,7 +523,7 @@ def make_html(pages):
         md = u'<a name="license"></a>' + u"\n\n"
         md += fm
 
-        div = u"<div class=\"page\">\n"
+        div = u"\\newpage\n<div class=\"page\">\n"
         div += markdown_to_html(md) + u"\n"
         div += u"</div>\n"
 
@@ -561,7 +568,7 @@ def make_html(pages):
                 md += output_list(pages, recommended)
                 md += u"\n\n"
 
-            div = u"<div class=\"page\">\n"
+            div = u"\\newpage\n<div class=\"page\">\n"
             div += markdown_to_html(md) + u"\n"
             div += u"</div>\n"
 
