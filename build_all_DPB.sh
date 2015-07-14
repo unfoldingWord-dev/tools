@@ -10,10 +10,11 @@
 #  Caleb Maclennan <caleb@alerque.com>
 set -e
 
-tagver=3dpbTEST
-yyyymmdd=$(date +%Y%m%d)
-#langlist="am ru tr fr pt-br en es"
-langlist="ru tr"
+# Set defaults (may be overridden at runtime with environment variables)
+: ${tagver:=3dpbTEST}
+: ${yyyymmdd:=$(date +%Y%m%d)}
+: ${langlist:=am ru tr fr pt-br en es}
+
 n=$(egrep '^MAX' obs/export.py | tail -1 | awk '{print $3}')
 [[ $n -eq 0 ]] && zipB=full || zipB=samples-first-$n-chapters
 zipE=$zipB.zip
