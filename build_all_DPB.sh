@@ -8,13 +8,6 @@
 #  Contributors:
 #  dboerschlein
 #  Caleb Maclennan <caleb@alerque.com>
-set -e
-
-# Setup a temp directory for doing out processing in, and clean up after
-# ourselves when the script ends or otherwise dies
-BASE_DIR=$(cd $(dirname "$0")/../../ && pwd)
-TMPDIR=$(mktemp -d --tmpdir)
-trap 'cd $BASE_DIR; rm -rf $TMPDIR' EXIT SIGHUP SIGTERM
 
 # Set defaults (may be overridden at runtime with environment variables)
 : ${tagver:=3dpbTEST}
@@ -22,6 +15,17 @@ trap 'cd $BASE_DIR; rm -rf $TMPDIR' EXIT SIGHUP SIGTERM
 : ${langlist:=am ru tr fr pt-br en es}
 : ${output:=$(pwd)}
 : ${drafts:=}
+
+# Add a debug mode and echo commands to the terminal if the environment var set
+: ${debug:=false}
+$debug && set -x
+
+# Setup a temp directory for doing out processing in, and clean up after
+# ourselves when the script ends or otherwise dies
+BASE_DIR=$(cd $(dirname "$0")/../../ && pwd)
+TMPDIR=$(mktemp -d --tmpdir)
+set -e
+$debug || trap 'cd $BASE_DIR; $debug && find $TMPDIR; rm -rf $TMPDIR' EXIT SIGHUP SIGTERM
 
 # Pick an output file name based on whether the export script is doing a full
 # run or a sample of X chapters for each language

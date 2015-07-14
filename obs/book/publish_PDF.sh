@@ -51,6 +51,7 @@ while test -n "$1"; do
     shift
 done
 
+set -e
 fail () {
     echo "Error: $@"
     exit 1
@@ -64,6 +65,10 @@ fail () {
 : ${api:=/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/$LANG}
 : ${api_url:=https://api.unfoldingword.org/obs/txt/1/$LANG}
 : ${FILENAME:=OBS-$LANG-v$VER}
+
+# Add a debug mode and echo commands to the terminal if the environment var set
+: ${debug:=false}
+$debug && set -x
 
 # Link the httpdocs folder in $OUTDIR
 myhost=$(uname -n)
