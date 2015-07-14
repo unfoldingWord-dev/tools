@@ -1,10 +1,14 @@
 #!/bin/ksh
-tagver=3testDPB
-tagver=20150522-draft-samples-DPB
-n=$(egrep '^MAX' obs/export.py| awk '{print $3}')
-[[ $n -eq 0 ]] && zipE=full.zip || zipE=samples.zip
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tagver=3dpbTEST
+yyyymmdd=$(date +%Y%m%d)
 #langlist="am ru tr fr pt-br en es"
 langlist="ru tr"
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+n=$(egrep '^MAX' obs/export.py | tail -1 | awk '{print $3}')
+[[ $n -eq 0 ]] && zipB=full || zipB=samples-first-$n-chapters
+zipE=$zipB.zip
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 rm -f /tmp/$zipE /tmp/tmp.*$tagver* /tmp/[A-Za-z]*$tagver*[a-z]
 for lang in $(echo $langlist)
 do
