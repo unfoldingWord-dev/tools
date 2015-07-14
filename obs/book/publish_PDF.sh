@@ -61,26 +61,22 @@ fail () {
 [[ -d "$OUTDIR" ]] || fail "Please specify a valid output directory."
 
 # Certain variables and paths
-: ${MAILTO:=publishing@unfoldingword.org}
 : ${api:=/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/$LANG}
-: ${api_url:=https://api.unfoldingword.org/obs/txt/1/$LANG}
 : ${FILENAME:=OBS-$LANG-v$VER}
 
 # Add a debug mode and echo commands to the terminal if the environment var set
 : ${debug:=false}
 $debug && set -x
 
-# Link the httpdocs folder in $OUTDIR
-myhost=$(uname -n)
-[[ $myhost == test.door43.org ]] && ln -sf /var/www/vhosts/door43.org/httpdocs $OUTDIR/httpdocs
 BASE_DIR=$(cd $(dirname "$0")/../../ && pwd)
-for folder in httpdocs includes; do
-    ln -sf $BASE_DIR/$folder $OUTDIR/$folder
-done
+
+# The includes submodule has common TeX stuff (mostly Noto setup) and is expected
+# at a path relative to the .tex file we'll be compiling
+pushd $OUTDIR
+ln -sf $BASE_DIR/includes
 
 # Run python (export.py) to generate the .tex file from template .tex files
-pushd $OUTDIR
-$BASE_DIR/obs/export.py -l $LANG -f tex -o $OUTDIR/$FILENAME.tex 2>&1 \
+$BASE_DIR/obs/export.py -l $LANG -f tex -o $OUTDIR/$FILENAME.tex \
     || fail "Failed to generate ${FILENAME}.tex"
 
 # Run ConTeXt (context) to generate stories from .tex file output by python
@@ -88,8 +84,3 @@ context $FILENAME.tex || fail "Unable to compile ${FILENAME}.tex"
 
 # Install the files into $OUTDIR and make readable by all
 install -Dm 0644 $OUTDIR/$FILENAME.pdf $api/$FILENAME.pdf
-
-URL="${api_url}/$FILENAME.pdf"
-#echo "A PDF for $LANG at version $VER has been created.  " \
-    #"Please download it from $URL." \
-    #| mail -s "PDF Generated for $LANG" "$MAILTO"
