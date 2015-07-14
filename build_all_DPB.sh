@@ -15,9 +15,11 @@ set -e
 : ${yyyymmdd:=$(date +%Y%m%d)}
 : ${langlist:=am ru tr fr pt-br en es}
 
-n=$(egrep '^MAX' obs/export.py | tail -1 | awk '{print $3}')
-[[ $n -eq 0 ]] && zipB=full || zipB=samples-first-$n-chapters
-zipE=$zipB.zip
+# Pick an output file name based on whether the export script is doing a full
+# run or a sample of X chapters for each language
+MAX_CHAPTERS=$(sed -n '/^MAX_CHAPTERS/s/.*= *//p' obs/export.py)
+[[ $MAX_CHAPTERS -eq 0 ]] && zipE=full || zipE=samples-first-$n-chapters
+
 rm -f /tmp/$zipE /tmp/tmp.*$tagver* /tmp/[A-Za-z]*$tagver*[a-z]
 for lang in $langlist
 do
