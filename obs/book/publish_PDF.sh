@@ -79,6 +79,19 @@ ln -sf $BASE_DIR/includes
 $BASE_DIR/obs/export.py -l $LANG -f tex -o $OUTDIR/$FILENAME.tex \
     || fail "Failed to generate ${FILENAME}.tex"
 
+# Make sure ConTeXt is installed and our environment is passable, if not
+# make a basic attempt to fix it before going on...
+if ! command -v context; then
+    if [[ -d $BASE_DIR/tex ]]; then
+        source $BASE_DIR/tex/setuptex
+    fi
+fi
+if ! mtxrun --script fonts --list --all | grep -q noto; then
+    export OSFONTDIR="/usr/local/share/fonts;/usr/share/fonts"
+    mtxrun --script fonts --reload
+    context --generate
+fi
+
 # Run ConTeXt (context) to generate stories from .tex file output by python
 context $FILENAME.tex || fail "Unable to compile ${FILENAME}.tex"
 
