@@ -35,7 +35,6 @@ MAX_CHAPTERS=$(sed -n '/^MAX_CHAPTERS/s/.*= *//p' obs/export.py)
 # Iterate over the language linst and generate PDFs
 for lang in $langlist; do
     ./obs/book/publish_PDF.sh -l $lang -v $tagver -o $TMPDIR
-    zip -9j $TMPDIR/$output_package $TMPDIR/*${lang}*json.tmp
     # If drafts diretory specified place a dated copy of each PDF there
     [[ -d $drafts ]] && install -Dm 0644 $TMPDIR/OBS-${lang}-v${tagver}.pdf \
                             $drafts/OBS-${lang}-v${tagver}-${yyyymmdd}.pdf
