@@ -75,7 +75,7 @@ done
     echo $TOOLS/obs/export.py -l $LANG -f tex -o /tmp/$FILENAME.tex
 } | tee $HISTORY_TMP_FOLDER/tmp-export-command-used-$LANG.ksh | sed -e 's/^/\$ /' 1>&2
 cd /tmp
-$TOOLS/obs/export.py -l $LANG -f tex -o /tmp/$FILENAME.tex
+$TOOLS/obs/export.py -l $LANG -f tex -o /tmp/$FILENAME.tex 2>&1 | tee /tmp/$FILENAME.py-stderr
 RC=$?
 echo RC=$?, \$ context $$.$FILENAME.tex 1>&2
 echo $(pwd)/$$.$FILENAME.tex 1>&2
