@@ -3,9 +3,10 @@ tagver=3testDPB
 tagver=20150522-draft-samples-DPB
 n=$(egrep '^MAX' obs/export.py| awk '{print $3}')
 [[ $n -eq 0 ]] && zipE=full.zip || zipE=samples.zip
+#langlist="am ru tr fr pt-br en es"
+langlist="ru tr"
 rm -f /tmp/$zipE /tmp/tmp.*$tagver* /tmp/[A-Za-z]*$tagver*[a-z]
-#for lang in en es fr pt-br ru
-for lang in am ru fr pt-br en es
+for lang in $(echo $langlist)
 do
     obs/book/publish_PDF.sh -l $lang -v $tagver
     zip -9rj /tmp/$zipE /tmp/*${lang}*json.tmp
@@ -15,7 +16,7 @@ done
     formatD="%-10s%-10s%-10s%-10s%s\n"
     printf "$formatA" "language" "link-counts-each-matter-part  possibly-rogue-links-in-JSON-files"
     printf "$formatA" "--------" "----------------------------  --------------------------------------------------------"
-    for lang in am ru fr pt-br en es
+    for lang in $(echo $langlist)
     do
 	{
         cat /tmp/OBS-${lang}*${tagver}*tex \
