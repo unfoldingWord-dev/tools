@@ -214,20 +214,13 @@ def getFrame(xtr, text, format, texreg):
     return text
 
 def do_not_break_before_chapter_verse(format, text):
-    print 'do_not_break("',format,'","',text,'")...'
     if (format == 'tex'):
         copy = text
-        print "getRef, A.copy=", copy
         copy = matchHyphen.sub(NBHY, copy, MATCH_ALL)
-        print "getRef, B.copy=", copy
         copy = matchHyphenEM.sub(NBHY, copy, MATCH_ALL)
-        print "getRef, C.copy=", copy
         copy = matchAlphaNumSpaceThenNumber.sub(ur'\1'+NBKN+ur'\2', copy, MATCH_ALL) # change spaces to non-breaking 1/2 em
-        print "getRef, H.copy=", copy
         copy = matchColonSemicolonNotAfterDigits.sub(ur'\1\2 \3', copy, MATCH_ALL)
-        print "getRef, L.copy=", copy
         copy = matchCommaBetweenDigits.sub(ur'\1\2\3', copy, MATCH_ALL)
-        print "getRef, Z.copy=", copy
         return copy
     return text
         
@@ -238,7 +231,6 @@ def getRef(xtr, place_ref_template, text, format='plain'):
     elif format == 'md':
         return u'*{0}*'.format(text)
     elif format == 'tex':
-        print "getRef()..."
         #copy = do_not_break_before_chapter_verse(format, text)
         #each = place_ref_template.safe_substitute(thetext=copy).split(u'\n')
         each = place_ref_template.safe_substitute(thetext=text).split(u'\n')
