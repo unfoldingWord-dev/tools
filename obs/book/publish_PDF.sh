@@ -70,10 +70,6 @@ done
     
 #-----------------------------------------------------------------------------
 # Run python (export.py) to generate the .tex file from template .tex files
-{
-    echo cd /tmp
-    echo $TOOLS/obs/export.py -l $LANG -f tex -o /tmp/$FILENAME.tex
-} | tee $HISTORY_TMP_FOLDER/tmp-export-command-used-$LANG.ksh | sed -e 's/^/\$ /' 1>&2
 cd /tmp
 $TOOLS/obs/export.py -l $LANG -f tex -o /tmp/$FILENAME.tex 2>&1 | tee /tmp/$FILENAME.py-stderr
 RC=$?
@@ -84,12 +80,6 @@ echo $(pwd)/$$.$FILENAME.tex 1>&2
 #-----------------------------------------------------------------------------
 # Run ConTeXt (context) to generate stories from .tex file output by python
 mkdir -p $HISTORY_TMP_FOLDER
-{
-    echo cd /tmp
-    #echo export PATH=/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin:/root/.cabal/bin
-    echo . /opt/context/tex/setuptex
-    echo context $FILENAME.tex
-} | tee $HISTORY_TMP_FOLDER/tmp-context-command-used-$LANG.ksh | sed -e 's/^/\$ /' 1>&2
 cd /tmp
 . /opt/context/tex/setuptex
 context $FILENAME.tex
