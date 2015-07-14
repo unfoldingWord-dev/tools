@@ -75,6 +75,14 @@ matchFrontMatterPat = re.compile(ur"===FRONT\.MATTER===",re.UNICODE)
 matchBackMatterPat = re.compile(ur"===BACK\.MATTER===",re.UNICODE)
 matchMiscPat = re.compile(ur"<<<[\[]([^<>=]+)[\]]>>>",re.UNICODE)
 # Other patterns
+NBSP = u'~'         # non-breaking 1-en space
+NBKN = u'\\,\\,\\,' # Three kerns in a row, non-breaking space
+NBHY = u'\u2012'    # non-breaking hyphen
+matchColonSemicolonNotAfterDigits = re.compile(ur"([^\d\s])\s*([:;])\s*([^\s])",re.UNICODE)
+matchCommaBetweenDigits = re.compile(ur"(\d)\s*([,])\s*(\d)",re.UNICODE)
+matchHyphen = re.compile(ur"[\u2010\u2012\u2013\u002D\uFE63-]",re.UNICODE)
+matchHyphenEM = re.compile(ur"[\u2014\uFE58]",re.UNICODE)
+matchAlphaNumSpaceThenNumber = re.compile(ur"(\w)\s+(\d)",re.UNICODE)
 matchAlphaNum = re.compile(ur"[A-Za-z0-9]",re.UNICODE)
 matchSignificantTex = re.compile(ur"[A-Za-z0-9\\{}\[\]]",re.UNICODE)
 matchBlankLinePat = re.compile(ur"^\s*$",re.UNICODE)
@@ -205,6 +213,24 @@ def getFrame(xtr, text, format, texreg):
                           ])
     return text
 
+def do_not_break_before_chapter_verse(format, text):
+    print 'do_not_break("',format,'","',text,'")...'
+    if (format == 'tex'):
+        copy = text
+        print "getRef, A.copy=", copy
+        copy = matchHyphen.sub(NBHY, copy, MATCH_ALL)
+        print "getRef, B.copy=", copy
+        copy = matchHyphenEM.sub(NBHY, copy, MATCH_ALL)
+        print "getRef, C.copy=", copy
+        copy = matchAlphaNumSpaceThenNumber.sub(ur'\1'+NBKN+ur'\2', copy, MATCH_ALL) # change spaces to non-breaking 1/2 em
+        print "getRef, H.copy=", copy
+        copy = matchColonSemicolonNotAfterDigits.sub(ur'\1\2 \3', copy, MATCH_ALL)
+        print "getRef, L.copy=", copy
+        copy = matchCommaBetweenDigits.sub(ur'\1\2\3', copy, MATCH_ALL)
+        print "getRef, Z.copy=", copy
+        return copy
+    return text
+        
 def getRef(xtr, place_ref_template, text, format='plain'):
     global body_json
     if format == 'html':
@@ -212,6 +238,9 @@ def getRef(xtr, place_ref_template, text, format='plain'):
     elif format == 'md':
         return u'*{0}*'.format(text)
     elif format == 'tex':
+        print "getRef()..."
+        #copy = do_not_break_before_chapter_verse(format, text)
+        #each = place_ref_template.safe_substitute(thetext=copy).split(u'\n')
         each = place_ref_template.safe_substitute(thetext=text).split(u'\n')
         return xtr + (u'\n'+xtr).join(each) + u'\n\\vskip 6.0pt\n'
     return text
@@ -352,7 +381,7 @@ def export(chapters_json, format, img_res, lang):
         ixframe = (-1)
         ChapterFrames = chp['frames']
         nframe = len(ChapterFrames) 
-        RefTextOnly = chp['ref']
+        RefTextOnly = do_not_break_before_chapter_verse(format, chp['ref'])
         for fr in ChapterFrames:
             ixframe = 1 + ixframe
             ixlookahead = 1 + ixframe
@@ -419,6 +448,7 @@ def getJSON(lang,entry,tmpent):
     
 def main(lang, outpath, format, img_res):
     global body_json
+    sys.stdout = codecs.getwriter('utf8')(sys.stdout);
     toptmpf = getJSON(lang, 'obs-{0}-front-matter.json', '{0}-front-matter-json.tmp')
     bottmpf = getJSON(lang, 'obs-{0}-back-matter.json', '{0}-back-matter-json.tmp')
     lang_top_json = loadJSON(toptmpf, 'd')
