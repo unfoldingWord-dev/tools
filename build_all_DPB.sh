@@ -1,16 +1,24 @@
-#!/bin/ksh
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#!/usr/bin/env bash
+# -*- coding: utf-8 -*-
+#
+#  Copyright (c) 2014 unfoldingWord
+#  http://creativecommons.org/licenses/MIT/
+#  See LICENSE file for details.
+#
+#  Contributors:
+#  dboerschlein
+#  Caleb Maclennan <caleb@alerque.com>
+set -e
+
 tagver=3dpbTEST
 yyyymmdd=$(date +%Y%m%d)
 #langlist="am ru tr fr pt-br en es"
 langlist="ru tr"
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 n=$(egrep '^MAX' obs/export.py | tail -1 | awk '{print $3}')
 [[ $n -eq 0 ]] && zipB=full || zipB=samples-first-$n-chapters
 zipE=$zipB.zip
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 rm -f /tmp/$zipE /tmp/tmp.*$tagver* /tmp/[A-Za-z]*$tagver*[a-z]
-for lang in $(echo $langlist)
+for lang in $langlist
 do
     obs/book/publish_PDF.sh -l $lang -v $tagver
     zip -9rj /tmp/$zipE /tmp/*${lang}*json.tmp
@@ -20,7 +28,7 @@ done
     formatD="%-10s%-10s%-10s%-10s%s\n"
     printf "$formatA" "language" "link-counts-each-matter-part  possibly-rogue-links-in-JSON-files"
     printf "$formatA" "--------" "----------------------------  --------------------------------------------------------"
-    for lang in $(echo $langlist)
+    for lang in $langlist
     do
 	{
         cat /tmp/OBS-${lang}*${tagver}*tex \
@@ -53,7 +61,7 @@ cat /tmp/OBS-${tagver}-report.txt
 zip -9rj /tmp/$zipE /tmp/[A-Za-z]*$tagver*[a-z]  /tmp/OBS-${tagver}-report.txt 
 chown dboerschlein /tmp/$zipE
 chmod 664 /tmp/$zipE
-for lang in $(echo $langlist)
+for lang in $langlist
 do
     creE=OBS-${lang}-v${tagver}.pdf
     outE=OBS-${lang}-v${tagver}-${yyyymmdd}.pdf
@@ -63,4 +71,3 @@ do
     chown dboerschlein $outD/$outE
     echo Created: http://test.door43.org/draft/$outE
 done
-exit

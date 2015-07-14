@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 # -*- coding: utf-8 -*-
 #
 #  Copyright (c) 2014 unfoldingWord
@@ -7,7 +7,7 @@
 #
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
-#
+#  Caleb Maclennan <caleb@alerque.com>
 #-----------------------------------------------------------------------------
 # Help message
 help() {
@@ -47,7 +47,7 @@ while test -n "$1"; do
     shift
 done
 
-[ -z "$LANG" ] && echo "Please specify language code." && exit 1
+[[ -z "$LANG" ]] && echo "Please specify language code." && exit 1
 
 #-----------------------------------------------------------------------------
 # Certain variables and paths
