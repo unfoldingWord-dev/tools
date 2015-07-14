@@ -53,4 +53,14 @@ cat /tmp/OBS-${tagver}-report.txt
 zip -9rj /tmp/$zipE /tmp/[A-Za-z]*$tagver*[a-z]  /tmp/OBS-${tagver}-report.txt 
 chown dboerschlein /tmp/$zipE
 chmod 664 /tmp/$zipE
+for lang in $(echo $langlist)
+do
+    creE=OBS-${lang}-v${tagver}.pdf
+    outE=OBS-${lang}-v${tagver}-${yyyymmdd}.pdf
+    outD=/tmp/httpdocs/draft
+    cp -pf /tmp/$creE $outD/$outE
+    chmod 666 $outD/$outE
+    chown dboerschlein $outD/$outE
+    echo Created: http://test.door43.org/draft/$outE
+done
 exit
