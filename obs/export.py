@@ -127,6 +127,7 @@ def checkForStandardKeysJSON():
     if 'tocbaseline' not in body_json.keys(): body_json['tocbaseline'] = '16pt'
     if 'licbaseline' not in body_json.keys(): body_json['licbaseline'] = '9pt'
     if 'tocperpage' not in body_json.keys(): body_json['tocperpage'] = '26'
+    if 'checkinglevel' not in body_json.keys(): body_json['checkinglevel'] = args.checkinglevel
 
 def writeFile(outfile, p):
     makeDir(outfile.rpartition('/')[0])
@@ -436,7 +437,7 @@ def getJSON(lang,entry,tmpent):
         sys.exit(1)
     return anytmpf
 
-def main(lang, outpath, format, img_res):
+def main(lang, outpath, format, img_res, checkinglevel):
     global body_json
     sys.stdout = codecs.getwriter('utf8')(sys.stdout);
     toptmpf = getJSON(lang, 'obs-{0}-front-matter.json', '{0}-front-matter-json.tmp')
@@ -491,5 +492,7 @@ if __name__ == '__main__':
         required=True, help="Desired format: html, md, tex, or plain")
     parser.add_argument('-r', '--resolution', dest="img_res", default='360px',
         help="Image resolution: 360px, or 2160px")
+    parser.add_argument('-c', '--checkinglevel', dest="checkinglevel", default="1",
+        help="Quality Assurace level campleted: 1, 2, or 3")
     args = parser.parse_args(sys.argv[1:])
-    main(args.lang, args.outpath, args.format, args.img_res)
+    main(args.lang, args.outpath, args.format, args.img_res, args.checkinglevel)
