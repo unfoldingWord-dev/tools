@@ -1,0 +1,23 @@
+% -*- coding: utf-8 -*-
+%\setupbodyfont[<<<[fontface]>>>,<<<[fontstyle]>>>,\the\useFontSZ]
+\switchtobodyfont[\the\useFontSZ]
+\setupinterlinespace[line=\the\useBaseSkip,top=0.0,bottom=0.0]
+\setbox\toptry=\vbox{\the\toptxt}
+\setbox\bottry=\vbox{\the\bottxt}
+\imgneed=\dimexpr \ht\topimg + \ht\botimg \relax
+\txtneed=\dimexpr \ht\toptry + \ht\bottry +0.5\useBaseSkip \relax
+\need=\dimexpr $needalso\txtneed + \imgneed \relax
+\nltop=\dimexpr \dimenQuo{\ht\toptry + 0.3591 \useBaseSkip}{\useBaseSkip} \relax
+\nlbot=\dimexpr \dimenQuo{\ht\bottry + 0.3591 \useBaseSkip}{\useBaseSkip} \relax
+\leftover=\dimexpr \vsize - \need - \MiscTare \relax
+\if$isLastPage
+    \ifdim \leftover > 0pt \relax
+        \ifdim \leftover < \the\saveskip \relax
+            \leftover=\dimexpr \leftover + \refskip - \saveskip \relax
+            \refskip=\saveskip
+        \fi
+    \fi
+\fi
+\txtroom=\dimexpr \txtneed + \leftover \relax
+\ScaleFactor=\dimexpr \dimenQuo{\txtroom}{\txtneed} \relax % for trace printing
+\message{TRACE: skip=\the\useBaseSkip, tx=<\the\ht\toptry,\the\ht\bottry>, im=<\the\ht\topimg,\the\ht\botimg>, lines=<\the\nltop,\the\nlbot> @}

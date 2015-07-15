@@ -1,0 +1,159 @@
+% -*- coding: utf-8 -*-
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+% Global Initializations
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+%\useregime[utf]
+\enableregime[utf]
+\enabletrackers[afm.loading,fonts.missing,fonts.warnings,fonts.names,fonts.specifications,fonts.scaling,system.dump] % For Debugging
+\definepapersize [Trade][width=5.25in, height=8in]
+\setuppapersize [Trade][Trade]
+\setuppagenumbering [location={footer,middle}, conversion=numbers, alternative=doublesided,strut=yes,style=\small]
+\mainlanguage[en]
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+%New Simple Fonts for NotoSans
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\usemodule[simplefonts]
+\starttypescript[noto]
+    \input{includes/<<<[fontface]>>>-<<<[language]>>>.tex}
+    \definefontfamily     [noto] [ss] [NotoSans]
+    \definefontfamily     [noto] [rm] [NotoSerif]
+    \definefontfamily     [noto] [it] [NotoSans]
+    \definefontfamily     [noto] [sl] [NotoSans]
+    \definefontfamily     [noto] [mm] [modern]
+\stoptypescript
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\setupbodyfont[<<<[fontface]>>>,<<<[fontstyle]>>>]
+\usetypescript[<<<[fontface]>>>][uc]
+\setupalign[hanging]
+\setupbodyfontenvironment[default][em=italic,x=<<<[tfxsize]>>>,xx=<<<[tfxxsize]>>>,a=<<<[tfasize]>>>,b=<<<[tfbsize]>>>,c=<<<[tfcsize]>>>,d=<<<[tfdsize]>>>,e=<<<[tfesize]>>>,small=<<<[smallsize]>>>]
+\setupspacing[packed]   % normal word space at the end of sentences
+\setupwhitespace[2.0pt]  % space between paragraphs
+\setupindenting[small, yes]
+\setuppagenumbering[location={footer,middle}, conversion=numbers,strut=yes,style=\tfxx]
+\setupitemize[1][leftmargin=18.0pt,rightmargin=18.0pt]
+\setuplayout[width=fit,backspace=36pt,
+    topspace=36pt,
+    bottomspace=36pt,
+    header=0pt,
+    height=fit,
+    width=<<<[textwidth]>>>,
+    textwidth=<<<[textwidth]>>>,
+    bottom=0pt,
+    footer=1mm]
+% Enables clickable URLS and TOC
+\setupinteraction[state=start, color=blue, style=normal]
+\setupcombinedlist[content][interaction=all,color=blue]
+\setuphead[section][style=\tfd, number=no, before=\blank, after=\blank, align={middle, lesshyphenation, verytolerant}]
+
+% Enables index (bookmarks) in PDF document
+\placebookmarks[section][section,force=yes]
+\setupinteractionscreen[option=bookmark]
+\definemakeup[storytitle][align=middle]
+
+%
+\definelistextra[page][before={\page[yes]}]
+\newlinechar=`\@
+\setupthinrules[height=0.25pt,depth=0.25pt]
+\setupalign[<<<[frontalign]>>>,nothanging,hz,lesshyphenation,verytolerant,stretch,<<<[direction]>>>]
+\setupspacing[packed]   % normal word space at the end of sentences
+\setupindenting[no,0pt]
+\setupwhitespace[2.0pt]  % space between paragraphs
+\setupexternalfigures[frame=off]
+\setupcaptions[location=bottom,innermargin=0pt,outermargin=0pt,inbetween={{\vskip 3.0pt}},spaceafter=0pt,style={}]
+\setupfloats[spacebefore=none,spaceafter=none]
+%%
+\newbox\toptry \newbox\bottry \newbox\topimg \newbox\botimg \newbox\reftry
+\newtoks\toptxt \newtoks\bottxt \newtoks\reftxt \newtoks\EmptyString
+\def\dimenQuo#1#2{\dimexpr\number\numexpr\number\dimexpr#1\relax*65536/\number\dimexpr#2\relax\relax sp\relax}
+\def\dimenProd#1#2{\dimexpr\number\numexpr\number\dimexpr#1\relax*\number\dimexpr#2\relax/65536\relax sp\relax}
+\newdimen\imgneed \newdimen\txtneed \newdimen\txtroom \newdimen\need \newdimen\refneed \newdimen\refskip
+\newdimen\leftover \newdimen\saveskip \newdimen\savesize
+\newdimen\nltop \newdimen\nlbot
+\EmptyString={}
+\newdimen\ScaleFactor \newdimen\LastScaleFactor \newdimen\LastFontSZ
+\newdimen\MiscTare \newdimen\TotalCheck \newdimen\useBaseSkip \newdimen\useFontSZ
+%%
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+% Actual start of the document
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\overfullrule=2pt
+\starttext
+\message{makeup=[\the\makeupwidth,\the\makeupheight],text=[\the\textwidth,\the\textheight]}
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+% The Front Matter
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\setupalign[<<<[frontalign]>>>,nothanging,hz,lesshyphenation,verytolerant,stretch,<<<[direction]>>>]
+\emergencystretch=1.5em % plus 6.0em minus 0.01em
+\startfrontmatter % Intro material
+    % Title and Logo Page
+    \setupfooter [state=stop]
+    \startmakeup[storytitle]
+    \blank
+    {\midaligned { \externalfigure[https://api.unfoldingword.org/obs/jpg/1/uWOBSverticallogo1200w.png] } }
+    \blank
+    \stopmakeup
+    % Copyright and License Page
+    \setupfooter [state=stop]
+    %\enableregime[utf]
+    \setupbodyfont[<<<[fontface]>>>,<<<[fontstyle]>>>,<<<[licsize]>>>]
+    \setupinterlinespace[line=<<<[licbaseline]>>>,top=0.0,bottom=0.0] % Line spacing
+    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  START-OF-FRONT-MATTER
+    ===FRONT.MATTER===
+    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  END-OF-FRONT-MATTER
+    \blank
+    \setuphanging[location=left]
+    \starthanging{ \externalfigure[https://api.unfoldingword.org/obs/jpg/1/checkinglevels/uW-Level3-128px.png] }
+    {{\bf Checking level 3} \blank
+    {\em find out more at \goto{https://unfoldingword.org/quality}[url(https://unfoldingword.org/quality)] }}
+    \stophanging
+    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    % Table of Contents
+    \page[1]
+    %\enableregime[utf]
+    \setupbodyfont[<<<[fontface]>>>,<<<[fontstyle]>>>,<<<[tocsize]>>>]
+    \setupinterlinespace[line=<<<[tocbaseline]>>>,top=0.0,bottom=0.0] % Line spacing
+    \setupfooter [state=start]
+    {\midaligned {\tfc{\WORD{Bible Stories}}}}
+    %\bookmark[chapter]{Bible Stories}
+    \placecontent[extras={<<<[tocperpage]>>>=page},alternative=c]
+\stopfrontmatter
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\setuplayout[width=fit,backspace=36pt,
+    topspace=<<<[topspace]>>>,
+    bottomspace=<<<[botspace]>>>,
+    header=0pt,
+    height=fit,
+    width=<<<[textwidth]>>>,
+    textwidth=<<<[textwidth]>>>,
+    bottom=0pt,
+    footer=1mm]
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+% The Body Matter
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\setupalign[<<<[align]>>>,nothanging,hz,lesshyphenation,verytolerant,stretch,<<<[direction]>>>]
+\startbodymatter % The stories themselves
+    \setuptolerance[vertical,verytolerant,stretch]
+    %\enableregime[utf]
+    \setupbodyfont[<<<[fontface]>>>,<<<[fontstyle]>>>,<<<[bodysize]>>>]
+    \setupinterlinespace[line=<<<[bodybaseline]>>>,top=0.0,bottom=0.0] % Line spacing
+    \saveskip=\baselineskip
+    \savesize=\bodyfontsize
+    \MiscTare=\dimexpr \topspace + \bottomspace + 28pt \relax
+    \setupfooter [state=start]
+    ===CHAPTERS===
+\stopbodymatter % The stories themselves
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+% The Back Matter
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\setupalign[<<<[backalign]>>>,nothanging,hz,lesshyphenation,verytolerant,stretch,<<<[direction]>>>]
+\startbackmatter
+    \setuptolerance[vertical,verytolerant,stretch]
+    %\enableregime[utf]
+    \setupbodyfont[<<<[fontface]>>>,<<<[fontstyle]>>>,<<<[licsize]>>>]
+    \setupinterlinespace[line=<<<[bodybaseline]>>>,top=0.0,bottom=0.0] % Line spacing
+    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  START-OF-BACK-MATTER
+    \\ \\ \\ \\
+    ===BACK.MATTER===
+    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  END-OF-BACK-MATTER
+\stopbackmatter
+\stoptext
