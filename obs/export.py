@@ -94,6 +94,13 @@ matchChapterVersePat = re.compile(ur"\s+(\d+:\d+)",re.UNICODE)
 def TRUTH(b):
     return "true" if b else "false"
 
+def extract_title_from_frontmatter(frontmatter):
+    match = re.compile(u"unfoldingWord \| (.*)\*\*", re.UNICODE).search(frontmatter)
+    if match:
+        return match.group(1)
+    else:
+        return "Open Bible Stories"
+
 def checkForStandardKeysJSON():
     global body_json # Cannot pass dictionary via regex framework
     #------------------------------  header/footer spacing and body font-face
@@ -453,6 +460,9 @@ def main(lang, outpath, format, img_res, checkinglevel):
     tmpf = getJSON(lang, jsonf, '{0}-body-matter-json.tmp')
     body_json = loadJSON(tmpf, 'd')
     checkForStandardKeysJSON()
+    # Hacks to make up for missing localized strings
+    if 'toctitle' not in body_json.keys():
+        body_json['toctitle'] = extract_title_from_frontmatter(lang_top_json['front-matter'])
     output = export(body_json['chapters'], format, img_res, body_json['language'])
     # For ConTeXt files only, Read the "main_template.tex" file replacing
     # all <<<[anyvar]>>> with its definition from the body-matter JSON file
