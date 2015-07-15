@@ -123,9 +123,9 @@ def checkForStandardKeysJSON():
     if 'smallsize' not in body_json.keys(): body_json['smallsize'] = '0.80'
     #------------------------------  Table-of-contents size, etc
     if 'tocsize' not in body_json.keys(): body_json['tocsize'] = '12pt'
-    if 'licsize' not in body_json.keys(): body_json['licsize'] = '10pt'
+    if 'licsize' not in body_json.keys(): body_json['licsize'] = '9pt'
     if 'tocbaseline' not in body_json.keys(): body_json['tocbaseline'] = '16pt'
-    if 'licbaseline' not in body_json.keys(): body_json['licbaseline'] = '12pt'
+    if 'licbaseline' not in body_json.keys(): body_json['licbaseline'] = '9pt'
     if 'tocperpage' not in body_json.keys(): body_json['tocperpage'] = '26'
 
 def writeFile(outfile, p):
