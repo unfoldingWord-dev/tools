@@ -61,7 +61,7 @@ fail () {
 [[ -d "$OUTDIR" ]] || fail "Please specify a valid output directory."
 
 # Certain variables and paths
-: ${api:=/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/$LANG}
+: ${api:=}
 : ${FILENAME:=OBS-$LANG-v$VER}
 
 # Add a debug mode and echo commands to the terminal if the environment var set
@@ -96,4 +96,4 @@ fi
 context $FILENAME.tex || fail "Unable to compile ${FILENAME}.tex"
 
 # Install the files into $OUTDIR and make readable by all
-install -Dm 0644 $OUTDIR/$FILENAME.pdf $api/$FILENAME.pdf
+[[ -n $api ]] && install -Dm 0644 $OUTDIR/$FILENAME.pdf $api/${LANG}${FILENAME}.pdf
