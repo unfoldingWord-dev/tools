@@ -89,6 +89,7 @@ matchSignificantTex = re.compile(ur"[A-Za-z0-9\\{}\[\]]",re.UNICODE)
 matchBlankLinePat = re.compile(ur"^\s*$",re.UNICODE)
 matchPatLongURL = re.compile(ur"[(]*http(s*://[/\w\d,\.\?\&_=+-]{41,9999})[)\.,]*",re.UNICODE)
 matchPatURL = re.compile(ur"[(]*http(s*://[/\w\d,\.\?\&_=+-]+)[)\.,]*",re.UNICODE)
+matchOrdinalBookSpaces = re.compile(ur"([123](|\.|\p{L]{1,3}))\s",re.UNICODE)
 matchChapterVersePat = re.compile(ur"\s+(\d+:\d+)",re.UNICODE)
 
 def TRUTH(b):
@@ -227,6 +228,7 @@ def do_not_break_before_chapter_verse(format, text):
         copy = matchAlphaNumSpaceThenNumber.sub(ur'\1'+NBKN+ur'\2', copy, MATCH_ALL) # change spaces to non-breaking 1/2 em
         copy = matchColonSemicolonNotAfterDigits.sub(ur'\1\2 \3', copy, MATCH_ALL)
         copy = matchCommaBetweenDigits.sub(ur'\1\2\3', copy, MATCH_ALL)
+        copy = matchOrdinalBookSpaces.sub(ur'\1'+NBSP, copy, MATCH_ALL)
         return copy
     return text
 
