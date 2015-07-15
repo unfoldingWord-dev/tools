@@ -72,7 +72,8 @@ matchPipePat = re.compile(ur"\s*([|])\s*",re.UNICODE)
 matchBulletPat = re.compile(ur"^\s*[\*]\s+(.*)$",re.UNICODE)
 # Miscellaneous markup patterns
 matchChaptersPat = re.compile(ur"===CHAPTERS===",re.UNICODE)
-matchFrontMatterPat = re.compile(ur"===FRONT\.MATTER===",re.UNICODE)
+matchFrontMatterAboutPat = re.compile(ur"===FRONT\.MATTER\.ABOUT===",re.UNICODE)
+matchFrontMatterlicensePat = re.compile(ur"===FRONT\.MATTER\.LICENSE===",re.UNICODE)
 matchBackMatterPat = re.compile(ur"===BACK\.MATTER===",re.UNICODE)
 matchMiscPat = re.compile(ur"<<<[\[]([^<>=]+)[\]]>>>",re.UNICODE)
 # Other patterns
@@ -454,7 +455,18 @@ def main(lang, outpath, format, img_res, checkinglevel):
     lang_top_json = loadJSON(toptmpf, 'd')
     lang_bot_json = loadJSON(bottmpf, 'd')
     # Parse the front and back matter
-    output_front = export_matter(lang_top_json['front-matter'], format, img_res, lang_top_json['language'], 0)
+    front_matter = export_matter(lang_top_json['front-matter'], format, img_res, lang_top_json['language'], 0)
+    # The front matter really has two parts, an "about" section and a "license" section
+    # Sadly the API returns it as one blob, but we want to insert the checking level
+    # indicator on between the two. Until such a time as the API returns these strings separately,
+    # this is a cludge to split them. Faling a match it should just put the whole thing in the first section
+    #fm = re.split(r'\{\\\\bf.+:\s*\}\\n', front_matter)
+    fm = re.split(r'\s(?=\{\\bf.+:\s*\})', front_matter)
+    output_front_about = fm[0]
+    if len(fm) > 1:
+        output_front_license = ''.join(fm[1:])
+    else:
+        output_front_license = ''
     output_back = export_matter(lang_bot_json['back-matter'], format, img_res, lang_bot_json['language'], 0)
     # Parse the body matter
     jsonf = 'obs-{0}.json'.format(lang)
@@ -479,8 +491,10 @@ def main(lang, outpath, format, img_res, checkinglevel):
             single_line = single_line.rstrip('\r\n') # .encode('utf-8')
             if (matchChaptersPat.search(single_line)):
                 outlist.append(output)
-            elif (matchFrontMatterPat.search(single_line)):
-                outlist.append(output_front)
+            elif (matchFrontMatterAboutPat.search(single_line)):
+                outlist.append(output_front_about)
+            elif (matchFrontMatterlicensePat.search(single_line)):
+                outlist.append(output_front_license)
             elif (matchBackMatterPat.search(single_line)):
                 outlist.append(output_back)
             else:
