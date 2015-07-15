@@ -348,16 +348,16 @@ def export(chapters_json, format, img_res, lang):
     output = []
     if format == 'tex':
         j = u'\n'
-        calc_vertical_need_snip = tex_load_snippet_file(spaces4,'introTeXtOBS-calculate-vertical-need-snippet.tex')
-        calc_leftover_snip = tex_load_snippet_file(spaces4,'introTeXtOBS-calculate-leftover-snippet.tex')
-        begin_loop = tex_load_snippet_file(spaces4,'introTeXtOBS-begin-adjust-loop.tex')
-        in_leftover_snip = tex_load_snippet_file(spaces4+spaces4,'introTeXtOBS-calculate-leftover-snippet.tex')
-        in_adjust_snip = tex_load_snippet_file(spaces4+spaces4,'introTeXtOBS-adjust-spacing-snippet.tex')
-        end_loop = tex_load_snippet_file(spaces4,'introTeXtOBS-end-adjust-loop.tex')
-        verify_snip = tex_load_snippet_file(spaces4,'introTeXtOBS-verify-vertical-space.tex')
-        place_ref_snip = tex_load_snippet_file(spaces4,'introTeXtOBS-place-reference-snippet.tex')
+        calc_vertical_need_snip = tex_load_snippet_file(spaces4,'calculate-vertical-need.tex')
+        calc_leftover_snip = tex_load_snippet_file(spaces4,'calculate-leftover.tex')
+        begin_loop_snip = tex_load_snippet_file(spaces4,'begin-adjust-loop.tex')
+        in_leftover_snip = tex_load_snippet_file(spaces4+spaces4,'calculate-leftover.tex')
+        in_adjust_snip = tex_load_snippet_file(spaces4+spaces4,'adjust-spacing.tex')
+        end_loop_snip = tex_load_snippet_file(spaces4,'end-adjust-loop.tex')
+        verify_snip = tex_load_snippet_file(spaces4,'verify-vertical-space.tex')
+        place_ref_snip = tex_load_snippet_file(spaces4,'place-reference.tex')
         adjust_one_snip = calc_vertical_need_snip + calc_leftover_snip + verify_snip
-        adjust_two_snip = calc_vertical_need_snip + begin_loop + in_leftover_snip + in_adjust_snip + end_loop + calc_leftover_snip + verify_snip
+        adjust_two_snip = calc_vertical_need_snip + begin_loop_snip + in_leftover_snip + in_adjust_snip + end_loop_snip + calc_leftover_snip + verify_snip
         adjust_one = Template(adjust_one_snip)
         adjust_two = Template(adjust_two_snip)
         place_ref_template = Template(place_ref_snip)
@@ -453,11 +453,11 @@ def main(lang, outpath, format, img_res):
     body_json = loadJSON(tmpf, 'd')
     checkForStandardKeysJSON()
     output = export(body_json['chapters'], format, img_res, body_json['language'])
-    # For ConTeXt files only, Read the "introTeXtOBS.tex" file replacing
+    # For ConTeXt files only, Read the "main_template.tex" file replacing
     # all <<<[anyvar]>>> with its definition from the body-matter JSON file
     if format == 'tex':
         outlist = []
-        tex_tempate = snippets_dir + 'introTeXtOBS.tex'
+        tex_tempate = snippets_dir + 'main_template.tex'
         if not os.path.exists(tex_tempate):
             print "Failed to get TeX template."
             sys.exit(1)
