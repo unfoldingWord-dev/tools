@@ -69,11 +69,11 @@ fail () {
 $debug && set -x
 
 BASE_DIR=$(cd $(dirname "$0")/../../ && pwd)
-
-# The includes submodule has common TeX stuff (mostly Noto setup) and is expected
-# at a path relative to the .tex file we'll be compiling
 pushd $OUTDIR
-ln -sf $BASE_DIR/includes
+
+# The ConTeXt templates expect to find a few buinding blocks in the main repo,
+# so we give our temp space a link back there so it can find them
+ln -sf $BASE_DIR/obs
 
 # Run python (export.py) to generate the .tex file from template .tex files
 $BASE_DIR/obs/export.py -l $LANG -f tex -o $OUTDIR/$FILENAME.tex \
