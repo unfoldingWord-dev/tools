@@ -32,6 +32,13 @@ H3REGEX = re.compile(r"(.*?)((?:<p>)?====\s*)(.*?)(\s*====(?:</p>)?)(.*?)", re.D
 H4REGEX = re.compile(r"(.*?)((?:<p>)?===\s*)(.*?)(\s*===(?:</p>)?)(.*?)", re.DOTALL | re.MULTILINE)
 H5REGEX = re.compile(r"(.*?)((?:<p>)?==\s*)(.*?)(\s*==(?:</p>)?)(.*?)", re.DOTALL | re.MULTILINE)
 LINKREGEX = re.compile(r"(.*?)(\[\[?)(.*?)(]]?)(.*?)", re.DOTALL | re.MULTILINE)
+ITALICREGEX = re.compile(r"(.*?)(?<!:)(//)(.*?)(//)(.*?)", re.DOTALL | re.MULTILINE)
+BOLDREGEX = re.compile(r"(.*?)(\*\*)(.*?)(\*\*)(.*?)", re.DOTALL | re.MULTILINE)
+NLNLREGEX = re.compile(r"(.*?)(\\\\\s*\n\\\\\s*\n)(.*?)", re.DOTALL | re.MULTILINE)
+NLREGEX = re.compile(r"(.*?)(\\\\\s*\n)(.*?)", re.DOTALL | re.MULTILINE)
+ULREGEX = re.compile(r"(.*?)(?<!\n)(\n\s\s\*)(.+)(?!\n\s\s\*)(.*?)", re.DOTALL | re.MULTILINE)
+UL2REGEX = re.compile(r"(.*?)(\n\s\s\*)(.+\n)(?!\s\s)(.*?)", re.DOTALL | re.MULTILINE)
+PNGREGEX = re.compile(r"(.*?)(\{\{)(.*?)(\.png)(.*?)(\}\})(.*?)", re.DOTALL | re.MULTILINE)
 
 # YAML file heading data format:
 #
@@ -77,7 +84,6 @@ class SelfClosingEtherpad(EtherpadLiteClient):
             pw = open('/usr/share/httpd/.ssh/ep_api_key', 'r').read().strip()
             self.base_params = {'apikey': pw}
 
-            self.base_url = 'https://pad.door43.org/api'
         except:
             e1 = sys.exc_info()[0]
             print 'Problem logging into Etherpad via API: {0}'.format(e1)
@@ -446,12 +452,16 @@ def make_docx(pages):
             out_file.write(html)
 
 
-def markdown_to_html(markdown):
+def markdown_to_html(dokuwiki):
     """
     Runs markdown through pandoc to convert to html
     """
 
-    markdown = markdown.replace("\\\\\n", "<br>\n")
+    markdown = dokuwiki_to_markdown(dokuwiki)
+    markdown = NLNLREGEX.sub(r'\1\n\n\3', markdown)
+    markdown = NLREGEX.sub(r'\1\n\n\3', markdown)
+    markdown = ULREGEX.sub(r'\1\n\2\3\4', markdown)
+    markdown = UL2REGEX.sub(r'\1\2\3\n\4', markdown)
 
     command = shlex.split('/usr/bin/pandoc -f markdown_phpextra -t html')
     com = Popen(command, shell=False, stdin=PIPE, stdout=PIPE, stderr=PIPE)
@@ -459,20 +469,33 @@ def markdown_to_html(markdown):
     html = out.decode('utf-8')
 
     # fix some things pandoc doesn't convert
-    # <p>====== is h1
-    # <p>== is h5
-    html = H1REGEX.sub(r'\1<h1>\3</h1>\5', html)
-    html = H2REGEX.sub(r'\1<h2>\3</h2>\5', html)
-    html = H3REGEX.sub(r'\1<h3>\3</h3>\5', html)
-    html = H4REGEX.sub(r'\1<h4>\3</h4>\5', html)
-    html = H5REGEX.sub(r'\1<h5>\3</h5>\5', html)
     html = re.sub(LINKREGEX, convert_link, html)
+    html = ITALICREGEX.sub(r'\1<em>\3</em>\5', html)
+    html = BOLDREGEX.sub(r'\1<strong>\3</strong>\5', html)
 
     return html
 
 
+def dokuwiki_to_markdown(dokuwiki):
+
+    markdown = H1REGEX.sub(r'\1# \3 #\5', dokuwiki)
+    markdown = H2REGEX.sub(r'\1## \3 ##\5', markdown)
+    markdown = H3REGEX.sub(r'\1### \3 ###\5', markdown)
+    markdown = H4REGEX.sub(r'\1#### \3 ####\5', markdown)
+    markdown = H5REGEX.sub(r'\1##### \3 #####\5', markdown)
+
+    # {{:en:ta:tech:translating_in_ts_-_obs_v2.mp4|Resources Video}}
+    # {{:en:ta:ol2sl2sl2tl_small_600-174.png?nolink&600x174}}
+    markdown = re.sub(PNGREGEX, convert_png_link, markdown)
+
+    return markdown
+
+
 def html_to_docx(html):
-    command = shlex.split('/usr/bin/pandoc --filter ./insert_pagebreaks_filter --toc --toc-depth=1 -f html -t docx -o "' + DOCXFILE + '"')
+
+    # html = html.replace('<a href="#', '<a href="')
+    # command = shlex.split('/usr/bin/pandoc --filter ./insert_pagebreaks_filter --toc --toc-depth=1 -f html -t docx -o "' + DOCXFILE + '"')
+    command = shlex.split('/usr/bin/pandoc --toc --toc-depth=1 -f html -t docx -o "' + DOCXFILE + '"')
     com = Popen(command, shell=False, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     out, err = com.communicate(html.encode('utf-8'))
 
@@ -485,12 +508,33 @@ def html_to_docx(html):
 
 
 def convert_link(match):
-    parts = match.group(3).split('|')
-    if isinstance(parts, list):
-        return match.group(1) + '<a href="' + dokuwiki_to_html_link(parts[0]) + '">' + parts[1] + '</a>' + \
-            match.group(5)
-    else:
-        return match.group(1) + '<a href="' + dokuwiki_to_html_link(parts) + '">' + parts + '</a>' + match.group(5)
+    try:
+        parts = match.group(3).split('|')
+        if isinstance(parts, list):
+            if len(parts) > 1:
+                return match.group(1) + '<a href="' + dokuwiki_to_html_link(parts[0]) + '">' + parts[1] + '</a>' + \
+                    match.group(5)
+            else:
+                return match.group(1) + '<a href="' + dokuwiki_to_html_link(parts[0]) + '">' + parts[0] + '</a>' + \
+                    match.group(5)
+        else:
+            return match.group(1) + '<a href="' + dokuwiki_to_html_link(parts) + '">' + parts + '</a>' + match.group(5)
+
+    except Exception as ex:
+        log_error(str(ex))
+
+
+def convert_png_link(match):
+    # "![{$frame['id']}]({$image_file})\\"
+    try:
+        parts = match.group(3).split('|')
+        if isinstance(parts, list):
+            return match.group(1) + '![Image](https://door43.org/_media' + parts[0].replace(':', '/') + '.png)' + match.group(7)
+        else:
+            return match.group(1) + '![Image](https://door43.org/_media' + parts.replace(':', '/') + '.png)' + match.group(7)
+
+    except Exception as ex:
+        log_error(str(ex))
 
 
 def dokuwiki_to_html_link(dokuwiki_link):
@@ -520,11 +564,11 @@ def make_html(pages):
     if fm:
         log_this('Generating license page')
 
-        md = u'<a name="license"></a>' + u"\n\n"
-        md += fm
+        dw = u'<a name="license"></a>' + u"\n\n"
+        dw += fm
 
         div = u"\\newpage\n<div class=\"page\">\n"
-        div += markdown_to_html(md) + u"\n"
+        div += markdown_to_html(dw) + u"\n"
         div += u"</div>\n"
 
         divs.append(div)
@@ -550,26 +594,25 @@ def make_html(pages):
             dependencies = get_yaml_object('dependencies', page.yaml_data)
             recommended = get_yaml_object('recommended', page.yaml_data)
 
-            md = u'<a name="' + slug + '">&nbsp;</a>' + u"\n"
-            md += u'<h1>' + page.yaml_data['title'] + u"</h1>\n\n"
+            dw = u'# ' + page.yaml_data['title'] + u'# {#' + slug + "}\n\n"
 
             if question:
-                md += u'This module answers the question: ' + question + u"\\\\\n"
+                dw += u'This module answers the question: ' + question + u"\\\\\n"
 
             if dependencies:
-                md += u'Before you start this module have you learned about:'
-                md += output_list(pages, dependencies)
-                md += u"\n\n"
+                dw += u'Before you start this module have you learned about:'
+                dw += output_list(pages, dependencies)
+                dw += u"\n\n"
 
-            md += page.page_text + u"\n\n"
+            dw += page.page_text + u"\n\n"
 
             if recommended:
-                md += u'Next we recommend you learn about:'
-                md += output_list(pages, recommended)
-                md += u"\n\n"
+                dw += u'Next we recommend you learn about:'
+                dw += output_list(pages, recommended)
+                dw += u"\n\n"
 
             div = u"\\newpage\n<div class=\"page\">\n"
-            div += markdown_to_html(md) + u"\n"
+            div += markdown_to_html(dw) + u"\n"
             div += u"</div>\n"
 
             divs.append(div)
@@ -590,20 +633,21 @@ def output_list(pages, option_list):
         if len(option_list) == 1:
             link = get_page_link_by_slug(pages, option_list[0])
             if link:
-                md += ' ' + link
+                md += u' ' + link
             else:
                 log_error('Linked page not found: ' + option_list[0])
         else:
+            md += u"\n"
             for option in option_list:
                 link = get_page_link_by_slug(pages, option)
                 if link:
-                    md += "\n  * " + link
+                    md += u"\n  * " + link
                 else:
                     log_error('Linked page not found: ' + option)
     else:
         link = get_page_link_by_slug(pages, option_list)
         if link:
-            md += ' ' + link
+            md += u' ' + link
         else:
             log_error('Linked page not found: ' + option_list)
 
