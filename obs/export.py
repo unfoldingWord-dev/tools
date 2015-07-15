@@ -27,8 +27,9 @@ body_json = ''
 
 api_url_txt = u'https://api.unfoldingword.org/obs/txt/1'
 api_url_jpg = u'https://api.unfoldingword.org/obs/jpg/1'
-api_test_door43 = u'http://test.door43.org'  # this one is http and not https
 api_abs = u'/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1'
+api_test_door43 = u'http://test.door43.org'  # this one is http and not https
+snippets_dir = os.path.dirname(__file__) + u'/tex/'
 
 MAX_CHAPTERS = 0
 #MAX_CHAPTERS = 4
@@ -162,10 +163,7 @@ def AnotherReplace(matchobj):
     return 'nothing'
 
 def tex_load_snippet_file(xtr, entryname):
-    tex_url = '/'.join([api_test_door43, entryname])
-    snippet_file = '/'.join(['/tmp',entryname])
-    getURL(tex_url, snippet_file)
-    f = codecs.open(snippet_file, 'r', encoding='utf-8')
+    f = codecs.open(snippets_dir + entryname, 'r', encoding='utf-8')
     each = f.readlines()
     each = each[1:] # Skip the first line which is the utf-8 coding repeated
     str = u''.join(each)
@@ -178,7 +176,7 @@ def tex_load_snippet_file(xtr, entryname):
         each.pop()
     str = xtr + (u'\n'+xtr).join(each) + u'\n'
     return str
-    
+
 def getTitle(text, format='plain'):
     if format == 'html':
         return u'<h1>{0}</h1>'.format(text)
@@ -223,7 +221,7 @@ def do_not_break_before_chapter_verse(format, text):
         copy = matchCommaBetweenDigits.sub(ur'\1\2\3', copy, MATCH_ALL)
         return copy
     return text
-        
+
 def getRef(xtr, place_ref_template, text, format='plain'):
     global body_json
     if format == 'html':
@@ -372,7 +370,7 @@ def export(chapters_json, format, img_res, lang):
         output.append(getTitle(chp['title'], format))
         ixframe = (-1)
         ChapterFrames = chp['frames']
-        nframe = len(ChapterFrames) 
+        nframe = len(ChapterFrames)
         RefTextOnly = do_not_break_before_chapter_verse(format, chp['ref'])
         for fr in ChapterFrames:
             ixframe = 1 + ixframe
@@ -437,7 +435,7 @@ def getJSON(lang,entry,tmpent):
         print "Failed to get JSON {0} file into {1}.".format(anyJSONe,anytmpf)
         sys.exit(1)
     return anytmpf
-    
+
 def main(lang, outpath, format, img_res):
     global body_json
     sys.stdout = codecs.getwriter('utf8')(sys.stdout);
@@ -459,13 +457,11 @@ def main(lang, outpath, format, img_res):
     # all <<<[anyvar]>>> with its definition from the body-matter JSON file
     if format == 'tex':
         outlist = []
-        tex_url = '/'.join([api_test_door43, 'introTeXtOBS.tex'])
-        tmp_texF = '/tmp/introTeXtOBS.tex'
-        getURL(tex_url, tmp_texF)
-        if not os.path.exists(tmp_texF):
+        tex_tempate = snippets_dir + 'introTeXtOBS.tex'
+        if not os.path.exists(tex_tempate):
             print "Failed to get TeX template."
             sys.exit(1)
-        template = codecs.open(tmp_texF, 'r', encoding='utf-8').readlines()
+        template = codecs.open(tex_tempate, 'r', encoding='utf-8').readlines()
         for single_line in template:
             single_line = single_line.rstrip('\r\n') # .encode('utf-8')
             if (matchChaptersPat.search(single_line)):
