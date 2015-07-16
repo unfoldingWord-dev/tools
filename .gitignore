@@ -2,3 +2,6 @@
 local_settings.py
 /nbproject/private/
 /.idea/
+/bin
+/tex
+/status-of-update.lua

@@ -1,0 +1,30 @@
+\useregime[utf]
+\enableregime[utf]
+\mainlanguage[en]
+\input{type-imp-noto.mkiv}
+\setupbodyfont[noto,sans]
+\usetypescript[noto][uc]
+
+% Using multi language text with Noto fonts.
+%,,,% First we define the fallbacks,
+%,,,\definefallbackfamily [noto][ss] [NotoSansEthiopic] [range=ethiopic,scale=1.2]
+%,,,\definefallbackfamily [noto][ss] [NotoSansArmenian] [range=armenian] 
+%,,,\definefallbackfamily [noto][ss] [NotoNaskhArabic] [range=arabic,scale=1.2]
+%,,,% then the main font family,
+%,,,\definefontfamily     [noto] [ss][NotoSans] 
+
+% and finaly we activate this package.
+
+\starttext
+Testing, testing, just some standard Latin script options: língua portuguesa, português
+
+Here is some Ethiopic (the defined fallback should switch to Amharic without extra coding in this source text): አማርኛ
+
+And this is Russian (since cyrillic is already in NotoSans by default, no fallback is defined to handle this): ру́сский язы́к
+
+Here is Amenian (with NotoSansArmenian): հայերեն 
+
+And here is some Arabic (using NotoNaskhArabic):  العَرَبِيةُ‎‎
+
+The end.
+\stoptext
