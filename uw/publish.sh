@@ -51,7 +51,9 @@ RETCODE=$?
 VER=`/var/www/vhosts/door43.org/tools/uw/get_ver.py $LANG`
 
 # Create PDF via TeX for languages exported
-#/var/www/vhosts/door43.org/tools/obs/book/publish_PDF.sh -l $LANG -v $VER
+#/var/www/vhosts/door43.org/tools/obs/book/pdf_export.sh -l $LANG -v $VER
+
+# Create Open Document export for language exported
 /var/www/vhosts/door43.org/tools/obs/book/odt_export.sh -l $LANG
 
 # Create image symlinks on api.unfoldingword.org
