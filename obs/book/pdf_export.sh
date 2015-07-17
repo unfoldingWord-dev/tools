@@ -106,7 +106,7 @@ for lang in "${langs[@]}"; do
 
     # Send to requested output location(s)
     for dir in "${outputs[@]}"; do
-        install -Dm 0644 "${BASENAME}.pdf" "$dir/"
+        install -Dm 0644 "${BASENAME}.pdf" "$(eval echo $dir)/${BASENAME}.pdf"
     done
 
     # This reporting bit could probably use a rewrite but since I'm not clear on what
