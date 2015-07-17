@@ -13,8 +13,6 @@
 
 # Fail if _any_ command goes wrong
 set -e
-# Set extra glob options so we can invert glob patterns
-shopt -s extglob
 
 help() {
     echo "Usage: $0 [options]"
@@ -28,11 +26,11 @@ help() {
     echo "    -v VER   Override the version field in the output"
     echo "    -h       Show this help"
     echo "Notes:"
-    echo "    Option flags whose values are marked (s) may be specified multiple times"
+    echo "    Option flags whose values are marked '(s)' may be specified multiple times"
 }
 
 # Process command line options
-while getopts c:dhl:o:r:t:v: opt; do
+while getopts c:dl:o:r:t:v:h opt; do
     case $opt in
         c) checking=$OPTARG;;
         d) debug=true;;
@@ -147,7 +145,7 @@ if [[ -n "$reportto" ]]; then
     cd "$BASEDIR"
     REPORTDIR=$(mktemp -d --tmpdir obs_build_pdf_report.XXXXXX)
     report_package="$REPORTDIR/OBS-build-report-$(date +%s)${tag:+-$tag}.zip"
-    zip -9yr "$report_package" "$BUILDDIR/"!(*.zip)
+    zip -9yrj "$report_package" "$BUILDDIR"
     for target in "${reportto[@]}"; do
         if [[ -d "$target" ]]; then
             install -m 0644 "$report_package" "$target/"
