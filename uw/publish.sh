@@ -7,6 +7,7 @@
 #
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
+#  Caleb Maclennan <caleb@alerque.com>
 
 help() {
     echo
@@ -43,24 +44,27 @@ if [ -z "$LANG" ]; then
     echo "Error: language to export must be specified."
     help
 fi
-# Run export of OBS to JSON
-/var/www/vhosts/door43.org/tools/obs/json/json_export.py -l $LANG -e
-RETCODE=$?
-[ $RETCODE -ne 0 ] && exit 1
 
-VER=`/var/www/vhosts/door43.org/tools/uw/get_ver.py $LANG`
+# Figure out where _this_ script is so we can reference other scripts relative
+# to it ever if called from elsewhere (in, say the directary we want the output)
+BASEDIR=$(cd $(dirname "$0")/../ && pwd)
+
+# Run export of OBS to JSON
+$BASEDIR/obs/json/json_export.py -l $LANG -e || exit 1
+
+VER=$($BASEDIR/uw/get_ver.py $LANG)
 
 # Create PDF via TeX for languages exported
-#/var/www/vhosts/door43.org/tools/obs/book/pdf_export.sh -l $LANG -v $VER
+#$BASEDIR/obs/book/pdf_export.sh -l $LANG
 
 # Create Open Document export for language exported
-/var/www/vhosts/door43.org/tools/obs/book/odt_export.sh -l $LANG
+$BASEDIR/obs/book/odt_export.sh -l $LANG
 
 # Create image symlinks on api.unfoldingword.org
-/var/www/vhosts/door43.org/tools/uw/makejpgsymlinks.sh -l $LANG
+$BASEDIR/uw/makejpgsymlinks.sh -l $LANG
 
 # Create web reveal.js viewer
-/var/www/vhosts/door43.org/tools/obs/js/reveal_export.py
+$BASEDIR/obs/js/reveal_export.py
 
 # Run update of v2 API
-/var/www/vhosts/door43.org/tools/uw/update_catalog.py
+$BASEDIR/uw/update_catalog.py
