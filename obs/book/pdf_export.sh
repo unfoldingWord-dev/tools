@@ -101,7 +101,8 @@ for lang in "${langs[@]}"; do
     ./obs/export.py -l $lang -f tex -o ${checking:+-c $chekcing} "$BASENAME.tex"
 
     # Run ConTeXt (context) to generate stories from .tex file output by python
-    context --paranoid --batchmode --noconsole "$BASENAME.tex"
+    $debug && trackers="afm.loading,fonts.missing,fonts.warnings,fonts.names,fonts.specifications,fonts.scaling,system.dump"
+    context --paranoid --batchmode --noconsole ${trackers:+--trackers=$trackers} "$BASENAME.tex"
 
     # Send to requested output location(s)
     for dir in "${outputs[@]}"; do
