@@ -7,7 +7,9 @@
 #
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
+#  Caleb Maclennan <caleb@alerque.com>
 
+BASEDIR=$(cd $(dirname "$0")/../../ && pwd)
 PAGES="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages"
 
 CODES=`wget -q -O - http://vd725.gondor.co/exports/codes-d43.txt`
@@ -18,6 +20,6 @@ for LANG in $CODES; do
     [ -d "$DEST" ] && continue
 
     echo Creating $LANG...
-    /var/www/vhosts/door43.org/tools/obs/dokuwiki/ns-creator.sh -l $LANG
+    $BASEDIR/obs/dokuwiki/ns-creator.sh -l $LANG
 
 done

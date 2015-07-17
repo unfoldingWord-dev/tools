@@ -7,17 +7,18 @@
 #
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
-
+#  Caleb Maclennan <caleb@alerque.com>
 
 ### To do:
 # -> Fix TOC to support 3 digit chapter numbers (or remove chp nums)
 # -> Fix pandoc to support images, or fix pandoc-dev list spacing
 # -> Fix ulem not on server
 
+BASEDIR=$(cd $(dirname "$0")/../ && pwd)
 NOTES='/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes'
 BASE_URL='https://door43.org/_export/xhtmlbody'
 NOTES_URL="$BASE_URL/en/bible/notes"
-TEMPLATE=/var/www/vhosts/door43.org/tools/general_tools/pandoc_pdf_template.tex
+TEMPLATE="$BASEDIR/general_tools/pandoc_pdf_template.tex"
 
 book_export () {
     BOOK_TMP="/tmp/$$.html"
