@@ -23,7 +23,6 @@ $if(euro)$
   \usepackage{eurosym}
 $endif$
 \pagestyle{empty}
-\chapterstyle{bringhurst}
 $if(mathfont)$
     \setmathfont(Digits,Latin,Greek){$mathfont$}
 $endif$
@@ -148,6 +147,7 @@ $endfor$
 \renewcommand{\chapternumberlinebox}[2]{#2 }
 
 \newcommand\subsectionbreak{\clearpage}
+\chapterstyle{bringhurst}
 
 \begin{document}
 \pagenumbering{gobble}
