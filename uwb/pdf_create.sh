@@ -74,7 +74,7 @@ book_export () {
 
     echo '<h0>Key Terms</h0>' >> $BOOK_HTML
     # Get the linked key terms
-    for term in $(grep -oP '"\/en\/obe.*?"' $BOOK_HTML | tr -d '"' | sort | uniq); do
+    for term in $(grep -oP '"\/en\/obe.*?"' $BOOK_HTML | tr -d '"' | sort -u ); do
         curl -s -L "${BASE_URL}${term}" |
             grep -v ' href="\/tag\/' \
             > out.tmp
@@ -91,20 +91,24 @@ book_export () {
 
     echo '<h0>translationAcademy</h0>' >> $BOOK_HTML
     # Get the linked tA
-    for ta in $(grep -oP '"\/en\/ta.*?"' $BOOK_HTML | tr -d '"' | sort | uniq); do
-        curl -s -L "${BASE_URL}${ta}" |
-            grep -v ' href="\/tag\/' \
-            > out.tmp
+    grep -oP '"\/en\/ta.*?"' $BOOK_HTML |
+        tr -d '"' |
+        sort -u |
+        sed 's!door43.org/en/!door43.org/_export/xhtmlbody/en/!' |
+        while read ta; do
+            curl -s -L "${BASE_URL}${ta}" |
+                grep -v ' href="\/tag\/' \
+                > out.tmp
 
-        linkname=$(head -3 out.tmp | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
-        echo -n 's/' >> out.sed
-        echo -n $ta | sed -e 's/[]\/$*.^|[]/\\&/g' >> out.sed
-        echo -n '"/#' >> out.sed
-        echo -n "$linkname" >> out.sed
-        echo '"/g' >> out.sed
+            linkname=$(head -3 out.tmp | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
+            echo -n 's/' >> out.sed
+            echo -n $ta | sed -e 's/[]\/$*.^|[]/\\&/g' >> out.sed
+            echo -n '"/#' >> out.sed
+            echo -n "$linkname" >> out.sed
+            echo '"/g' >> out.sed
 
-        cat out.tmp >> $BOOK_HTML
-    done
+            cat out.tmp >> $BOOK_HTML
+        done
 
     # Link Fixes
     sed -i -f out.sed $BOOK_HTML
