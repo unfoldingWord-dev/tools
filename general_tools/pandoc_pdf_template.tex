@@ -1,6 +1,11 @@
 % Very helpul: http://ctan.math.washington.edu/tex-archive/macros/latex/contrib/memoir/memman.pdf
 \documentclass[$if(fontsize)$$fontsize$,$endif$$if(lang)$$lang$,$endif$$if(papersize)$$papersize$,$endif$$for(classoption)$$classoption$$sep$,$endfor$,openany]{$documentclass$}
 
+$if(mainfont)$
+\usepackage{fontspec}
+\setmainfont{$mainfont$}
+$endif$
+
 $if(linestretch)$
 \usepackage{setspace}
 \setstretch{$linestretch$}
