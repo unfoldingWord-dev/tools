@@ -138,7 +138,8 @@ book_export () {
         --latex-engine=xelatex \
         -V documentclass="memoir" \
         -V title="$BOOK_NAME Text and Notes" \
-        -V mainfont="Noto Sans" \
+        -V mainfont="Noto Serif" \
+        -V sansfont="Noto Sans" \
         -o $BOOK_PDF $BOOK_HTML
     echo "See $BOOK_PDF"
 }
