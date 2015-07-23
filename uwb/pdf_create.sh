@@ -117,7 +117,7 @@ book_export () {
     BOOK_NAME=`grep -m 1 'Chapter 01 Comp' $BOOK_HTML | cut -f 5 -d '>' | cut -d 'C' -f 1`
     # Create PDF
     pandoc --template=$TEMPLATE -S --toc --toc-depth=2 -V toc-depth=1 \
-        -V documentclass=memoir \
+        -V documentclass="memoir" \
         -V title="$BOOK_NAME Text and Notes" \
         -V mainfont="Noto Sans" \
         -o $BOOK_PDF $BOOK_HTML
