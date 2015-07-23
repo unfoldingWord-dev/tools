@@ -39,14 +39,14 @@ book_export () {
 
     # Get license page - using <h0> just so we can make these <h1> (see below) and bump up all other headers by one
     echo '<h0>Copyrights & Licensing</h0>' >> $BOOK_HTML
-    wget -U 'me' "$BASE_URL/en/legal/license" -O - >> $BOOK_HTML
+    curl -s -L "$BASE_URL/en/legal/license" >> $BOOK_HTML
 
     # Get all the pages
     find "$UW_NOTES_DIR/$1" -type f -name '[0-9]*.txt' -printf '%P\n' |
         grep -v 'asv-ulb' |
         sort |
         while read f; do
-            wget -U 'me' "$NOTES_URL/$1/${f%%.txt}" -O - |
+            curl -s -L "$NOTES_URL/$1/${f%%.txt}" |
                 grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' |
                 grep -v ' href="\/tag\/' \
                 >> $BOOK_TMP
@@ -75,8 +75,8 @@ book_export () {
     echo '<h0>Key Terms</h0>' >> $BOOK_HTML
     # Get the linked key terms
     for term in $(grep -oP '"\/en\/obe.*?"' $BOOK_HTML | tr -d '"' | sort | uniq); do
-        wget -U 'me' ${BASE_URL}${term} -O - \
-            | grep -v ' href="\/tag\/' \
+        curl -s -L "${BASE_URL}${term}" |
+            grep -v ' href="\/tag\/' \
             > out.tmp
 
         linkname=$(head -3 out.tmp | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
@@ -92,8 +92,8 @@ book_export () {
     echo '<h0>translationAcademy</h0>' >> $BOOK_HTML
     # Get the linked tA
     for ta in $(grep -oP '"\/en\/ta.*?"' $BOOK_HTML | tr -d '"' | sort | uniq); do
-        wget -U 'me' ${BASE_URL}${ta} -O - \
-            | grep -v ' href="\/tag\/' \
+        curl -s -L "${BASE_URL}${ta}" |
+            grep -v ' href="\/tag\/' \
             > out.tmp
 
         linkname=$(head -3 out.tmp | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
