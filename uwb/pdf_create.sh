@@ -42,28 +42,31 @@ book_export () {
     wget -U 'me' "$BASE_URL/en/legal/license" -O - >> $BOOK_HTML
 
     # Get all the pages
-    for f in $(find "$UW_NOTES_DIR/$1" -type f -name '[0-9]*.txt' | grep -v 'asv-ulb' | sort); do
-        wget -U 'me' "$NOTES_URL/${f%%.txt}" -O - \
-            | grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' \
-            | grep -v ' href="\/tag\/' \
-            >> $BOOK_TMP
-    done
+    find "$UW_NOTES_DIR/$1" -type f -name '[0-9]*.txt' -printf '%P\n' |
+        grep -v 'asv-ulb' |
+        sort |
+        while read f; do
+            wget -U 'me' "$NOTES_URL/$1/${f%%.txt}" -O - |
+                grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' |
+                grep -v ' href="\/tag\/' \
+                >> $BOOK_TMP
+        done
 
     echo '<h0>Notes</h0>' >> $BOOK_HTML
 
      # Remove TFT
     TFT=false
     while read line; do
-        if [ "$line" == '<h2 class="sectionedit2" id="tft">TFT:</h2>' ]; then
+        if [[ "$line" == '<h2 class="sectionedit2" id="tft">TFT:</h2>' ]]; then
             TFT=true
             continue
         fi
-        if [ "${line:0:25}" == '<!-- EDIT2 SECTION "TFT:"' ]; then
+        if [[ "${line:0:25}" == '<!-- EDIT2 SECTION "TFT:"' ]]; then
             TFT=false
             continue
         fi
         $TFT && continue
-        echo "$line" >>$BOOK_HTML
+        echo "$line" >> $BOOK_HTML
     done < $BOOK_TMP
 
     # put a hr before ever h1
