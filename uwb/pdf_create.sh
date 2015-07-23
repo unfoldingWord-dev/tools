@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 # -*- coding: utf8 -*-
 #
 #  Copyright (c) 2015 unfoldingWord
@@ -7,6 +7,8 @@
 #
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
+#  Richard Mahn <rmahn@getmealticket.com>
+#  Caleb Maclennan <caleb@alerque.com>
 
 
 ### To do:
@@ -14,24 +16,33 @@
 # -> Fix pandoc to support images, or fix pandoc-dev list spacing
 # -> Fix ulem not on server
 
-NOTES='/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes'
+set -e
+: ${debug:=false}
+$debug && set -x
+BASEDIR=$(cd $(dirname "$0")/../ && pwd)
+TMPDIR=$(mktemp -d --tmpdir "ubw_pdf_create.XXXXXX")
+$debug || trap 'cd "$BASEDIR"; rm -rf "$TMPDIR"' EXIT SIGHUP SIGTERM
+
+: ${UW_NOTES_DIR:=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes}
+: ${OUTPUT_DIR:=$(pwd)}
 BASE_URL='https://door43.org/_export/xhtmlbody'
 NOTES_URL="$BASE_URL/en/bible/notes"
-TEMPLATE='/var/www/vhosts/door43.org/tools/general_tools/pandoc_pdf_template.tex'
+TEMPLATE="$BASEDIR/general_tools/pandoc_pdf_template.tex"
+
+pushd $TMPDIR
 
 book_export () {
-    BOOK_TMP="/tmp/$$.html"
-    BOOK_HTML="/tmp/$1.html"
-    BOOK_PDF="/tmp/$1.pdf"
+    BOOK_TMP="$TMPDIR/book.html"
+    BOOK_HTML="$TMPDIR/$1.html"
+    BOOK_PDF="$OUTPUT_DIR/$1.pdf"
     rm -f $BOOK_HTML
-    cd $NOTES
 
     # Get license page - using <h0> just so we can make these <h1> (see below) and bump up all other headers by one
     echo '<h0>Copyrights & Licensing</h0>' >> $BOOK_HTML
     wget -U 'me' "$BASE_URL/en/legal/license" -O - >> $BOOK_HTML
 
     # Get all the pages
-    for f in `find "$1" -type f -name '[0-9]*.txt' | grep -v 'asv-ulb' | sort`; do
+    for f in $(find "$UW_NOTES_DIR/$1" -type f -name '[0-9]*.txt' | grep -v 'asv-ulb' | sort); do
         wget -U 'me' "$NOTES_URL/${f%%.txt}" -O - \
             | grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' \
             | grep -v ' href="\/tag\/' \
@@ -60,40 +71,40 @@ book_export () {
 
     echo '<h0>Key Terms</h0>' >> $BOOK_HTML
     # Get the linked key terms
-    for term in `grep -oP '"\/en\/obe.*?"' $BOOK_HTML | tr -d '"' | sort | uniq`; do
+    for term in $(grep -oP '"\/en\/obe.*?"' $BOOK_HTML | tr -d '"' | sort | uniq); do
         wget -U 'me' ${BASE_URL}${term} -O - \
             | grep -v ' href="\/tag\/' \
-            > /tmp/$$.tmp
+            > out.tmp
 
-        linkname=`head -3 /tmp/$$.tmp | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"'`
-        echo -n 's/' >> /tmp/$$.sed
-        echo -n $term | sed -e 's/[]\/$*.^|[]/\\&/g' >> /tmp/$$.sed
-        echo -n '"/#' >> /tmp/$$.sed
-        echo -n "$linkname" >> /tmp/$$.sed
-        echo '"/g' >> /tmp/$$.sed
+        linkname=$(head -3 out.tmp | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
+        echo -n 's/' >> out.sed
+        echo -n $term | sed -e 's/[]\/$*.^|[]/\\&/g' >> out.sed
+        echo -n '"/#' >> out.sed
+        echo -n "$linkname" >> out.sed
+        echo '"/g' >> out.sed
 
-        cat /tmp/$$.tmp >> $BOOK_HTML
+        cat out.tmp >> $BOOK_HTML
     done
 
     echo '<h0>translationAcademy</h0>' >> $BOOK_HTML
     # Get the linked tA
-    for ta in `grep -oP '"\/en\/ta.*?"' $BOOK_HTML | tr -d '"' | sort | uniq`; do
+    for ta in $(grep -oP '"\/en\/ta.*?"' $BOOK_HTML | tr -d '"' | sort | uniq); do
         wget -U 'me' ${BASE_URL}${ta} -O - \
             | grep -v ' href="\/tag\/' \
-            > /tmp/$$.tmp
+            > out.tmp
 
-        linkname=`head -3 /tmp/$$.tmp | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"'`
-        echo -n 's/' >> /tmp/$$.sed
-        echo -n $ta | sed -e 's/[]\/$*.^|[]/\\&/g' >> /tmp/$$.sed
-        echo -n '"/#' >> /tmp/$$.sed
-        echo -n "$linkname" >> /tmp/$$.sed
-        echo '"/g' >> /tmp/$$.sed
+        linkname=$(head -3 out.tmp | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
+        echo -n 's/' >> out.sed
+        echo -n $ta | sed -e 's/[]\/$*.^|[]/\\&/g' >> out.sed
+        echo -n '"/#' >> out.sed
+        echo -n "$linkname" >> out.sed
+        echo '"/g' >> out.sed
 
-        cat /tmp/$$.tmp >> $BOOK_HTML
+        cat out.tmp >> $BOOK_HTML
     done
 
     # Link Fixes
-    sed -i -f /tmp/$$.sed $BOOK_HTML
+    sed -i -f out.sed $BOOK_HTML
     sed -i 's/\/en\/bible.*"/"/' $BOOK_HTML
     sed -i 's/\/en\/obs.*"/"/' $BOOK_HTML
 
@@ -114,7 +125,7 @@ book_export () {
         -e 's/"\/_media/"https:\/\/door43.org\/_media/g' \
         $BOOK_HTML
 
-    BOOK_NAME=`grep -m 1 'Chapter 01 Comp' $BOOK_HTML | cut -f 5 -d '>' | cut -d 'C' -f 1`
+    BOOK_NAME=$(grep -m 1 'Chapter 01 Comp' $BOOK_HTML | cut -f 5 -d '>' | cut -d 'C' -f 1)
     # Create PDF
     pandoc --template=$TEMPLATE -S --toc --toc-depth=2 -V toc-depth=1 \
         -V documentclass="memoir" \
@@ -122,9 +133,6 @@ book_export () {
         -V mainfont="Noto Sans" \
         -o $BOOK_PDF $BOOK_HTML
     echo "See $BOOK_PDF"
-
-    # Remove tmp files
-    rm -f /tmp/$$.*
 }
 
 book_export $1
