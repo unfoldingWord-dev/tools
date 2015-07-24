@@ -2,6 +2,7 @@
 \documentclass[$if(fontsize)$$fontsize$,$endif$$if(lang)$$lang$,$endif$$if(papersize)$$papersize$,$endif$$for(classoption)$$classoption$$sep$,$endfor$,openany]{$documentclass$}
 \usepackage[automark]{scrpage2}
 \usepackage{tocstyle}
+\usepackage{titlesec}
 
 \AtBeginDocument{%
 	\pagestyle{scrheadings}%
@@ -151,6 +152,7 @@ $endfor$
 \renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
 \fi
 
+\newcommand\subsectionbreak{\clearpage}
 
 \begin{document}
 \pagenumbering{gobble}
