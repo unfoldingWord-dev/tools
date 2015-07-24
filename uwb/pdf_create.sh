@@ -17,7 +17,8 @@
 
 # Set script to die if any of the subprocesses exit with a fail code. This
 # catches a lot of scripting mistakes that might otherwise only show up as side
-# effects later in the run (or at a later time)
+# effects later in the run (or at a later time). This is especially important so
+# we know out temp dir situation is sane before we get started.
 set -e
 
 # Instantiate a debug flag (default to false). This enables output usful durring
@@ -42,27 +43,32 @@ BASEDIR=$(cd $(dirname "$0")/../ && pwd)
 : ${OUTPUT_DIR:=$(pwd)}
 
 # Create a temorary diretory using the system default temp directory location
-# in which we can stash any files we want in an isolated namespace
-: ${TMPDIR=$(mktemp -d --tmpdir "ubw_pdf_create.XXXXXX")}
-# Change to that directory but note our current dir so we can get back to it
-pushd $TMPDIR
-# If _not_ in debug mode, then cleanup out temp files after every run. Running
-# in debug mode will skip this so that the temp files can be inspected manually
-$debug || trap 'popd; rm -rf "$TMPDIR"' EXIT SIGHUP SIGTERM
+# in which we can stash any files we want in an isolated namespace. It is very
+# important that this dir actually exist. The set -e option should always be used
+# so that if the system doesn't let us create a temp directory we won't contintue.
+if [[ -z "$BUILDDIR" ]]; then
+    BUILDDIR=$(mktemp -d --tmpdir "ubw_pdf_create.XXXXXX")
+    # If _not_ in debug mode, _and_ we made our own temp directory, then
+    # cleanup out temp files after every run. Running in debug mode will skip
+    # this so that the temp files can be inspected manually
+    $debug || trap 'popd; rm -rf "$BUILDDIR"' EXIT SIGHUP SIGTERM
+fi
+# Change to own own temp dir but note our current dir so we can get back to it
+pushd $BUILDDIR
 
 BASE_URL='https://door43.org/_export/xhtmlbody'
 NOTES_URL="$BASE_URL/en/bible/notes"
 TEMPLATE="$BASEDIR/general_tools/pandoc_pdf_template.tex"
 
 book_export () {
-    CL_FILE="$TMPDIR/cl.html"
-    TN_FILE="$TMPDIR/tn.html"
-    TQ_FILE="$TMPDIR/tq.html"
-    TW_FILE="$TMPDIR/tw.html"
-    TA_FILE="$TMPDIR/ta.html"
-    TMP_FILE="$TMPDIR/temp.html"
-    SED_FILE="$TMPDIR/out.sed"
-    HTML_FILE="$TMPDIR/$1.html"
+    CL_FILE="$BUILDDIR/cl.html"
+    TN_FILE="$BUILDDIR/tn.html"
+    TQ_FILE="$BUILDDIR/tq.html"
+    TW_FILE="$BUILDDIR/tw.html"
+    TA_FILE="$BUILDDIR/ta.html"
+    TMP_FILE="$BUILDDIR/temp.html"
+    SED_FILE="$BUILDDIR/out.sed"
+    HTML_FILE="$BUILDDIR/$1.html"
     PDF_FILE="$OUTPUT_DIR/$1.pdf"
 
     touch $SED_FILE
@@ -261,7 +267,7 @@ book_export () {
         -V sansfont="Noto Sans" \
         -o $PDF_FILE $HTML_FILE
 
-    echo "See $PDF_FILE (generated files: $TMPDIR)"
+    echo "See $PDF_FILE (generated files: $BUILDDIR)"
 }
 
 book_export $1
