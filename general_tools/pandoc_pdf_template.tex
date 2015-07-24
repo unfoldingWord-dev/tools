@@ -1,6 +1,7 @@
 % Very helpul: http://ctan.math.washington.edu/tex-archive/macros/latex/contrib/memoir/memman.pdf
 \documentclass[$if(fontsize)$$fontsize$,$endif$$if(lang)$$lang$,$endif$$if(papersize)$$papersize$,$endif$$for(classoption)$$classoption$$sep$,$endfor$,openany]{$documentclass$}
 \usepackage[automark]{scrpage2}
+\usepackage{tocstyle}
 
 \AtBeginDocument{%
 	\pagestyle{scrheadings}%
@@ -171,8 +172,8 @@ $endfor$
 $if(toc)$
 {
 \hypersetup{linkcolor=black}
-\setcounter{tocdepth}{$toc-depth$}
-%\renewcommand{\cftchapterdotsep}{\cftdotsep}
+\setcounter{tocdepth}{2}
+\setcounter{secnumdepth}{-1}
 \tableofcontents*
 \newpage
 }
