@@ -15,20 +15,44 @@
 # -> Fix pandoc to support images, or fix pandoc-dev list spacing
 # -> Fix ulem not on server
 
-#set -e
-#: ${debug:=false}
-#$debug && set -x
-BASEDIR=$(cd $(dirname "$0")/../ && pwd)
-: ${TMPDIR=$(mktemp -d --tmpdir "ubw_pdf_create.XXXXXX")}
-#$debug || trap 'cd "$BASEDIR"; rm -rf "$TMPDIR"' EXIT SIGHUP SIGTERM
+# Set script to die if any of the subprocesses exit with a fail code. This
+# catches a lot of scripting mistakes that might otherwise only show up as side
+# effects later in the run (or at a later time)
+set -e
 
+# Instantiate a debug flag (default to false). This enables output usful durring
+# script development or later debugging but not normally needed durring
+# production runs. It can be used by calling the script with the var set, e.g.:
+#     $ debug=true ./uwb/pdf_create.sh
+: ${debug:=false}
+
+# If running in debug mode, output information about every command being run
+$debug && set -x
+
+# Establish where _this_ script is so that other things in the same repo can
+# be referenced with relative paths:
+BASEDIR=$(cd $(dirname "$0")/../ && pwd)
+
+# Setup defaults for 'standard' locations that can be over-ridden an run time.
+# The final output pdf defaults to the currect directory, but a target directory
+# could be set with `export OUTPUT_DIR=/path`. Likewise the Door43 language repo
+# is expected to be in the location as in Doo453 servers, but if running on your
+# own machine you can override this with `export UW_NOTES_DIR=/path/to/repo`
 : ${UW_NOTES_DIR:=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes}
 : ${OUTPUT_DIR:=$(pwd)}
+
+# Create a temorary diretory using the system default temp directory location
+# in which we can stash any files we want in an isolated namespace
+: ${TMPDIR=$(mktemp -d --tmpdir "ubw_pdf_create.XXXXXX")}
+# Change to that directory but note our current dir so we can get back to it
+pushd $TMPDIR
+# If _not_ in debug mode, then cleanup out temp files after every run. Running
+# in debug mode will skip this so that the temp files can be inspected manually
+$debug || trap 'popd; rm -rf "$TMPDIR"' EXIT SIGHUP SIGTERM
+
 BASE_URL='https://door43.org/_export/xhtmlbody'
 NOTES_URL="$BASE_URL/en/bible/notes"
 TEMPLATE="$BASEDIR/general_tools/pandoc_pdf_template.tex"
-
-pushd $TMPDIR
 
 book_export () {
     CL_FILE="$TMPDIR/cl.html"
