@@ -272,8 +272,9 @@ book_export () {
     pandoc --template=$TEMPLATE -S --toc --toc-depth=2 -V toc-depth=1 \
         --latex-engine="xelatex" \
         -V documentclass="scrartcl" \
+        -V classoption="oneside" \
         -V geometry='hmargin=2cm' \
-        -V geometry='vmargin=2cm' \
+        -V geometry='vmargin=3cm' \
         -V title="$TITLE" \
         -V subtitle="$SUBTITLE" \
         -V date="$DATE" \

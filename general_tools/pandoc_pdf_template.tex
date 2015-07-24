@@ -1,5 +1,13 @@
 % Very helpul: http://ctan.math.washington.edu/tex-archive/macros/latex/contrib/memoir/memman.pdf
 \documentclass[$if(fontsize)$$fontsize$,$endif$$if(lang)$$lang$,$endif$$if(papersize)$$papersize$,$endif$$for(classoption)$$classoption$$sep$,$endfor$,openany]{$documentclass$}
+\usepackage[automark]{scrpage2}
+
+\AtBeginDocument{%
+	\pagestyle{scrheadings}%
+	\clearscrheadfoot%
+	\cfoot{\pagemark{}}%
+	\ohead{\headmark}%
+}{}
 
 $if(mainfont)$
 \usepackage{fontspec}
@@ -22,7 +30,6 @@ $endif$
 $if(euro)$
   \usepackage{eurosym}
 $endif$
-\pagestyle{empty}
 $if(mathfont)$
     \setmathfont(Digits,Latin,Greek){$mathfont$}
 $endif$
