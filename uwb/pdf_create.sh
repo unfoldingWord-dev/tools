@@ -271,7 +271,7 @@ book_export () {
     # Create PDF
     pandoc --template=$TEMPLATE -S --toc --toc-depth=2 -V toc-depth=1 \
         --latex-engine="xelatex" \
-        -V documentclass="memoir" \
+        -V documentclass="scrartcl" \
         -V geometry='hmargin=2cm' \
         -V geometry='vmargin=2cm' \
         -V title="$TITLE" \

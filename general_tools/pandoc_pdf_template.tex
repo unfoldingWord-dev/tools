@@ -143,13 +143,6 @@ $endfor$
 \renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
 \fi
 
-\renewcommand{\partnumberlinebox}[2]{#2 }
-\renewcommand{\chapternumberlinebox}[2]{#2 }
-
-\newcommand\subsectionbreak{\clearpage}
-\chapterstyle{bringhurst}
-
-\renewcommand{\printchaptertitle}{\memRTLraggedright\Large}
 
 \begin{document}
 \pagenumbering{gobble}
@@ -172,7 +165,7 @@ $if(toc)$
 {
 \hypersetup{linkcolor=black}
 \setcounter{tocdepth}{$toc-depth$}
-\renewcommand{\cftchapterdotsep}{\cftdotsep}
+%\renewcommand{\cftchapterdotsep}{\cftdotsep}
 \tableofcontents*
 \newpage
 }
