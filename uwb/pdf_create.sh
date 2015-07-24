@@ -86,7 +86,7 @@ book_export () {
     rm -f $TMP_FILE
     touch $LINKS_FILE
 
-    # Get Copyrights & Licensing page - using <h1> just so we can make these <h1> (see below) and bump up all other headers by one
+    # Get Copyrights & Licensing page
     if ! $USE_EXISTING_FILES || [ ! -e $CL_FILE ];
     then
         echo "GENERATING $CL_FILE"
