@@ -63,7 +63,7 @@ LOG="$BUILDDIR/shell.log"
 
 # Output info about every command (and don't clean up on exit) if in debug mode
 $debug && set -x
-$debug || trap 'cd "$BASEDIR"; rm -rf "$BUILDDIR" "$REPORTDIR" "$LOG"' EXIT SIGHUP SIGTERM
+$debug || trap 'cd "$BASEDIR"; rm -rf "$BUILDDIR"' EXIT SIGHUP SIGTERM
 
 # Make sure ConTeXt is installed and our environment is passable, if not
 # make a basic attempt to fix it before going on...
@@ -111,7 +111,7 @@ for lang in "${langs[@]}"; do
     # the use case is I'm only fixing the file paths and letting it run as-is...
     # (originally from export_all_DBP.sh)
     if [[ -n "$reportto" ]]; then
-        {
+        (
             if [[ -s "$BASENAME-report.txt" ]]; then
                 formatA="%-10s%-30s%s\n"
                 formatD="%-10s%-10s%-10s%-10s%s\n"
@@ -135,16 +135,14 @@ for lang in "${langs[@]}"; do
                 tr ' ()' '\n' |
                 egrep 'http|\.com' > bad
             printf "$formatD" "$lang" $(cat tmp) "$(echo $(cat bad))"
-        } > "$BUILDDIR/$BASENAME-report.txt"
+        ) > "$BUILDDIR/$BASENAME-report.txt" || : # Don't worry about exiting if report items failed
     fi
 done
 
 ## SEND REPORTS ##
 
 if [[ -n "$reportto" ]]; then
-    cd "$BASEDIR"
-    REPORTDIR=$(mktemp -d --tmpdir obs_build_pdf_report.XXXXXX)
-    report_package="$REPORTDIR/OBS-build-report-$(date +%s)${tag:+-$tag}.zip"
+    report_package="$BUILDDIR/OBS-build-report-$(date +%s)${tag:+-$tag}.zip"
     zip -9yrj "$report_package" "$BUILDDIR"
     for target in "${reportto[@]}"; do
         if [[ -d "$target" ]]; then
