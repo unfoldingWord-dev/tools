@@ -7,7 +7,7 @@
 #
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
-#  Richard Mahn <rmahn@getmealticket.com>
+#  Richard Mahn <richard_mahn@wycliffeassociates.org>
 #  Caleb Maclennan <caleb@alerque.com>
 
 
@@ -15,89 +15,100 @@
 # -> Fix pandoc to support images, or fix pandoc-dev list spacing
 # -> Fix ulem not on server
 
+# ENVIRONMENT VARIABLES:
+# DEBUG - true/false -  If true, will run "set -x", will make $USE_EXISTING_FILES true by default
+# USE_EXISTING_FILES - true/false - If true will keep & use existing .html files in $WORKING_DIR (won't fentch them again) so you need to remove them yourself if you want them regenerated
+#
+# TOOLS_DIR - Directory of the "tools" repo where scripts and templates resides. Defaults to the parent directory of this script
+# WORKING_DIR - Directory where all HTML files for tN, tQ, tW, tA are collected and then a full HTML file is made before conversion to PDF, defaults to a system suggested temp location
+# OUTPUT_DIR - Directory to put the PDF, defaults to the current working directory
+# BASE_URL - URL for the _export/xhtmlbody to get Dokuwiki content, defaults to 'https://door43.org/_export/xhtmlbody'
+# NOTES_URL - URL for getting translationNotes, defaults to $BASE_URL/en/bible/notes
+# TEMPLATE - Location of the TeX template for Pandoc, defaults to "$TOOLS_DIR/general_tools/pandoc_pdf_template.tex
+
 # Set script to die if any of the subprocesses exit with a fail code. This
 # catches a lot of scripting mistakes that might otherwise only show up as side
 # effects later in the run (or at a later time). This is especially important so
 # we know out temp dir situation is sane before we get started.
 set -e
 
-# Instantiate a debug flag (default to false). This enables output usful durring
-# script development or later debugging but not normally needed durring
+# Instantiate a DEBUG flag (default to false). This enables output usful durring
+# script development or later DEBUGging but not normally needed durring
 # production runs. It can be used by calling the script with the var set, e.g.:
-#     $ debug=true ./uwb/pdf_create.sh
-: ${debug:=false}
+#     $ DEBUG=true ./uwb/pdf_create.sh <book>
+: ${DEBUG:=false}
 
-# If running in debug mode, output information about every command being run
-$debug && set -x
-
-# Establish where _this_ script is so that other things in the same repo can
-# be referenced with relative paths:
-BASEDIR=$(cd $(dirname "$0")/../ && pwd)
-
-# Setup defaults for 'standard' locations that can be over-ridden an run time.
-# The final output pdf defaults to the currect directory, but a target directory
-# could be set with `export OUTPUT_DIR=/path`. Likewise the Door43 language repo
-# is expected to be in the location as in Doo453 servers, but if running on your
-# own machine you can override this with `export UW_NOTES_DIR=/path/to/repo`
+: ${USE_EXISTING_FILES:=$DEBUG}
+: ${TOOLS_DIR:=$(cd $(dirname "$0")/../ && pwd)}
 : ${UW_NOTES_DIR:=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes}
 : ${OUTPUT_DIR:=$(pwd)}
+: ${BASE_URL:=https://door43.org/_export/xhtmlbody}
+: ${NOTES_URL:=$BASE_URL/en/bible/notes}
+: ${TEMPLATE:=$TOOLS_DIR/general_tools/pandoc_pdf_template.tex}
+
+# If running in DEBUG mode, output information about every command being run
+$DEBUG && set -x
 
 # Create a temorary diretory using the system default temp directory location
 # in which we can stash any files we want in an isolated namespace. It is very
 # important that this dir actually exist. The set -e option should always be used
 # so that if the system doesn't let us create a temp directory we won't contintue.
-if [[ -z "$BUILDDIR" ]]; then
-    BUILDDIR=$(mktemp -d --tmpdir "ubw_pdf_create.XXXXXX")
-    # If _not_ in debug mode, _and_ we made our own temp directory, then
-    # cleanup out temp files after every run. Running in debug mode will skip
+if [[ -z "$WORKING_DIR" ]]; then
+    WORKING_DIR=$(mktemp -d -t "ubw_pdf_create.XXXXXX")
+    # If _not_ in DEBUG mode, _and_ we made our own temp directory, then
+    # cleanup out temp files after every run. Running in DEBUG mode will skip
     # this so that the temp files can be inspected manually
-    $debug || trap 'popd; rm -rf "$BUILDDIR"' EXIT SIGHUP SIGTERM
+    $DEBUG || trap 'popd; rm -rf "$WORKING_DIR"' EXIT SIGHUP SIGTERM
+elif [[ ! -d "$WORKING_DIR" ]]; then
+    WORKING_DIR=$(mktemp -d -t "$WORKING_DIR")
 fi
 # Change to own own temp dir but note our current dir so we can get back to it
-pushd $BUILDDIR
-
-BASE_URL='https://door43.org/_export/xhtmlbody'
-NOTES_URL="$BASE_URL/en/bible/notes"
-TEMPLATE="$BASEDIR/general_tools/pandoc_pdf_template.tex"
+pushd $WORKING_DIR
 
 book_export () {
-    CL_FILE="$BUILDDIR/cl.html"
-    TN_FILE="$BUILDDIR/tn.html"
-    TQ_FILE="$BUILDDIR/tq.html"
-    TW_FILE="$BUILDDIR/tw.html"
-    TA_FILE="$BUILDDIR/ta.html"
-    TMP_FILE="$BUILDDIR/temp.html"
-    SED_FILE="$BUILDDIR/out.sed"
-    HTML_FILE="$BUILDDIR/$1.html"
-    PDF_FILE="$OUTPUT_DIR/$1.pdf"
+    CL_FILE="$1_cl.html" # Copyrights & Licensing
+    TN_FILE="$1_tn.html" # translationNotes
+    TQ_FILE="$1_tq.html" # translationQuestions
+    TW_FILE="$1_tw.html" # translationWords
+    TA_FILE="$1_ta.html" # translationAcademy
+    HTML_FILE="$1_all.html" # Compilation of all above HTML files
+    TMP_FILE="$1_temp.html" # temp stuff
+    LINKS_FILE="$1_links.sed" # SED commands for links
+    PDF_FILE="$OUTPUT_DIR/uwb_$1.pdf"
 
-    touch $SED_FILE
-
-    if [ -e $TMP_FILE ]
+    if ! $USE_EXISTING_FILES;
     then
-        rm -f $TMP_FILE
+        echo rm -f $CL_FILE $TN_FILE $TQ_FILE $TA_FILE $TMP_FILE $LINKS_FILE $HTML_FILE
     fi
 
+    # HTML_FILE AND TMP_FILE need to be removed, and make sure there is a LINKS_FILE for links
+    rm -f $HTML_FILE
+    rm -f $TMP_FILE
+    touch $LINKS_FILE
+
     # Get Copyrights & Licensing page - using <h1> just so we can make these <h1> (see below) and bump up all other headers by one
-    if [ ! -e $CL_FILE ]
+    if ! $USE_EXISTING_FILES || [ ! -e $CL_FILE ];
     then
-        curl -s -L "$BASE_URL/en/legal/license" > $CL_FILE
+        echo "GENERATING $CL_FILE"
+
+        wget -U 'me' "$BASE_URL/en/legal/license" -O - >> $CL_FILE
 
         # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
         sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' $CL_FILE
     fi
 
     # Get all the note
-    if [ ! -e $TN_FILE ]
+    if ! $USE_EXISTING_FILES || [ ! -e $TN_FILE ];
     then
         echo "GENERATING $TN_FILE"
+
         touch $TMP_FILE
 
         find "$UW_NOTES_DIR/$1" -type f -path "*[0-9]/*[0-9]*.txt" -printf '%P\n' |
             grep -v 'asv-ulb' |
             sort -u |
             while read f; do
-                curl -s -L "$NOTES_URL/$1/${f%%.txt}" |
+                wget -U 'me' "$NOTES_URL/$1/${f%%.txt}" -O - |
                     grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' |
                     grep -v ' href="\/tag\/' \
                     >> $TMP_FILE
@@ -132,15 +143,16 @@ book_export () {
         sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' $TN_FILE
     fi
 
-    if [ ! -e $TQ_FILE ]
+    if ! $USE_EXISTING_FILES || [ ! -e $TQ_FILE ];
     then
         echo "GENERATING $TQ_FILE"
+
         touch $TQ_FILE
 
         find "$UW_NOTES_DIR/$1" -type f -path "*questions/*[0-9].txt" -printf '%P\n' |
             sort |
             while read f; do
-                curl -s -L "$NOTES_URL/$1/${f%%.txt}" |
+                wget -U 'me' "$NOTES_URL/$1/${f%%.txt}" -O - |
                     grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' |
                     grep -v ' href="\/tag\/' \
                     >> $TQ_FILE
@@ -153,23 +165,24 @@ book_export () {
         sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' $TQ_FILE
     fi
 
-    if [ ! -e $TW_FILE ]
+    if ! $USE_EXISTING_FILES || [ ! -e $TW_FILE ];
     then
         echo "GENERATING $TW_FILE"
+
         touch $TW_FILE
 
         # Get the linked key terms
         for term in $(grep -oP '"\/en\/obe.*?"' $TN_FILE | tr -d '"' | sort -u ); do
-            curl -s -L "${BASE_URL}${term}" |
+            wget -U 'me' ${BASE_URL}${term} -O - |
                 grep -v ' href="\/tag\/' \
                 > $TMP_FILE
 
             linkname=$(head -3 $TMP_FILE | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
-            echo -n 's/' >> $SED_FILE
-            echo -n $term | sed -e 's/[]\/$*.^|[]/\\&/g' >> $SED_FILE
-            echo -n '"/#' >> $SED_FILE
-            echo -n "$linkname" >> $SED_FILE
-            echo '"/g' >> $SED_FILE
+            echo -n 's/' >> $LINKS_FILE
+            echo -n $term | sed -e 's/[]\/$*.^|[]/\\&/g' >> $LINKS_FILE
+            echo -n '"/#' >> $LINKS_FILE
+            echo -n "$linkname" >> $LINKS_FILE
+            echo '"/g' >> $LINKS_FILE
 
             cat $TMP_FILE >> $TW_FILE
         done
@@ -186,9 +199,10 @@ book_export () {
         sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' $TW_FILE
     fi
 
-    if [ ! -e $TA_FILE ]
+    if ! $USE_EXISTING_FILES || [ ! -e $TA_FILE ];
     then
         echo "GENERATING $TA_FILE"
+
         touch $TA_FILE
 
         # Get the linked tA
@@ -197,16 +211,16 @@ book_export () {
             sort -u |
             sed 's!door43.org/en/!door43.org/_export/xhtmlbody/en/!' |
             while read ta; do
-                curl -s -L "${BASE_URL}${ta}"  |
+                wget -U 'me' ${BASE_URL}${ta} -O - |
                     grep -v ' href="\/tag\/' \
                     > $TMP_FILE
 
                 linkname=$(head -3 $TMP_FILE | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
-                echo -n 's/' >> $SED_FILE
-                echo -n $ta | sed -e 's/[]\/$*.^|[]/\\&/g' >> $SED_FILE
-                echo -n '"/#' >> $SED_FILE
-                echo -n "$linkname" >> $SED_FILE
-                echo '"/g' >> $SED_FILE
+                echo -n 's/' >> $LINKS_FILE
+                echo -n $ta | sed -e 's/[]\/$*.^|[]/\\&/g' >> $LINKS_FILE
+                echo -n '"/#' >> $LINKS_FILE
+                echo -n "$linkname" >> $LINKS_FILE
+                echo '"/g' >> $LINKS_FILE
 
                 cat $TMP_FILE >> $TA_FILE
             done
@@ -221,7 +235,7 @@ book_export () {
         sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' $TA_FILE
      fi
 
-     rm -f $HTML_FILE
+     echo "GENERATING $HTML_FILE"
 
      echo '<h1>Copyrights & Licensing</h1>' >> $HTML_FILE
      cat $CL_FILE >> $HTML_FILE
@@ -239,7 +253,7 @@ book_export () {
      cat $TA_FILE >> $HTML_FILE
 
     # Link Fixes
-    sed -i -f $SED_FILE $HTML_FILE
+    sed -i -f $LINKS_FILE $HTML_FILE
     sed -i -e 's/\/en\/bible.*"/"/' $HTML_FILE
     sed -i -e 's/\/en\/obs.*"/"/' $HTML_FILE
 
@@ -256,7 +270,7 @@ book_export () {
 
     # Create PDF
     pandoc --template=$TEMPLATE -S --toc --toc-depth=2 -V toc-depth=1 \
-        --latex-engine=xelatex \
+        --latex-engine="xelatex" \
         -V documentclass="memoir" \
         -V geometry='hmargin=2cm' \
         -V geometry='vmargin=2cm' \
@@ -267,7 +281,7 @@ book_export () {
         -V sansfont="Noto Sans" \
         -o $PDF_FILE $HTML_FILE
 
-    echo "See $PDF_FILE (generated files: $BUILDDIR)"
+    echo "See $PDF_FILE (generated files: $WORKING_DIR)"
 }
 
 book_export $1
