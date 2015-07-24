@@ -84,7 +84,7 @@ book_export () {
         curl -s -L "$BASE_URL/en/legal/license" > $CL_FILE
 
         # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
-        sed -i 's/<\(\/\)\{0,1\}h1/<\1h2/g' $CL_FILE
+        sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' $CL_FILE
     fi
 
     # Get all the note
@@ -123,13 +123,13 @@ book_export () {
         rm -f $TMP_FILE
 
         # put a hr before ever h1 except the first one
-        sed -i 's/<h1/<br\/><hr\/><h1/' $TN_FILE
-        sed -i '0,/<br\/><hr\/><h1/ s/<br\/><hr\/><h1/<h1/' $TN_FILE
+        sed -i -e 's/<h1/<br\/><hr\/><h1/' $TN_FILE
+        sed -i -e '0,/<br\/><hr\/><h1/ s/<br\/><hr\/><h1/<h1/' $TN_FILE
 
         # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
-        sed -i 's/<\(\/\)\{0,1\}h3/<\1h4/g' $TN_FILE
-        sed -i 's/<\(\/\)\{0,1\}h2/<\1h3/g' $TN_FILE
-        sed -i 's/<\(\/\)\{0,1\}h1/<\1h2/g' $TN_FILE
+        sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' $TN_FILE
+        sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' $TN_FILE
+        sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' $TN_FILE
     fi
 
     if [ ! -e $TQ_FILE ]
@@ -147,10 +147,10 @@ book_export () {
             done
 
         # REMOVE Comprehension Questions and Answers title
-        sed -i '/<h2.*Comprehension Questions and Answers<\/h2>/d' $TQ_FILE
+        sed -i -e '/<h2.*Comprehension Questions and Answers<\/h2>/d' $TQ_FILE
 
         # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
-        sed -i 's/<\(\/\)\{0,1\}h1/<\1h2/g' $TQ_FILE
+        sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' $TQ_FILE
     fi
 
     if [ ! -e $TW_FILE ]
@@ -177,13 +177,13 @@ book_export () {
         rm -f $TMP_FILE
 
         # put a hr before ever h1 except the first one
-        sed -i 's/<h1/<p>\&nbsp; <\/p><h1/' $TW_FILE
-        sed -i '0,/<p>\&nbsp; <\/p><h1/ s/<p>\&nbsp; <\/p><h1/<h1/' $TW_FILE
+        sed -i -e 's/<h1/<p>\&nbsp; <\/p><h1/' $TW_FILE
+        sed -i -e '0,/<p>\&nbsp; <\/p><h1/ s/<p>\&nbsp; <\/p><h1/<h1/' $TW_FILE
 
         # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
-        sed -i 's/<\(\/\)\{0,1\}h3/<\1h4/g' $TW_FILE
-        sed -i 's/<\(\/\)\{0,1\}h2/<\1h3/g' $TW_FILE
-        sed -i 's/<\(\/\)\{0,1\}h1/<\1h2/g' $TW_FILE
+        sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' $TW_FILE
+        sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' $TW_FILE
+        sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' $TW_FILE
     fi
 
     if [ ! -e $TA_FILE ]
@@ -213,12 +213,12 @@ book_export () {
 
         rm -f $TMP_FILE
 
-        sed -i 's/<h1/<br\/><br\/><hr\/><br\/><h1/g' $TA_FILE
-        sed -i '0,/<br\/><br\/><hr\/><br\/><h1/ s/<br\/><br\/><hr\/><br\/><h1/<h1/' $TA_FILE
+        sed -i -e 's/<h1/<br\/><br\/><hr\/><br\/><h1/g' $TA_FILE
+        sed -i -e '0,/<br\/><br\/><hr\/><br\/><h1/ s/<br\/><br\/><hr\/><br\/><h1/<h1/' $TA_FILE
 
-        sed -i 's/<\(\/\)\{0,1\}h3/<\1h4/g' $TA_FILE
-        sed -i 's/<\(\/\)\{0,1\}h2/<\1h3/g' $TA_FILE
-        sed -i 's/<\(\/\)\{0,1\}h1/<\1h2/g' $TA_FILE
+        sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' $TA_FILE
+        sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' $TA_FILE
+        sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' $TA_FILE
      fi
 
      rm -f $HTML_FILE
@@ -240,8 +240,8 @@ book_export () {
 
     # Link Fixes
     sed -i -f $SED_FILE $HTML_FILE
-    sed -i 's/\/en\/bible.*"/"/' $HTML_FILE
-    sed -i 's/\/en\/obs.*"/"/' $HTML_FILE
+    sed -i -e 's/\/en\/bible.*"/"/' $HTML_FILE
+    sed -i -e 's/\/en\/obs.*"/"/' $HTML_FILE
 
     # Cleanup
     sed -i -e 's/\xe2\x80\x8b//g' -e '/^<hr>/d' -e '/&lt;&lt;/d' \
