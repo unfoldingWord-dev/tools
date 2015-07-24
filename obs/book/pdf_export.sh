@@ -75,7 +75,7 @@ if ! command -v context >/dev/null; then
     fi
 fi
 if ! mtxrun --script fonts --list --all | grep -q noto; then
-    export OSFONTSDIR=${OSFONTDIR="/usr/local/share/fonts;/usr/share/fonts"}
+    export OSFONTSDIR=${OSFONTDIR:="/usr/local/share/fonts;/usr/share/fonts"}
     mtxrun --script fonts --reload
     context --generate
 fi
