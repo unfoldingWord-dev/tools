@@ -75,7 +75,7 @@ cp -f "$TMPL/sidebar.txt" "$DEST"
 
 # Replace LANGCODE placeholder with destination language code
 for f in `find "$DEST" -type f -name '*.txt'`; do
-    sed -i "s/LANGCODE/$LANG/g" "$f"
+    sed -i -e "s/LANGCODE/$LANG/g" "$f"
 done
 
 # Set permissions

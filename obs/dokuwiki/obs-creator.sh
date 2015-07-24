@@ -103,7 +103,7 @@ done
 # Make uwadmin status page
 mkdir -p "$PAGES/en/uwadmin/$LANG/obs"
 cp -i "${TMPL%%/obs3/}/status.txt" "$PAGES/en/uwadmin/$LANG/obs/"
-sed -i "s/ORIGDATE/`date +%F`/" "$PAGES/en/uwadmin/$LANG/obs/status.txt"
+sed -i -e "s/ORIGDATE/`date +%F`/" "$PAGES/en/uwadmin/$LANG/obs/status.txt"
 
 # Update the changes pages
 $BASEDIR/obs/dokuwiki/obs-gen-changes-pages.sh
