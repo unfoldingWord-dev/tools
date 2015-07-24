@@ -94,6 +94,8 @@ book_export () {
         wget -U 'me' "$BASE_URL/en/legal/license" -O - >> $CL_FILE
 
         # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
+        sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' $CL_FILE
+        sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' $CL_FILE
         sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' $CL_FILE
     fi
 
@@ -133,10 +135,6 @@ book_export () {
 
         rm -f $TMP_FILE
 
-        # put a hr before ever h1 except the first one
-        sed -i -e 's/<h1/<br\/><hr\/><h1/' $TN_FILE
-        sed -i -e '0,/<br\/><hr\/><h1/ s/<br\/><hr\/><h1/<h1/' $TN_FILE
-
         # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
         sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' $TN_FILE
         sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' $TN_FILE
@@ -163,6 +161,8 @@ book_export () {
         sed -i -e '/<h2.*Comprehension Questions and Answers<\/h2>/d' $TQ_FILE
 
         # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
+        sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' $TQ_FILE
+        sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' $TQ_FILE
         sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' $TQ_FILE
     fi
 
@@ -191,9 +191,12 @@ book_export () {
 
         rm -f $TMP_FILE
 
-        # put a hr before ever h1 except the first one
-        sed -i -e 's/<h1/<p>\&nbsp; <\/p><h1/' $TW_FILE
-        sed -i -e '0,/<p>\&nbsp; <\/p><h1/ s/<p>\&nbsp; <\/p><h1/<h1/' $TW_FILE
+        # Quick fix for getting rid of these Bible References lists in a table, removing table tags
+        sed -i -e 's/^\s*<table class="ul">/<ul>/' $TW_FILE
+        sed -i -e 's/^\s*<tr>//' $TW_FILE
+        sed -i -e 's/^\s*<td class="page"><ul>\(.*\)<\/ul><\/td>/\1/' $TW_FILE
+        sed -i -e 's/^\s*<\/tr>//' $TW_FILE
+        sed -i -e 's/^\s*<\/table>/<\/ul>/' $TW_FILE
 
         # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
         sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' $TW_FILE
@@ -230,9 +233,11 @@ book_export () {
 
         rm -f $TMP_FILE
 
-        sed -i -e 's/<h1/<br\/><br\/><hr\/><br\/><h1/g' $TA_FILE
-        sed -i -e '0,/<br\/><br\/><hr\/><br\/><h1/ s/<br\/><br\/><hr\/><br\/><h1/<h1/' $TA_FILE
+        # get rid of the pad.door43.org links and the <hr> with it
+        sed -i -e 's/^\s*<a href="https:\/\/pad\.door43\.org.*//' $TA_FILE
+        sed -i -e 's/^<hr \/>//' $TA_FILE
 
+        # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
         sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' $TA_FILE
         sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' $TA_FILE
         sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' $TA_FILE
@@ -289,4 +294,8 @@ book_export () {
     echo "See $PDF_FILE (generated files: $WORKING_DIR)"
 }
 
-book_export $1
+for var in "$@"
+do
+    book_export $var
+done
+
