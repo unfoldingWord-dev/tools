@@ -51,7 +51,7 @@ book_export () {
     # Get Copyrights & Licensing page - using <h1> just so we can make these <h1> (see below) and bump up all other headers by one
     if [ ! -e $CL_FILE ]
     then
-        wget -U 'me' "$BASE_URL/en/legal/license" -O - >> $CL_FILE
+        curl -s -L "$BASE_URL/en/legal/license" > $CL_FILE
 
         # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
         sed -i 's/<\(\/\)\{0,1\}h1/<\1h2/g' $CL_FILE
@@ -65,9 +65,9 @@ book_export () {
 
         find "$UW_NOTES_DIR/$1" -type f -path "*[0-9]/*[0-9]*.txt" -printf '%P\n' |
             grep -v 'asv-ulb' |
-            sort |
+            sort -u |
             while read f; do
-                wget -U 'me' "$NOTES_URL/$1/${f%%.txt}" -O - |
+                curl -s -L "$NOTES_URL/$1/${f%%.txt}" |
                     grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' |
                     grep -v ' href="\/tag\/' \
                     >> $TMP_FILE
@@ -110,7 +110,7 @@ book_export () {
         find "$UW_NOTES_DIR/$1" -type f -path "*questions/*[0-9].txt" -printf '%P\n' |
             sort |
             while read f; do
-                wget -U 'me' "$NOTES_URL/$1/${f%%.txt}" -O - |
+                curl -s -L "$NOTES_URL/$1/${f%%.txt}" |
                     grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' |
                     grep -v ' href="\/tag\/' \
                     >> $TQ_FILE
@@ -130,7 +130,7 @@ book_export () {
 
         # Get the linked key terms
         for term in $(grep -oP '"\/en\/obe.*?"' $TN_FILE | tr -d '"' | sort -u ); do
-            wget -U 'me' ${BASE_URL}${term} -O - |
+            curl -s -L "${BASE_URL}${term}" |
                 grep -v ' href="\/tag\/' \
                 > $TMP_FILE
 
@@ -167,7 +167,7 @@ book_export () {
             sort -u |
             sed 's!door43.org/en/!door43.org/_export/xhtmlbody/en/!' |
             while read ta; do
-                wget -U 'me' ${BASE_URL}${ta} -O - |
+                curl -s -L "${BASE_URL}${ta}"  |
                     grep -v ' href="\/tag\/' \
                     > $TMP_FILE
 
