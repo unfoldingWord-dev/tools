@@ -97,7 +97,7 @@ book_export () {
         sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' $CL_FILE
     fi
 
-    # Get all the note
+    # Get all the translationNots for the given book
     if ! $USE_EXISTING_FILES || [ ! -e $TN_FILE ];
     then
         echo "GENERATING $TN_FILE"
@@ -143,6 +143,7 @@ book_export () {
         sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' $TN_FILE
     fi
 
+    # Get all the translationQuestions for the given book
     if ! $USE_EXISTING_FILES || [ ! -e $TQ_FILE ];
     then
         echo "GENERATING $TQ_FILE"
@@ -165,6 +166,7 @@ book_export () {
         sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' $TQ_FILE
     fi
 
+    # Get all the translationWords that exist in the already fetched translationNotes for the given book
     if ! $USE_EXISTING_FILES || [ ! -e $TW_FILE ];
     then
         echo "GENERATING $TW_FILE"
@@ -199,6 +201,7 @@ book_export () {
         sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' $TW_FILE
     fi
 
+    # Get all the translationAcademy entries that exist in the already fetched translationNotes and translationWords for the given book
     if ! $USE_EXISTING_FILES || [ ! -e $TA_FILE ];
     then
         echo "GENERATING $TA_FILE"
@@ -235,6 +238,7 @@ book_export () {
         sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' $TA_FILE
      fi
 
+     # Compile all the above CL, tN, tQ, tW, and tA HTML files into one with headers
      echo "GENERATING $HTML_FILE"
 
      echo '<h1>Copyrights & Licensing</h1>' >> $HTML_FILE
