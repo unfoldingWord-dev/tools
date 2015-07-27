@@ -241,6 +241,8 @@ book_export () {
         # REMOVE Comprehension Questions and Answers title
         sed -i -e '/<h2.*Comprehension Questions and Answers<\/h2>/d' $TQ_FILE
 
+        sed -i -e '/href="\/en\/bible\/notes\/.*\/questions\/comprehension\/home/d' $TQ_FILE
+
         # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
         sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' $TQ_FILE
         sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' $TQ_FILE
