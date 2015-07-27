@@ -60,7 +60,7 @@ if [[ -z "$WORKING_DIR" ]]; then
     # this so that the temp files can be inspected manually
     $DEBUG || trap 'popd; rm -rf "$WORKING_DIR"' EXIT SIGHUP SIGTERM
 elif [[ ! -d "$WORKING_DIR" ]]; then
-    WORKING_DIR=$(mktemp -d -t "$WORKING_DIR")
+    mkdir -p "$WORKING_DIR"
 fi
 # Change to own own temp dir but note our current dir so we can get back to it
 pushd $WORKING_DIR
