@@ -62,6 +62,7 @@ if [[ -z "$WORKING_DIR" ]]; then
 elif [[ ! -d "$WORKING_DIR" ]]; then
     mkdir -p "$WORKING_DIR"
 fi
+
 # Change to own own temp dir but note our current dir so we can get back to it
 pushd $WORKING_DIR
 
@@ -146,14 +147,14 @@ book_export () {
         exit 1;
     fi
 
-    CL_FILE="$BOOK_cl.html" # Copyrights & Licensing
-    TN_FILE="$BOOK_tn.html" # translationNotes
-    TQ_FILE="$BOOK_tq.html" # translationQuestions
-    TW_FILE="$BOOK_tw.html" # translationWords
-    TA_FILE="$BOOK_ta.html" # translationAcademy
-    HTML_FILE="$BOOK_all.html" # Compilation of all above HTML files
-    TMP_FILE="$BOOK_temp.html" # temp stuff
-    LINKS_FILE="$BOOK_links.sed" # SED commands for links
+    CL_FILE="${BOOK}_cl.html" # Copyrights & Licensing
+    TN_FILE="${BOOK}_tn.html" # translationNotes
+    TQ_FILE="${BOOK}_tq.html" # translationQuestions
+    TW_FILE="${BOOK}_tw.html" # translationWords
+    TA_FILE="${BOOK}_ta.html" # translationAcademy
+    HTML_FILE="${BOOK}_all.html" # Compilation of all above HTML files
+    TMP_FILE="${BOOK}_temp.html" # temp stuff
+    LINKS_FILE="${BOOK}_links.sed" # SED commands for links
     PDF_FILE="$OUTPUT_DIR/tN_${BOOK^^}_$DATE.pdf"
 
     if ! $USE_EXISTING_FILES;
