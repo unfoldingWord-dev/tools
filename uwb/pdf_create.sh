@@ -41,9 +41,11 @@ set -e
 : ${USE_EXISTING_FILES:=$DEBUG}
 : ${TOOLS_DIR:=$(cd $(dirname "$0")/../ && pwd)}
 : ${UW_NOTES_DIR:=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes}
+: ${UW_QUESTIONS_DIR:=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/questions/comprehension}
 : ${OUTPUT_DIR:=$(pwd)}
 : ${BASE_URL:=https://door43.org/_export/xhtmlbody}
 : ${NOTES_URL:=$BASE_URL/en/bible/notes}
+: ${QUESTIONS_URL:=$BASE_URL/en/bible/questions/comprehension}
 : ${TEMPLATE:=$TOOLS_DIR/general_tools/pandoc_pdf_template.tex}
 
 # If running in DEBUG mode, output information about every command being run
@@ -229,19 +231,25 @@ book_export () {
 
         touch $TQ_FILE
 
-        find "$UW_NOTES_DIR/$BOOK" -type f -path "*questions/*[0-9].txt" -printf '%P\n' |
+        find "$UW_QUESTIONS_DIR/$BOOK" -type f -path "*[0-9].txt" -printf '%P\n' |
             sort |
             while read f; do
-                wget -U 'me' "$NOTES_URL/$BOOK/${f%%.txt}" -O - |
+                wget -U 'me' "$QUESTIONS_URL/$BOOK/${f%%.txt}" -O - |
                     grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' |
                     grep -v ' href="\/tag\/' \
-                    >> $TQ_FILE
+                    > $TMP_FILE
+
+                linkname=$(head -3 $TMP_FILE | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
+                echo "s@/en/bible/questions/comprehension/$BOOK/${f%%.txt}\"@#$linkname\"@g" >> $LINKS_FILE
+
+                cat $TMP_FILE >> $TQ_FILE
             done
 
         # REMOVE Comprehension Questions and Answers title
-        sed -i -e '/<h2.*Comprehension Questions and Answers<\/h2>/d' $TQ_FILE
+        sed -i -e '\@<h2.*Comprehension Questions and Answers<\/h2>@d' $TQ_FILE
 
-        sed -i -e '/href="\/en\/bible\/notes\/.*\/questions\/comprehension\/home/d' $TQ_FILE
+        # REMOVE links at end of quesiton page to return to question home page
+        sed -i -e "\@/en/bible/questions/comprehension/$BOOK/home@d" $TQ_FILE
 
         # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
         sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' $TQ_FILE
@@ -263,11 +271,7 @@ book_export () {
                 > $TMP_FILE
 
             linkname=$(head -3 $TMP_FILE | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
-            echo -n 's/' >> $LINKS_FILE
-            echo -n $term | sed -e 's/[]\/$*.^|[]/\\&/g' >> $LINKS_FILE
-            echo -n '"/#' >> $LINKS_FILE
-            echo -n "$linkname" >> $LINKS_FILE
-            echo '"/g' >> $LINKS_FILE
+            echo "s@$term\"@#$linkname\"@g" >> $LINKS_FILE
 
             cat $TMP_FILE >> $TW_FILE
         done
@@ -352,9 +356,10 @@ book_export () {
     # Cleanup
     sed -i -e 's/\xe2\x80\x8b//g' -e '/^<hr>/d' -e '/&lt;&lt;/d' \
         -e 's/<\/span>/<\/span> /g' -e 's/jpg[?a-zA-Z=;&0-9]*"/jpg"/g' \
-        -e '/jpg"/d' \
-        -e 's/"\/_media/"https:\/\/door43.org\/_media/g' \
+        -e 's/ \(src\|href\)="\// \1="https:\/\/door43.org\//g' \
         $HTML_FILE
+#        -e '/jpg"/d' \
+#        -e 's/"\/_media/"https:\/\/door43.org\/_media/g' \
 
     TITLE=${BOOKS[$BOOK]}
     SUBTITLE="translationNotes"
@@ -369,13 +374,25 @@ book_export () {
         -V title="$TITLE" \
         -V subtitle="$SUBTITLE" \
         -V date="$DATE" \
-        -V mainfont="Noto Serif" \
+        -V mainfont="Noto Sans" \
         -V sansfont="Noto Sans" \
         -o $PDF_FILE $HTML_FILE
 
     echo "See $PDF_FILE (generated files: $WORKING_DIR)"
 }
 
+if [ -z "$1" ];
+then
+    echo "Please specify one or more books by adding their abbreviations, separated by spaces. Book abbreviations are as follows:";
+
+    for key in "${!BOOKS[@]}"
+    do
+        echo "$key: ${BOOKS[$key]}";
+    done |
+    sort -n -k3
+
+    exit 1;
+fi
 
 #first check all books given are valid
 for arg in "$@"
