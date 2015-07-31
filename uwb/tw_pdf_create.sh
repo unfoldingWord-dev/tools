@@ -93,7 +93,6 @@ generate_term_file () {
     echo "GENERATING $outfile"
 
     rm -f $outfile
-    touch $outfile
 
     WORKING_SUB_DIR="$WORKING_DIR/$LANGUAGE/tw/$subdir"
     mkdir -p "$WORKING_SUB_DIR"
@@ -110,14 +109,20 @@ generate_term_file () {
                     grep -v ' href="\/tag\/' \
                     >> "$WORKING_SUB_DIR/$term.html"
             fi
-
             cat "$WORKING_SUB_DIR/$term.html" >> "$outfile"
         done
 
-        # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
-        sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' "$outfile"
-        sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' "$outfile"
-        sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' "$outfile"
+    # Quick fix for getting rid of these Bible References lists in a table, removing table tags
+    sed -i -e 's/^\s*<table class="ul">/<ul>/' "$outfile"
+    sed -i -e 's/^\s*<tr>//' "$outfile"
+    sed -i -e 's/^\s*<td class="page"><ul>\(.*\)<\/ul><\/td>/\1/' "$outfile"
+    sed -i -e 's/^\s*<\/tr>//' "$outfile"
+    sed -i -e 's/^\s*<\/table>/<\/ul>/' "$outfile"
+
+    # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
+    sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' "$outfile"
+    sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' "$outfile"
+    sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' "$outfile"
 }
 
 # ---- MAIN EXECUTION BEGINS HERE ----- #
@@ -161,7 +166,7 @@ generate_term_file () {
     cat $KT_FILE >> $HTML_FILE
 
     echo '<h1>Other Terms</h1>' >> $HTML_FILE
-    cat $KT_FILE >> $HTML_FILE
+    cat $OT_FILE >> $HTML_FILE
     # ----- END GENERATE COMPLETE HTML PAGE --------#
 
     # ----- START LINK FIXES AND CLEANUP ----- #
