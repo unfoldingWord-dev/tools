@@ -99,16 +99,16 @@ book_export () {
     # ----- START GENERATE CL PAGE ----- #
     echo "GENERATING $CL_FILE"
 
-    WORKING_SUB_DIR="$LANGUAGE/legal"
+    WORKING_SUB_DIR="$LANGUAGE/legal/license"
     mkdir -p "$WORKING_SUB_DIR"
 
     # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
-    if [ ! -e "$WORKING_SUB_DIR/license.html" ] || [ "$WORKING_SUB_DIR/license.html" -ot "D43_CL_DIR/license.txt" ];
+    if [ ! -e "$WORKING_SUB_DIR/uw.html" ] || [ "$WORKING_SUB_DIR/uw.html" -ot "D43_CL_DIR/license/uw.txt" ];
     then
-        wget -U 'me' "$D43_CL_URL/license" -O - > "$WORKING_SUB_DIR/license.html"
+        wget -U 'me' "$D43_CL_URL/license/uw" -O - > "$WORKING_SUB_DIR/uw.html"
     fi
 
-    cat "$WORKING_SUB_DIR/license.html" > "$CL_FILE"
+    cat "$WORKING_SUB_DIR/uw.html" > "$CL_FILE"
 
     # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
     sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' "$CL_FILE"
@@ -315,6 +315,8 @@ book_export () {
     # ----- END LINK FIXES AND CLEANUP ------- #
 
     # ----- START GENERATE PDF FILE ----- #
+    echo "GENERATING $PDF_FILE";
+
     TITLE=${BOOKS[$BOOK]}
     SUBTITLE="translationNotes"
 

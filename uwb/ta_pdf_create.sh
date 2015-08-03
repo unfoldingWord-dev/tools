@@ -86,6 +86,8 @@ PDF_FILE="$OUTPUT_DIR/tA_${LANGUAGE^^}_$DATE.pdf" # Outputted PDF file
     # ----- END LINK FIXES AND CLEANUP ------- #
 
     # ----- START GENERATING PDF FILE ----- #
+    echo "GENERATING $PDF_FILE";
+
     TITLE='translationAcadamy'
 
     # Create PDF
