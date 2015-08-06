@@ -278,7 +278,7 @@ def get_ta_pages(e_pad, sections):
 
         for pad_id in section.page_list:
 
-            log_this('Processing page: ' + pad_id, True)
+            log_this('Retrieving page: ' + section_key.lower() + ':' + pad_id, True)
 
             # get the page
             try:
@@ -329,7 +329,7 @@ def make_dependency_chart(sections, pages):
     # pages
     for page in pages:
         assert isinstance(page, PageData)
-        log_this('Processing page ' + page.page_id)
+        log_this('Processing page ' + page.section_name.lower() + '/' + page.yaml_data['slug'])
 
         # check for invalid yaml data
         if 'invalid' in page.yaml_data:
@@ -592,6 +592,25 @@ def get_page_url(page):
     return page_dir + ':' + page_file
 
 
+def compare_pages(page_a, page_b):
+    """
+    Function used to compare and sort PageData objects
+    :param page_a: PageData
+    :param page_b: PageData
+    :return: int
+    """
+
+    test1 = page_a.section_name + '/' + page_a.yaml_data['slug']
+    test2 = page_b.section_name + '/' + page_b.yaml_data['slug']
+
+    if test1 > test2:
+        return 1
+
+    if test2 > test1:
+        return -1
+
+    return 0
+
 if __name__ == '__main__':
 
     log_this('Most recent run: ' + datetime.utcnow().strftime('%Y-%m-%d %H:%M') + ' UTC', True)
@@ -604,34 +623,29 @@ if __name__ == '__main__':
         with open(last_file, 'r') as f:
             last_checked = int(float(f.read()))
 
-    has_changed = False
     ta_pages = None
 
     with SelfClosingEtherpad() as ep:
-
         text = ep.getText(padID='ta-modules')
         ta_sections = parse_ta_modules(text['text'])
-        if get_last_changed(ep, ta_sections) > last_checked:
-            has_changed = True
-            log_this('Changes found')
+        ta_pages = get_ta_pages(ep, ta_sections)
 
-        if has_changed:
-            ta_pages = get_ta_pages(ep, ta_sections)
+    log_this('Sorting pages', True)
+    ta_pages = sorted(ta_pages, cmp=compare_pages)
 
-    if has_changed:
-        log_this('Generating dependency chart', True)
-        make_dependency_chart(ta_sections, ta_pages)
-        log_this('Generating Dokuwiki pages.', True)
-        make_dokuwiki_pages(ta_pages)
+    log_this('Generating dependency chart', True)
+    make_dependency_chart(ta_sections, ta_pages)
+    log_this('Generating Dokuwiki pages.', True)
+    make_dokuwiki_pages(ta_pages)
 
     # remember last_checked for the next time
     if error_count == 0:
         with open(last_file, 'w') as f:
             f.write(str(time.time()))
     else:
-        log_this(str(error_count) + ' errors have been logged', True)
+        if error_count == 1:
+            log_this('1 error has been logged', True)
+        else:
+            log_this(str(error_count) + ' errors have been logged', True)
 
-    if has_changed:
-        log_this('Finished updating', True)
-    else:
-        log_this('No changes found', True)
+    log_this('Finished updating', True)
