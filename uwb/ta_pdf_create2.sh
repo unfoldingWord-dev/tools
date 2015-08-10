@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # -*- coding: utf8 -*-
 #
-#  tw_pdf_create.sh - generates a PDF for translationWords, including all words from KT and Other
+#  ta_pdf_create.sh - generates a PDF for translationAcademy
 #
 #  Copyright (c) 2015 unfoldingWord
 #  http://creativecommons.org/licenses/MIT/
@@ -66,11 +66,11 @@ fi
 
 : ${D43_BASE_DIR:=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/$LANGUAGE}
 : ${D43_CL_DIR:=$D43_BASE_DIR/legal}
-: ${D43_TW_DIR:=$D43_BASE_DIR/obe}
+: ${D43_TA_DIR:=$D43_BASE_DIR/ta}
 
 : ${D43_BASE_URL:=https://door43.org/_export/xhtmlbody/$LANGUAGE}
 : ${D43_CL_URL:=$D43_BASE_URL/legal}
-: ${D43_TW_URL:=$D43_BASE_URL/obe}
+: ${D43_TA_URL:=$D43_BASE_URL/ta}
 
 if [ ! -e $D43_BASE_DIR ];
 then
@@ -80,11 +80,10 @@ fi
 
 DATE=`date +"%Y-%m-%d"`
 
-CL_FILE="${LANGUAGE}_tw_cl.html" # Copyrights & Licensing
-KT_FILE="${LANGUAGE}_tw_kt.html" # Key Terms file
-OT_FILE="${LANGUAGE}_tw_ot.html" # Other Terms file
-HTML_FILE="${LANGUAGE}_tw_all.html" # Compilation of all above HTML files
-PDF_FILE="$OUTPUT_DIR/tW_${LANGUAGE^^}_$DATE.pdf" # Outputted PDF file
+CL_FILE="${LANGUAGE}_ta_cl.html" # Copyrights & Licensing
+TA_FILE="${LANGUAGE}_ta_ta.html" # Key Terms file
+HTML_FILE="${LANGUAGE}_ta_all.html" # Compilation of all above HTML files
+PDF_FILE="$OUTPUT_DIR/tA_${LANGUAGE^^}_$DATE.pdf" # Outputted PDF file
 
 generate_term_file () {
     subdir=$1

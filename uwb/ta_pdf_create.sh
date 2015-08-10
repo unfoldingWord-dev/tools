@@ -45,7 +45,16 @@ else
     LANGUAGE=$1
 fi
 
-: ${TA_EXPORT_URL:=https://api.unfoldingword.org/ta_export.html}
+: ${D43_BASE_DIR:=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/$LANGUAGE}
+: ${D43_CL_DIR:=$D43_BASE_DIR/legal}
+: ${D43_TA_DIR:=$D43_BASE_DIR/ta}
+
+: ${D43_BASE_URL:=https://door43.org/_export/xhtmlbody/$LANGUAGE}
+: ${D43_CL_URL:=$D43_BASE_URL/legal}
+: ${D43_TA_URL:=$D43_BASE_URL/ta}
+
+: ${TA_EXPORT_URL:=http://test.door43.org/$LANGUAGE/ta/intro?do=uwexport}
+
 
 #if [ ! -e $D43_BASE_DIR ];
 #then
@@ -55,17 +64,40 @@ fi
 
 DATE=`date +"%Y-%m-%d"`
 
-TA_FILE="${LANGUAGE}_ta_kt.html" # Key Terms file
-HTML_FILE="${LANGUAGE}_tw_all.html" # Compilation of all above HTML files
+CL_FILE="${LANGUAGE}_ta_cl.html" # Copyrights & License
+TA_FILE="${LANGUAGE}_ta_ta.html" # All tA content
+HTML_FILE="${LANGUAGE}_ta_all.html" # Compilation of all above HTML files
 PDF_FILE="$OUTPUT_DIR/tA_${LANGUAGE^^}_$DATE.pdf" # Outputted PDF file
 
 # ---- MAIN EXECUTION BEGINS HERE ----- #
     rm -f $TA_FILE $HTML_FILE # We start fresh, only files that remain are any files retrieved with wget
 
+    # ----- START GENERATE CL PAGE ----- #
+    echo "GENERATING $CL_FILE"
+
+    WORKING_SUB_DIR="$LANGUAGE/legal/license"
+    mkdir -p "$WORKING_SUB_DIR"
+
+    # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
+    if [ ! -e "$WORKING_SUB_DIR/uw.html" ] || [ "$WORKING_SUB_DIR/uw.html" -ot "D43_CL_DIR/license/uw.txt" ];
+    then
+        wget -U 'me' "$D43_CL_URL/license/uw" -O - > "$WORKING_SUB_DIR/uw.html"
+    fi
+
+    cat "$WORKING_SUB_DIR/uw.html" > "$CL_FILE"
+
+    # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
+    sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' "$CL_FILE"
+    sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' "$CL_FILE"
+    sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' "$CL_FILE"
+    # ----- END GENERATE CL PAGES ------- #
+
     # ----- GENERATE TA PAGES --------- #
     echo "GENERATING $TA_FILE"
 
-    wget -U 'me' "$TA_EXPORT_URL" -O - > "$TA_FILE"
+    if [ ! -e $TA_FILE ]; then
+        wget -U 'me' "$TA_EXPORT_URL" -O - > "$TA_FILE"
+    fi
 
     # Don't need the \newpage lines as we break on <h1>
     sed -i -e '/\\newpage/d' "$TA_FILE"
@@ -74,15 +106,16 @@ PDF_FILE="$OUTPUT_DIR/tA_${LANGUAGE^^}_$DATE.pdf" # Outputted PDF file
     # ----- GENERATE COMPLETE HTML PAGE ----------- #
     echo "GENERATING $HTML_FILE"
 
+    cat $CL_FILE >> $HTML_FILE
+
     cat $TA_FILE >> $HTML_FILE
+
     # ----- END GENERATE COMPLETE HTML PAGE --------#
 
     # ----- START LINK FIXES AND CLEANUP ----- #
-    sed -i \
-        -e 's/<\/span>/<\/span> /g' \
-        -e 's/jpg[?a-zA-Z=;&0-9]*"/jpg"/g' \
-        -e 's/ \(src\|href\)="\// \1="https:\/\/door43.org\//g' \
-        $HTML_FILE
+    sed -i -e 's/<\/span>/<\/span> /g' $HTML_FILE
+    sed -i -e 's/jpg[?a-zA-Z=;&0-9]*"/jpg"/g' $HTML_FILE
+    sed -i -e 's/ \(src\|href\)="\// \1="https:\/\/door43.org\//g' $HTML_FILE
     # ----- END LINK FIXES AND CLEANUP ------- #
 
     # ----- START GENERATING PDF FILE ----- #
