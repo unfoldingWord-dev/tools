@@ -51,7 +51,10 @@ fi
 
 : ${D43_BASE_URL:=https://door43.org/_export/xhtmlbody/$LANGUAGE}
 : ${D43_CL_URL:=$D43_BASE_URL/legal}
-: ${D43_TA_URL:=$D43_BASE_URL/ta}
+: ${D43_TA_VOL1_INTRO_URL:=$D43_BASE_URL/ta/vol1/intro/toc_intro}
+: ${D43_TA_VOL1_CHECKING_URL:=$D43_BASE_URL/ta/vol1/checking/toc_checkvol1}
+: ${D43_TA_VOL1_TRANSLATION_URL:=$D43_BASE_URL/ta/vol1/translate/toc_transvol1}
+: ${D43_TA_VOL1_TECH_URL:=$D43_BASE_URL/ta/vol1/tech/toc_techvol1}
 
 #if [ ! -e $D43_BASE_DIR ];
 #then
@@ -62,7 +65,10 @@ fi
 DATE=`date +"%Y-%m-%d"`
 
 CL_FILE="${LANGUAGE}_ta_vol1_cl.html" # Copyrights & License
-TA_FILE="${LANGUAGE}_ta_vol1_ta.html" # All tA content
+TA_INTRO_FILE="${LANGUAGE}_ta_vol1_intro.html" # All tA content
+TA_CHECKING_FILE="${LANGUAGE}_ta_vol1_intro.html" # All tA content
+TA_TRANSLATION_FILE="${LANGUAGE}_ta_vol1_intro.html" # All tA content
+TA_INTRO_FILE="${LANGUAGE}_ta_vol1_intro.html" # All tA content
 HTML_FILE="${LANGUAGE}_ta_vol1_all.html" # Compilation of all above HTML files
 PDF_FILE="$OUTPUT_DIR/tA_Vol1_${LANGUAGE^^}_$DATE.pdf" # Outputted PDF file
 
