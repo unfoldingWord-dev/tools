@@ -9,12 +9,10 @@
 #  Phil Hopper <phillip_hopper@wycliffeassociates.org>
 #
 #
-import atexit
 import codecs
 from datetime import datetime
 from etherpad_lite import EtherpadLiteClient, EtherpadException
 from itertools import ifilter
-import logging
 import os
 import re
 import sys
@@ -23,7 +21,7 @@ import yaml
 
 LOGFILE = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/playground/ta_import.log.txt'
 
-BADLINKREGEX = re.compile(r"(.*?)(\[\[?)(:en:ta:?)(.*?)(]]?)(.*?)", re.DOTALL | re.MULTILINE)
+BADLINKREGEX = re.compile(r"(.*?)(\[\[?)(:en:ta:?)(.*?)(]]?)(.*?)", re.DOTALL | re.MULTILINE | re.UNICODE)
 
 # YAML file heading data format:
 #
@@ -48,12 +46,6 @@ if not os.path.exists(log_dir):
 
 if os.path.exists(LOGFILE):
     os.remove(LOGFILE)
-logging.basicConfig(filename=LOGFILE, level=logging.DEBUG, format="%(message)s")
-
-
-@atexit.register
-def exit_logger():
-    logging.shutdown()
 
 
 class SelfClosingEtherpad(EtherpadLiteClient):
@@ -121,16 +113,17 @@ def log_this(string_to_log, top_level=False):
     if top_level:
         msg = u'\n=== {0} ==='.format(string_to_log)
     else:
-        msg = u'  * {0}'.format(string_to_log)
+        msg = u'\n  * {0}'.format(string_to_log)
 
-    logging.info(msg)
+    with codecs.open(LOGFILE, 'a', 'utf-8') as file_out:
+        file_out.write(msg)
 
 
 def log_error(string_to_log):
 
     global error_count
     error_count += 1
-    log_this(u'<font inherit/inherit;;#bb0000;;inherit>✘ {0}</font>'.format(string_to_log))
+    log_this(u'<font inherit/inherit;;#bb0000;;inherit>{0}</font>'.format(string_to_log))
 
 
 def quote_str(string_value):
@@ -551,12 +544,12 @@ def make_dokuwiki_pages(pages):
 
 def check_bad_links(page_text):
 
-    matches = BADLINKREGEX.findall(page_text)
+    matches = BADLINKREGEX.findall(u'{0}'.format(page_text).replace(u'–', u'-'))
 
     # check for vol1 or vol2
     for match in matches:
-        if len(match[3]) > 3 and match[3][:3] != 'vol':
-            log_error('Bad link: ' + match[2] + match[3])
+        if len(match[3]) > 3 and match[3][:3] != u'vol':
+            log_error(u'Bad link => {0}{1}'.format(match[2], match[3]))
 
 
 def output_list(pages, option_list):
