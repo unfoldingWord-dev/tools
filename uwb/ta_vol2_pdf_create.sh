@@ -199,8 +199,11 @@ generate_file_from_toc () {
         -V title="$TITLE" \
         -V subtitle="$SUBTITLE" \
         -V date="$DATE" \
+        -V tocdepth="3" \
         -V mainfont="Noto Serif" \
         -V sansfont="Noto Sans" \
         -o $PDF_FILE $HTML_FILE
 
-    echo "See $PDF_FILE (generated files: $WORKING_DIR)"
+
+    echo "PDF FILE: $PDF_FILE"
+    echo "Done!"

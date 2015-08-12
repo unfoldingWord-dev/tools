@@ -37,19 +37,14 @@ set -e
 : ${OUTPUT_DIR:=$(pwd)}
 : ${TEMPLATE:=$TOOLS_DIR/general_tools/pandoc_pdf_template.tex}
 
-: ${D43_BASE_DIR:=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/$LANGUAGE}
-: ${D43_CL_DIR:=$D43_BASE_DIR/legal}
-: ${D43_TN_DIR:=$D43_BASE_DIR/bible/notes}
-: ${D43_TQ_DIR:=$D43_BASE_DIR/bible/questions/comprehension}
-: ${D43_TW_DIR:=$D43_BASE_DIR/obe}
-: ${D43_TA_DIR:=$D43_BASE_DIR/ta}
+: ${D43_BASE_DIR:=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages}
+: ${D43_BASE_URL:=https://door43.org/_export/xhtmlbody}
 
-: ${D43_BASE_URL:=https://door43.org/_export/xhtmlbody/$LANGUAGE}
-: ${D43_CL_URL:=$D43_BASE_URL/legal}
-: ${D43_TN_URL:=$D43_BASE_URL/bible/notes}
-: ${D43_TQ_URL:=$D43_BASE_URL/bible/questions/comprehension}
-: ${D43_TW_URL:=$D43_BASE_URL/obe}
-: ${D43_TA_URL:=$D43_BASE_URL/ta}
+: ${CL_DIR:=$LANGUAGE/legal/license}
+: ${TN_DIR:=$LANGUAGE/bible/notes}
+: ${TQ_DIR:=$LANGUAGE/bible/questions/comprehension}
+: ${TW_DIR:=$LANGUAGE/obe}
+: ${TA_DIR:=$LANGUAGE/ta}
 
 # If running in DEBUG mode, output information about every command being run
 $DEBUG && set -x
@@ -72,6 +67,12 @@ fi
 pushd "$WORKING_DIR"
 
 DATE=`date +"%Y-%m-%d"`
+
+if [ ! -e $D43_BASE_DIR ];
+then
+    echo "The directory $D43_BASE_DIR does not exist. Can't continue. Exiting."
+    exit 1;
+fi
 
 # Gets us an associative array called $BOOKS
 source "$TOOLS_DIR/general_tools/bible_books.sh"
@@ -99,16 +100,15 @@ book_export () {
     # ----- START GENERATE CL PAGE ----- #
     echo "GENERATING $CL_FILE"
 
-    WORKING_SUB_DIR="$LANGUAGE/legal/license"
-    mkdir -p "$WORKING_SUB_DIR"
+    mkdir -p "$CL_DIR"
 
     # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
-    if [ ! -e "$WORKING_SUB_DIR/uw.html" ] || [ "$WORKING_SUB_DIR/uw.html" -ot "D43_CL_DIR/license/uw.txt" ];
+    if [ ! -e "$CL_DIR/uw.html" ] || [ "$CL_DIR/uw.html" -ot "$D43_BASE_DIR/$CL_DIR/uw.txt" ];
     then
-        wget -U 'me' "$D43_CL_URL/license/uw" -O - > "$WORKING_SUB_DIR/uw.html"
+        wget -U 'me' "$D43_BASE_URL/$CL_DIR/uw" -O "$CL_DIR/uw.html"
     fi
 
-    cat "$WORKING_SUB_DIR/uw.html" > "$CL_FILE"
+    cat "$CL_DIR/uw.html" > "$CL_FILE"
 
     # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
     sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' "$CL_FILE"
@@ -119,24 +119,25 @@ book_export () {
     # ----- START GENERATE tN PAGES ----- #
     echo "GENERATING $TN_FILE"
 
-    find "$D43_TN_DIR/$BOOK" -type d -name "[0-9]*" -printf '%P\n' |
-        while read chapter; do
-            WORKING_SUB_DIR="$LANGUAGE/tn/$BOOK/$chapter";
-            mkdir -p "$WORKING_SUB_DIR"
+    find "$D43_BASE_DIR/$TN_DIR/$BOOK" -type d -name "[0-9]*" -printf '%P\n' |
+        while read chapter;
+        do
+            dir="$TN_DIR/$BOOK/$chapter";
+            mkdir -p "$dir"
 
-            find "$D43_TN_DIR/$BOOK/$chapter" -type f -name "[0-9]*.txt" -printf '%P\n' |
+            find "$D43_BASE_DIR/$dir" -type f -name "[0-9]*.txt" -printf '%P\n' |
                 grep -v 'asv-ulb' |
                 sort -u |
                 while read f; do
                     section=${f%%.txt}
 
                     # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
-                    if [ ! -e "$WORKING_SUB_DIR/$section.html" ] || [ "$WORKING_SUB_DIR/$section.html" -ot "D43_TN_DIR/$BOOK/$chapter/$section.txt" ];
+                    if [ ! -e "$dir/$section.html" ] || [ "$dir/$section.html" -ot "$D43_BASE_DIR/$dir/$section.txt" ];
                     then
-                        wget -U 'me' "$D43_TN_URL/$BOOK/$chapter/$section" -O - |
+                        wget -U 'me' "$D43_BASE_URL/$dir/$section" -O - |
                             grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' |
                             grep -v ' href="\/tag\/' \
-                            >> "$WORKING_SUB_DIR/$section.html"
+                            >> "$dir/$section.html"
                     fi
 
                     # Remove TFT
@@ -152,7 +153,7 @@ book_export () {
                         fi
                         $TFT && continue
                         echo $line >> "$TN_FILE"
-                    done < "$WORKING_SUB_DIR/$section.html"
+                    done < "$dir/$section.html"
                 done
         done
 
@@ -165,34 +166,35 @@ book_export () {
     # ----- START GENERATE tQ PAGES ----- #
     echo "GENERATING $TQ_FILE"
 
-    find "$D43_TQ_DIR/$BOOK" -type f -name "[0-9]*.txt" -printf '%P\n' |
+    dir="$TQ_DIR/$BOOK"
+    mkdir -p "$dir"
+
+    find "$D43_BASE_DIR/$TQ_DIR/$BOOK" -type f -name "[0-9]*.txt" -printf '%P\n' |
         sort |
-        while read f; do
+        while read f;
+        do
             chapter=${f%%.txt}
 
-            WORKING_SUB_DIR="$LANGUAGE/tq/$BOOK"
-            mkdir -p "$WORKING_SUB_DIR"
-
             # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
-            if [ ! -e "$WORKING_SUB_DIR/$chapter.html" ] || [ "$WORKING_SUB_DIR/$chapter.html" -ot "$D43_TQ_DIR/$BOOK/$chapter.txt" ];
+            if [ ! -e "$dir/$chapter.html" ] || [ "$dir/$chapter.html" -ot "$D43_BASE_DIR/$dir/$chapter.txt" ];
             then
-                wget -U 'me' "$D43_TQ_URL/$BOOK/$chapter" -O - |
+                wget -U 'me' "$D43_BASE_URL/$dir/$chapter" -O - |
                     grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' |
                     grep -v ' href="\/tag\/' \
-                    > "$WORKING_SUB_DIR/$chapter.html"
+                    > "$dir/$chapter.html"
             fi
 
-            cat "$WORKING_SUB_DIR/$chapter.html" >> "$TQ_FILE"
+            cat "$dir/$chapter.html" >> "$TQ_FILE"
 
-            linkname=$(head -3 "$WORKING_SUB_DIR/$chapter.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
-            echo "s@/$LANGUAGE/bible/questions/comprehension/$BOOK/$chapter\"@#$linkname\"@g" >> "$LINKS_FILE"
+            linkname=$(head -3 "$dir/$chapter.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
+            echo "s@/$dir/$chapter\"@#$linkname\"@g" >> "$LINKS_FILE"
         done
 
     # REMOVE Comprehension Questions and Answers title
     sed -i -e '\@<h2.*Comprehension Questions and Answers<\/h2>@d' "$TQ_FILE"
 
     # REMOVE links at end of quesiton page to return to question home page
-    sed -i -e "\@/$LANGUAGE/bible/questions/comprehension/$BOOK/home@d" "$TQ_FILE"
+    sed -i -e "\@/$dir/home@d" "$TQ_FILE"
 
     # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
     sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' "$TQ_FILE"
@@ -204,26 +206,26 @@ book_export () {
     echo "GENERATING $TW_FILE"
 
     # Get the linked key terms
-    for fullUrl in $(grep -oPh "\"\/$LANGUAGE\/obe.*?\"" "$TN_FILE" | tr -d '"' | sort -u ); do
-        url=${fullUrl#/$LANGUAGE/}
-        path=${url%/*}
+    for url in $(grep -oPh "\"\/$LANGUAGE\/obe.*?\"" "$TN_FILE" | tr -d '"' | sort -u );
+    do
+        dir=${url#/} # remove preceeding /
+        dir=${dir%/*} # remove term from dir
         term=${url##*/}
 
-        WORKING_SUB_DIR="$LANGUAGE/tw/$path";
-        mkdir -p "$WORKING_SUB_DIR"
+        mkdir -p "$dir"
 
         # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
-        if [ ! -e "$WORKING_SUB_DIR/$term.html" ] || [ "$WORKING_SUB_DIR/$term.html" -ot "$D43_TW_DIR/$path/$term.txt" ];
+        if [ ! -e "$dir/$term.html" ] || [ "$dir/$term.html" -ot "$D43_BASE_DIR/$dir/$term.txt" ];
         then
-            wget -U 'me' "$D43_BASE_URL/$url" -O - |
+            wget -U 'me' "$D43_BASE_URL/$dir/$term" -O - |
                 grep -v ' href="\/tag\/' \
-                > "$WORKING_SUB_DIR/$term.html"
+                > "$dir/$term.html"
         fi
 
-        cat "$WORKING_SUB_DIR/$term.html" >> "$TW_FILE"
+        cat "$dir/$term.html" >> "$TW_FILE"
 
-        linkname=$(head -3 "$WORKING_SUB_DIR/$term.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
-        echo "s@$fullUrl\"@#$linkname\"@g" >> "$LINKS_FILE"
+        linkname=$(head -3 "$dir/$term.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
+        echo "s@/$dir/$term\"@#$linkname\"@g" >> "$LINKS_FILE"
     done
 
     # Quick fix for getting rid of these Bible References lists in a table, removing table tags
@@ -246,26 +248,26 @@ book_export () {
     grep -oPh "\"\/$LANGUAGE\/ta\/.*?\"" "$TN_FILE" "$TW_FILE" "$TQ_FILE" |
         tr -d '"' |
         sort -u |
-        while read fullUrl; do
-            url=${fullUrl#/$LANGUAGE/}
-            path=${url%/*}
+        while read url;
+        do
+            dir=${url#/} # remove preceeding /
+            dir=${dir%/*} # remove term from dir
             term=${url##*/}
 
-            WORKING_SUB_DIR="$LANGUAGE/$path";
-            mkdir -p "$WORKING_SUB_DIR"
+            mkdir -p "$dir"
 
             # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
-            if [ ! -e "$WORKING_SUB_DIR/$term.html" ] || [ "$WORKING_SUB_DIR/$term.html" -ot "$D43_TA_DIR/$path/$term.txt" ];
+            if [ ! -e "$dir/$term.html" ] || [ "$dir/$term.html" -ot "$D43_BASE_DIR/$dir/$term.txt" ];
             then
-                wget -U 'me' "$D43_BASE_URL/$url" -O - |
+                wget -U 'me' "$D43_BASE_URL/$dir/$term" -O - |
                     grep -v ' href="\/tag\/' \
-                    > "$WORKING_SUB_DIR/$term.html"
+                    > "$dir/$term.html"
             fi
 
-            cat "$WORKING_SUB_DIR/$term.html" >> "$TA_FILE"
+            cat "$dir/$term.html" >> "$TA_FILE"
 
-            linkname=$(head -3 "$WORKING_SUB_DIR/$term.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
-            echo "s@$fullUrl\"@#$linkname\"@g" >> "$LINKS_FILE"
+            linkname=$(head -3 "$dir/$term.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
+            echo "s@/$dir/$term\"@#$linkname\"@g" >> "$LINKS_FILE"
         done
 
     # get rid of the pad.door43.org links and the <hr> with it
@@ -330,11 +332,12 @@ book_export () {
         -V title="$TITLE" \
         -V subtitle="$SUBTITLE" \
         -V date="$DATE" \
+        -V tocdepth="2" \
         -V mainfont="Noto Serif" \
         -V sansfont="Noto Sans" \
         -o "$PDF_FILE" "$HTML_FILE"
 
-    echo "See $PDF_FILE (generated files: $WORKING_DIR)"
+    echo "PDF FILE: $PDF_FILE"
     # ----- END GENERATE PDF FILE ------- #
 }
 
@@ -367,4 +370,6 @@ for arg in "$@"
 do
     book_export ${arg,,}
 done
+
+echo "Done!"
 

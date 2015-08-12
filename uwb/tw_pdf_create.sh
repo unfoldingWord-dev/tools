@@ -64,17 +64,15 @@ else
     LANGUAGE=$1
 fi
 
-: ${D43_BASE_DIR:=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/$LANGUAGE}
-: ${D43_CL_DIR:=$D43_BASE_DIR/legal}
-: ${D43_TW_DIR:=$D43_BASE_DIR/obe}
+: ${D43_BASE_DIR:=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages}
+: ${D43_BASE_URL:=https://door43.org/_export/xhtmlbody}
 
-: ${D43_BASE_URL:=https://door43.org/_export/xhtmlbody/$LANGUAGE}
-: ${D43_CL_URL:=$D43_BASE_URL/legal}
-: ${D43_TW_URL:=$D43_BASE_URL/obe}
+: ${CL_DIR:=$LANGUAGE/legal/license}
+: ${TW_DIR:=$LANGUAGE/obe}
 
 if [ ! -e $D43_BASE_DIR ];
 then
-    echo "The directory $D43_TW_DIR does not exist. Can't continue. Exiting."
+    echo "The directory $D43_BASE_DIR does not exist. Can't continue. Exiting."
     exit 1;
 fi
 
@@ -87,42 +85,42 @@ HTML_FILE="${LANGUAGE}_tw_all.html" # Compilation of all above HTML files
 PDF_FILE="$OUTPUT_DIR/tW_${LANGUAGE^^}_$DATE.pdf" # Outputted PDF file
 
 generate_term_file () {
-    subdir=$1
-    outfile=$2
+    dir=$1
+    out_file=$2
 
-    echo "GENERATING $outfile"
+    echo "GENERATING $out_file"
 
-    rm -f $outfile
+    mkdir -p "$dir" # creates the dir path in $WORKING_DIR
 
-    WORKING_SUB_DIR="$LANGUAGE/tw/$subdir"
-    mkdir -p "$WORKING_SUB_DIR"
+    rm -f $out_file
+    touch $out_file
 
-    find "$D43_TW_DIR/$subdir" -type f -name "*.txt" -exec grep -q 'tag>.*publish' {} \; -printf '%P\n' |
+    find "$D43_BASE_DIR/$dir" -type f -name "*.txt" -exec grep -q 'tag>.*publish' {} \; -printf '%P\n' |
         sort -u |
         while read f; do
             term=${f%%.txt}
             # If the file doesn't exit or the file is older than (-ot) the Door43 repo one, fetch it
-            if [ ! -e "$WORKING_SUB_DIR/$term.html" ] || [ "$WORKING_SUB_DIR/$term.html" -ot "$D43_TW_DIR/$subdir/$term.txt" ];
+            if [ ! -e "$dir/$term.html" ] || [ "$dir/$term.html" -ot "$D43_BASE_DIR/$dir/$term.txt" ];
             then
-                wget -U 'me' "$D43_TW_URL/$subdir/$term" -O - |
+                wget -U 'me' "$D43_BASE_URL/$dir/$term" -O - |
                     grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' |
                     grep -v ' href="\/tag\/' \
-                    >> "$WORKING_SUB_DIR/$term.html"
+                    >> "$dir/$term.html"
             fi
-            cat "$WORKING_SUB_DIR/$term.html" >> "$outfile"
+            cat "$dir/$term.html" >> "$out_file"
         done
 
     # Quick fix for getting rid of these Bible References lists in a table, removing table tags
-    sed -i -e 's/^\s*<table class="ul">/<ul>/' "$outfile"
-    sed -i -e 's/^\s*<tr>//' "$outfile"
-    sed -i -e 's/^\s*<td class="page"><ul>\(.*\)<\/ul><\/td>/\1/' "$outfile"
-    sed -i -e 's/^\s*<\/tr>//' "$outfile"
-    sed -i -e 's/^\s*<\/table>/<\/ul>/' "$outfile"
+    sed -i -e 's/^\s*<table class="ul">/<ul>/' "$out_file"
+    sed -i -e 's/^\s*<tr>//' "$out_file"
+    sed -i -e 's/^\s*<td class="page"><ul>\(.*\)<\/ul><\/td>/\1/' "$out_file"
+    sed -i -e 's/^\s*<\/tr>//' "$out_file"
+    sed -i -e 's/^\s*<\/table>/<\/ul>/' "$out_file"
 
     # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
-    sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' "$outfile"
-    sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' "$outfile"
-    sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' "$outfile"
+    sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' "$out_file"
+    sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' "$out_file"
+    sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' "$out_file"
 }
 
 # ---- MAIN EXECUTION BEGINS HERE ----- #
@@ -130,17 +128,16 @@ generate_term_file () {
 
     # ----- START GENERATE CL PAGE ----- #
     echo "GENERATING $CL_FILE"
-
-    WORKING_SUB_DIR="$LANGUAGE/legal/license"
-    mkdir -p "$WORKING_SUB_DIR"
+    
+    mkdir -p "$CL_DIR"
 
     # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
-    if [ ! -e "$WORKING_SUB_DIR/uw.html" ] || [ "$WORKING_SUB_DIR/uw.html" -ot "D43_CL_DIR/license/uw.txt" ];
+    if [ ! -e "$CL_DIR/uw.html" ] || [ "$CL_DIR/uw.html" -ot "$D43_BASE_DIR/$CL_DIR/uw.txt" ];
     then
-        wget -U 'me' "$D43_CL_URL/license/uw" -O - > "$WORKING_SUB_DIR/uw.html"
+        wget -U 'me' "$D43_BASE_URL/$CL_DIR/uw" -O "$CL_DIR/uw.html"
     fi
 
-    cat "$WORKING_SUB_DIR/uw.html" > "$CL_FILE"
+    cat "$CL_DIR/uw.html" > "$CL_FILE"
 
     # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
     sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' "$CL_FILE"
@@ -149,11 +146,11 @@ generate_term_file () {
     # ----- END GENERATE CL PAGES ------- #
 
     # ----- GENERATE KT PAGES --------- #
-    generate_term_file 'kt' $KT_FILE
+    generate_term_file "$TW_DIR/kt" $KT_FILE
     # ----- EMD GENERATE KT PAGES ----- #
 
     # ----- GENERATE OTHRR PAGES --------- #
-    generate_term_file 'other' $OT_FILE
+    generate_term_file "$TW_DIR/other" $OT_FILE
     # ----- EMD GENERATE OTHER PAGES ----- #
 
     # ----- GENERATE COMPLETE HTML PAGE ----------- #
@@ -191,8 +188,10 @@ generate_term_file () {
         -V geometry='vmargin=3cm' \
         -V title="$TITLE" \
         -V date="$DATE" \
+        -V tocdepth="2" \
         -V mainfont="Noto Serif" \
         -V sansfont="Noto Sans" \
         -o $PDF_FILE $HTML_FILE
 
-    echo "See $PDF_FILE (generated files: $WORKING_DIR)"
+    echo "PDF FILE: $PDF_FILE"
+    echo "Done!"
