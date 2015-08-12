@@ -23,6 +23,8 @@ import yaml
 
 LOGFILE = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/playground/ta_import.log.txt'
 
+BADLINKREGEX = re.compile(r"(.*?)(\[\[?)(:en:ta:?)(.*?)(]]?)(.*?)", re.DOTALL | re.MULTILINE)
+
 # YAML file heading data format:
 #
 # ---
@@ -128,7 +130,7 @@ def log_error(string_to_log):
 
     global error_count
     error_count += 1
-    log_this(string_to_log)
+    log_this(u'<font inherit/inherit;;#bb0000;;inherit>✘ {0}</font>'.format(string_to_log))
 
 
 def quote_str(string_value):
@@ -528,6 +530,7 @@ def make_dokuwiki_pages(pages):
                 md += "\n\n"
 
             md += page.page_text + "\n\n"
+            check_bad_links(page.page_text)
 
             if recommended:
                 md += 'Next we recommend you learn about:'
@@ -544,6 +547,16 @@ def make_dokuwiki_pages(pages):
             log_error(str(ex))
 
     log_this('Generated ' + str(pages_generated) + ' Dokuwiki pages.', True)
+
+
+def check_bad_links(page_text):
+
+    matches = BADLINKREGEX.findall(page_text)
+
+    # check for vol1 or vol2
+    for match in matches:
+        if len(match[3]) > 3 and match[3][:3] != 'vol':
+            log_error('Bad link: ' + match[2] + match[3])
 
 
 def output_list(pages, option_list):
