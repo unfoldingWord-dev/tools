@@ -8,7 +8,6 @@
 #  See LICENSE file for details.
 #
 #  Contributors:
-#  Jesse Griffin <jesse@distantshores.org>
 #  Richard Mahn <richard_mahn@wycliffeassociates.org>
 
 set -e
@@ -52,10 +51,9 @@ fi
 : ${D43_BASE_URL:=https://door43.org/_export/xhtmlbody}
 : ${D43_CL_URL:=$D43_BASE_URL/$LANGUAGE/legal}
 
-: ${D43_TA_INTRO_URL:=$LANGUAGE/ta/vol1/intro/toc_intro}
-: ${D43_TA_CHECKING_URL:=$LANGUAGE/ta/vol1/checking/toc_checkvol1}
-: ${D43_TA_TRANSLATION_URL:=$LANGUAGE/ta/vol1/translate/toc_transvol1}
-: ${D43_TA_TECH_URL:=$LANGUAGE/ta/vol1/tech/toc_techvol1}
+: ${D43_TA_CHECKING_URL:=$LANGUAGE/ta/vol2/checking/toc_checkvol2}
+: ${D43_TA_TRANSLATION_URL:=$LANGUAGE/ta/vol2/translate/toc_transvol2}
+: ${D43_TA_TECH_URL:=$LANGUAGE/ta/vol2/tech/toc_techvol2}
 
 #if [ ! -e $D43_BASE_DIR ];
 #then
@@ -65,25 +63,25 @@ fi
 
 DATE=`date +"%Y-%m-%d"`
 
-CL_FILE="${LANGUAGE}_ta_vol1_cl.html" # Copyrights & License
-TA_INTRO_FILE="${LANGUAGE}_ta_vol1_intro.html"
-TA_CHECKING_FILE="${LANGUAGE}_ta_vol1_checking.html"
-TA_TRANSLATION_FILE="${LANGUAGE}_ta_vol1_translation.html"
-TA_TECH_FILE="${LANGUAGE}_ta_vol1_tech.html"
-HTML_FILE="${LANGUAGE}_ta_vol1_all.html" # Compilation of all above HTML files
-LINKS_FILE="${LANGUAGE}_ta_vol1_links.sed" # SED commands for links
-PDF_FILE="$OUTPUT_DIR/tA_Vol1_${LANGUAGE^^}_$DATE.pdf" # Outputted PDF file
-TMP_FILE="${LANGUAGE}_ta_vol1_temp.html"
+CL_FILE="${LANGUAGE}_ta_vol2_cl.html" # Copyrights & License
+TA_CHECKING_FILE="${LANGUAGE}_ta_vol2_checking.html"
+TA_TRANSLATION_FILE="${LANGUAGE}_ta_vol2_translation.html"
+TA_TECH_FILE="${LANGUAGE}_ta_vol2_tech.html"
+HTML_FILE="${LANGUAGE}_ta_vol2_all.html" # Compilation of all above HTML files
+LINKS_FILE="${LANGUAGE}_ta_vol2_links.sed" # SED commands for links
+PDF_FILE="$OUTPUT_DIR/tA_Vol2_${LANGUAGE^^}_$DATE.pdf" # Outputted PDF file
+TMP_FILE="${LANGUAGE}_ta_vol2_temp.html"
 
 generate_file_from_toc () {
     toc_url=$1
     out_file=$2
 
-    echo "GENERATING $outfile FROM $toc_url"
+    echo "GENERATING $out_file FROM $toc_url"
 
     mkdir -p "${toc_url%/*}"
 
-    rm -f $outfile
+    rm -f $out_file
+    touch $out_file
 
     # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
     if true || [ ! -e "${toc_url}.html" ] || [ "${toc_url}.html" -ot "${D43_BASE_DIR}/${toc_url}.txt" ];
@@ -129,7 +127,7 @@ generate_file_from_toc () {
 }
 
 # ---- MAIN EXECUTION BEGINS HERE ----- #
-    rm -f $CL_FILE $TA_INTRO_FILE $TA_CHECKING_FILE $TA_TRANSLATION_FILE $TA_TECH_FILE $TMP_FILE $LINKS_FILE $HTML_FILE # We start fresh, only files that remain are any files retrieved with wget
+    rm -f $CL_FILE $TA_CHECKING_FILE $TA_TRANSLATION_FILE $TA_TECH_FILE $TMP_FILE $LINKS_FILE $HTML_FILE # We start fresh, only files that remain are any files retrieved with wget
 
     # ----- START GENERATE CL PAGE ----- #
     echo "GENERATING $CL_FILE"
@@ -152,7 +150,6 @@ generate_file_from_toc () {
     # ----- END GENERATE CL PAGES ------- #
 
     # ----- GENERATE TA SECTIONS --------- #
-    generate_file_from_toc $D43_TA_INTRO_URL $TA_INTRO_FILE
     generate_file_from_toc $D43_TA_CHECKING_URL $TA_CHECKING_FILE
     generate_file_from_toc $D43_TA_TRANSLATION_URL $TA_TRANSLATION_FILE
     generate_file_from_toc $D43_TA_TECH_URL $TA_TECH_FILE
@@ -164,9 +161,6 @@ generate_file_from_toc () {
 
     echo '<h1>Copyrights & Licensing</h1>' >> $HTML_FILE
     cat $CL_FILE >> $HTML_FILE
-
-    echo '<h1>Introduction</h1>' >> $HTML_FILE
-    cat $TA_INTRO_FILE >> $HTML_FILE
 
     echo '<h1>Checking Manual</h1>' >> $HTML_FILE
     cat $TA_CHECKING_FILE >> $HTML_FILE
@@ -191,9 +185,9 @@ generate_file_from_toc () {
     # ----- START GENERATING PDF FILE ----- #
     echo "GENERATING $PDF_FILE";
 
-    TITLE='translationAcadamy'
+    TITLE='translationAcademy'
 
-    SUBTITLE='Volume 1'
+    SUBTITLE='Volume 2'
 
     # Create PDF
     pandoc --template=$TEMPLATE -S --toc --toc-depth=2 -V toc-depth=1 \
