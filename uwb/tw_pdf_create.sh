@@ -94,7 +94,7 @@ generate_term_file () {
 
     rm -f $outfile
 
-    WORKING_SUB_DIR="$WORKING_DIR/$LANGUAGE/tw/$subdir"
+    WORKING_SUB_DIR="$LANGUAGE/tw/$subdir"
     mkdir -p "$WORKING_SUB_DIR"
 
     find "$D43_TW_DIR/$subdir" -type f -name "*.txt" -exec grep -q 'tag>.*publish' {} \; -printf '%P\n' |

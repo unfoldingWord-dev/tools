@@ -45,16 +45,17 @@ else
     LANGUAGE=$1
 fi
 
-: ${D43_BASE_DIR:=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/$LANGUAGE}
+: ${D43_BASE_DIR:=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages}
 : ${D43_CL_DIR:=$D43_BASE_DIR/legal}
 : ${D43_TA_DIR:=$D43_BASE_DIR/ta}
 
-: ${D43_BASE_URL:=https://door43.org/_export/xhtmlbody/$LANGUAGE}
-: ${D43_CL_URL:=$D43_BASE_URL/legal}
-: ${D43_TA_VOL1_INTRO_URL:=$D43_BASE_URL/ta/vol1/intro/toc_intro}
-: ${D43_TA_VOL1_CHECKING_URL:=$D43_BASE_URL/ta/vol1/checking/toc_checkvol1}
-: ${D43_TA_VOL1_TRANSLATION_URL:=$D43_BASE_URL/ta/vol1/translate/toc_transvol1}
-: ${D43_TA_VOL1_TECH_URL:=$D43_BASE_URL/ta/vol1/tech/toc_techvol1}
+: ${D43_BASE_URL:=https://door43.org/_export/xhtmlbody}
+: ${D43_CL_URL:=$D43_BASE_URL/$LANGUAGE/legal}
+
+: ${D43_TA_INTRO_URL:=$LANGUAGE/ta/vol1/intro/toc_intro}
+: ${D43_TA_CHECKING_URL:=$LANGUAGE/ta/vol1/checking/toc_checkvol1}
+: ${D43_TA_TRANSLATION_URL:=$LANGUAGE/ta/vol1/translate/toc_transvol1}
+: ${D43_TA_TECH_URL:=$LANGUAGE/ta/vol1/tech/toc_techvol1}
 
 #if [ ! -e $D43_BASE_DIR ];
 #then
@@ -65,15 +66,70 @@ fi
 DATE=`date +"%Y-%m-%d"`
 
 CL_FILE="${LANGUAGE}_ta_vol1_cl.html" # Copyrights & License
-TA_INTRO_FILE="${LANGUAGE}_ta_vol1_intro.html" # All tA content
-TA_CHECKING_FILE="${LANGUAGE}_ta_vol1_intro.html" # All tA content
-TA_TRANSLATION_FILE="${LANGUAGE}_ta_vol1_intro.html" # All tA content
-TA_INTRO_FILE="${LANGUAGE}_ta_vol1_intro.html" # All tA content
+TA_INTRO_FILE="${LANGUAGE}_ta_vol1_intro.html"
+TA_CHECKING_FILE="${LANGUAGE}_ta_vol1_checking.html"
+TA_TRANSLATION_FILE="${LANGUAGE}_ta_vol1_translation.html"
+TA_TECH_FILE="${LANGUAGE}_ta_vol1_tech.html"
 HTML_FILE="${LANGUAGE}_ta_vol1_all.html" # Compilation of all above HTML files
+LINKS_FILE="${LANGUAGE}_ta_vol1_links.sed" # SED commands for links
 PDF_FILE="$OUTPUT_DIR/tA_Vol1_${LANGUAGE^^}_$DATE.pdf" # Outputted PDF file
+TMP_FILE="${LANGUAGE}_ta_vol1_temp.html"
+
+generate_file_from_toc () {
+    toc_url=$1
+    out_file=$2
+
+    echo "GENERATING $outfile FROM $toc_url"
+
+    mkdir -p "${toc_url%/*}"
+
+    rm -f $outfile
+
+    # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
+    if true || [ ! -e "${toc_url}.html" ] || [ "${toc_url}.html" -ot "${D43_BASE_DIR}/${toc_url}.txt" ];
+    then
+        wget -U 'me' "${D43_BASE_URL}/${toc_url}" -O "${toc_url}.html";
+    fi
+
+    while IFS='' read -r line || [[ -n "$line" ]]; do
+        echo $line
+        url=$(echo $line | grep -oP 'href=".*?"' | cut -f 2 -d '=' | tr -d '"')
+
+        if [[ ! -z $url ]];
+        then
+            url=${url#/}
+            level=$(echo $line | grep -oP 'class="level.*?"' | awk -F'level' '{print $2}' | tr -d '"')
+
+            if [[ ! -z $level ]];
+            then
+                if [ ! -e "${url}.html" ] || [ "${url}.html" -ot "${D43_BASE_DIR}/${url}.txt" ];
+                then
+                    mkdir -p "${url%/*}"
+                    wget -U 'me' "${D43_BASE_URL}/${url}" -O "${url}.html";
+                fi
+
+                linkname=$(head -3 "${url}.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
+                echo "s@/$url\"@#$linkname\"@g" >> "$LINKS_FILE"
+
+                cat "${url}.html" > "$TMP_FILE"
+
+                # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
+                sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' "$TMP_FILE"
+                sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' "$TMP_FILE"
+                sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h3/g' "$TMP_FILE"
+
+                # now we inject the level of this page by changing the first to occurances of h# with h<level+1> to change open and closing tags
+                sed -i -e "0,/<h[0-9]/s//<h$((level+1))/" "$TMP_FILE"
+                sed -i -e "0,/<\\/h[0-9]/s//<\\/h$((level+1))/" "$TMP_FILE"
+
+                cat "$TMP_FILE" >> "$out_file"
+            fi
+        fi
+    done < "${toc_url}.html"
+}
 
 # ---- MAIN EXECUTION BEGINS HERE ----- #
-    rm -f $CL_FILE $TA_FILE $HTML_FILE # We start fresh, only files that remain are any files retrieved with wget
+    rm -f $CL_FILE $TA_INTRO_FILE $TA_CHECKING_FILE $TA_TRANSLATION_FILE $TA_TECH_FILE $TMP_FILE $LINKS_FILE $HTML_FILE # We start fresh, only files that remain are any files retrieved with wget
 
     # ----- START GENERATE CL PAGE ----- #
     echo "GENERATING $CL_FILE"
@@ -95,34 +151,38 @@ PDF_FILE="$OUTPUT_DIR/tA_Vol1_${LANGUAGE^^}_$DATE.pdf" # Outputted PDF file
     sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' "$CL_FILE"
     # ----- END GENERATE CL PAGES ------- #
 
-    # ----- GENERATE TA PAGES --------- #
-    echo "GENERATING $TA_FILE"
+    # ----- GENERATE TA SECTIONS --------- #
+    generate_file_from_toc $D43_TA_INTRO_URL $TA_INTRO_FILE
+    generate_file_from_toc $D43_TA_CHECKING_URL $TA_CHECKING_FILE
+    generate_file_from_toc $D43_TA_TRANSLATION_URL $TA_TRANSLATION_FILE
+    generate_file_from_toc $D43_TA_TECH_URL $TA_TECH_FILE
+    # ----- EMD GENERATE TA INFO SECTION ----- #
 
-    WORKING_SUB_DIR="$LANGUAGE/ta/translate"
-    mkdir -p "$WORKING_SUB_DIR"
-
-    # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
-    if [ ! -e "$WORKING_SUB_DIR/toc_transvol1.html" ] || [ "$WORKING_SUB_DIR/toc_transvol1.html" -ot "D43_TA_DIR/translate/toc_transvol1.txt" ];
-    then
-        wget -U 'me' "$D43_TA_URL/translate/toc_transvol1" -O - > "$WORKING_SUB_DIR/translate/toc_transvol1.html";
-
-
-    fi
-
-    # Don't need the \newpage lines as we break on <h1>
-    sed -i -e '/\\newpage/d' "$TA_FILE"
-    # ----- EMD GENERATE KT PAGES ----- #
 
     # ----- GENERATE COMPLETE HTML PAGE ----------- #
     echo "GENERATING $HTML_FILE"
 
+    echo '<h1>Copyrights & Licensing</h1>' >> $HTML_FILE
     cat $CL_FILE >> $HTML_FILE
 
-    cat $TA_FILE >> $HTML_FILE
+    echo '<h1>Introduction</h1>' >> $HTML_FILE
+    cat $TA_INTRO_FILE >> $HTML_FILE
 
+    echo '<h1>Checking Manual</h1>' >> $HTML_FILE
+    cat $TA_CHECKING_FILE >> $HTML_FILE
+
+    echo '<h1>Translation Manual</h1>' >> $HTML_FILE
+    cat $TA_TRANSLATION_FILE >> $HTML_FILE
+
+    echo '<h1>Technology Manual</h1>' >> $HTML_FILE
+    cat $TA_TECH_FILE >> $HTML_FILE
     # ----- END GENERATE COMPLETE HTML PAGE --------#
 
     # ----- START LINK FIXES AND CLEANUP ----- #
+    # Link Fixes
+    sed -i -f "$LINKS_FILE" "$HTML_FILE"
+
+    # Cleanup
     sed -i -e 's/<\/span>/<\/span> /g' $HTML_FILE
     sed -i -e 's/jpg[?a-zA-Z=;&0-9]*"/jpg"/g' $HTML_FILE
     sed -i -e 's/ \(src\|href\)="\// \1="https:\/\/door43.org\//g' $HTML_FILE
@@ -133,6 +193,8 @@ PDF_FILE="$OUTPUT_DIR/tA_Vol1_${LANGUAGE^^}_$DATE.pdf" # Outputted PDF file
 
     TITLE='translationAcadamy'
 
+    SUBTITLE='Volume 1'
+
     # Create PDF
     pandoc --template=$TEMPLATE -S --toc --toc-depth=2 -V toc-depth=1 \
         --latex-engine="xelatex" \
@@ -141,6 +203,7 @@ PDF_FILE="$OUTPUT_DIR/tA_Vol1_${LANGUAGE^^}_$DATE.pdf" # Outputted PDF file
         -V geometry='hmargin=2cm' \
         -V geometry='vmargin=3cm' \
         -V title="$TITLE" \
+        -V subtitle="$SUBTITLE" \
         -V date="$DATE" \
         -V mainfont="Noto Serif" \
         -V sansfont="Noto Sans" \
