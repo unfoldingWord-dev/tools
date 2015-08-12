@@ -18,18 +18,18 @@ for f in `find . -type f -name '[0-9]*.txt'`; do
 done
 
 # Remove lame zero width junk (​) with
-    sed -i 's/\xe2\x80\x8b//g' inputfile
+    sed -i -e 's/\xe2\x80\x8b//g' inputfile
 
 
 
-sed -i "s/topic>/topic>:en:bible?/" $f
+sed -i -e "s/topic>/topic>:en:bible?/" $f
 
 ktupdater () {
     cd /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/obe/$1
     for x in `ls`; do
        name=${x%%.txt}
        for f in `grep -re "en:bible:notes:key-terms:$name" ../../bible/* | grep txt | cut -f 1 -d ':'`; do
-           sed -i "s/en:bible:notes:key-terms:$name/en:obe:$1:$name/g" $f
+           sed -i -e "s/en:bible:notes:key-terms:$name/en:obe:$1:$name/g" $f
            echo "$name in $f"
        done
     done
@@ -40,7 +40,7 @@ ktupdater other
 
 cd /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en
 for x in `grep -re 'en:obs:notes:key-terms:home' * | grep txt | cut -f 1 -d ':'`; do
-    sed -i "s/en:obs:notes:key-terms:home/en:obe:ktobs/g" $x
+    sed -i -e "s/en:obs:notes:key-terms:home/en:obe:ktobs/g" $x
 done
 
 cd /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/obe/kt
@@ -48,7 +48,7 @@ for x in `ls`; do
     if [ -f "../../obs/notes/key-terms/$x" ]; then
        name=${x%%.txt}
        for f in `grep -re "en:obs:notes:key-terms\/$name" ../../* | grep txt | cut -f 1 -d ':'`; do
-           sed -i "s/en:obs:notes:key-terms\/$name/en:obe:kt:$name/g" $f
+           sed -i -e "s/en:obs:notes:key-terms\/$name/en:obe:kt:$name/g" $f
        done
     fi
 done
@@ -58,7 +58,7 @@ for x in `ls`; do
     if [ -f "../../obs/notes/key-terms/$x" ]; then
        name=${x%%.txt}
        for f in `grep -re "en:obs:notes:key-terms\/$name" ../../* | grep txt | cut -f 1 -d ':'`; do
-           sed -i "s/en:obs:notes:key-terms\/$name/en:obe:other:$name/g" $f
+           sed -i -e "s/en:obs:notes:key-terms\/$name/en:obe:other:$name/g" $f
        done
     fi
 done
@@ -67,7 +67,7 @@ replacer () {
     cd /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/
     for f in `grep -re "en:obs:notes:key-terms\/$1" * | grep txt | cut -f 1 -d ':'`; do
         echo $f
-        sed -i "s/en:obs:notes:key-terms\/$1/en:obe:$3:$2/g" $f
+        sed -i -e "s/en:obs:notes:key-terms\/$1/en:obe:$3:$2/g" $f
     done
 }
 

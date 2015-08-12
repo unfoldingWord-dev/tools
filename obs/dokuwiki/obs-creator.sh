@@ -7,6 +7,7 @@
 #
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
+#  Caleb Maclennan <caleb@alerque.com>
 
 help() {
     echo
@@ -50,6 +51,7 @@ done
 [ -z "$LANG" ] && echo "Please specify language code." && exit 1
 [ -z "$SRC" ] && SRC="en"
 
+BASEDIR=$(cd $(dirname "$0")/../../ && pwd)
 PAGES="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/"
 TMPL="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/templates/obs3/"
 DEST="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/$LANG/"
@@ -57,7 +59,7 @@ LANGNAMES="/var/www/vhosts/door43.org/httpdocs/lib/plugins/translation/lang/lang
 OBS="$DEST/obs/"
 
 if [ ! -d "$DEST" ]; then
-    /var/www/vhosts/door43.org/tools/obs/dokuwiki/ns-creator.sh -l "$LANG"
+    $BASEDIR/obs/dokuwiki/ns-creator.sh -l "$LANG"
     if [ $? -ne 0 ]; then
         exit 1
     fi
@@ -101,10 +103,10 @@ done
 # Make uwadmin status page
 mkdir -p "$PAGES/en/uwadmin/$LANG/obs"
 cp -i "${TMPL%%/obs3/}/status.txt" "$PAGES/en/uwadmin/$LANG/obs/"
-sed -i "s/ORIGDATE/`date +%F`/" "$PAGES/en/uwadmin/$LANG/obs/status.txt"
+sed -i -e "s/ORIGDATE/`date +%F`/" "$PAGES/en/uwadmin/$LANG/obs/status.txt"
 
 # Update the changes pages
-/var/www/vhosts/door43.org/tools/obs/dokuwiki/obs-gen-changes-pages.sh
+$BASEDIR/obs/dokuwiki/obs-gen-changes-pages.sh
 
 # function for git work
 gitPush () {
@@ -120,7 +122,7 @@ gitPush "$DEST" "Initial import of OBS"
 
 # Copy Notes and Key-Terms if requested
 if [ "$NOTES" == "YES" ]; then
-    /var/www/vhosts/door43.org/tools/obs/dokuwiki/obs-notes-creator.sh -l "$LANG" --src "$SRC"
+    $BASEDIR/obs/dokuwiki/obs-notes-creator.sh -l "$LANG" --src "$SRC"
 fi
 
 # Set permissions
