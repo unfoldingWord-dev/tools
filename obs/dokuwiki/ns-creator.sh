@@ -7,6 +7,7 @@
 #
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
+#  Caleb Maclennan <caleb@alerque.com>
 
 help() {
     echo
@@ -41,6 +42,7 @@ done
 
 [ -z "$LANG" ] && echo "Please specify language code." && exit 1
 
+BASEDIR=$(cd $(dirname "$0")/../../ && pwd)
 PAGES="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/"
 TMPL="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/templates/"
 DEST="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/$LANG/"
@@ -73,13 +75,13 @@ cp -f "$TMPL/sidebar.txt" "$DEST"
 
 # Replace LANGCODE placeholder with destination language code
 for f in `find "$DEST" -type f -name '*.txt'`; do
-    sed -i "s/LANGCODE/$LANG/g" "$f"
+    sed -i -e "s/LANGCODE/$LANG/g" "$f"
 done
 
 # Set permissions
 chown -R apache:apache "$DEST"
 
 # Create a github repo for this language
-/var/www/vhosts/door43.org/tools/obs/dokuwiki/d43-git-init.py "$LANG"
+$BASEDIR/obs/dokuwiki/d43-git-init.py "$LANG"
 
 chown -R apache:apache "$DEST/.git"

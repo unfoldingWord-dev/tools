@@ -7,8 +7,10 @@
 #
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
+#  Caleb Maclennan <caleb@alerque.com>
 
 LANG="$1"
+BASEDIR=$(cd $(dirname "$0")/../../ && pwd)
 
 if [ -z "$LANG" ]; then
     echo "Please specify language to export."
@@ -38,4 +40,4 @@ done
 echo "Images linked to $LANGDIR"
 echo "Exporting Text..."
 
-/var/www/vhosts/door43.org/tools/obs/json/json_export.py --unfoldingwordexport
+$BASEDIR/obs/json/json_export.py --unfoldingwordexport

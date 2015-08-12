@@ -139,14 +139,9 @@ def checkForStandardKeysJSON():
     if 'checkinglevel' not in body_json.keys(): body_json['checkinglevel'] = args.checkinglevel
 
 def writeFile(outfile, p):
-    makeDir(outfile.rpartition('/')[0])
     f = codecs.open(outfile, 'w', encoding='utf-8')
     f.write(p)
     f.close()
-
-def makeDir(d):
-    if not os.path.exists(d):
-        os.makedirs(d, 0755)
 
 def getURL(url, outfile):
     try:
