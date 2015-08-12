@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf8 -*-
 #
 # Copyright (c) 2015 unfoldingWord
@@ -24,6 +24,7 @@ import yaml
 LOGFILE = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/playground/ta_export.log.txt'
 DOCXFILE = '/var/www/vhosts/api.unfoldingword.org/httpdocs/ta_export.docx'
 HTMLFILE = '/var/www/vhosts/api.unfoldingword.org/httpdocs/ta_export.html'
+FRONTMATTER = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/legal/license.txt'
 
 H1REGEX = re.compile(r"(.*?)((?:<p>)?======\s*)(.*?)(\s*======(?:</p>)?)(.*?)", re.DOTALL | re.MULTILINE)
 H2REGEX = re.compile(r"(.*?)((?:<p>)?=====\s*)(.*?)(\s*=====(?:</p>)?)(.*?)", re.DOTALL | re.MULTILINE)
@@ -31,6 +32,13 @@ H3REGEX = re.compile(r"(.*?)((?:<p>)?====\s*)(.*?)(\s*====(?:</p>)?)(.*?)", re.D
 H4REGEX = re.compile(r"(.*?)((?:<p>)?===\s*)(.*?)(\s*===(?:</p>)?)(.*?)", re.DOTALL | re.MULTILINE)
 H5REGEX = re.compile(r"(.*?)((?:<p>)?==\s*)(.*?)(\s*==(?:</p>)?)(.*?)", re.DOTALL | re.MULTILINE)
 LINKREGEX = re.compile(r"(.*?)(\[\[?)(.*?)(]]?)(.*?)", re.DOTALL | re.MULTILINE)
+ITALICREGEX = re.compile(r"(.*?)(?<!:)(//)(.*?)(//)(.*?)", re.DOTALL | re.MULTILINE)
+BOLDREGEX = re.compile(r"(.*?)(\*\*)(.*?)(\*\*)(.*?)", re.DOTALL | re.MULTILINE)
+NLNLREGEX = re.compile(r"(.*?)(\\\\\s*\n\\\\\s*\n)(.*?)", re.DOTALL | re.MULTILINE)
+NLREGEX = re.compile(r"(.*?)(\\\\\s*\n)(.*?)", re.DOTALL | re.MULTILINE)
+ULREGEX = re.compile(r"(.*?)(?<!\n)(\n\s\s\*)(.+)(?!\n\s\s\*)(.*?)", re.DOTALL | re.MULTILINE)
+UL2REGEX = re.compile(r"(.*?)(\n\s\s\*)(.+\n)(?!\s\s)(.*?)", re.DOTALL | re.MULTILINE)
+PNGREGEX = re.compile(r"(.*?)(\{\{)(.*?)(\.png)(.*?)(\}\})(.*?)", re.DOTALL | re.MULTILINE)
 
 # YAML file heading data format:
 #
@@ -75,6 +83,7 @@ class SelfClosingEtherpad(EtherpadLiteClient):
         try:
             pw = open('/usr/share/httpd/.ssh/ep_api_key', 'r').read().strip()
             self.base_params = {'apikey': pw}
+
         except:
             e1 = sys.exc_info()[0]
             print 'Problem logging into Etherpad via API: {0}'.format(e1)
@@ -89,11 +98,10 @@ class SelfClosingEtherpad(EtherpadLiteClient):
 
 
 class SectionData(object):
-    def __init__(self, name, page_list=None, color='yellow'):
+    def __init__(self, name, page_list=None):
         if not page_list:
             page_list = []
         self.name = self.get_name(name)
-        self.color = color
         self.page_list = page_list
 
     @staticmethod
@@ -152,8 +160,6 @@ def parse_ta_modules(raw_text):
     """
 
     returnval = []
-    colors = ['#ff9999', '#99ff99', '#9999ff', '#ffff99', '#99ffff', '#ff99ff', '#cccccc']
-    color_index = 0
 
     # remove everything before the first ======
     pos = raw_text.find("\n======")
@@ -181,16 +187,18 @@ def parse_ta_modules(raw_text):
             if match:
                 pos = match.group(1).rfind("/")
                 if pos > -1:
+                    test_url = match.group(1)[pos + 1:]
                     urls.append(match.group(1)[pos + 1:])
                 else:
+                    test_url = match.group(1)
                     urls.append(match.group(1))
 
-        # remove duplicates
-        no_dupes = set(urls)
+                # do not add a duplicate
+                if test_url not in urls:
+                    urls.append(test_url)
 
         # add the list of URLs to the dictionary
-        returnval.append(SectionData(section_name, no_dupes, colors[color_index]))
-        color_index += 1
+        returnval.append(SectionData(section_name, urls))
 
     return returnval
 
@@ -269,7 +277,7 @@ def get_page_yaml_data(pad_id, raw_yaml_text):
     return returnval
 
 
-def get_ta_pages(e_pad, sections):
+def get_vol1_pages(e_pad, sections):
     """
 
     :param e_pad: SelfClosingEtherpad
@@ -301,6 +309,12 @@ def get_ta_pages(e_pad, sections):
 
                     if yaml_data == {}:
                         log_error('No yaml data found for ' + pad_id)
+                        continue
+
+                    if not check_value_is_valid_int('volume', yaml_data):
+                        continue
+
+                    if int(yaml_data['volume']) != 1:
                         continue
 
                     pages.append(PageData(section_key, pad_id, yaml_data, match.group(4)))
@@ -438,12 +452,16 @@ def make_docx(pages):
             out_file.write(html)
 
 
-def markdown_to_html(markdown):
+def markdown_to_html(dokuwiki):
     """
     Runs markdown through pandoc to convert to html
     """
 
-    markdown = markdown.replace("\\\\\n", "<br>\n")
+    markdown = dokuwiki_to_markdown(dokuwiki)
+    markdown = NLNLREGEX.sub(r'\1\n\n\3', markdown)
+    markdown = NLREGEX.sub(r'\1\n\n\3', markdown)
+    markdown = ULREGEX.sub(r'\1\n\2\3\4', markdown)
+    markdown = UL2REGEX.sub(r'\1\2\3\n\4', markdown)
 
     command = shlex.split('/usr/bin/pandoc -f markdown_phpextra -t html')
     com = Popen(command, shell=False, stdin=PIPE, stdout=PIPE, stderr=PIPE)
@@ -451,39 +469,80 @@ def markdown_to_html(markdown):
     html = out.decode('utf-8')
 
     # fix some things pandoc doesn't convert
-    # <p>====== is h1
-    # <p>== is h5
-    html = H1REGEX.sub(r'\1<h1>\3</h1>\5', html)
-    html = H2REGEX.sub(r'\1<h2>\3</h2>\5', html)
-    html = H3REGEX.sub(r'\1<h3>\3</h3>\5', html)
-    html = H4REGEX.sub(r'\1<h4>\3</h4>\5', html)
-    html = H5REGEX.sub(r'\1<h5>\3</h5>\5', html)
     html = re.sub(LINKREGEX, convert_link, html)
+    html = ITALICREGEX.sub(r'\1<em>\3</em>\5', html)
+    html = BOLDREGEX.sub(r'\1<strong>\3</strong>\5', html)
 
     return html
 
 
+def dokuwiki_to_markdown(dokuwiki):
+
+    markdown = H1REGEX.sub(r'\1# \3 #\5', dokuwiki)
+    markdown = H2REGEX.sub(r'\1## \3 ##\5', markdown)
+    markdown = H3REGEX.sub(r'\1### \3 ###\5', markdown)
+    markdown = H4REGEX.sub(r'\1#### \3 ####\5', markdown)
+    markdown = H5REGEX.sub(r'\1##### \3 #####\5', markdown)
+
+    # {{:en:ta:tech:translating_in_ts_-_obs_v2.mp4|Resources Video}}
+    # {{:en:ta:ol2sl2sl2tl_small_600-174.png?nolink&600x174}}
+    markdown = re.sub(PNGREGEX, convert_png_link, markdown)
+
+    return markdown
+
+
 def html_to_docx(html):
-    command = shlex.split('/usr/bin/pandoc -f html -t docx -o "' + DOCXFILE + '"')
+
+    # html = html.replace('<a href="#', '<a href="')
+    # command = shlex.split('/usr/bin/pandoc --filter ./insert_pagebreaks_filter --toc --toc-depth=1 -f html -t docx -o "' + DOCXFILE + '"')
+    command = shlex.split('/usr/bin/pandoc --toc --toc-depth=1 -f html -t docx -o "' + DOCXFILE + '"')
     com = Popen(command, shell=False, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     out, err = com.communicate(html.encode('utf-8'))
 
     if len(err) > 0:
         log_this(err, True)
     else:
-        log_this('Generated document: [[https://api.unfoldingword.org/ta_export.docx]]', True)
+        log_this('Generated document: ' +
+                 '[[https://api.unfoldingword.org/ta_export.docx|https://api.unfoldingword.org/ta_export.docx]]',
+                 True)
 
 
 def convert_link(match):
-    parts = match.group(3).split('|')
-    if isinstance(parts, list):
-        return match.group(1) + '<a href="' + dokuwiki_to_html_link(parts[0]) + '">' + parts[1] + '</a>' + \
-            match.group(5)
-    else:
-        return match.group(1) + '<a href="' + dokuwiki_to_html_link(parts) + '">' + parts + '</a>' + match.group(5)
+    try:
+        parts = match.group(3).split('|')
+        if isinstance(parts, list):
+            if len(parts) > 1:
+                return match.group(1) + '<a href="' + dokuwiki_to_html_link(parts[0]) + '">' + parts[1] + '</a>' + \
+                    match.group(5)
+            else:
+                return match.group(1) + '<a href="' + dokuwiki_to_html_link(parts[0]) + '">' + parts[0] + '</a>' + \
+                    match.group(5)
+        else:
+            return match.group(1) + '<a href="' + dokuwiki_to_html_link(parts) + '">' + parts + '</a>' + match.group(5)
+
+    except Exception as ex:
+        log_error(str(ex))
+
+
+def convert_png_link(match):
+    # "![{$frame['id']}]({$image_file})\\"
+    try:
+        parts = match.group(3).split('|')
+        if isinstance(parts, list):
+            return match.group(1) + '![Image](https://door43.org/_media' + parts[0].replace(':', '/') + '.png)' + match.group(7)
+        else:
+            return match.group(1) + '![Image](https://door43.org/_media' + parts.replace(':', '/') + '.png)' + match.group(7)
+
+    except Exception as ex:
+        log_error(str(ex))
 
 
 def dokuwiki_to_html_link(dokuwiki_link):
+
+    # if this is already a valid URL, return it unchanged
+    if dokuwiki_link[:4].lower() == 'http':
+        return dokuwiki_link
+
     # if this is a dokuwiki link, convert it
     if ':' in dokuwiki_link:
         if dokuwiki_link[:1] == ':':
@@ -497,6 +556,24 @@ def dokuwiki_to_html_link(dokuwiki_link):
 def make_html(pages):
     pages_generated = 0
     divs = []
+
+    # get the front matter
+    with codecs.open(FRONTMATTER, 'r', 'utf-8') as f:
+        fm = f.read()
+
+    if fm:
+        log_this('Generating license page')
+
+        dw = u'<a name="license"></a>' + u"\n\n"
+        dw += fm
+
+        div = u"\\newpage\n<div class=\"page\">\n"
+        div += markdown_to_html(dw) + u"\n"
+        div += u"</div>\n"
+
+        divs.append(div)
+
+        pages_generated += 1
 
     # pages
     for page in pages:
@@ -517,27 +594,26 @@ def make_html(pages):
             dependencies = get_yaml_object('dependencies', page.yaml_data)
             recommended = get_yaml_object('recommended', page.yaml_data)
 
-            md = '===== ' + page.yaml_data['title'] + " =====\n\n"
-            md += '<a name="' + slug + '"></a>'
+            dw = u'# ' + page.yaml_data['title'] + u'# {#' + slug + "}\n\n"
 
             if question:
-                md += 'This module answers the question: ' + question + "\\\\\n"
+                dw += u'This module answers the question: ' + question + u"\\\\\n"
 
             if dependencies:
-                md += 'Before you start this module have you learned about:'
-                md += output_list(pages, dependencies)
-                md += "\n\n"
+                dw += u'Before you start this module have you learned about:'
+                dw += output_list(pages, dependencies)
+                dw += u"\n\n"
 
-            md += page.page_text + "\n\n"
+            dw += page.page_text + u"\n\n"
 
             if recommended:
-                md += 'Next we recommend you learn about:'
-                md += output_list(pages, recommended)
-                md += "\n\n"
+                dw += u'Next we recommend you learn about:'
+                dw += output_list(pages, recommended)
+                dw += u"\n\n"
 
-            div = "<div class=\"page\">\n"
-            div += markdown_to_html(md) + "\n"
-            div += "</div>\n"
+            div = u"\\newpage\n<div class=\"page\">\n"
+            div += markdown_to_html(dw) + u"\n"
+            div += u"</div>\n"
 
             divs.append(div)
 
@@ -557,20 +633,21 @@ def output_list(pages, option_list):
         if len(option_list) == 1:
             link = get_page_link_by_slug(pages, option_list[0])
             if link:
-                md += ' ' + link
+                md += u' ' + link
             else:
                 log_error('Linked page not found: ' + option_list[0])
         else:
+            md += u"\n"
             for option in option_list:
                 link = get_page_link_by_slug(pages, option)
                 if link:
-                    md += "\n  * " + link
+                    md += u"\n  * " + link
                 else:
                     log_error('Linked page not found: ' + option)
     else:
         link = get_page_link_by_slug(pages, option_list)
         if link:
-            md += ' ' + link
+            md += u' ' + link
         else:
             log_error('Linked page not found: ' + option_list)
 
@@ -596,7 +673,7 @@ if __name__ == '__main__':
 
         text = ep.getText(padID='ta-modules')
         ta_sections = parse_ta_modules(text['text'])
-        ta_pages = get_ta_pages(ep, ta_sections)
+        ta_pages = get_vol1_pages(ep, ta_sections)
 
     log_this('Generating Word document.', True)
     make_docx(ta_pages)

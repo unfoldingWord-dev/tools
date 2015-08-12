@@ -1,5 +1,5 @@
-#!/usr/bin/env sh
-# -*- coding: utf8 -*-
+#!/usr/bin/env bash
+# -*- coding: utf-8 -*-
 #
 #  Copyright (c) 2014 unfoldingWord
 #  http://creativecommons.org/licenses/MIT/
@@ -7,18 +7,22 @@
 #
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
-
+#  Caleb Maclennan <caleb@alerque.com>
+#-----------------------------------------------------------------------------
+# Help message
 help() {
     echo
     echo "Creates a PDF for specified language code."
     echo
     echo "Usage:"
-    echo "   $PROGNAME -l <LangCode> -v <version>"
+    echo "   $PROGNAME -l <LangCode> -v <version> -o <output directory>"
     echo "   $PROGNAME --help"
     echo
     exit 1
 }
 
+#-----------------------------------------------------------------------------
+# Parse the command-line
 if [ $# -lt 1 ]; then
     help
 fi
@@ -29,6 +33,10 @@ while test -n "$1"; do
             ;;
         --lang|-l)
             LANG="$2"
+            shift
+            ;;
+        --out|-o)
+            OUTDIR="$2"
             shift
             ;;
         --ver|-v)
@@ -43,26 +51,49 @@ while test -n "$1"; do
     shift
 done
 
-[ -z "$LANG" ] && echo "Please specify language code." && exit 1
+set -e
+fail () {
+    echo "Error: $@"
+    exit 1
+}
 
-MAILTO="publishing@unfoldingword.org"
-TOOLS="/var/www/vhosts/door43.org/tools"
-API="/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/$LANG"
-FILENAME="OBS-$LANG-v$VER"
+[[ -n "$LANG" ]] || fail "Please specify language code."
+[[ -d "$OUTDIR" ]] || fail "Please specify a valid output directory."
 
-$TOOLS/obs/export.py -l $LANG -f tex -o /tmp/$$.$FILENAME.tex
+# Certain variables and paths
+: ${api:=}
+: ${FILENAME:=OBS-$LANG-v$VER}
 
-. /opt/context/tex/setuptex
+# Add a debug mode and echo commands to the terminal if the environment var set
+: ${debug:=false}
+$debug && set -x
 
-cd /tmp
-context $$.$FILENAME.tex
+BASE_DIR=$(cd $(dirname "$0")/../../ && pwd)
+pushd $OUTDIR
 
-mkdir -p $API
-mv -f /tmp/$$.$FILENAME.pdf $API/$FILENAME.pdf
+# The ConTeXt templates expect to find a few buinding blocks in the main repo,
+# so we give our temp space a link back there so it can find them
+ln -sf $BASE_DIR/obs
 
-#rm -f /tmp/$$.*
+# Run python (export.py) to generate the .tex file from template .tex files
+$BASE_DIR/obs/export.py -l $LANG -f tex -o $OUTDIR/$FILENAME.tex \
+    || fail "Failed to generate ${FILENAME}.tex"
 
-URL="https://api.unfoldingword.org/obs/txt/1/$LANG/$FILENAME.pdf"
-#echo "A PDF for $LANG at version $VER has been created.  " \
-    #"Please download it from $URL." \
-    #| mail -s "PDF Generated for $LANG" "$MAILTO"
+# Make sure ConTeXt is installed and our environment is passable, if not
+# make a basic attempt to fix it before going on...
+if ! command -v context; then
+    if [[ -d $BASE_DIR/tex ]]; then
+        source $BASE_DIR/tex/setuptex
+    fi
+fi
+if ! mtxrun --script fonts --list --all | grep -q noto; then
+    export OSFONTDIR="/usr/local/share/fonts;/usr/share/fonts"
+    mtxrun --script fonts --reload
+    context --generate
+fi
+
+# Run ConTeXt (context) to generate stories from .tex file output by python
+context $FILENAME.tex || fail "Unable to compile ${FILENAME}.tex"
+
+# Install the files into $OUTDIR and make readable by all
+[[ -n $api ]] && install -Dm 0644 $OUTDIR/$FILENAME.pdf $api/${LANG}${FILENAME}.pdf
