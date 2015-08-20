@@ -94,21 +94,40 @@ book_export () {
     HTML_FILE="${LANGUAGE}_${BOOK}_all.html" # Compilation of all above HTML files
     LINKS_FILE="${LANGUAGE}_${BOOK}_links.sed" # SED commands for links
     PDF_FILE="$OUTPUT_DIR/tN_${BOOK^^}_${LANGUAGE^^}_$DATE.pdf"
+    BAD_LINKS_FILE="${LANGUAGE}_${BOOK}_bad_links.txt"
 
-    rm -f "$CL_FILE" "$TN_FILE" "$TQ_FILE" "$TA_FILE" "$LINKS_FILE" "$HTML_FILE" # We start fresh, only files that remain are any files retrieved with wget
+    rm -f "$CL_FILE" "$TN_FILE" "$TQ_FILE" "$TA_FILE" "$LINKS_FILE" "$HTML_FILE" "$BAD_LINKS_FILE" # We start fresh, only files that remain are any files retrieved with wget
+
+    touch "$LINKS_FILE"
+    touch "$BAD_LINKS_FILE"
 
     # ----- START GENERATE CL PAGE ----- #
     echo "GENERATING $CL_FILE"
+
+    touch "$CL_FILE"
 
     mkdir -p "$CL_DIR"
 
     # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
     if [ ! -e "$CL_DIR/uw.html" ] || [ "$CL_DIR/uw.html" -ot "$D43_BASE_DIR/$CL_DIR/uw.txt" ];
     then
+        set +e
         wget -U 'me' "$D43_BASE_URL/$CL_DIR/uw" -O "$CL_DIR/uw.html"
+
+        if [ $? != 0 ];
+        then
+            rm "$CL_DIR/uw.html";
+            echo "$D43_BASE_URL/$CL_DIR/uw ($CL_FILE)" >> "$BAD_LINKS_FILE"
+        fi
+        set -e
     fi
 
-    cat "$CL_DIR/uw.html" > "$CL_FILE"
+    if [ -e "$CL_DIR/uw.html" ];
+    then
+        cat "$CL_DIR/uw.html" > "$CL_FILE"
+    else
+        echo "<h1>Copyrights & Licensing - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$CL_DIR/uw - page does not exist</p>" >> "$TN_FILE"
+    fi
 
     # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
     sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' "$CL_FILE"
@@ -119,7 +138,10 @@ book_export () {
     # ----- START GENERATE tN PAGES ----- #
     echo "GENERATING $TN_FILE"
 
+    touch "$TN_FILE"
+
     find "$D43_BASE_DIR/$TN_DIR/$BOOK" -type d -name "[0-9]*" -printf '%P\n' |
+        sort -u |
         while read chapter;
         do
             dir="$TN_DIR/$BOOK/$chapter";
@@ -134,26 +156,42 @@ book_export () {
                     # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
                     if [ ! -e "$dir/$section.html" ] || [ "$dir/$section.html" -ot "$D43_BASE_DIR/$dir/$section.txt" ];
                     then
-                        wget -U 'me' "$D43_BASE_URL/$dir/$section" -O - |
-                            grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' |
-                            grep -v ' href="\/tag\/' \
-                            >> "$dir/$section.html"
+                        set +e
+                        wget -U 'me' "$D43_BASE_URL/$dir/$section" -O "$dir/$section.html"
+
+                        if [ $? != 0 ];
+                        then
+                            rm "$dir/$section.html";
+                            echo "$D43_BASE_URL/$dir/$section ($TN_FILE)" >> "$BAD_LINKS_FILE"
+                        fi
+                        set -e
                     fi
 
-                    # Remove TFT
-                    TFT=false
-                    while read line; do
-                        if [[ $line == '<h2 class="sectionedit2" id="tft">TFT:</h2>' ]]; then
-                            TFT=true
-                            continue
-                        fi
-                        if [[ ${line:0:25} == '<!-- EDIT2 SECTION "TFT:"' ]]; then
-                            TFT=false
-                            continue
-                        fi
-                        $TFT && continue
-                        echo $line >> "$TN_FILE"
-                    done < "$dir/$section.html"
+                    if [ -e "$dir/$section.html" ];
+                    then
+                        # Remove TFT and >> and /tag/ lines
+                        TFT=false
+                        while read line; do
+                            if [[ $line == '<h2 class="sectionedit2" id="tft">TFT:</h2>' ]]; then
+                                TFT=true
+                                continue
+                            fi
+
+                            if [[ ${line:0:25} == '<!-- EDIT2 SECTION "TFT:"' ]]; then
+                                TFT=false
+                                continue
+                            fi
+
+                            $TFT && continue
+
+                            if [[ ! $line =~ '<strong>'.*'&gt;</a></strong>' ]] && [[ ! $line =~ ' href="/tag/' ]];
+                            then
+                                echo $line >> "$TN_FILE"
+                            fi
+                        done < "$dir/$section.html"
+                    else
+                        echo "<h1>$BOOK $chapter:$section - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$section - page does not exist</p>" >> "$TN_FILE"
+                    fi
                 done
         done
 
@@ -165,6 +203,8 @@ book_export () {
 
     # ----- START GENERATE tQ PAGES ----- #
     echo "GENERATING $TQ_FILE"
+
+    touch "$TQ_FILE"
 
     dir="$TQ_DIR/$BOOK"
     mkdir -p "$dir"
@@ -178,16 +218,28 @@ book_export () {
             # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
             if [ ! -e "$dir/$chapter.html" ] || [ "$dir/$chapter.html" -ot "$D43_BASE_DIR/$dir/$chapter.txt" ];
             then
-                wget -U 'me' "$D43_BASE_URL/$dir/$chapter" -O - |
-                    grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' |
-                    grep -v ' href="\/tag\/' \
-                    > "$dir/$chapter.html"
+                set +e
+                wget -U 'me' "$D43_BASE_URL/$dir/$chapter" -O "$dir/$chapter.html"
+
+                if [ $? != 0 ];
+                then
+                    rm "$dir/$chapter.html";
+                    echo "$D43_BASE_URL/$dir/$chapter ($TQ_FILE)" >> "$BAD_LINKS_FILE"
+                fi
+                set -e
             fi
 
-            cat "$dir/$chapter.html" >> "$TQ_FILE"
+            if [ -e "$dir/chapter.html" ];
+            then
+                cat "$dir/$chapter.html" |
+                    grep -v '<strong>.*&gt;<\/a><\/strong>' |
+                    grep -v ' href="\/tag\/' >> "$TQ_FILE"
 
-            linkname=$(head -3 "$dir/$chapter.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
-            echo "s@/$dir/$chapter\"@#$linkname\"@g" >> "$LINKS_FILE"
+                linkname=$(head -3 "$dir/$chapter.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
+                echo "s@/$dir/$chapter\"@#$linkname\"@g" >> "$LINKS_FILE"
+            else
+                echo "<h1>$BOOK $chapter - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$chapter - page does not exist</p>" >> "$TQ_FILE"
+            fi
         done
 
     # REMOVE Comprehension Questions and Answers title
@@ -205,6 +257,8 @@ book_export () {
     # ----- START GENERATE tW PAGES ----- #
     echo "GENERATING $TW_FILE"
 
+    touch "$TW_FILE"
+
     # Get the linked key terms
     for url in $(grep -oPh "\"\/$LANGUAGE\/obe.*?\"" "$TN_FILE" | tr -d '"' | sort -u );
     do
@@ -217,15 +271,27 @@ book_export () {
         # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
         if [ ! -e "$dir/$term.html" ] || [ "$dir/$term.html" -ot "$D43_BASE_DIR/$dir/$term.txt" ];
         then
-            wget -U 'me' "$D43_BASE_URL/$dir/$term" -O - |
-                grep -v ' href="\/tag\/' \
-                > "$dir/$term.html"
+            set +e
+            wget -U 'me' "$D43_BASE_URL/$dir/$term" -O "$dir/$term.html"
+
+            if [ $? != 0 ];
+            then
+                rm "$dir/$term.html";
+                echo "$D43_BASE_URL/$dir/$term ($TW_FILE)" >> "$BAD_LINKS_FILE"
+            fi
+            set -e
         fi
 
-        cat "$dir/$term.html" >> "$TW_FILE"
+        if [ -e "$dir/$term.html" ];
+        then
+            cat "$dir/$term.html" |
+            grep -v ' href="\/tag\/' >> "$TW_FILE"
 
-        linkname=$(head -3 "$dir/$term.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
-        echo "s@/$dir/$term\"@#$linkname\"@g" >> "$LINKS_FILE"
+            linkname=$(head -3 "$dir/$term.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
+            echo "s@/$dir/$term\"@#$linkname\"@g" >> "$LINKS_FILE"
+        else
+            echo "<h1>$term - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$section - page does not exist</p>" >> "$TW_FILE"
+        fi
     done
 
     # Quick fix for getting rid of these Bible References lists in a table, removing table tags
@@ -244,6 +310,8 @@ book_export () {
     # ----- START GENERATE tA PAGES ----- #
     echo "GENERATING $TA_FILE"
 
+    touch "$TA_FILE"
+
     # Get the linked tA
     grep -oPh "\"\/$LANGUAGE\/ta\/.*?\"" "$TN_FILE" "$TW_FILE" "$TQ_FILE" |
         tr -d '"' |
@@ -259,15 +327,27 @@ book_export () {
             # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
             if [ ! -e "$dir/$term.html" ] || [ "$dir/$term.html" -ot "$D43_BASE_DIR/$dir/$term.txt" ];
             then
-                wget -U 'me' "$D43_BASE_URL/$dir/$term" -O - |
-                    grep -v ' href="\/tag\/' \
-                    > "$dir/$term.html"
+                set +e
+                wget -U 'me' "$D43_BASE_URL/$dir/$term" -O "$dir/$term.html"
+
+                if [ $? != 0 ];
+                then
+                    rm "$dir/$term.html";
+                    echo "$D43_BASE_URL/$dir/$term ($TA_FILE)" >> "$BAD_LINKS_FILE"
+                fi
+                set -e
             fi
 
-            cat "$dir/$term.html" >> "$TA_FILE"
+            if [ -e "$dir/$term.html" ];
+            then
+                cat "$dir/$term.html" |
+                    grep -v ' href="\/tag\/' >> "$TA_FILE"
 
-            linkname=$(head -3 "$dir/$term.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
-            echo "s@/$dir/$term\"@#$linkname\"@g" >> "$LINKS_FILE"
+                linkname=$(head -3 "$dir/$term.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
+                echo "s@/$dir/$term\"@#$linkname\"@g" >> "$LINKS_FILE"
+            else
+                echo "<h1>$term - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$section - page does not exist</p>" >> "$TA_FILE"
+            fi
         done
 
     # get rid of the pad.door43.org links and the <hr> with it
