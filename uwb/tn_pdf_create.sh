@@ -229,7 +229,7 @@ book_export () {
                 set -e
             fi
 
-            if [ -e "$dir/chapter.html" ];
+            if [ -e "$dir/$chapter.html" ];
             then
                 cat "$dir/$chapter.html" |
                     grep -v '<strong>.*&gt;<\/a><\/strong>' |
