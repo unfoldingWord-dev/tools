@@ -75,8 +75,8 @@ def upload(sig, content, si):
     r = requests.post(api, data=json.dumps(payload),
                                  headers={'Content-Type': 'application/json'})
     if 'ok' not in r.text:
-        print x
-        print u'-> {0}'.fomat(r.text)
+        print content
+        print u'-> {0}'.format(r.text)
 
 def checkSig(content, sig, slug):
     # Based on https://github.com/unfoldingWord-dev/sigadd/blob/master/index.py
