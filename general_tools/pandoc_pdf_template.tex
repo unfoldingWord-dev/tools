@@ -155,34 +155,24 @@ $endfor$
 \newcommand\sectionbreak{\clearpage}
 \newcommand\subsectionbreak{\clearpage}
 
-$if(tocdepth)$
-\setcounter{tocdepth}{$tocdepth$}
-$else$
-\setcounter{tocdepth}{1}
-$endif$
-
-\newtocstyle{compact}{%
-  \settocfeature[1]{entryhook}{\bfseries}%
-  \settocfeature[1]{entryvskip}{0pt plus 2pt}%
-  \settocfeature[1]{leaders}{\hfill}%
-}
-\usetocstyle{compact}
-
 \usepackage{enumitem}
 \setlistdepth{99}
 
 \begin{document}
+
 \pagenumbering{gobble}
 $if(title)$
-\maketitle
+  \maketitle
 $endif$
+
 $if(abstract)$
-\begin{abstract}
-$abstract$
-\end{abstract}
+  \begin{abstract}
+    $abstract$
+  \end{abstract}
 $endif$
+
 $for(include-before)$
-$include-before$
+  $include-before$
 $endfor$
 
 \newpage
@@ -190,10 +180,19 @@ $endfor$
 
 $if(toc)$
 {
-\hypersetup{linkcolor=black}
-\setcounter{secnumdepth}{-1}
-\tableofcontents
-\newpage
+  \setcounter{tocdepth}{$toc-depth$}
+
+  \newtocstyle{compact}{%
+    \settocfeature[1]{entryhook}{\bfseries}%
+    \settocfeature[1]{entryvskip}{0pt plus 2pt}%
+  }
+  \usetocstyle{compact}
+
+  \hypersetup{linkcolor=black}
+  \setcounter{secnumdepth}{-1}
+
+  \tableofcontents
+  \newpage
 }
 $endif$
 $if(lot)$

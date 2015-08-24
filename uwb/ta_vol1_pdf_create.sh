@@ -196,8 +196,12 @@ generate_file_from_toc () {
     SUBTITLE='Volume 1'
 
     # Create PDF
-    pandoc --template=$TEMPLATE -S --toc --toc-depth=2 -V toc-depth=1 \
+    pandoc \
+        -S \
         --latex-engine="xelatex" \
+        --template="$TEMPLATE" \
+        --toc \
+        --toc-depth=3 \
         -V documentclass="scrartcl" \
         -V classoption="oneside" \
         -V geometry='hmargin=2cm' \
@@ -205,7 +209,6 @@ generate_file_from_toc () {
         -V title="$TITLE" \
         -V subtitle="$SUBTITLE" \
         -V date="$DATE" \
-        -V tocdepth="3" \
         -V mainfont="Noto Serif" \
         -V sansfont="Noto Sans" \
         -o $PDF_FILE $HTML_FILE

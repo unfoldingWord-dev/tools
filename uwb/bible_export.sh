@@ -27,10 +27,6 @@ set -e
 
 : ${TOOLS_DIR:=$(cd $(dirname "$0")/../ && pwd)}
 
-VALID_FILE_TYPES=(pdf docx html tex txt text)
-VALID_BIBLES=(ulb udb)
-VALID_VERSIONS=(v1 v2 ep)
-
 # Gets us an associative array called $bookS
 source "$TOOLS_DIR/general_tools/bible_books.sh"
 
@@ -53,43 +49,23 @@ do
         ;;
         -o|--output)
             OUTPUT_DIR="$2"
-            shift # past argument
+            shift # skip the next argument
         ;;
         -w|--working)
             WORKING_DIR="$2"
-            shift # past argument
+            shift # skip the next argument
         ;;
         -l|--lang|--language)
             LANGUAGE="$2"
-            shift # past argument
+            shift # skip the next argument
         ;;
         -v|--version)
-            arg2=${2,,}
-
-            if [ ! ${VALID_BIBLES[$arg2]+_} ];
-            then
-                echo "Invalid version: $arg2"
-                echo "Valid vibles: 1, 2, ep"
-                exit 1
-            fi
-
-            VERSION=("$arg2")
-
-            shift # past argument
+            VERSION="${2,,}"
+            shift # skip the next argument
         ;;
         -b|--bible)
-            arg2=${2,,}
-
-            if [ ! ${VALID_BIBLES[$arg2]+_} ];
-            then
-                echo "Invalid Bible: $arg2"
-                echo "Valid Bibles: ulb, udb"
-                exit 1
-            fi
-
-            BIBLE+=("$arg2")
-
-            shift # past argument
+            BIBLE="${2,,}"
+            shift # skip the next argument
         ;;
         --tocdepth)
             TOCDEPTH=$2
@@ -104,18 +80,8 @@ do
             shift # past arguemnt
         ;;
         -t|--type)
-            arg2=${2,,}
-
-            if [ ! ${VALID_FILE_TYPES[$arg2]+_} ];
-            then
-                echo "Invalid type: $arg2"
-                echo "Valid types: pdf, docx, html, tex, txt, text"
-                exit 1
-            fi
-
-            FILE_TYPES+=("$arg2")
-
-            shift # past argument
+            FILE_TYPES+=("${2,,}")
+            shift # skip the next argument
         ;;
         *)
             if [ ! ${BOOK_NAMES[${arg,,}]+_} ];
@@ -130,7 +96,8 @@ do
                 then
                     BOOKS_TO_PROCESS+=(mat mrk luk jhn act rom 1co 2co gal eph php col 1ti 2ti 1th 2th tit phm heb jas 1pe 2pe 1jn 2jn 3jn jud rev)
                 else
-                    echo "Invalid book given: $arg"
+                    echo "Invalid book: $arg"
+                    echo "Valid books: gen exo lev num deu jos jdg rut 1sa 2sa 1ki 2ki 1ch 2ch ezr neh est job psa pro ecc sng isa jer lam ezk dan hos jol amo oba jon mic nam hab zep hag zec mal mat mrk luk jhn act rom 1co 2co gal eph php col 1ti 2ti 1th 2th tit phm heb jas 1pe 2pe 1jn 2jn 3jn jud rev"
                     exit 1;
                 fi
             else
@@ -138,7 +105,7 @@ do
             fi
         ;;
     esac
-    shift # past argument or value
+    shift # skip the next argument or value
 done
 
 : ${OUTPUT_DIR:=$(pwd)}
@@ -181,15 +148,7 @@ fi
 
 if [ ${#BOOKS_TO_PROCESS[@]} -eq 0 ];
 then
-    echo "Please specify one or more books by adding their abbreviations, separated by spaces. Book abbreviations are as follows:";
-
-    for key in "${!BOOK_NAMES[@]}"
-    do
-        echo "$key: ${BOOK_NAMES[$key]}";
-    done |
-    sort -n -k3
-
-    exit 1;
+    BOOKS_TO_PROCESS=(gen exo lev num deu jos jdg rut 1sa 2sa 1ki 2ki 1ch 2ch ezr neh est job psa pro ecc sng isa jer lam ezk dan hos jol amo oba jon mic nam hab zep hag zec mal mat mrk luk jhn act rom 1co 2co gal eph php col 1ti 2ti 1th 2th tit phm heb jas 1pe 2pe 1jn 2jn 3jn jud rev)
 fi
 
 if [ ${#FILE_TYPES[@]} -eq 0 ];
@@ -197,9 +156,55 @@ then
     FILE_TYPES=(pdf)
 fi
 
-CL_FILE="${LANGUAGE}_${BIBLE}_${VERSION}_${book}_cl.html" # Copyrights & Licensing
-BIBLE_FILE="${LANGUAGE}_${BIBLE}_${VERSION}_${book}_bible.html" # Bible Text
-HTML_FILE="${LANGUAGE}_${BIBLE}_${VERSION}_${book}_all.html" # All Content
+if [ -z $TITLE ];
+then
+    if [ ${#BOOKS_TO_PROCESS[@]} == 66 ];
+    then
+        TITLE="HOLY BIBLE"
+        FILENAME_TITLE="BIBLE"
+    else
+        if [ ${#BOOKS_TO_PROCESS[@]} == 39 ];
+        then
+            TITLE="OLD TESTAMENT"
+            FILENAME_TITLE="OT"
+        elif [ ${#BOOKS_TO_PROCESS[@]} == 27 ];
+        then
+            TITLE="NEW TESTAMENT"
+            FILENAME_TITLE="NT"
+        else
+            TITLE=""
+            FILENAME_TITLE=""
+            for book in "${BOOKS_TO_PROCESS[@]}"
+            do
+                if [ ${#TITLE} -gt 0 ];
+                then
+                    TITLE+=", "
+                    FILENAME_TITLE+="_"
+                fi
+                TITLE+="${BOOK_NAMES[$book]^^}"
+                FILENAME_TITLE+="${book^^}"
+            done
+        fi
+    fi
+fi
+
+if [ -z $SUBTITLE ];
+then
+    SUBTITLE="${BIBLE^^} ($VERSION)"
+fi
+
+if [ -z $FILENAME_TITLE ];
+then
+    FILENAME_TITLE=$TITLE
+fi
+
+FILENAME_TITLE=${FILENAME_TITLE//[^a-zA-Z0-9]/_}
+FILENAME_TITLE=${FILENAME_TITLE:0:80}
+
+CL_FILE="${LANGUAGE}_${BIBLE}_${VERSION}_${FILENAME_TITLE}_cl.html" # Copyrights & Licensing
+BIBLE_FILE="${LANGUAGE}_${BIBLE}_${VERSION}_${FILENAME_TITLE}_bible.html" # Bible Text
+HTML_FILE="${LANGUAGE}_${BIBLE}_${VERSION}_${FILENAME_TITLE}_all.html" # All Content
+OUTPUT_FILE="$OUTPUT_DIR/${BIBLE^^}-${VERSION}-${FILENAME_TITLE}-${LANGUAGE^^}-$DATE"
 
 rm -f "$CL_FILE" "$BIBLE_FILE" "$HTML_FILE" # We start fresh, only files that remain are any files retrieved with wget
 
@@ -288,42 +293,6 @@ sed -i -e 's/\xe2\x80\x8b//g' -e '/^<hr>/d' -e '/&lt;&lt;/d' \
 # ----- END LINK FIXES AND CLEANUP ------- #
 
 # ----- START GENERATE OUTPUT FILES ----- #
-if [ -z $TITLE ];
-then
-    if [ ${#BOOKS_TO_PROCESS[@]} == 66 ];
-    then
-        TITLE="HOLY BIBLE"
-    else
-        if [ ${#BOOKS_TO_PROCESS[@]} == 39 ];
-        then
-            TITLE="OLD TESTAMENT"
-        elif [ ${#BOOKS_TO_PROCESS[@]} == 27 ];
-        then
-            TITLE="NEW TESTAMENT"
-        else
-            TITLE=""
-            for book in "${BOOKS_TO_PROCESS[@]}"
-            do
-                if [ ${#TITLE} -gt 0 ];
-                then
-                    TITLE+=", "
-                fi
-                TITLE+="${BOOK_NAMES[$book]^^}"
-            done
-        fi
-    fi
-fi
-
-if [ -z $SUBTITLE ];
-then
-    SUBTITLE="${BIBLE^^} ($VERSION)"
-fi
-
-OUTPUT_TITLE=${TITLE//,/}
-OUTPUT_TITLE=${OUTPUT_TITLE//[^a-zA-Z0-9]/_}
-OUTPUT_TITLE=${OUTPUT_TITLE:0:80}
-OUTPUT_FILE="$OUTPUT_DIR/${BIBLE^^}_${VERSION}_${OUTPUT_TITLE}_${LANGUAGE^^}_$DATE"
-
 for type in "${FILE_TYPES[@]}"
 do
     echo "GENERATING $OUTPUT_FILE.$type";
@@ -335,7 +304,6 @@ do
         --toc \
         --toc-depth="$TOCDEPTH" \
         --latex-engine="xelatex" \
-        -V tocdepth="$TOCDEPTH" \
         -V documentclass="scrartcl" \
         -V classoption="oneside" \
         -V geometry='hmargin=2cm' \
@@ -343,7 +311,6 @@ do
         -V title="$TITLE" \
         -V subtitle="$SUBTITLE" \
         -V date="$DATE" \
-        -V tocdepth="2" \
         -V mainfont="Noto Sans" \
         -V sansfont="Noto Sans" \
         -o "$OUTPUT_FILE.$type" "$HTML_FILE"

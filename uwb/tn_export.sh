@@ -465,19 +465,22 @@ book_export () {
         echo "GENERATING $OUTPUT_FILE.$type";
 
         # Create PDF
-        pandoc --template="$TEMPLATE" -S --toc --toc-depth=2 -V toc-depth=1 \
-            --latex-engine="xelatex" \
-            -V documentclass="scrartcl" \
-            -V classoption="oneside" \
-            -V geometry='hmargin=2cm' \
-            -V geometry='vmargin=3cm' \
-            -V title="$TITLE" \
-            -V subtitle="$SUBTITLE" \
-            -V date="$DATE" \
-            -V tocdepth="2" \
-            -V mainfont="Noto Serif" \
-            -V sansfont="Noto Sans" \
-            -o "$OUTPUT_FILE.$type" "$HTML_FILE"
+    pandoc \
+        -S \
+        --latex-engine="xelatex" \
+        --template="$TEMPLATE" \
+        --toc \
+        --toc-depth=2 \
+        -V documentclass="scrartcl" \
+        -V classoption="oneside" \
+        -V geometry='hmargin=2cm' \
+        -V geometry='vmargin=3cm' \
+        -V title="$TITLE" \
+        -V subtitle="$SUBTITLE" \
+        -V date="$DATE" \
+        -V mainfont="Noto Serif" \
+        -V sansfont="Noto Sans" \
+        -o "$OUTPUT_FILE.$type" "$HTML_FILE"
 
         echo "GENERATED FILE: $OUTPUT_FILE.$type"
     done

@@ -128,7 +128,7 @@ generate_term_file () {
 
     # ----- START GENERATE CL PAGE ----- #
     echo "GENERATING $CL_FILE"
-    
+
     mkdir -p "$CL_DIR"
 
     # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
@@ -180,15 +180,18 @@ generate_term_file () {
     TITLE='translationWords'
 
     # Create PDF
-    pandoc --template=$TEMPLATE -S --toc --toc-depth=2 -V toc-depth=1 \
+    pandoc \
+        -S \
         --latex-engine="xelatex" \
+        --template="$TEMPLATE" \
+        --toc \
+        --toc-depth=2 \
         -V documentclass="scrartcl" \
         -V classoption="oneside" \
         -V geometry='hmargin=2cm' \
         -V geometry='vmargin=3cm' \
         -V title="$TITLE" \
         -V date="$DATE" \
-        -V tocdepth="2" \
         -V mainfont="Noto Serif" \
         -V sansfont="Noto Sans" \
         -o $PDF_FILE $HTML_FILE
