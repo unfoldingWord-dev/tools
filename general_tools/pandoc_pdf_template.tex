@@ -155,7 +155,12 @@ $endfor$
 \newcommand\sectionbreak{\clearpage}
 \newcommand\subsectionbreak{\clearpage}
 
+$if(tocdepth)$
+\setcounter{tocdepth}{$tocdepth$}
+$else$
 \setcounter{tocdepth}{1}
+$endif$
+
 \newtocstyle{compact}{%
   \settocfeature[1]{entryhook}{\bfseries}%
   \settocfeature[1]{entryvskip}{0pt plus 2pt}%
@@ -186,9 +191,6 @@ $endfor$
 $if(toc)$
 {
 \hypersetup{linkcolor=black}
-$if(tocdepth)$
-\setcounter{tocdepth}{$tocdepth$}
-$endif$
 \setcounter{secnumdepth}{-1}
 \tableofcontents
 \newpage

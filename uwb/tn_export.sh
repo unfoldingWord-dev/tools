@@ -22,18 +22,81 @@ set -e
 # WORKING_DIR - Directory where all HTML files for tN, tQ, tW, tA are collected and then a full HTML file is made before conversion to PDF, defaults to a system suggested temp location
 # OUTPUT_DIR - Directory to put the PDF, defaults to the current working directory
 # BASE_URL - URL for the _export/xhtmlbody to get Dokuwiki content, defaults to 'https://door43.org/_export/xhtmlbody'
-# NOTES_URL - URL for getting translationNotes, defaults to $D43_BASE_URL/en/bible/notes
 # TEMPLATE - Location of the TeX template for Pandoc, defaults to "$TOOLS_DIR/general_tools/pandoc_pdf_template.tex
 
 # Instantiate a DEBUG flag (default to false). This enables output usful durring
 # script development or later DEBUGging but not normally needed durring
 # production runs. It can be used by calling the script with the var set, e.g.:
 #     $ DEBUG=true ./uwb/pdf_create.sh <book>
-: ${DEBUG:=false}
-
-: ${LANGUAGE:=en}
 
 : ${TOOLS_DIR:=$(cd $(dirname "$0")/../ && pwd)}
+
+FILE_TYPES=()
+BOOKS_TO_PROCESS=()
+
+VALID_FILE_TYPES=(pdf docx html tex txt text)
+
+# Gets us an associative array called $bookS
+source "$TOOLS_DIR/general_tools/bible_books.sh"
+
+#gather command-line arguments
+while [[ $# > 0 ]]
+do
+    arg="$1"
+    case $arg in
+        -o|--output)
+            OUTPUT_DIR="$2"
+            shift # past argument
+        ;;
+        -w|--working)
+            WORKING_DIR="$2"
+            shift # past argument
+        ;;
+        -l|--lang|-language)
+            LANGUAGE="$2"
+            shift # past argument
+        ;;
+        --debug)
+            DEBUG=true
+        ;;
+        -t|--type)
+            arg2=${2,,}
+
+            if [ ! ${VALID_FILE_TYPES[$arg2]+_} ];
+            then
+                echo "Invalid type: $arg2"
+                echo "Valid types: pdf, docx, html, tex, txt, text"
+                exit 1
+            fi
+
+            FILE_TYPES+=("$arg2")
+
+            shift # past argument
+        ;;
+        *)
+            if [ ! ${BOOK_NAMES[${arg,,}]+_} ];
+            then
+                if [ ${arg,,} = "ot" ];
+                then
+                    BOOKS_TO_PROCESS+=(gen exo lev num deu jos jdg rut 1sa 2sa 1ki 2ki 1ch 2ch ezr neh est job psa pro ecc sng isa jer lam ezk dan hos jol amo oba jon mic nam hab zep hag zec mal)
+                elif [ ${arg,,} = "nt" ];
+                then
+                    BOOKS_TO_PROCESS+=(mat mrk luk jhn act rom 1co 2co gal eph php col 1ti 2ti 1th 2th tit phm heb jas 1pe 2pe 1jn 2jn 3jn jud rev)
+                else
+                    echo "Invalid book given: $arg"
+                    exit 1;
+                fi
+            else
+                BOOKS_TO_PROCESS+=("$arg")
+            fi
+        ;;
+    esac
+    shift # past argument or value
+done
+
+: ${DEBUG:=false}
+: ${LANGUAGE:=en}
+
 : ${OUTPUT_DIR:=$(pwd)}
 : ${TEMPLATE:=$TOOLS_DIR/general_tools/pandoc_pdf_template.tex}
 
@@ -58,13 +121,13 @@ if [[ -z $WORKING_DIR ]]; then
     # If _not_ in DEBUG mode, _and_ we made our own temp directory, then
     # cleanup out temp files after every run. Running in DEBUG mode will skip
     # this so that the temp files can be inspected manually
-    $DEBUG || trap 'popd; rm -rf "$WORKING_DIR"' EXIT SIGHUP SIGTERM
+    $DEBUG || trap 'popd > /dev/null; rm -rf "$WORKING_DIR"' EXIT SIGHUP SIGTERM
 elif [[ ! -d $WORKING_DIR ]]; then
     mkdir -p "$WORKING_DIR"
 fi
 
 # Change to own own temp dir but note our current dir so we can get back to it
-pushd "$WORKING_DIR"
+pushd "$WORKING_DIR" > /dev/null
 
 DATE=`date +"%Y-%m-%d"`
 
@@ -74,29 +137,26 @@ then
     exit 1;
 fi
 
-# Gets us an associative array called $BOOKS
-source "$TOOLS_DIR/general_tools/bible_books.sh"
-
 book_export () {
-    BOOK=$1
+    book=$1
 
-    if [ ! ${BOOKS[$BOOK]+_} ];
+    if [ ! ${BOOK_NAMES[$book]+_} ];
     then
-        echo "Invalid book given: $BOOK"
+        echo "Invalid book given: $book"
         exit 1;
     fi
 
-    CL_FILE="${LANGUAGE}_${BOOK}_cl.html" # Copyrights & Licensing
-    TN_FILE="${LANGUAGE}_${BOOK}_tn.html" # translationNotes
-    TQ_FILE="${LANGUAGE}_${BOOK}_tq.html" # translationQuestions
-    TW_FILE="${LANGUAGE}_${BOOK}_tw.html" # translationWords
-    TA_FILE="${LANGUAGE}_${BOOK}_ta.html" # translationAcademy
-    HTML_FILE="${LANGUAGE}_${BOOK}_all.html" # Compilation of all above HTML files
-    LINKS_FILE="${LANGUAGE}_${BOOK}_links.sed" # SED commands for links
-    PDF_FILE="$OUTPUT_DIR/tN_${BOOK^^}_${LANGUAGE^^}_$DATE.pdf"
-    BAD_LINKS_FILE="${LANGUAGE}_${BOOK}_bad_links.txt"
+    CL_FILE="${LANGUAGE}_${book}_cl.html" # Copyrights & Licensing
+    TN_FILE="${LANGUAGE}_${book}_tn.html" # translationNotes
+    TQ_FILE="${LANGUAGE}_${book}_tq.html" # translationQuestions
+    TW_FILE="${LANGUAGE}_${book}_tw.html" # translationWords
+    TA_FILE="${LANGUAGE}_${book}_ta.html" # translationAcademy
+    HTML_FILE="${LANGUAGE}_${book}_all.html" # Compilation of all above HTML files
+    LINKS_FILE="${LANGUAGE}_${book}_links.sed" # SED commands for links
+    OUTPUT_FILE="$OUTPUT_DIR/tN_${BOOK_NUMBERS[$book]}_${book^^}_${LANGUAGE^^}_$DATE"
+    BAD_LINKS_FILE="${LANGUAGE}_${book}_bad_links.txt"
 
-    rm -f "$CL_FILE" "$TN_FILE" "$TQ_FILE" "$TA_FILE" "$LINKS_FILE" "$HTML_FILE" "$BAD_LINKS_FILE" # We start fresh, only files that remain are any files retrieved with wget
+    rm -f "$CL_FILE" "$TN_FILE" "$TQ_FILE" "$TW_FILE" "$TA_FILE" "$LINKS_FILE" "$HTML_FILE" "$BAD_LINKS_FILE" # We start fresh, only files that remain are any files retrieved with wget
 
     touch "$LINKS_FILE"
     touch "$BAD_LINKS_FILE"
@@ -140,14 +200,14 @@ book_export () {
 
     touch "$TN_FILE"
 
-    find "$D43_BASE_DIR/$TN_DIR/$BOOK" -type d -name "[0-9]*" -printf '%P\n' |
+    find "$D43_BASE_DIR/$TN_DIR/$book" -type d -name "[0-9]*" -printf '%P\n' |
         sort -u |
         while read chapter;
         do
-            dir="$TN_DIR/$BOOK/$chapter";
+            dir="$TN_DIR/$book/$chapter";
             mkdir -p "$dir"
 
-            find "$D43_BASE_DIR/$dir" -type f -name "[0-9]*.txt" -printf '%P\n' |
+            find "$D43_BASE_DIR/$dir" -type f -name "[0-9]*.txt"  -exec grep -q 'tag>.*publish' {} \; -printf '%P\n' |
                 grep -v 'asv-ulb' |
                 sort -u |
                 while read f; do
@@ -190,7 +250,7 @@ book_export () {
                             fi
                         done < "$dir/$section.html"
                     else
-                        echo "<h1>$BOOK $chapter:$section - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$section - page does not exist</p>" >> "$TN_FILE"
+                        echo "<h1>$book $chapter:$section - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$section - page does not exist</p>" >> "$TN_FILE"
                     fi
                 done
         done
@@ -206,10 +266,10 @@ book_export () {
 
     touch "$TQ_FILE"
 
-    dir="$TQ_DIR/$BOOK"
+    dir="$TQ_DIR/$book"
     mkdir -p "$dir"
 
-    find "$D43_BASE_DIR/$TQ_DIR/$BOOK" -type f -name "[0-9]*.txt" -printf '%P\n' |
+    find "$D43_BASE_DIR/$TQ_DIR/$book" -type f -name "[0-9]*.txt" -exec grep -q 'tag>.*publish' {} \; -printf '%P\n' |
         sort |
         while read f;
         do
@@ -238,7 +298,7 @@ book_export () {
                 linkname=$(head -3 "$dir/$chapter.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
                 echo "s@/$dir/$chapter\"@#$linkname\"@g" >> "$LINKS_FILE"
             else
-                echo "<h1>$BOOK $chapter - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$chapter - page does not exist</p>" >> "$TQ_FILE"
+                echo "<h1>$book $chapter - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$chapter - page does not exist</p>" >> "$TQ_FILE"
             fi
         done
 
@@ -396,59 +456,57 @@ book_export () {
 #        -e 's/"\/_media/"https:\/\/door43.org\/_media/g' \
     # ----- END LINK FIXES AND CLEANUP ------- #
 
-    # ----- START GENERATE PDF FILE ----- #
-    echo "GENERATING $PDF_FILE";
-
-    TITLE=${BOOKS[$BOOK]}
+    # ----- START GENERATE OUTPUT FILES ----- #
+    TITLE="${BOOK_NAMES[$book]}"
     SUBTITLE="translationNotes"
 
-    # Create PDF
-    pandoc --template=$TEMPLATE -S --toc --toc-depth=2 -V toc-depth=1 \
-        --latex-engine="xelatex" \
-        -V documentclass="scrartcl" \
-        -V classoption="oneside" \
-        -V geometry='hmargin=2cm' \
-        -V geometry='vmargin=3cm' \
-        -V title="$TITLE" \
-        -V subtitle="$SUBTITLE" \
-        -V date="$DATE" \
-        -V tocdepth="2" \
-        -V mainfont="Noto Serif" \
-        -V sansfont="Noto Sans" \
-        -o "$PDF_FILE" "$HTML_FILE"
+    for type in "${FILE_TYPES[@]}"
+    do
+        echo "GENERATING $OUTPUT_FILE.$type";
 
-    echo "PDF FILE: $PDF_FILE"
-    # ----- END GENERATE PDF FILE ------- #
+        # Create PDF
+        pandoc --template="$TEMPLATE" -S --toc --toc-depth=2 -V toc-depth=1 \
+            --latex-engine="xelatex" \
+            -V documentclass="scrartcl" \
+            -V classoption="oneside" \
+            -V geometry='hmargin=2cm' \
+            -V geometry='vmargin=3cm' \
+            -V title="$TITLE" \
+            -V subtitle="$SUBTITLE" \
+            -V date="$DATE" \
+            -V tocdepth="2" \
+            -V mainfont="Noto Serif" \
+            -V sansfont="Noto Sans" \
+            -o "$OUTPUT_FILE.$type" "$HTML_FILE"
+
+        echo "GENERATED FILE: $OUTPUT_FILE.$type"
+    done
+    # ----- END GENERATE OUTPUT FILES ------- #
 }
 
 # ---- EXECUTION BEGINS HERE ----- #
 
-if [ -z "$1" ];
+if [ ${#BOOKS_TO_PROCESS[@]} -eq 0 ];
 then
     echo "Please specify one or more books by adding their abbreviations, separated by spaces. Book abbreviations are as follows:";
 
-    for key in "${!BOOKS[@]}"
+    for key in "${!BOOK_NAMES[@]}"
     do
-        echo "$key: ${BOOKS[$key]}";
+        echo "$key: ${BOOK_NAMES[$key]}";
     done |
     sort -n -k3
 
     exit 1;
 fi
 
-#first check all books given are valid
-for arg in "$@"
-do
-    if [ ! ${BOOKS[${arg,,}]+_} ];
-    then
-        echo "Invalid book given: $arg"
-        exit 1;
-    fi
-done
+if [ ${#FILE_TYPES[@]} -eq 0 ];
+then
+    FILE_TYPES=(pdf)
+fi
 
-for arg in "$@"
+for book in "${BOOKS_TO_PROCESS[@]}"
 do
-    book_export ${arg,,}
+    book_export ${book,,}
 done
 
 echo "Done!"
