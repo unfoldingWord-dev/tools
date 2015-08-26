@@ -6,9 +6,7 @@
 #  See LICENSE file for details.
 #
 #  Contributors:
-#  Jesse Griffin <jesse@distantshores.org>
 #  Richard Mahn <richard_mahn@wycliffeassociates.org>
-#  Caleb Maclennan <caleb@alerque.com>
 #
 # Array of Bible books keyed by book code
 
