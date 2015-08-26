@@ -7,12 +7,13 @@
 #
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
+#  Caleb Maclennan <caleb@alerque.com>
 
 # Exports Key Terms, Translation Notes, and Translation Academy to HTML
 # for the Translation Studio app.
 
-PROGNAME="${0##*/}"
-D2H="/var/www/vhosts/door43.org/tools/general_tools/doku2html/dokuwiki2html.sh"
+BASEDIR=$(cd $(dirname "$0")/../../ && pwd)
+D2H="$BASEDIR/general_tools/doku2html/dokuwiki2html.sh"
 SRCBASE="/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en"
 DSTBASE="/var/www/vhosts/door43.org/ts-exports"
 

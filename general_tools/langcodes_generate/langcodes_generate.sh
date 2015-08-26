@@ -7,6 +7,7 @@
 #
 #  Contributors:
 #  Tim Jore <tim@distantshores.org>
+#  Caleb Maclennan <caleb@alerque.com>
 
 ###############################################################################
 #
@@ -15,10 +16,10 @@
 ###############################################################################
 
 LANGCODES=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/media/exports/meta/langcodes.txt
-TOOLS=/var/www/vhosts/door43.org/tools
+BASEDIR=$(cd $(dirname "$0")/../../ && pwd)
 HELPER="general_tools/langcodes_generate/helper.php"
 
-php $TOOLS/$HELPER > $LANGCODES
+php $BASEDIR/$HELPER > $LANGCODES
 
 chmod -w $LANGCODES
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf8 -*-
 #
 # Copyright (c) 2015 unfoldingWord
@@ -9,12 +9,10 @@
 #  Phil Hopper <phillip_hopper@wycliffeassociates.org>
 #
 #
-import atexit
 import codecs
 from datetime import datetime
 from etherpad_lite import EtherpadLiteClient, EtherpadException
 from itertools import ifilter
-import logging
 import os
 import re
 import sys
@@ -22,6 +20,8 @@ import time
 import yaml
 
 LOGFILE = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/playground/ta_import.log.txt'
+
+BADLINKREGEX = re.compile(r"(.*?)(\[\[?)(:en:ta:?)(.*?)(]]?)(.*?)", re.DOTALL | re.MULTILINE | re.UNICODE)
 
 # YAML file heading data format:
 #
@@ -46,12 +46,6 @@ if not os.path.exists(log_dir):
 
 if os.path.exists(LOGFILE):
     os.remove(LOGFILE)
-logging.basicConfig(filename=LOGFILE, level=logging.DEBUG, format="%(message)s")
-
-
-@atexit.register
-def exit_logger():
-    logging.shutdown()
 
 
 class SelfClosingEtherpad(EtherpadLiteClient):
@@ -119,16 +113,17 @@ def log_this(string_to_log, top_level=False):
     if top_level:
         msg = u'\n=== {0} ==='.format(string_to_log)
     else:
-        msg = u'  * {0}'.format(string_to_log)
+        msg = u'\n  * {0}'.format(string_to_log)
 
-    logging.info(msg)
+    with codecs.open(LOGFILE, 'a', 'utf-8') as file_out:
+        file_out.write(msg)
 
 
 def log_error(string_to_log):
 
     global error_count
     error_count += 1
-    log_this(string_to_log)
+    log_this(u'<font inherit/inherit;;#bb0000;;inherit>{0}</font>'.format(string_to_log))
 
 
 def quote_str(string_value):
@@ -278,7 +273,7 @@ def get_ta_pages(e_pad, sections):
 
         for pad_id in section.page_list:
 
-            log_this('Processing page: ' + pad_id, True)
+            log_this('Retrieving page: ' + section_key.lower() + ':' + pad_id, True)
 
             # get the page
             try:
@@ -329,7 +324,7 @@ def make_dependency_chart(sections, pages):
     # pages
     for page in pages:
         assert isinstance(page, PageData)
-        log_this('Processing page ' + page.page_id)
+        log_this('Processing page ' + page.section_name.lower() + '/' + page.yaml_data['slug'])
 
         # check for invalid yaml data
         if 'invalid' in page.yaml_data:
@@ -528,6 +523,7 @@ def make_dokuwiki_pages(pages):
                 md += "\n\n"
 
             md += page.page_text + "\n\n"
+            check_bad_links(page.page_text)
 
             if recommended:
                 md += 'Next we recommend you learn about:'
@@ -544,6 +540,16 @@ def make_dokuwiki_pages(pages):
             log_error(str(ex))
 
     log_this('Generated ' + str(pages_generated) + ' Dokuwiki pages.', True)
+
+
+def check_bad_links(page_text):
+
+    matches = BADLINKREGEX.findall(u'{0}'.format(page_text).replace(u'–', u'-'))
+
+    # check for vol1 or vol2
+    for match in matches:
+        if len(match[3]) > 3 and match[3][:3] != u'vol':
+            log_error(u'Bad link => {0}{1}'.format(match[2], match[3]))
 
 
 def output_list(pages, option_list):
@@ -592,6 +598,25 @@ def get_page_url(page):
     return page_dir + ':' + page_file
 
 
+def compare_pages(page_a, page_b):
+    """
+    Function used to compare and sort PageData objects
+    :param page_a: PageData
+    :param page_b: PageData
+    :return: int
+    """
+
+    test1 = page_a.section_name + '/' + page_a.yaml_data['slug']
+    test2 = page_b.section_name + '/' + page_b.yaml_data['slug']
+
+    if test1 > test2:
+        return 1
+
+    if test2 > test1:
+        return -1
+
+    return 0
+
 if __name__ == '__main__':
 
     log_this('Most recent run: ' + datetime.utcnow().strftime('%Y-%m-%d %H:%M') + ' UTC', True)
@@ -604,34 +629,29 @@ if __name__ == '__main__':
         with open(last_file, 'r') as f:
             last_checked = int(float(f.read()))
 
-    has_changed = False
     ta_pages = None
 
     with SelfClosingEtherpad() as ep:
-
         text = ep.getText(padID='ta-modules')
         ta_sections = parse_ta_modules(text['text'])
-        if get_last_changed(ep, ta_sections) > last_checked:
-            has_changed = True
-            log_this('Changes found')
+        ta_pages = get_ta_pages(ep, ta_sections)
 
-        if has_changed:
-            ta_pages = get_ta_pages(ep, ta_sections)
+    log_this('Sorting pages', True)
+    ta_pages = sorted(ta_pages, cmp=compare_pages)
 
-    if has_changed:
-        log_this('Generating dependency chart', True)
-        make_dependency_chart(ta_sections, ta_pages)
-        log_this('Generating Dokuwiki pages.', True)
-        make_dokuwiki_pages(ta_pages)
+    log_this('Generating dependency chart', True)
+    make_dependency_chart(ta_sections, ta_pages)
+    log_this('Generating Dokuwiki pages.', True)
+    make_dokuwiki_pages(ta_pages)
 
     # remember last_checked for the next time
     if error_count == 0:
         with open(last_file, 'w') as f:
             f.write(str(time.time()))
     else:
-        log_this(str(error_count) + ' errors have been logged', True)
+        if error_count == 1:
+            log_this('1 error has been logged', True)
+        else:
+            log_this(str(error_count) + ' errors have been logged', True)
 
-    if has_changed:
-        log_this('Finished updating', True)
-    else:
-        log_this('No changes found', True)
+    log_this('Finished updating', True)

@@ -7,20 +7,21 @@
 #
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
+#  Caleb Maclennan <caleb@alerque.com>
 
-PROGNAME="${0##*/}"
+BASEDIR=$(cd $(dirname "$0")/../../ && pwd)
 PANDOC="/usr/bin/pandoc"
 PAGES=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages
 TEMPLATE=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/media/en/obs-templates/obs-book-template.odt
-OBS_EXPORT="/var/www/vhosts/door43.org/tools/obs/export.py"
+OBS_EXPORT="$BASEDIR/obs/export.py"
 
 help() {
     echo
     echo "Export to a print ready ODT file."
     echo
     echo "Usage:"
-    echo "   $PROGNAME -l <LangCode>"
-    echo "   $PROGNAME --help"
+    echo "   $0 -l <LangCode>"
+    echo "   $0 --help"
     echo
     exit 1
 }
