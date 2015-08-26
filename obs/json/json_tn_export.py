@@ -206,10 +206,11 @@ def gettN(page):
     return tN
 
 def runKT(lang, today):
-    ktpath = os.path.join(pages, lang, 'obs/notes/key-terms')
+    ktpath = os.path.join(pages, lang, 'obe/kt')
     apipath = os.path.join(api, lang)
     keyterms = []
     for f in glob.glob('{0}/*.txt'.format(ktpath)):
+#### grep for tag> obs
         if 'home.txt' in f or '1-discussion-topic.txt' in f: continue
         keyterms.append(getKT(f))
     for i in keyterms:

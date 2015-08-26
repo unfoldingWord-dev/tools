@@ -7,8 +7,10 @@
 #
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
+#  Caleb Maclennan <caleb@alerque.com>
 
 NOTES=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes
+BASEDIR=$(cd $(dirname "$0")/../ && pwd)
 
 book_import () {
     # $1 is book short name
@@ -16,11 +18,11 @@ book_import () {
 
     if [ "$1" == "psa" ]; then
         for x in `seq -f "%03g" 1 $2`; do
-            /var/www/vhosts/door43.org/tools/uwb/ep_chunk.py en-ulb-$1-$x >/dev/null
+            $BASEDIR/uwb/ep_chunk.py en-ulb-$1-$x >/dev/null
         done
     else
         for x in `seq -f "%02g" 1 $2`; do
-            /var/www/vhosts/door43.org/tools/uwb/ep_chunk.py en-ulb-$1-$x >/dev/null
+            $BASEDIR/uwb/ep_chunk.py en-ulb-$1-$x >/dev/null
         done
     fi
 
