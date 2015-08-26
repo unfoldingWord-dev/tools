@@ -1,10 +1,24 @@
 % Very helpul: http://ctan.math.washington.edu/tex-archive/macros/latex/contrib/memoir/memman.pdf
 \documentclass[$if(fontsize)$$fontsize$,$endif$$if(lang)$$lang$,$endif$$if(papersize)$$papersize$,$endif$$for(classoption)$$classoption$$sep$,$endfor$,openany]{$documentclass$}
-$if(fontfamily)$
-\usepackage{$fontfamily$}
-$else$
-\usepackage{lmodern}
+\usepackage[automark]{scrpage2}
+\usepackage{tocstyle}
+\usepackage{titlesec}
+
+\AtBeginDocument{%
+	\pagestyle{scrheadings}%
+	\clearscrheadfoot%
+	\cfoot{\pagemark{}}%
+	\ohead{\headmark}%
+}{}
+
+$if(mainfont)$
+\usepackage{fontspec}
+\setmainfont{$mainfont$}
 $endif$
+$if(sansfont)$
+\setsansfont{$sansfont$}
+$endif$
+
 $if(linestretch)$
 \usepackage{setspace}
 \setstretch{$linestretch$}
@@ -17,18 +31,6 @@ $endif$
   \usepackage[utf8]{inputenc}
 $if(euro)$
   \usepackage{eurosym}
-$endif$
-\usepackage[vmargin=2cm,hmargin=2cm]{geometry}
-\pagestyle{empty} 
-\chapterstyle{bringhurst}
-$if(mainfont)$
-    \setmainfont{$mainfont$}
-$endif$
-$if(sansfont)$
-    \setsansfont{$sansfont$}
-$endif$
-$if(monofont)$
-    \setmonofont[Mapping=tex-ansi]{$monofont$}
 $endif$
 $if(mathfont)$
     \setmathfont(Digits,Latin,Greek){$mathfont$}
@@ -130,12 +132,12 @@ $if(verbatim-in-note)$
 $endif$
 
 $if(title)$
-\title{$title$$if(subtitle)$\\\vspace{0.5em}{\large $subtitle$}$endif$}
+\title{\Huge $title$$if(subtitle)$\\\vspace{0.5em}{\Large $subtitle$}$endif$}
 $endif$
 $if(author)$
 \author{$for(author)$$author$$sep$ \and $endfor$}
 $endif$
-\date{$date$}
+\date{\small $date$}
 $for(header-includes)$
 $header-includes$
 $endfor$
@@ -150,26 +152,47 @@ $endfor$
 \renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
 \fi
 
+\newcommand\sectionbreak{\clearpage}
+\newcommand\subsectionbreak{\clearpage}
+
+\usepackage{enumitem}
+\setlistdepth{99}
+
 \begin{document}
+
+\pagenumbering{gobble}
 $if(title)$
-\maketitle
+  \maketitle
 $endif$
+
 $if(abstract)$
-\begin{abstract}
-$abstract$
-\end{abstract}
+  \begin{abstract}
+    $abstract$
+  \end{abstract}
 $endif$
 
 $for(include-before)$
-$include-before$
-
+  $include-before$
 $endfor$
+
+\newpage
+\pagenumbering{arabic}
+
 $if(toc)$
 {
-\hypersetup{linkcolor=black}
-\setcounter{tocdepth}{$toc-depth$}
-\tableofcontents
-\newpage
+  \setcounter{tocdepth}{$toc-depth$}
+
+  \newtocstyle{compact}{%
+    \settocfeature[1]{entryhook}{\bfseries}%
+    \settocfeature[1]{entryvskip}{0pt plus 2pt}%
+  }
+  \usetocstyle{compact}
+
+  \hypersetup{linkcolor=black}
+  \setcounter{secnumdepth}{-1}
+
+  \tableofcontents
+  \newpage
 }
 $endif$
 $if(lot)$
@@ -178,6 +201,7 @@ $endif$
 $if(lof)$
 \listoffigures
 $endif$
+
 $body$
 
 $if(natbib)$
