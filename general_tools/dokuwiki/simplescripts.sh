@@ -10,6 +10,12 @@
 # These are short snippets that are useful for accomplishing certain tasks.
 #
 
+# Add a new tag
+for d in `seq -f "%03g" 2 41`; do
+    sed -i '/tag>/s/\}\}/,book1\}\}/' $d/*.txt
+done
+
+
 # Remove link names from key term links
 for f in `find . -type f -name '[0-9]*.txt'`; do
     sed -i -e '/:kt:/s/|.*\]\]/\]\]/' \
