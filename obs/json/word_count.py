@@ -33,6 +33,7 @@ def count(lang):
     text = []
     for chp in content_json['chapters']:
         text.append(chp['title'])
+        text.append(chp['ref'])
         for frame in chp['frames']:
             if 'text' in frame:
                 text.append(frame['text'])
