@@ -22,11 +22,11 @@ import glob
 import codecs
 import urllib2
 from etherpad_lite import EtherpadLiteClient
-from etherpad_lite import EtherpadException
 
 
 NP = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes'
 TFTURL = 'https://door43.org/_export/raw/en/udb/v1/{0}/{1}.usfm'
+hyphenfixre = re.compile(ur'[ ]?--[ ]?')
 refre = re.compile(ur'\\v.([0-9][0-9]?[0-9]?)')
 httpsre = re.compile(ur'https://pad.door43.org.*', re.UNICODE)
 sectionre = re.compile(ur'\\s.*', re.UNICODE)
@@ -285,6 +285,19 @@ def getURL(url):
     return ucontent
 
 
+def fix_text(source_text):
+    """
+    Removes and replaces specific characters and sequences
+    :param source_text: string
+    :return: string
+    """
+
+    fixed_text = hyphenfixre.sub(u'—', source_text)
+    fixed_text = fixed_text.replace(u' — ', u'—')
+
+    return fixed_text
+
+
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         pad_name = str(sys.argv[1]).strip()
@@ -307,5 +320,5 @@ if __name__ == '__main__':
     udb = ep.getText(padID=pad_name.replace('ulb', 'udb'))
     tft = getURL(TFTURL.format(bk, chp.zfill(3)))
 
-    chunked = splice(ulb['text'], udb['text'], tft, bk, chp)
+    chunked = splice(fix_text(ulb['text']), fix_text(udb['text']), tft, bk, chp)
     writeChunks(chunked)

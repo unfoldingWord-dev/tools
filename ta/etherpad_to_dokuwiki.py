@@ -21,7 +21,7 @@ import yaml
 
 LOGFILE = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/playground/ta_import.log.txt'
 
-BADLINKREGEX = re.compile(r"(.*?)(\[\[?)(:en:ta:?)(.*?)(]]?)(.*?)", re.DOTALL | re.MULTILINE | re.UNICODE)
+BADLINKREGEX = re.compile(r"(.*?)(\[\[?)(:?en:ta:?)(.*?)(]]?)(.*?)", re.DOTALL | re.MULTILINE | re.UNICODE)
 
 # YAML file heading data format:
 #
@@ -59,6 +59,9 @@ class SelfClosingEtherpad(EtherpadLiteClient):
         try:
             pw = open('/usr/share/httpd/.ssh/ep_api_key', 'r').read().strip()
             self.base_params = {'apikey': pw}
+
+            self.base_params = {'apikey': '1eaafc023a00a87d113b0eed2363c8ef0617e400cad30504c1fdacfe0c81ac78'}
+            self.base_url = 'https://pad.door43.org/api'
         except:
             e1 = sys.exc_info()[0]
             print 'Problem logging into Etherpad via API: {0}'.format(e1)
