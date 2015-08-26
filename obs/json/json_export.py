@@ -101,6 +101,7 @@ imglinkre = re.compile(ur'https://.*\.(jpg|jpeg|gif)', re.UNICODE)
 # Regexes for front matter
 obsnamere = re.compile(ur'\| (.*)\*\*', re.UNICODE)
 taglinere = re.compile(ur'\n\*\*.*openbiblestories', re.UNICODE | re.DOTALL)
+linkre = re.compile(ur'\[\[.*?\]\]', re.UNICODE)
 
 
 obsframeset = set([
@@ -292,6 +293,14 @@ def getFrontMatter(lang, today):
     if not os.path.exists(frontpath):
         return getDump({})
     front = codecs.open(frontpath, 'r', encoding='utf-8').read()
+
+    for l in linkre.findall(front):
+        if '|' in l:
+            cleanurl = l.split(u'|')[1].replace(u']', u'')
+        else:
+            cleanurl = l.replace(u']', u'').replace(u'[', u'')
+        front = front.replace(l, cleanurl)
+
     obsnamese = obsnamere.search(front)
     if obsnamese:
         obsname = obsnamese.group(1)
@@ -305,7 +314,7 @@ def getFrontMatter(lang, today):
     return getDump({ 'language': lang,
                      'name': obsname,
                      'tagline': tagline,
-                     'front-matter': cleanText(front, lang, 'front-matter'),
+                     'front-matter': front,
                      'date_modified': today
                    })
 
