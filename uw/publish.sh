@@ -9,6 +9,7 @@
 #  Jesse Griffin <jesse@distantshores.org>
 #  Caleb Maclennan <caleb@alerque.com>
 
+APIBASE=/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/
 help() {
     echo
     echo "Publish OBS."
@@ -46,19 +47,21 @@ if [ -z "$LANG" ]; then
 fi
 
 # Figure out where _this_ script is so we can reference other scripts relative
-# to it ever if called from elsewhere (in, say the directary we want the output)
+# to it ever if called from elsewhere (in, say the directory we want the output)
 BASEDIR=$(cd $(dirname "$0")/../ && pwd)
 
 # Run export of OBS to JSON
 $BASEDIR/obs/json/json_export.py -l $LANG -e || exit 1
 
 VER=$($BASEDIR/uw/get_ver.py $LANG)
+LEV=$($BASEDIR/uw/get_level.py $LANG)
 
-# Create PDF via TeX for languages exported
-#$BASEDIR/obs/book/pdf_export.sh -l $LANG
+# Create PDF via ConTeXt
+$BASEDIR/obs/book/pdf_export.sh -l $LANG -c "$LEV" -v "$VER" \
+    -o "$APIBASE/$LANG/" -r /tmp/
 
-# Create Open Document export for language exported
-$BASEDIR/obs/book/odt_export.sh -l $LANG
+# Create Open Document export
+#$BASEDIR/obs/book/odt_export.sh -l $LANG
 
 # Create image symlinks on api.unfoldingword.org
 $BASEDIR/uw/makejpgsymlinks.sh -l $LANG

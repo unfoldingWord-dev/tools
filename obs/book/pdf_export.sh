@@ -75,7 +75,7 @@ if ! command -v context >/dev/null; then
     fi
 fi
 if ! mtxrun --script fonts --list --all | grep -q noto; then
-    export OSFONTSDIR=${OSFONTDIR:="/usr/local/share/fonts;/usr/share/fonts"}
+    OSFONTDIR="/usr/share/fonts/google-noto;/usr/local/share/fonts;/usr/share/fonts"
     mtxrun --script fonts --reload
     context --generate
 fi
@@ -96,7 +96,7 @@ for lang in "${langs[@]}"; do
     BASENAME="OBS-${lang}-v${LANGVER}${tag:+-$tag}"
 
     # Run python (export.py) to generate the .tex file from template .tex files
-    ./obs/export.py -l $lang -f tex -o ${checking:+-c $chekcing} "$BASENAME.tex"
+    ./obs/export.py -l $lang -f tex ${checking:+-c $checking} -o "$BASENAME.tex"
 
     # Run ConTeXt (context) to generate stories from .tex file output by python
     $debug && trackers="afm.loading,fonts.missing,fonts.warnings,fonts.names,fonts.specifications,fonts.scaling,system.dump"
