@@ -36,6 +36,7 @@ names = { 'ULB': 'Unlocked Literal Bible',
         }
 baseout = '/var/www/vhosts/api.unfoldingword.org/httpdocs/{0}/txt/1/{0}-{1}'
 draftout = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/{1}/{0}/ep/'
+testout = '/tmp/api/{0}/txt/1/{0}-{1}'
 _digits = re.compile('\d')
 httpsre = re.compile(ur'https://pad.door43.org.*', re.UNICODE)
 srre = re.compile(ur'\\sr.*', re.UNICODE)
@@ -212,6 +213,8 @@ def main(slug, ver):
 
     if ver.lower() == 'draft':
         outdir = draftout.format(slug.lower(), 'en')
+    elif ver.lower() == 'test':
+        outdir = testout.format(slug.lower(), 'en')
     else:
         outdir = baseout.format(slug.lower(), 'en')
 
