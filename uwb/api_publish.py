@@ -124,10 +124,11 @@ def main(source):
     if source:
         source_dirs = [os.path.join(source, x) for x in os.listdir(source)]
         dirs += source_dirs
-    udbd = [os.path.join(UDBSource, x) for x in os.listdir(UDBSource)]
-    dirs += udbd
-    ulbd = [os.path.join(ULBSource, x) for x in os.listdir(ULBSource)]
-    dirs += ulbd
+    else:
+        udbd = [os.path.join(UDBSource, x) for x in os.listdir(UDBSource)]
+        dirs += udbd
+        ulbd = [os.path.join(ULBSource, x) for x in os.listdir(ULBSource)]
+        dirs += ulbd
     for d in dirs:
         ver, lang = d.rsplit('/', 1)[1].split('-')
         tmpdir = '/tmp/{0}-{1}'.format(ver, lang)
