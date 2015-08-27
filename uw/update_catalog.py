@@ -25,7 +25,6 @@ from copy import deepcopy
 
 rtl_langs = ['ar']
 project_dirs = ['obs']
-# We'll need isa and psa to
 bible_dirs = [
   '1ch', '1co', '1jn', '1ki', '1pe', '1sa', '1th', '1ti', '2ch',
   '2co', '2jn', '2ki', '2pe', '2sa', '2th', '2ti', '3jn', 'act',
@@ -34,7 +33,7 @@ bible_dirs = [
   'jer', 'jhn', 'job', 'jol', 'jon', 'jos', 'jud', 'lam', 'lev',
   'luk', 'mal', 'mat', 'mic', 'mrk', 'nam', 'neh', 'num', 'oba',
   'phm', 'php', 'pro', 'rev', 'rom', 'rut', 'sng', 'tit', 'zec',
-  'zep', 'isa'
+  'zep', 'isa', 'psa'
 ]
 bible_slugs = [('udb', 'en'), ('ulb', 'en'), ('avd', 'ar')]
 usfm_api = u'https://api.unfoldingword.org/{0}/txt/1/{0}-{1}/{2}?{3}'
