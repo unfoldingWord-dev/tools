@@ -41,7 +41,7 @@ linkre = re.compile(ur':([^:]*\|.*?)\]\]', re.UNICODE)
 cfre = re.compile(ur'See also.*', re.UNICODE)
 examplesre = re.compile(ur'===== Examples from the Bible stories.*',
     re.UNICODE | re.DOTALL)
-extxtre = re.compile(ur'\*\* (.*)', re.UNICODE)
+extxtre = re.compile(ur'.*?\]\]\]\*\*(.*)', re.UNICODE)
 fridre = re.compile(ur'[0-5][0-9]-[0-9][0-9]', re.UNICODE)
 tNre = re.compile(ur'==== Translation Notes.*', re.UNICODE | re.DOTALL)
 itre = re.compile(ur'==== Important Terms: ====(.*?)====', re.UNICODE | re.DOTALL)
@@ -60,14 +60,23 @@ h3re = re.compile(ur'\n=== (.*?) ===\n', re.UNICODE)
 
 
 def getKT(f):
+    '''
+    Opens KT page and grabs the necessary content out of it, returns
+    dictionary of content.
+    '''
     page = codecs.open(f, 'r', encoding='utf-8').read()
+    if 'ktobs' not in page:
+       # Only pages with the "ktobs" tag are OBS key terms
+       return False
     kt = {}
     kt['filename'] = f.rsplit('/', 1)[1].replace('.txt', '')
+    print kt['filename']
     kt['term'] = ktre.search(page).group(1).strip()
     kt['sub'] = getKTSub(page)
     kt['def_title'], kt['def'] = getKTDef(page)
     kt['cf'] = getKTCF(page)
     kt['ex'] = getKTExamples(page)
+    ### grab translation suggestions and append to kt['def']
     return kt
 
 def getKTDef(page):
@@ -102,7 +111,7 @@ def getKTCF(page):
 def getKTExamples(page):
     examples = []
     text = examplesre.search(page).group(0)
-    for i in text.split('***'):
+    for i in text.split('\n'):
         ex = {}
         frse = fridre.search(i)
         if not frse:
@@ -155,6 +164,7 @@ def getFrame(f):
     frame = {}
     frame['id'] = fridre.search(f).group(0).strip()
     frame['tn'] = gettN(page)
+    ### frame['tw'] = get list of words from "Important Terms:" list
     return frame
 
 def getCQ(f):
@@ -206,12 +216,22 @@ def gettN(page):
     return tN
 
 def runKT(lang, today):
-    ktpath = os.path.join(pages, lang, 'obs/notes/key-terms')
+    ktpath = os.path.join(pages, lang, 'obe/kt')
+    otherpath = os.path.join(pages, lang, 'obe/other')
     apipath = os.path.join(api, lang)
     keyterms = []
+    filelist = []
+    # Generate list of all pages in the KT namespace
     for f in glob.glob('{0}/*.txt'.format(ktpath)):
-        if 'home.txt' in f or '1-discussion-topic.txt' in f: continue
-        keyterms.append(getKT(f))
+        filelist.append(f)
+    for f in glob.glob('{0}/*.txt'.format(otherpath)):
+        filelist.append(f)
+    # Iterate through all kts and grab relevant information
+    for f in filelist:
+        if 'home.txt' in f: continue
+        ktentry = getKT(f)
+        if ktentry:
+            keyterms.append(ktentry)
     for i in keyterms:
         try:
             i['aliases'] = list(set([x for x in ktaliases[i['filename']]
