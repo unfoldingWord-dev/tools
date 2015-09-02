@@ -36,6 +36,8 @@ defre = re.compile(ur'===== Definition: =====(.*?)\[See also', re.UNICODE | re.D
 defre2 = re.compile(ur'===== Definition: =====(.*?)=====', re.UNICODE | re.DOTALL)
 factre = re.compile(ur'===== Facts: =====(.*?)\[See also', re.UNICODE | re.DOTALL)
 factre2 = re.compile(ur'===== Facts: =====(.*?)=====', re.UNICODE | re.DOTALL)
+suggestre = re.compile(ur'===== Translation Suggestions: =====(.*?)=====',
+    re.UNICODE | re.DOTALL)
 linknamere = re.compile(ur'\|(.*?)\]\]', re.UNICODE)
 linkre = re.compile(ur':([^:]*\|.*?)\]\]', re.UNICODE)
 cfre = re.compile(ur'See also.*', re.UNICODE)
@@ -70,14 +72,21 @@ def getKT(f):
        return False
     kt = {}
     kt['filename'] = f.rsplit('/', 1)[1].replace('.txt', '')
-    print kt['filename']
     kt['term'] = ktre.search(page).group(1).strip()
     kt['sub'] = getKTSub(page)
     kt['def_title'], kt['def'] = getKTDef(page)
     kt['cf'] = getKTCF(page)
     kt['ex'] = getKTExamples(page)
-    ### grab translation suggestions and append to kt['def']
+    kt['def'] += getKTSuggestions(page)
     return kt
+
+def getKTSuggestions(page):
+    sugformat = u'<h2>Translation Suggestions</h2>{0}'
+    sugse = suggestre.search(page)
+    if not sugse:
+        return u''
+    sugtxt = sugformat.format(sugse.group(1).rstrip())
+    return getHTML(sugtxt)
 
 def getKTDef(page):
     def_title = 'Definition'
