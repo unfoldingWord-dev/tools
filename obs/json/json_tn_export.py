@@ -32,14 +32,13 @@ ktaliases = {}
 # Regexes for grabbing content
 ktre = re.compile(ur'====== (.*?) ======', re.UNICODE)
 subre = re.compile(ur'\n==== (.*) ====\n', re.UNICODE)
-defre = re.compile(ur'===== Definition: =====(.*?)\[See also', re.UNICODE | re.DOTALL)
-defre2 = re.compile(ur'===== Definition: =====(.*?)=====', re.UNICODE | re.DOTALL)
-factre = re.compile(ur'===== Facts: =====(.*?)\[See also', re.UNICODE | re.DOTALL)
-factre2 = re.compile(ur'===== Facts: =====(.*?)=====', re.UNICODE | re.DOTALL)
-suggestre = re.compile(ur'===== Translation Suggestions: =====(.*?)=====',
+defre = re.compile(ur'===== Definition: =====(.*?)[=(]', re.UNICODE | re.DOTALL)
+factre = re.compile(ur'===== Facts: =====(.*?)[=(]', re.UNICODE | re.DOTALL)
+suggestre = re.compile(ur'===== Translation Suggestions: =====(.*?)\([TS]',
     re.UNICODE | re.DOTALL)
-linknamere = re.compile(ur'\|(.*?)\]\]', re.UNICODE)
 linkre = re.compile(ur':([^:]*\|.*?)\]\]', re.UNICODE)
+dwlinkre = re.compile(ur'en:obe:[ktoher]*:(.*?)\]\]', re.UNICODE)
+dwrellinkre = re.compile(ur'\[\[(\w+)\]\]', re.UNICODE)
 cfre = re.compile(ur'See also.*', re.UNICODE)
 examplesre = re.compile(ur'===== Examples from the Bible stories.*',
     re.UNICODE | re.DOTALL)
@@ -71,14 +70,25 @@ def getKT(f):
        # Only pages with the "ktobs" tag are OBS key terms
        return False
     kt = {}
-    kt['filename'] = f.rsplit('/', 1)[1].replace('.txt', '')
-    kt['term'] = ktre.search(page).group(1).strip()
+    # The filename is the ID
+    kt['id'] = f.rsplit('/', 1)[1].replace('.txt', '')
+    kt['term'], kt['aliases'] = getKTTerm(page)
     kt['sub'] = getKTSub(page)
     kt['def_title'], kt['def'] = getKTDef(page)
     kt['cf'] = getKTCF(page)
     kt['ex'] = getKTExamples(page)
     kt['def'] += getKTSuggestions(page)
     return kt
+
+def getKTTerm(page):
+    aliases = []
+    terms = ktre.search(page).group(1).strip()
+    term_list = terms.split(u',')
+    term = term_list[0].strip()
+    if len(term_list) == 1:
+        return (term, aliases)
+    aliases = [x.strip() for x in term_list[1:]]
+    return (term, aliases)
 
 def getKTSuggestions(page):
     sugformat = u'<h2>Translation Suggestions</h2>{0}'
@@ -92,12 +102,7 @@ def getKTDef(page):
     def_title = 'Definition'
     defse = defre.search(page)
     if not defse:
-        defse = defre2.search(page)
-    if not defse:
         defse = factre.search(page)
-        def_title = 'Facts'
-    if not defse:
-        defse = factre2.search(page)
         def_title = 'Facts'
     deftxt = defse.group(1).rstrip()
     return (def_title, getHTML(deftxt))
@@ -114,7 +119,9 @@ def getKTCF(page):
     cfse = cfre.search(page)
     if cfse:
         text = cfse.group(0)
-        cf = linknamere.findall(text)
+        cf = [x.split('|')[0] for x in linkre.findall(text)]
+        cf += dwlinkre.findall(text)
+        cf += dwrellinkre.findall(text)
     return cf
 
 def getKTExamples(page):
@@ -243,12 +250,11 @@ def runKT(lang, today):
             keyterms.append(ktentry)
     for i in keyterms:
         try:
-            i['aliases'] = list(set([x for x in ktaliases[i['filename']]
+            i['aliases'] += list(set([x for x in ktaliases[i['id']]
                                                           if x != i['term']]))
         except KeyError:
             # this just means no aliases were found
             pass
-        del i['filename']
     keyterms.sort(key=lambda x: len(x['term']), reverse=True)
     keyterms.append({'date_modified': today})
     writeJSON('{0}/kt-{1}.json'.format(apipath, lang), keyterms)
