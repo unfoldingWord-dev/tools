@@ -44,7 +44,7 @@ unfoldingWorddir = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
 rtl = ['he', 'ar', 'fa']
 imgurl = 'https://api.unfoldingword.org/obs/jpg/1/{0}/360px/obs-{0}-{1}.jpg'
 langnames = os.path.join('/var/www/vhosts/door43.org',
-                        'httpdocs/lib/plugins/translation/lang/langnames.txt')
+                  'httpdocs/lib/plugins/door43translation/lang/langnames.txt')
 statusheaders = ( 'publish_date',
                   'version',
                   'contributors',
