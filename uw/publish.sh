@@ -71,3 +71,5 @@ $BASEDIR/obs/js/reveal_export.py
 
 # Run update of v2 API
 $BASEDIR/uw/update_catalog.py
+
+chown -R syncthing:syncthing "$APIBASE"
