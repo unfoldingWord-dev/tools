@@ -100,7 +100,7 @@ for lang in "${langs[@]}"; do
 
     # Run ConTeXt (context) to generate stories from .tex file output by python
     $debug && trackers="afm.loading,fonts.missing,fonts.warnings,fonts.names,fonts.specifications,fonts.scaling,system.dump"
-    context --paranoid --batchmode --noconsole ${trackers:+--trackers=$trackers} "$BASENAME.tex"
+    context --paranoid --batchmode ${trackers:+--trackers=$trackers} "$BASENAME.tex"
 
     # Send to requested output location(s)
     for dir in "${outputs[@]}"; do

@@ -58,7 +58,7 @@ LEV=$($BASEDIR/uw/get_level.py $LANG)
 
 # Create PDF via ConTeXt
 $BASEDIR/obs/book/pdf_export.sh -l $LANG -c "$LEV" -v "$VER" \
-    -o "$APIBASE/$LANG/" -r /tmp/
+    -o "$APIBASE/$LANG/"
 
 # Create Open Document export
 #$BASEDIR/obs/book/odt_export.sh -l $LANG
