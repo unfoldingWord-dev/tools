@@ -7,18 +7,18 @@
 \definepapersize [Trade][width=5.25in, height=8in]
 \setuppapersize [Trade][Trade]
 \setuppagenumbering [location={footer,middle}, conversion=numbers, alternative=doublesided,strut=yes,style=\small]
-\mainlanguage[en]
+\mainlanguage[<<<[language]>>>]
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 %New Simple Fonts for NotoSans
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 \usemodule[simplefonts]
 \starttypescript[noto]
-    \doiffile{obs/tex/<<<[fontface]>>>-<<<[language]>>>.tex}{\input obs/tex/<<<[fontface]>>>-<<<[language]>>>.tex}
     \definefontfamily     [noto] [ss] [NotoSans]
     \definefontfamily     [noto] [rm] [NotoSerif]
     \definefontfamily     [noto] [it] [NotoSans]
     \definefontfamily     [noto] [sl] [NotoSans]
-    \definefontfamily     [noto] [mm] [modern]
+    \definefontfamily     [noto] [mm] [NotoSans]
+    \doiffile{obs/tex/<<<[fontface]>>>-<<<[language]>>>.tex}{\input obs/tex/<<<[fontface]>>>-<<<[language]>>>.tex}
 \stoptypescript
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 \setupbodyfont[<<<[fontface]>>>,<<<[fontstyle]>>>]
