@@ -13,7 +13,7 @@
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 \usemodule[simplefonts]
 \starttypescript[noto]
-    \input{obs/tex/<<<[fontface]>>>-<<<[language]>>>.tex}
+    \doiffile{obs/tex/<<<[fontface]>>>-<<<[language]>>>.tex}{\input obs/tex/<<<[fontface]>>>-<<<[language]>>>.tex}
     \definefontfamily     [noto] [ss] [NotoSans]
     \definefontfamily     [noto] [rm] [NotoSerif]
     \definefontfamily     [noto] [it] [NotoSans]
