@@ -104,6 +104,8 @@ def obs(obs_v1_cat):
                                                                e['language']))
         e['notes'] = addDate(u'{0}/{1}/tN-{1}.json'.format(obs_v1_api,
                                                                e['language']))
+        e['tw_cat'] = addDate(u'{0}/{1}/tw_cat-{1}.json'.format(obs_v1_api,
+                                                               e['language']))
         e['checking_questions'] = addDate(u'{0}/{1}/CQ-{1}.json'.format(
                                                    obs_v1_api, e['language']))
         e['date_modified'] = mostRecent(e)
