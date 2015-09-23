@@ -28,6 +28,7 @@ root = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo'
 pages = os.path.join(root, 'pages')
 api = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
 ktaliases = {}
+twdict = {}
 
 # Regexes for grabbing content
 ktre = re.compile(ur'====== (.*?) ======', re.UNICODE)
@@ -171,17 +172,33 @@ def writeJSON(outfile, p):
     f.close()
 
 def getDump(j):
-    return json.dumps(j, indent=2, sort_keys=True)
+    return json.dumps(j, sort_keys=True)
 
 def getFrame(f):
     if DEBUG: print f
     page = codecs.open(f, 'r', encoding='utf-8').read()
-    getAliases(page)
     frame = {}
+    getAliases(page)
     frame['id'] = fridre.search(f).group(0).strip()
     frame['tn'] = gettN(page)
-    ### frame['tw'] = get list of words from "Important Terms:" list
+    gettWList(frame['id'], page)
     return frame
+
+def gettWList(frid, page):
+    # Get chapter and id, create chp in twdict if it doesn't exist
+    chp, fr = frid.split('-')
+    if chp not in twdict:
+        twdict[chp] = []
+    # Get list of tW from page
+    text = itre.search(page).group(1).strip()
+    tw_list = [x.split('|')[0] for x in linkre.findall(text)]
+    tw_list += dwlinkre.findall(text)
+    # Add to catalog
+    entry = { 'id': fr,
+              'items': [{ 'id': x } for x in tw_list]
+            }
+    entry['items'].sort(key=lambda x: x['id'])
+    twdict[chp].append(entry)
 
 def getCQ(f):
     page = codecs.open(f, 'r', encoding='utf-8').read()
@@ -281,9 +298,22 @@ def runCQ(lang, today):
     stories.append({'date_modified': today})
     writeJSON('{0}/CQ-{1}.json'.format(apipath, lang), stories)
 
+def savetW(lang, today):
+    apipath = os.path.join(api, lang)
+    tw_cat = { 'chapters': [], 'date_modified': today }
+    for chp in twdict:
+        twdict[chp].sort(key=lambda x: x['id'])
+        entry = { 'id': chp,
+                  'frames': twdict[chp]
+                }
+        tw_cat['chapters'].append(entry)
+    tw_cat['chapters'].sort(key=lambda x: x['id'])
+    writeJSON('{0}/tw_cat-{1}.json'.format(apipath, lang), tw_cat)
+
 
 if __name__ == '__main__':
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
     runtN('en', today)
     runKT('en', today)
     runCQ('en', today)
+    savetW('en', today)
