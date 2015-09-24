@@ -80,10 +80,13 @@ if ! command -v context >/dev/null; then
         echo "Please run $BASEDIR/tex_bootstrap.sh or install ConTeXt" && exit 1
     fi
 fi
+# Reload fonts in case any were added recently
+export OSFONTDIR="/usr/share/fonts/google-noto;/usr/share/fonts/noto-fonts/hinted;/usr/local/share/fonts;/usr/share/fonts"
+mtxrun --script fonts --reload
+context --generate
 if ! mtxrun --script fonts --list --all | grep -q noto; then
-    export OSFONTDIR="/usr/share/fonts/google-noto;/usr/local/share/fonts;/usr/share/fonts"
-    mtxrun --script fonts --reload
-    context --generate
+    echo 'Noto fonts not found, bailing...'
+    exit 1
 fi
 
 ## PROCESS LANGUAGES AND BUILD PDFS ##
