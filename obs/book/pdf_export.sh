@@ -81,7 +81,7 @@ if ! command -v context >/dev/null; then
     fi
 fi
 if ! mtxrun --script fonts --list --all | grep -q noto; then
-    OSFONTDIR="/usr/share/fonts/google-noto;/usr/local/share/fonts;/usr/share/fonts"
+    export OSFONTDIR="/usr/share/fonts/google-noto;/usr/local/share/fonts;/usr/share/fonts"
     mtxrun --script fonts --reload
     context --generate
 fi
