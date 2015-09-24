@@ -31,9 +31,6 @@ api_abs = u'/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1'
 api_test_door43 = u'http://test.door43.org'  # this one is http and not https
 snippets_dir = os.path.dirname(__file__) + u'/tex/'
 
-MAX_CHAPTERS = 0
-#MAX_CHAPTERS = 4
-#MAX_CHAPTERS = 2
 MATCH_ALL = 0
 MATCH_ONE = 0
 
@@ -67,7 +64,7 @@ matchSuperScriptPat = re.compile(ur"<sup>\s*(.*?)\s*</sup>",re.UNICODE)
 matchStrikeOutPat = re.compile(ur"<del>\s*(.*?)\s*</del>",re.UNICODE)
 matchURLandURLPat = re.compile(ur"[(]*\s*[\[][\[]\s*http(s*://[^\|\[\]]*?)\s*[\|]\s*http(s*[^\[\]]*?)\s*[\]][\]][\)\.,]*",re.UNICODE)
 matchURLandTextPat = re.compile(ur"[(]*\s*[\[][\[]\s*http(s*://[^\|\[\]]*?)\s*[\|]\s*([^\[\]]*?)\s*[\]][\]][\)\.,]*",re.UNICODE)
-matchPipePat = re.compile(ur"\s*([|])\s*",re.UNICODE)
+matchPipePat = re.compile(ur"(\|)",re.UNICODE)
 # DocuWiki markup patterns applied only to front and back matter
 matchBulletPat = re.compile(ur"^\s*[\*]\s+(.*)$",re.UNICODE)
 # Miscellaneous markup patterns
@@ -112,15 +109,11 @@ def checkForStandardKeysJSON():
     #if 'fontface' not in body_json.keys(): body_json['fontface'] = 'dejavu' # this is for production but does not seem to work for Russian
     if 'fontface' not in body_json.keys(): body_json['fontface'] = 'noto'
     if 'fontstyle' not in body_json.keys(): body_json['fontstyle'] = 'sans' # this is for production but does not seem to work for Russian
-    if 'direction' not in body_json.keys(): body_json['fontface'] = 'l2r' # Use 'r2l' for Arabic, Farsi, etc.
+    if 'direction' not in body_json.keys(): body_json['fontface'] = 'ltr' # Use 'rtl' for Arabic, Farsi, etc.
     #------------------------------  Body font size and baseline
     if 'bodysize' not in body_json.keys(): body_json['bodysize'] = '10.0pt'
     if 'bodybaseline' not in body_json.keys(): body_json['bodybaseline'] = '12.0pt'
-    #if 'bodyalign' not in body_json.keys(): body_json['bodyalign'] = 'last'
-    #if 'bodyalign' not in body_json.keys(): body_json['bodyalign'] = 'flushleft'
     if 'bodyalign' not in body_json.keys(): body_json['bodyalign'] = 'width'
-    if 'frontalign' not in body_json.keys(): body_json['frontalign'] = 'flushleft'
-    if 'backalign' not in body_json.keys(): body_json['backalign'] = 'flushleft'
     #------------------------------  Body font adjusted sizes
     if 'tfasize' not in body_json.keys(): body_json['tfasize'] = '1.10'
     if 'tfbsize' not in body_json.keys(): body_json['tfbsize'] = '1.20'
@@ -267,7 +260,7 @@ def filter_apply_docuwiki_start(single_line):
     return single_line
 
 def filter_apply_docuwiki_finish(single_line):
-    single_line = matchPipePat.sub(ur' \\textbar \\space ',single_line,MATCH_ALL)
+    single_line = matchPipePat.sub(ur'\\textbar{}',single_line,MATCH_ALL)
     single_line = matchRemoveDummyTokenPat.sub(ur'',single_line,MATCH_ALL)
     return single_line
 
@@ -344,7 +337,7 @@ def start_of_physical_page(xtr):
 def end_of_physical_page(xtr):
     return u'\n'.join([xtr+u'}', xtr+u'%%END-OF-PHYSICAL-PAGE'])
 
-def export(chapters_json, format, img_res, lang):
+def export(chapters_json, format, max_chapters, img_res, lang):
     global body_json
     '''
     Exports JSON to specificed format.
@@ -370,7 +363,7 @@ def export(chapters_json, format, img_res, lang):
     ixchp = (-1)
     for chp in chapters_json:
         ixchp = 1 +  ixchp
-        past_max_chapters = (MAX_CHAPTERS > 0) and (ixchp >= MAX_CHAPTERS)
+        past_max_chapters = (max_chapters > 0) and (ixchp >= max_chapters)
         if (past_max_chapters):
             break
         output.append(getTitle(chp['title'], format))
@@ -389,6 +382,7 @@ def export(chapters_json, format, img_res, lang):
             TextOnly = fr['text']
             if format == 'tex':
                 TextOnly = filter_apply_docuwiki(TextOnly)
+                RefTextOnly = filter_apply_docuwiki(RefTextOnly)
             TextFrame = getFrame(spaces4, TextOnly, format, \
                                  'toptry' if is_even else 'bottry')
             ImageFrame = getImage(spaces4, lang, fr['id'], img_res, format)
@@ -407,6 +401,8 @@ def export(chapters_json, format, img_res, lang):
                 elif (page_is_full):
                     nextfr = ChapterFrames[ixlookahead]
                     NextTextOnly = nextfr['text']
+                    if format == 'tex':
+                        NextTextOnly = filter_apply_docuwiki(NextTextOnly)
                     NextImageFrame = getImage(spaces4, lang, nextfr['id'], img_res, format)
                     texdict = dict(pageword=pageword,needalso=NeedAlso,alsoreg=AlsoReg,
                                    topimg=ImageFrame,botimg=NextImageFrame,
@@ -442,7 +438,7 @@ def getJSON(lang,entry,tmpent):
         sys.exit(1)
     return anytmpf
 
-def main(lang, outpath, format, img_res, checkinglevel):
+def main(lang, outpath, format, max_chapters, img_res, checkinglevel):
     global body_json
     sys.stdout = codecs.getwriter('utf8')(sys.stdout);
     toptmpf = getJSON(lang, 'obs-{0}-front-matter.json', '{0}-front-matter-json.tmp')
@@ -472,7 +468,7 @@ def main(lang, outpath, format, img_res, checkinglevel):
     # Hacks to make up for missing localized strings
     if 'toctitle' not in body_json.keys():
         body_json['toctitle'] = extract_title_from_frontmatter(lang_top_json['front-matter'])
-    output = export(body_json['chapters'], format, img_res, body_json['language'])
+    output = export(body_json['chapters'], format, max_chapters, img_res, body_json['language'])
     # For ConTeXt files only, Read the "main_template.tex" file replacing
     # all <<<[anyvar]>>> with its definition from the body-matter JSON file
     if format == 'tex':
@@ -511,9 +507,11 @@ if __name__ == '__main__':
         required=True, help="Language code")
     parser.add_argument('-f', '--format', dest="format", default=False,
         required=True, help="Desired format: html, md, tex, or plain")
+    parser.add_argument('-m', '--max-chapters', dest="max_chapters", default="0",
+         help="Typeset only the first n chapters")
     parser.add_argument('-r', '--resolution', dest="img_res", default='360px',
         help="Image resolution: 360px, or 2160px")
     parser.add_argument('-c', '--checkinglevel', dest="checkinglevel", default="1",
         help="Quality Assurace level campleted: 1, 2, or 3")
     args = parser.parse_args(sys.argv[1:])
-    main(args.lang, args.outpath, args.format, args.img_res, args.checkinglevel)
+    main(args.lang, args.outpath, args.format, int(args.max_chapters), args.img_res, args.checkinglevel)

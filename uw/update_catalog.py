@@ -46,6 +46,7 @@ uw_v2_api = u'https://api.unfoldingword.org/uw/txt/2/catalog.json'
 uw_v2_local = u'/var/www/vhosts/api.unfoldingword.org/httpdocs/uw/txt/2/catalog.json'
 lang_url = u'http://td.unfoldingword.org/exports/langnames.json'
 ts_obs_langs_url = u'https://api.unfoldingword.org/ts/txt/2/obs/languages.json'
+obs_audio_url = u'https://api.unfoldingword.org/obs/mp3/1/en/en-obs-v4/status.json'
 
 
 def getURL(url):
@@ -102,6 +103,8 @@ def obs(obs_v1_cat):
         e['terms'] = addDate(u'{0}/{1}/kt-{1}.json'.format(obs_v1_api,
                                                                e['language']))
         e['notes'] = addDate(u'{0}/{1}/tN-{1}.json'.format(obs_v1_api,
+                                                               e['language']))
+        e['tw_cat'] = addDate(u'{0}/{1}/tw_cat-{1}.json'.format(obs_v1_api,
                                                                e['language']))
         e['checking_questions'] = addDate(u'{0}/{1}/CQ-{1}.json'.format(
                                                    obs_v1_api, e['language']))
@@ -310,6 +313,7 @@ def uw_cat(obs_v1_cat, bible_status):
         slug = u'obs-{0}'.format(e['language'])
         source = u'{0}/{1}/{2}.json'.format(obs_v1_api, e['language'], slug)
         source_sig = source.replace('.json', '.sig')
+        media = getMedia(e['language'])
         entry = { 'lc': e['language'],
                   'mod': date_mod,
                   'vers': [{ 'name': name,
@@ -318,6 +322,7 @@ def uw_cat(obs_v1_cat, bible_status):
                              'status': e['status'],
                              'toc': [{ 'title': '',
                                        'slug': '',
+                                       'media': media,
                                        'mod': date_mod,
                                        'desc': desc,
                                        'src': source,
@@ -336,6 +341,16 @@ def uw_cat(obs_v1_cat, bible_status):
                'mod': mods[0],
              }
     writeFile(uw_v2_local, getDump(uw_cat))
+
+def getMedia(lang):
+    media = { 'audio': {},
+              'video': {},
+            }
+    if lang == 'en':
+        obs_audio = getURL(obs_audio_url)
+        media['audio'] = json.loads(obs_audio)
+        del media['audio']['slug']
+    return media
 
 def getSeconds(date_str):
     today = ''.join(str(dt.date.today()).rsplit('-')[0:3])

@@ -7,21 +7,21 @@
 \definepapersize [Trade][width=5.25in, height=8in]
 \setuppapersize [Trade][Trade]
 \setuppagenumbering [location={footer,middle}, conversion=numbers, alternative=doublesided,strut=yes,style=\small]
-\mainlanguage[en]
+\mainlanguage[<<<[language]>>>]
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 %New Simple Fonts for NotoSans
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 \usemodule[simplefonts]
 \starttypescript[noto]
-    \input{obs/tex/<<<[fontface]>>>-<<<[language]>>>.tex}
     \definefontfamily     [noto] [ss] [NotoSans]
     \definefontfamily     [noto] [rm] [NotoSerif]
     \definefontfamily     [noto] [it] [NotoSans]
     \definefontfamily     [noto] [sl] [NotoSans]
-    \definefontfamily     [noto] [mm] [modern]
+    \definefontfamily     [noto] [mm] [NotoSans]
+    \doiffile{obs/tex/<<<[fontface]>>>-<<<[language]>>>.tex}{\input obs/tex/<<<[fontface]>>>-<<<[language]>>>.tex}
 \stoptypescript
+\input{obs/tex/<<<[fontface]>>>-<<<[language]>>>.tex}
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-\setupbodyfont[<<<[fontface]>>>,<<<[fontstyle]>>>]
 \usetypescript[<<<[fontface]>>>][uc]
 \setupalign[hanging]
 \setupbodyfontenvironment[default][em=italic,x=<<<[tfxsize]>>>,xx=<<<[tfxxsize]>>>,a=<<<[tfasize]>>>,b=<<<[tfbsize]>>>,c=<<<[tfcsize]>>>,d=<<<[tfdsize]>>>,e=<<<[tfesize]>>>,small=<<<[smallsize]>>>]
@@ -53,7 +53,7 @@
 \definelistextra[page][before={\page[yes]}]
 \newlinechar=`\@
 \setupthinrules[height=0.25pt,depth=0.25pt]
-\setupalign[<<<[frontalign]>>>,nothanging,hz,lesshyphenation,verytolerant,stretch,<<<[direction]>>>]
+\setupalign[flushleft,nothanging,hz,lesshyphenation,verytolerant,stretch]
 \setupspacing[packed]   % normal word space at the end of sentences
 \setupindenting[no,0pt]
 \setupwhitespace[2.0pt]  % space between paragraphs
@@ -75,13 +75,30 @@
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Actual start of the document
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\define\EN{\textdir TLT}
 \overfullrule=2pt
 \starttext
+\doif{<<<[direction]>>>}{ltr}{
+	\pagedir TLT
+	\bodydir TLT
+	\pardir TLT
+	\textdir TLT
+	\define\LangTextDir{\pardir TLT \textdir TLT}
+}
+\doif{<<<[direction]>>>}{rtl}{
+	\pagedir TRT
+	\bodydir TRT
+	\pardir TRT
+	\textdir TRT
+	\define\LangTextDir{\pardir TRT \textdir TRT}
+}
+\setupdirections[bidi=global]
+\setupbodyfont[<<<[fontface]>>>,<<<[fontstyle]>>>]
 \message{makeup=[\the\makeupwidth,\the\makeupheight],text=[\the\textwidth,\the\textheight]}
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % The Front Matter
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-\setupalign[<<<[frontalign]>>>,nothanging,hz,lesshyphenation,verytolerant,stretch,<<<[direction]>>>]
+\setupalign[flushleft,nothanging,hz,lesshyphenation,verytolerant,stretch]
 \emergencystretch=1.5em % plus 6.0em minus 0.01em
 \startfrontmatter % Intro material
     % Title and Logo Page
@@ -100,11 +117,13 @@
     ===FRONT.MATTER.ABOUT===
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  END-OF-FRONT-MATTER (About)
     \blank
+	{\pardir TLT \EN
     \setuphanging[location=left]
-    \starthanging{ \externalfigure[https://api.unfoldingword.org/obs/jpg/1/checkinglevels/uW-Level<<<[checkinglevel]>>>-128px.png] }
-    {{\bf Checking level <<<[checkinglevel]>>>} \blank
-    {\em find out more at \goto{https://unfoldingword.org/quality}[url(https://unfoldingword.org/quality)] }}
+    \starthanging{\externalfigure[https://api.unfoldingword.org/obs/jpg/1/checkinglevels/uW-Level<<<[checkinglevel]>>>-128px.png]}
+    {{\bf Checking level <<<[checkinglevel]>>>}\blank
+    { \em find out more at \goto{https://unfoldingword.org/quality}[url(https://unfoldingword.org/quality)]}}
     \stophanging
+	}
     \blank[2em]
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  START-OF-FRONT-MATTER (License)
     ===FRONT.MATTER.LICENSE===
@@ -133,7 +152,7 @@
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % The Body Matter
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-\setupalign[<<<[align]>>>,nothanging,hz,lesshyphenation,verytolerant,stretch,<<<[direction]>>>]
+\setupalign[<<<[bodyalign]>>>,nothanging,hz,lesshyphenation,verytolerant,stretch]
 \startbodymatter % The stories themselves
     \setuptolerance[vertical,verytolerant,stretch]
     %\enableregime[utf]
@@ -148,7 +167,7 @@
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % The Back Matter
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-\setupalign[<<<[backalign]>>>,nothanging,hz,lesshyphenation,verytolerant,stretch,<<<[direction]>>>]
+\setupalign[<<<[backalign]>>>,nothanging,hz,lesshyphenation,verytolerant,stretch]
 \startbackmatter
     \setuptolerance[vertical,verytolerant,stretch]
     %\enableregime[utf]

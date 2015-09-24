@@ -75,12 +75,12 @@ def gitCreate(d):
         print 'Failed to create a git repo in: {0}'.format(d)
         sys.exit(1)
 
-def gitCommit(d, msg):
+def gitCommit(d, msg, files='*'):
     '''
     Adds all files in d and commits with message m.
     '''
     os.chdir(d)
-    out, ret = runCommand('git add *')
+    out, ret = runCommand('git add {0}'.format(files))
     out1, ret1= runCommand('''git commit -am "{0}" '''.format(msg))
     if ret > 0 or ret1 > 0:
         print 'Nothing to commit, or failed commit to repo in: {0}'.format(d)
