@@ -67,7 +67,7 @@ matchSuperScriptPat = re.compile(ur"<sup>\s*(.*?)\s*</sup>",re.UNICODE)
 matchStrikeOutPat = re.compile(ur"<del>\s*(.*?)\s*</del>",re.UNICODE)
 matchURLandURLPat = re.compile(ur"[(]*\s*[\[][\[]\s*http(s*://[^\|\[\]]*?)\s*[\|]\s*http(s*[^\[\]]*?)\s*[\]][\]][\)\.,]*",re.UNICODE)
 matchURLandTextPat = re.compile(ur"[(]*\s*[\[][\[]\s*http(s*://[^\|\[\]]*?)\s*[\|]\s*([^\[\]]*?)\s*[\]][\]][\)\.,]*",re.UNICODE)
-matchPipePat = re.compile(ur"\s*([|])\s*",re.UNICODE)
+matchPipePat = re.compile(ur"(\|)",re.UNICODE)
 # DocuWiki markup patterns applied only to front and back matter
 matchBulletPat = re.compile(ur"^\s*[\*]\s+(.*)$",re.UNICODE)
 # Miscellaneous markup patterns
@@ -267,7 +267,7 @@ def filter_apply_docuwiki_start(single_line):
     return single_line
 
 def filter_apply_docuwiki_finish(single_line):
-    single_line = matchPipePat.sub(ur' \\textbar \\space ',single_line,MATCH_ALL)
+    single_line = matchPipePat.sub(ur'\\textbar{}',single_line,MATCH_ALL)
     single_line = matchRemoveDummyTokenPat.sub(ur'',single_line,MATCH_ALL)
     return single_line
 
@@ -389,6 +389,7 @@ def export(chapters_json, format, img_res, lang):
             TextOnly = fr['text']
             if format == 'tex':
                 TextOnly = filter_apply_docuwiki(TextOnly)
+                RefTextOnly = filter_apply_docuwiki(RefTextOnly)
             TextFrame = getFrame(spaces4, TextOnly, format, \
                                  'toptry' if is_even else 'bottry')
             ImageFrame = getImage(spaces4, lang, fr['id'], img_res, format)
@@ -407,6 +408,8 @@ def export(chapters_json, format, img_res, lang):
                 elif (page_is_full):
                     nextfr = ChapterFrames[ixlookahead]
                     NextTextOnly = nextfr['text']
+                    if format == 'tex':
+                        NextTextOnly = filter_apply_docuwiki(NextTextOnly)
                     NextImageFrame = getImage(spaces4, lang, nextfr['id'], img_res, format)
                     texdict = dict(pageword=pageword,needalso=NeedAlso,alsoreg=AlsoReg,
                                    topimg=ImageFrame,botimg=NextImageFrame,
