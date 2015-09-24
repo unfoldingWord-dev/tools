@@ -19,7 +19,9 @@ help() {
     echo "Options:"
     echo "    -c       Override checking level (1, 2 or 3)"
     echo "    -d       Show debug messages while running script"
+    echo "    -e       Stop to edit the TeX file with \$EDITOR before proceding to typeset"
     echo "    -l LANG  Add language(s) to process"
+    echo "    -m MAX   Set a maximum number of chapters to be typeset"
     echo "    -o DIR   Add output location(s) for final PDF"
     echo "    -r LOC   Send build report to directory(s) or email address(s)"
     echo "    -t TAG   Add a tag to the output filename"
@@ -30,11 +32,13 @@ help() {
 }
 
 # Process command line options
-while getopts c:dl:o:r:t:v:h opt; do
+while getopts c:del:m:o:r:t:v:h opt; do
     case $opt in
         c) checking=$OPTARG;;
         d) debug=true;;
+        e) edit=true;;
         l) langs=("${langs[@]}" "$OPTARG");;
+        m) max_chapters=$OPTARG;;
         o) outputs=("${outputs[@]}" "$OPTARG");;
         r) reportto=("${reportto[@]}" "$OPTARG");;
         t) tag=$OPTARG;;
@@ -47,7 +51,9 @@ done
 # Setup variable defaults in case flags were not set
 : ${checking=}
 : ${debug=false}
+: ${edit=false}
 : ${langs[0]=${LANG%_*}}
+: ${max_chapters=0}
 : ${outputs[0]=$(pwd)}
 : ${reportto[0]=}
 : ${tag=}
@@ -96,7 +102,10 @@ for lang in "${langs[@]}"; do
     BASENAME="obs-${lang}-v${LANGVER/./_}${tag:+-$tag}"
 
     # Run python (export.py) to generate the .tex file from template .tex files
-    ./obs/export.py -l $lang -f tex ${checking:+-c $checking} -o "$BASENAME.tex"
+    ./obs/export.py -l $lang -m $max_chapters -f tex ${checking:+-c $checking} -o "$BASENAME.tex"
+
+    # If requested, stop to manually edit the finished ConTeXt file before typesetting
+    $edit && $EDITOR "$BASENAME.tex"
 
     # Run ConTeXt (context) to generate stories from .tex file output by python
     $debug && trackers="afm.loading,fonts.missing,fonts.warnings,fonts.names,fonts.specifications,fonts.scaling,system.dump"
