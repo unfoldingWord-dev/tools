@@ -112,15 +112,11 @@ def checkForStandardKeysJSON():
     #if 'fontface' not in body_json.keys(): body_json['fontface'] = 'dejavu' # this is for production but does not seem to work for Russian
     if 'fontface' not in body_json.keys(): body_json['fontface'] = 'noto'
     if 'fontstyle' not in body_json.keys(): body_json['fontstyle'] = 'sans' # this is for production but does not seem to work for Russian
-    if 'direction' not in body_json.keys(): body_json['fontface'] = 'l2r' # Use 'r2l' for Arabic, Farsi, etc.
+    if 'direction' not in body_json.keys(): body_json['fontface'] = 'ltr' # Use 'rtl' for Arabic, Farsi, etc.
     #------------------------------  Body font size and baseline
     if 'bodysize' not in body_json.keys(): body_json['bodysize'] = '10.0pt'
     if 'bodybaseline' not in body_json.keys(): body_json['bodybaseline'] = '12.0pt'
-    #if 'bodyalign' not in body_json.keys(): body_json['bodyalign'] = 'last'
-    #if 'bodyalign' not in body_json.keys(): body_json['bodyalign'] = 'flushleft'
     if 'bodyalign' not in body_json.keys(): body_json['bodyalign'] = 'width'
-    if 'frontalign' not in body_json.keys(): body_json['frontalign'] = 'flushleft'
-    if 'backalign' not in body_json.keys(): body_json['backalign'] = 'flushleft'
     #------------------------------  Body font adjusted sizes
     if 'tfasize' not in body_json.keys(): body_json['tfasize'] = '1.10'
     if 'tfbsize' not in body_json.keys(): body_json['tfbsize'] = '1.20'
