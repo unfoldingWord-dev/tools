@@ -31,8 +31,8 @@ H2REGEX = re.compile(r"(.*?)((?:<p>)?=====\s*)(.*?)(\s*=====(?:</p>)?)(.*?)", re
 H3REGEX = re.compile(r"(.*?)((?:<p>)?====\s*)(.*?)(\s*====(?:</p>)?)(.*?)", re.DOTALL | re.MULTILINE)
 H4REGEX = re.compile(r"(.*?)((?:<p>)?===\s*)(.*?)(\s*===(?:</p>)?)(.*?)", re.DOTALL | re.MULTILINE)
 H5REGEX = re.compile(r"(.*?)((?:<p>)?==\s*)(.*?)(\s*==(?:</p>)?)(.*?)", re.DOTALL | re.MULTILINE)
-LINKREGEX = re.compile(r"(.*?)(\[\[?)(.*?)(]]?)(.*?)", re.DOTALL | re.MULTILINE)
-ITALICREGEX = re.compile(r"(.*?)(?<!:)(//)(.*?)(//)(.*?)", re.DOTALL | re.MULTILINE)
+LINKREGEX = re.compile(r"(.*?)(\[{2}?)(.*?)(\]{2}?)(.*?)", re.DOTALL | re.MULTILINE)
+ITALICREGEX = re.compile(r"(.*?)(?<!:)(//)(.*?)(?<!http:|ttps:)(//)(.*?)", re.DOTALL | re.MULTILINE)
 BOLDREGEX = re.compile(r"(.*?)(\*\*)(.*?)(\*\*)(.*?)", re.DOTALL | re.MULTILINE)
 NLNLREGEX = re.compile(r"(.*?)(\\\\\s*\n\\\\\s*\n)(.*?)", re.DOTALL | re.MULTILINE)
 NLREGEX = re.compile(r"(.*?)(\\\\\s*\n)(.*?)", re.DOTALL | re.MULTILINE)
@@ -81,8 +81,18 @@ class SelfClosingEtherpad(EtherpadLiteClient):
 
         # noinspection PyBroadException
         try:
-            pw = open('/usr/share/httpd/.ssh/ep_api_key', 'r').read().strip()
+            # ep_api_key.door43 indicates this is a remote connection
+            if os.path.exists('/usr/share/httpd/.ssh/ep_api_key.door43'):
+                key_file = '/usr/share/httpd/.ssh/ep_api_key.door43'
+                base_url = 'https://pad.door43.org/api'
+
+            else:
+                key_file = '/usr/share/httpd/.ssh/ep_api_key'
+                base_url = 'http://localhost:9001/api'
+
+            pw = open(key_file, 'r').read().strip()
             self.base_params = {'apikey': pw}
+            self.base_url = base_url
 
         except:
             e1 = sys.exc_info()[0]
@@ -117,6 +127,9 @@ class SectionData(object):
 
         if name.lower().startswith('tech'):
             return 'Technology'
+
+        if name.lower().startswith('proces'):
+            return 'Process'
 
         if name.lower().startswith('test'):
             return 'Test'
