@@ -104,8 +104,8 @@ def checkForStandardKeysJSON():
     global body_json # Cannot pass dictionary via regex framework
     #------------------------------  header/footer spacing and body font-face
     if 'textwidth' not in body_json.keys(): body_json['textwidth'] = '308.9pt' # At 72.27 pt/inch this is width of each figure
-    if 'topspace' not in body_json.keys(): body_json['topspace'] = '10pt' # nice for en,fr,es
-    if 'botspace' not in body_json.keys(): body_json['botspace'] = '12pt' # nice for en,fr,es
+    if 'topspace' not in body_json.keys(): body_json['topspace'] = '28pt' # nice for en,fr,es
+    if 'botspace' not in body_json.keys(): body_json['botspace'] = '30pt' # nice for en,fr,es
     #if 'fontface' not in body_json.keys(): body_json['fontface'] = 'dejavu' # this is for production but does not seem to work for Russian
     if 'fontface' not in body_json.keys(): body_json['fontface'] = 'noto'
     if 'fontstyle' not in body_json.keys(): body_json['fontstyle'] = 'sans' # this is for production but does not seem to work for Russian
