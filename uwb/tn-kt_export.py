@@ -27,6 +27,7 @@ root = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo'
 pages = os.path.join(root, 'pages')
 api_v2 = '/var/www/vhosts/api.unfoldingword.org/httpdocs/ts/txt/2/'
 ktaliases = {}
+twdict = {}
 def_titles = ['Definition', 'Facts', 'Description']
 
 # Regexes for grabbing content
@@ -34,6 +35,7 @@ ktre = re.compile(ur'====== (.*?) ======', re.UNICODE)
 subre = re.compile(ur'\n==== (.*) ====\n', re.UNICODE)
 linknamere = re.compile(ur':([A-Za-z0-9\-]*)\]\]', re.UNICODE)
 linkre = re.compile(ur':([^:]*\|.*?)\]\]', re.UNICODE)
+dwlinkre = re.compile(ur'en:obe:[ktoher]*:(.*?)\]\]', re.UNICODE)
 cfre = re.compile(ur'See also.*', re.UNICODE)
 examplesre = re.compile(ur'===== Examples from the Bible stories.*',
     re.UNICODE | re.DOTALL)
@@ -45,6 +47,8 @@ tNtermre = re.compile(ur' \*\*(.*?)\*\*', re.UNICODE)
 tNtextre = re.compile(ur' [–-] ?(.*)', re.UNICODE)
 tNtextre2 = re.compile(ur'\* (.*)', re.UNICODE)
 pubre = re.compile(ur'tag>.*publish.*', re.UNICODE)
+suggestre = re.compile(ur'===== Translation Suggestions:? =====(.*?)[=(][TS]?',
+    re.UNICODE | re.DOTALL)
 
 # Regexes for DW to HTML conversion
 boldstartre = re.compile(ur'([ ,.])(\*\*)', re.UNICODE)
@@ -58,18 +62,20 @@ def getKT(f):
     page = codecs.open(f, 'r', encoding='utf-8').read()
     if not pubre.search(page): return False
     kt = {}
-    kt['filename'] = f.rsplit('/', 1)[1].replace('.txt', '')
+    # The filename is the ID
+    kt['id'] = f.rsplit('/', 1)[1].replace('.txt', '')
     ktse = ktre.search(page)
     if not ktse:
-        print 'Term not found for {}'.format(kt['filename'])
+        print 'Term not found for {}'.format(kt['id'])
         return False
     kt['term'] = ktse.group(1).strip()
     kt['sub'] = getKTSub(page)
     kt['def_title'], kt['def'] = getKTDef(page)
     if not kt['def_title']:
-        print 'Definition or Facts not found for {}'.format(kt['filename'])
+        print 'Definition or Facts not found for {}'.format(kt['id'])
         return False
     kt['cf'] = getKTCF(page)
+    kt['def'] += getKTSuggestions(page)
     return kt
 
 def getKTDef(page):
@@ -87,6 +93,14 @@ def getKTDef(page):
     except:
         return (False, False)
     return (def_title, getHTML(deftxt))
+
+def getKTSuggestions(page):
+    sugformat = u'<h2>Translation Suggestions</h2>{0}'
+    sugse = suggestre.search(page)
+    if not sugse:
+        return u''
+    sugtxt = sugformat.format(sugse.group(1).rstrip())
+    return getHTML(sugtxt)
 
 def getKTSub(page):
     sub = u''
@@ -150,14 +164,33 @@ def writeJSON(outfile, p):
 def getDump(j):
     return json.dumps(j, sort_keys=True)
 
-def getFrame(f):
+def getFrame(f, book):
     page = codecs.open(f, 'r', encoding='utf-8').read()
     if not pubre.search(page): return False
-    getAliases(page)
     frame = {}
+    getAliases(page)
     frame['id'] = fridre.search(f).group(0).strip().replace('/', '-')
     frame['tn'] = gettN(page, f)
+    gettWList(frame['id'], page, book)
     return frame
+
+def gettWList(frid, page, book):
+    # Get book, chapter and id, create chp in twdict if it doesn't exist
+    chp, fr = frid.split('-')
+    if book not in twdict:
+        twdict[book] = {}
+    if chp not in twdict[book]:
+        twdict[book][chp] = []
+    # Get list of tW from page
+    text = itre.search(page).group(1).strip()
+    tw_list = [x.split('|')[0] for x in linkre.findall(text)]
+    tw_list += dwlinkre.findall(text)
+    # Add to catalog
+    entry = { 'id': fr,
+              'items': [{ 'id': x } for x in tw_list]
+            }
+    entry['items'].sort(key=lambda x: x['id'])
+    twdict[book][chp].append(entry)
 
 def getAliases(page):
     text = itre.search(page).group(1).strip()
@@ -202,12 +235,11 @@ def runKT(lang, today):
             keyterms.append(kt)
     for i in keyterms:
         try:
-            i['aliases'] = list(set([x for x in ktaliases[i['filename']]
+            i['aliases'] = list(set([x for x in ktaliases[i['id']]
                                                           if x != i['term']]))
         except KeyError:
             # this just means no aliases were found
             pass
-        del i['filename']
     keyterms.sort(key=lambda x: len(x['term']), reverse=True)
     keyterms.append({'date_modified': today})
     apipath = os.path.join(api_v2, 'bible', lang)
@@ -229,13 +261,30 @@ def runtN(lang, today):
                 continue
             for f in glob.glob('{0}/{1}/*.txt'.format(book_path, chapter)):
                 if 'home.txt' in f: continue
-                frame = getFrame(f)
+                frame = getFrame(f, book)
                 if frame: 
                     frames.append(frame)
 
         frames.sort(key=lambda x: x['id'])
         frames.append({'date_modified': today})
         writeJSON('{0}/notes.json'.format(apipath), frames)
+        if not book in twdict:
+            print 'Terms not found for {0}'.format(book)
+            continue
+        savetW('{0}/tw_cat.json'.format(apipath), today, twdict[book])
+        #print book
+        del twdict[book]
+
+def savetW(filepath, today, twbookdict):
+    tw_cat = { 'chapters': [], 'date_modified': today }
+    for chp in twbookdict:
+        twbookdict[chp].sort(key=lambda x: x['id'])
+        entry = { 'id': chp,
+                  'frames': twbookdict[chp]
+                }
+        tw_cat['chapters'].append(entry)
+    tw_cat['chapters'].sort(key=lambda x: x['id'])
+    writeJSON(filepath, tw_cat)
 
 
 if __name__ == '__main__':

@@ -177,6 +177,8 @@ def bible(langnames, bible_status, bible_bks, langs):
                                                              obs_v2_api, lang))
                 slug_cat['notes'] = addDate('{0}/{1}/{2}/notes.json'.format(
                                                          obs_v2_api, bk, lang))
+                slug_cat['tw_cat'] = addDate(u'{0}/{1}/{2}/tw_cat.json'.format(
+                                                         obs_v2_api, bk, lang))
                 # 05/13/15 JL: please finish me!
                 slug_cat['checking_questions'] = ''
 
