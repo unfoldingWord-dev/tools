@@ -22,10 +22,11 @@ import argparse
 from etherpad_lite import EtherpadLiteClient
 from etherpad_lite import EtherpadException
 
-
-COMPLETE = [ 'GEN', 'EXO', 'LEV', 'DEU', 'JOS', 'JDG', 'RUT', '1SA',
-             '1CH', '2CH', 'NEH', 'JOB', 'PSA', 'PRO', 'ISA', 'LAM', 'EZK',
-             'DAN', 'JOL', 'AMO', 'OBA', 'JON', 'NAM', 'HAB', 'ZEP',
+# HOS is only one left
+COMPLETE = [ 'GEN', 'EXO', 'LEV', 'NUM', 'DEU', 'JOS', 'JDG', 'RUT', '1SA',
+             '2SA', '1KI', '2KI', '1CH', '2CH', 'EZR', 'NEH', 'EST', 'JOB',
+             'PSA', 'PRO', 'ECC', 'SNG', 'ISA', 'JER', 'LAM', 'EZK', 'DAN',
+             'JOL', 'AMO', 'OBA', 'JON', 'MIC', 'NAM', 'HAB', 'ZEP',
              'HAG', 'ZEC', 'MAL',
              'MAT', 'MRK', 'LUK', 'JHN', 'ACT', 'ROM', '1CO', '2CO', 'GAL',
              'EPH', 'PHP', 'COL', '1TH', '2TH', '1TI', '2TI', 'TIT', 'PHM',
