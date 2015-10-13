@@ -6,7 +6,7 @@
 #  See LICENSE file for details.
 #
 #  Contributors:
-#  Jesse Griffin <jesse@distantshores.org>
+#  Jesse Griffin <jesse@unfoldingword.org>
 
 PUB_URL="https://api.unfoldingword.org/obs/txt/1/obs-catalog.json"
 CHANGES_URL="https://door43.org/en/dev/changes"
@@ -54,7 +54,8 @@ for x in `cat $LANGS_FILE`; do
 done
 
 cat $PROGRESS_FILE | mail -s "Open Bible Stories Progress Report" -a $TABLE \
-    ben@distantshores.org jesse@distantshores.org
+    ben@unfoldingword.org jesse@unfoldingword.org \
+    david_byron@wycliffeassociates.org 
 
 rm -f "$PROGRESS_FILE"
 rm -f "$LANGS_FILE"
