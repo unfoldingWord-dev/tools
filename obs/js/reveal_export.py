@@ -13,6 +13,7 @@ import os
 import codecs
 import sys
 import urllib2
+import re
 
 # use a path relative to the current file rather than a hard-coded path
 tools_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
@@ -28,60 +29,81 @@ if (not os.path.isdir(general_dir)) or (not os.path.isfile(git_wrapper_file)):
 sys.path.append(general_dir)
 from git_wrapper import *
 
-
 catalog_url = u'https://api.unfoldingword.org/obs/txt/1/obs-catalog.json'
 obs_web = '/var/www/vhosts/unfoldingword.org/httpdocs/'
-unfoldingWorddir = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
+unfolding_word_dir = '/var/www/vhosts/api.unfoldingword.org/httpdocs/obs/txt/1/'
 uw_img_api = 'https://api.unfoldingword.org/obs/jpg/1/'
-title = u'''    <div class="meny-arrow"></div>
-    <div class="reveal">
-        <div class="slides">
-            <section><h1>{0}</h1><h3>{1}</h3><div class="uwchecking">
-                <a href="https://unfoldingword.org/quality/" target="_blank">
-                    <img src="https://api.unfoldingword.org/obs/jpg/1/checkinglevels/uW-Level{2}-64px.png" />
-                </a>
-            </section>'''
-frame = u'<section data-background="{0}"><p>{1}</p></section>'
-nextlink = u'<section><a href="../{0}/index.html"><p>{1}</p></a></section>'
-menulink = u'<li><a href="../{0}/PATH_INDEX">{1}</a></li>'
-menutmpl = u'''    <div class="meny">
-        <ul>
-            {0}
-        </ul>
-        <p><a href="https://unfoldingword.org/stories/">Open Bible Stories Home</a></p>
-    </div>'''
 commitmsg = u'Updated OBS slides'
-index_head = os.path.join(tools_dir, 'obs/js/index.head.html')
-index_foot = os.path.join(tools_dir, 'obs/js/index.foot.html')
-localrespaths = {u'PATH_CSS': u'../../css', u'PATH_JS': u'../../js', u'PATH_INDEX': u'index.html'}
-wwwrespaths = {u'PATH_CSS': u'/css', u'PATH_JS': u'/js', u'PATH_INDEX': u''}
+
+# HTML templates
+index_template_file = os.path.join(tools_dir, 'obs/js/index.template.html')
+frame_template = u'<section data-background="{0}"><p>{1}</p></section>'
+next_link_template = u'<section><a href="../{0}/index.html"><p>{1}</p></a></section>'
+# to include literal braces in a format string, double them
+menu_link_template = u'<li><a href="../{0}/{{{{ PATH_INDEX }}}}">{1}</a></li>'
+title_template = u'''<section><h1>{0}</h1><h3>{1}</h3><div class="uwchecking">
+    <a href="https://unfoldingword.org/quality/" target="_blank">
+        <img src="https://api.unfoldingword.org/obs/jpg/1/checkinglevels/uW-Level{2}-64px.png" />
+    </a>
+</section>'''
+
+# template regex - uses Blade/Twig syntax
+LANG_CODE_REGEX = re.compile(r"(\{{2}\s*LANG_CODE\s*\}{2})", re.DOTALL)
+MENY_REGEX = re.compile(r"(\{{2}\s*MENY\s*\}{2})", re.DOTALL)
+REVEAL_SLIDES_REGEX = re.compile(r"(\{{2}\s*REVEAL_SLIDES\s*\}{2})", re.DOTALL)
+
+# paths for local and web files
+PATH_INDEX_REGEX = re.compile(r"(\{{2}\s*PATH_INDEX\s*\}{2})", re.DOTALL)
+PATH_CSS_REGEX = re.compile(r"(\{{2}\s*PATH_CSS\s*\}{2})", re.DOTALL)
+PATH_JS_REGEX = re.compile(r"(\{{2}\s*PATH_JS\s*\}{2})", re.DOTALL)
+
+# list layout [RegularExpression, LocalPath, WebPath]
+res_paths = [[PATH_INDEX_REGEX, u'index.html', u''],
+             [PATH_CSS_REGEX, u'../../css', u'/css'],
+             [PATH_JS_REGEX, u'../../js', u'/js']
+             ]
 
 
-def build_reveal(outdir, j, t, check_lev):
+def build_reveal(outdir, lang_data, html_template, check_lev):
     """
     Builds reveal.js presentation for the given language.
     """
-    lang = j['language']
+    lang = lang_data['language']
     resolutions = ['360px', '2160px']
-    nextstory = j['app_words']['next_chapter']
-    chapters = get_chapters(j['chapters'])
-    menu = get_menu(chapters)
+    nextstory = lang_data['app_words']['next_chapter']
+    chapters = get_chapters(lang_data['chapters'])
+    meny = get_menu(chapters)
+
     for res in resolutions:
-        i = 1
-        for c in j['chapters']:
+        num_chapters = len(lang_data['chapters'])
+
+        for i in range(1, num_chapters):
+            c = lang_data['chapters'][i - 1]
+
             page = []
             chpnum = c['number'].strip('.txt')
-            page.append(menu)
-            page.append(title.format(c['title'], c['ref'], check_lev))
+
+            # the title slide
+            page.append(title_template.format(c['title'], c['ref'], check_lev))
+
+            # a slides for each frame
             for f in c['frames']:
                 img_url = get_img_url(lang, res, f['id'])
-                page.append(frame.format(img_url, f['text']))
-            if i < 50:
-                page.append(nextlink.format(str(i + 1).zfill(2), nextstory))
-            i += 1
+                page.append(frame_template.format(img_url, f['text']))
+
+            # a slide that links to the next story
+            if i < num_chapters:
+                page.append(next_link_template.format(str(i + 1).zfill(2), nextstory))
+
+            # put it together
+            html = MENY_REGEX.sub(meny, html_template)
+            html = REVEAL_SLIDES_REGEX.sub('\n'.join(page), html)
+            html = LANG_CODE_REGEX.sub(lang, html)
+
+            # save the html
             write_template(os.path.join(outdir, res, chpnum, 'index.html'),
-                           os.path.join(unfoldingWorddir, lang, 'slides', res, chpnum,
-                                        'index.html'), '\n'.join([t[0], '\n'.join(page), t[1]]))
+                           os.path.join(unfolding_word_dir, lang, 'slides', res, chpnum, 'index.html'),
+                           html)
 
 
 def get_chapters(chps):
@@ -98,23 +120,25 @@ def get_menu(chps):
     menu = []
     i = 1
     for c in chps:
-        menu.append(menulink.format(str(i).zfill(2), c))
+        menu.append(menu_link_template.format(str(i).zfill(2), c))
         i += 1
-    return menutmpl.format(u'\n            '.join(menu))
+    return u'\n        '.join(menu)
 
 
 def write_template(wwwfile, localfile, page):
     """
     Writes out two versions, one for web viewer and one for local viewer.
     """
-    localpage = page
-    wwwpage = page
-    for k, v in localrespaths.iteritems():
-        localpage = localpage.replace(k, v)
-    write_file(localfile, localpage)
-    for k, v in wwwrespaths.iteritems():
-        wwwpage = wwwpage.replace(k, v)
-    write_file(wwwfile, wwwpage)
+    local_page = page
+    www_page = page
+
+    # list layout [RegularExpression, LocalPath, WebPath]
+    for itm in res_paths:
+        local_page = itm[0].sub(itm[1], local_page)
+        www_page = itm[0].sub(itm[2], www_page)
+
+    write_file(localfile, local_page)
+    write_file(wwwfile, www_page)
 
 
 def github_export(gitdir):
@@ -189,14 +213,15 @@ def get_url(url):
 
 def export():
     cat = json.loads(get_url(catalog_url))
+    template = read_file(index_template_file)
     for x in cat:
         lang = x['language']
-        langjson = load_json(os.path.join(unfoldingWorddir, lang,
+        langjson = load_json(os.path.join(unfolding_word_dir, lang,
                                           'obs-{0}.json'.format(lang)), 'd')
         rjs_dir = os.path.join(obs_web, lang)
-        template = [read_file(index_head), read_file(index_foot)]
+
         build_reveal(rjs_dir, langjson, template, x['status']['checking_level'])
-        unfolding_word_lang_dir = os.path.join(unfoldingWorddir, lang)
+        unfolding_word_lang_dir = os.path.join(unfolding_word_dir, lang)
         github_export(unfolding_word_lang_dir)
 
 
