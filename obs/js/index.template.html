@@ -1,0 +1,156 @@
+<!doctype html>
+<!--suppress ALL -->
+<html lang="{{ LANG_CODE }}">
+<head>
+    <meta charset="utf-8">
+
+    <title>unfoldingWord Open Bible Stories</title>
+
+    <meta name="description" content="an unrestricted visual mini-Bible in any language">
+    <meta name="author"
+          content="Created by Distant Shores Media (http://distantshores.org) and the Door43 world missions community (http://door43.org).">
+
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <link rel="stylesheet" href="{{ PATH_CSS }}/reveal.min.css">
+    <link rel="stylesheet" href="{{ PATH_CSS }}/theme/default.css" id="theme">
+    <link rel="stylesheet" href="{{ PATH_CSS }}/uw.css">
+
+    <!-- For syntax highlighting -->
+    <link rel="stylesheet" href="{{ PATH_CSS }}/zenburn.css">
+
+    <!-- If the query includes 'print-pdf', include the PDF print sheet -->
+    <script>
+        if (window.location.search.match(/print-pdf/gi)) {
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.type = 'text{{ PATH_CSS }}';
+            link.href = '{{ PATH_CSS }}/print/pdf.css';
+            document.getElementsByTagName('head')[0].appendChild(link);
+        }
+    </script>
+
+    <!--[if lt IE 9]>
+    <script src="{{ PATH_JS }}/html5shiv.js"></script>
+    <![endif]-->
+</head>
+<body>
+
+<div class="meny">
+    <ul>
+        {{ MENY }}
+    </ul>
+    <p><a href="https://unfoldingword.org/stories/">Open Bible Stories Home</a></p>
+</div>
+<div class="meny-arrow"></div>
+<div class="reveal">
+    <div class="slides">{{ REVEAL_SLIDES }}</div>
+</div>
+
+<script src="{{ PATH_JS }}/head.min.js"></script>
+<script src="{{ PATH_JS }}/reveal.min.js"></script>
+<script src="{{ PATH_JS }}/meny.js"></script>
+<script>
+    // Create an instance of Meny
+    var meny = Meny.create({
+        // The element that will be animated in from off screen
+        menuElement: document.querySelector('.meny'),
+
+        // The contents that gets pushed aside while Meny is active
+        contentsElement: document.querySelector('.reveal'),
+
+        // [optional] The alignment of the menu (top/right/bottom/left)
+        position: Meny.getQuery().p || 'left',
+
+        // [optional] The height of the menu (when using top/bottom position)
+        height: 200,
+
+        // [optional] The width of the menu (when using left/right position)
+        width: 300,
+
+        // [optional] Distance from mouse (in pixels) when menu should open
+        threshold: 40,
+
+        // [optional] Use mouse movement to automatically open/close
+        mouse: true,
+
+        // [optional] Use touch swipe events to open/close
+        touch: true
+    });
+
+    // API Methods:
+    // meny.open();
+    // meny.close();
+    // meny.isOpen();
+
+    // Events:
+    // meny.addEventListener( 'open', function(){ console.log( 'open' ); } );
+    // meny.addEventListener( 'close', function(){ console.log( 'close' ); } );
+</script>
+
+<script>
+
+    var flyOutNotes;
+
+    // Full list of configuration options available here:
+    // https://github.com/hakimel/reveal.js#configuration
+    Reveal.initialize({
+        controls: true,
+        progress: true,
+        history: true,
+        center: false,
+        width: '100%',
+        height: '100%',
+        margin: 0,
+
+        theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+        transition: Reveal.getQueryHash().transition || 'fade', // default/cube/page/concave/zoom/linear/fade/none
+
+        // Parallax scrolling
+        // parallaxBackgroundImage: 'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg',
+        // parallaxBackgroundSize: '2100px 900px',
+
+        // Optional libraries used to extend on reveal.js
+        dependencies: [
+            {
+                src: '{{ PATH_JS }}/classList.js', condition: function () {
+                return !document.body.classList;
+            }
+            },
+            {
+                src: '{{ PATH_JS }}/marked.js', condition: function () {
+                return !!document.querySelector('[data-markdown]');
+            }
+            },
+            {
+                src: '{{ PATH_JS }}/markdown.js', condition: function () {
+                return !!document.querySelector('[data-markdown]');
+            }
+            },
+            {
+                src: '{{ PATH_JS }}/highlight.js', async: true, callback: function () {
+                hljs.initHighlightingOnLoad();
+            }
+            },
+            {
+                src: '{{ PATH_JS }}/zoom.js', async: true, condition: function () {
+                return !!document.body.classList;
+            }
+            },
+            {
+                src: '{{ PATH_JS }}/obs-notes.js', async: true, callback: function () {
+                flyOutNotes = new FlyOutNotes();
+                window.addEventListener('hashchange', function () {
+                    flyOutNotes.loadNotes()
+                });
+            }
+            }
+        ]
+    });
+</script>
+
+</body>
+</html>
