@@ -54,8 +54,10 @@ for x in `cat $LANGS_FILE`; do
 done
 
 cat $PROGRESS_FILE | mail -s "Open Bible Stories Progress Report" -a $TABLE \
-    ben@unfoldingword.org jesse@unfoldingword.org \
-    david_byron@wycliffeassociates.org 
+    ben@unfoldingword.org kwesi_opokudebrah@wycliffeassociates.org \
+    jesse@unfoldingword.org russ_perry@wycliffeassociates.org \
+    gene_foltz@wycliffeassociates.org gary_anderson@wycliffeassociates.org \
+    eric_steggerda@wycliffeassociates.org david_byron@wycliffeassociates.org 
 
 rm -f "$PROGRESS_FILE"
 rm -f "$LANGS_FILE"
