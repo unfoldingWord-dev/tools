@@ -73,3 +73,12 @@ $BASEDIR/obs/js/reveal_export.py
 $BASEDIR/uw/update_catalog.py
 
 chown -R syncthing:syncthing "$APIBASE"
+
+PUBNOTICE="Hello,\n\nThe resource OBS has recently been published for the $LANG language.  The version is $VER and the checking the level is $LEV.\n\nSincerely,\nYour Publishing Bot"
+
+echo -e "$PUBNOTICE" | mail -s "OBS Published for $LANG" \
+    ben@unfoldingword.org kwesi_opokudebrah@wycliffeassociates.org \
+    jesse@unfoldingword.org russ_perry@wycliffeassociates.org \
+    gene_foltz@wycliffeassociates.org gary_anderson@wycliffeassociates.org \
+    eric_steggerda@wycliffeassociates.org david_byron@wycliffeassociates.org \
+    tammy_white@wycliffeassociates.org
