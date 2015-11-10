@@ -132,7 +132,7 @@ $if(verbatim-in-note)$
 $endif$
 
 $if(title)$
-\title{\Huge $title$$if(subtitle)$\\\vspace{0.5em}{\Large $subtitle$}$endif$}
+\title{$if(logo)$\begin{center}\includegraphics[width=2cm]{$logo$}\end{center}\vspace{\baselineskip}$endif$\Huge $title$$if(subtitle)$\\\vspace{0.5em}{\Large $subtitle$}$endif$}
 $endif$
 $if(author)$
 \author{$for(author)$$author$$sep$ \and $endfor$}
