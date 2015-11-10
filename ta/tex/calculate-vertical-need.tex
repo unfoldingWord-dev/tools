@@ -1,0 +1,18 @@
+% -*- coding: utf-8 -*-
+\useBaseSkip=\saveskip
+\useFontSZ=\savesize
+\refskip=24pt
+\toptxt={\LangTextDir $toptxt}
+\bottxt={\LangTextDir $bottxt}
+\reftxt={\LangTextDir $reftxt}
+\setbox\topimg=\vbox{$topimg}
+\setbox\botimg=\vbox{$botimg}
+%%
+\setupbodyfont[<<<[fontface]>>>,<<<[fontstyle]>>>,<<<[bodysize]>>>]
+\setupinterlinespace[line=2.8ex,top=0.25,bottom=0.0]
+\setbox\reftry=\vbox{\vskip \the\refskip \tfx\em{{\the\reftxt}}}
+\refneed=\dimexpr \ht\reftry \relax
+\message{TRACE: MiscTare=\the\MiscTare, saveskip=\the\saveskip, savesize=\the\savesize, refneed=\the\refneed @}
+%%
+\setupbodyfont[<<<[fontface]>>>,<<<[fontstyle]>>>,<<<[bodysize]>>>]
+\setupinterlinespace[line=<<<[bodybaseline]>>>,top=0.0,bottom=0.0]
