@@ -56,15 +56,15 @@ $BASEDIR/obs/json/json_export.py -l $LANG -e || exit 1
 VER=$($BASEDIR/uw/get_ver.py $LANG)
 LEV=$($BASEDIR/uw/get_level.py $LANG)
 
+# Create image symlinks on api.unfoldingword.org
+$BASEDIR/uw/makejpgsymlinks.sh -l $LANG
+
 # Create PDF via ConTeXt
 $BASEDIR/obs/book/pdf_export.sh -l $LANG -c "$LEV" -v "$VER" \
     -o "$APIBASE/$LANG/"
 
 # Create Open Document export
 #$BASEDIR/obs/book/odt_export.sh -l $LANG
-
-# Create image symlinks on api.unfoldingword.org
-$BASEDIR/uw/makejpgsymlinks.sh -l $LANG
 
 # Create web reveal.js viewer
 $BASEDIR/obs/js/reveal_export.py
