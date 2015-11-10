@@ -40,7 +40,7 @@ cfre = re.compile(ur'See also.*', re.UNICODE)
 examplesre = re.compile(ur'===== Examples from the Bible stories.*',
     re.UNICODE | re.DOTALL)
 extxtre = re.compile(ur'\*\* (.*)', re.UNICODE)
-fridre = re.compile(ur'[0-5][0-9]/[0-9][0-9]', re.UNICODE)
+fridre = re.compile(ur'[0-9][0-9][0-9]?/[0-9][0-9][0-9]?', re.UNICODE)
 tNre = re.compile(ur'==== Translation Notes.*', re.UNICODE | re.DOTALL)
 itre = re.compile(ur'==== Important Terms: ====(.*?)====', re.UNICODE | re.DOTALL)
 tNtermre = re.compile(ur' \*\*(.*?)\*\*', re.UNICODE)
@@ -80,13 +80,9 @@ def getKT(f):
 
 def getKTDef(page):
     for def_title in def_titles:
-        defre = re.compile(ur'===== {0}: =====(.*?)\(See also'.format(
+        defre = re.compile(ur'===== {0}:? =====(.*?)[=(]'.format(
                                            def_title), re.UNICODE | re.DOTALL)
         defse = defre.search(page)
-        if not defse:
-            defre = re.compile(ur'===== {0}: =====(.*?)====='.format(
-                                           def_title), re.UNICODE | re.DOTALL)
-            defse = defre.search(page)
         if defse: break
     try:
         deftxt = defse.group(1).rstrip()
@@ -168,7 +164,7 @@ def getFrame(f, book):
     page = codecs.open(f, 'r', encoding='utf-8').read()
     if not pubre.search(page): return False
     frame = {}
-    getAliases(page)
+    getAliases(page, f)
     frame['id'] = fridre.search(f).group(0).strip().replace('/', '-')
     frame['tn'] = gettN(page, f)
     gettWList(frame['id'], page, book)
@@ -182,7 +178,11 @@ def gettWList(frid, page, book):
     if chp not in twdict[book]:
         twdict[book][chp] = []
     # Get list of tW from page
-    text = itre.search(page).group(1).strip()
+    try:
+        text = itre.search(page).group(1).strip()
+    except AttributeError:
+        print "Terms not found for {0} {1}".format(book, frid)
+        return
     tw_list = [x.split('|')[0] for x in linkre.findall(text)]
     tw_list += dwlinkre.findall(text)
     # Add to catalog
@@ -192,8 +192,12 @@ def gettWList(frid, page, book):
     entry['items'].sort(key=lambda x: x['id'])
     twdict[book][chp].append(entry)
 
-def getAliases(page):
-    text = itre.search(page).group(1).strip()
+def getAliases(page, f):
+    try:
+        text = itre.search(page).group(1).strip()
+    except AttributeError:
+        print "Terms not found for {0}".format(f)
+        return
     its = linkre.findall(text)
     for t in its:
         term, alias = t.split('|')
@@ -272,7 +276,6 @@ def runtN(lang, today):
             print 'Terms not found for {0}'.format(book)
             continue
         savetW('{0}/tw_cat.json'.format(apipath), today, twdict[book])
-        #print book
         del twdict[book]
 
 def savetW(filepath, today, twbookdict):
