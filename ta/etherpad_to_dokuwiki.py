@@ -105,8 +105,8 @@ class SectionData(object):
         if name.lower().startswith('tech'):
             return 'Technology'
 
-        if name.lower().startswith('test'):
-            return 'Test'
+        if name.lower().startswith('proc'):
+            return 'Process'
 
         return name
 
@@ -568,19 +568,12 @@ def output_list(pages, option_list):
     md = ''
 
     if isinstance(option_list, list):
-        if len(option_list) == 1:
-            link = get_page_link_by_slug(pages, option_list[0])
+        for option in option_list:
+            link = get_page_link_by_slug(pages, option)
             if link:
-                md += ' ' + link
+                md += "\n  * " + link
             else:
-                log_error('Linked page not found: ' + option_list[0])
-        else:
-            for option in option_list:
-                link = get_page_link_by_slug(pages, option)
-                if link:
-                    md += "\n  * " + link
-                else:
-                    log_error('Linked page not found: ' + option)
+                log_error('Linked page not found: ' + option)
     else:
         link = get_page_link_by_slug(pages, option_list)
         if link:
