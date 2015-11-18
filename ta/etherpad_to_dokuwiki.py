@@ -154,7 +154,7 @@ def parse_ta_modules(raw_text):
 
     # remove everything before the first ======
     pos = raw_text.find("\n======")
-    tmpstr = raw_text[pos+7:]
+    tmpstr = raw_text[pos + 7:]
 
     # break at "\n======" for major sections
     arr = tmpstr.split("\n======")
@@ -513,8 +513,8 @@ def make_dokuwiki_pages(pages):
             # get the file name from the yaml data
             page_file = str(page.yaml_data['slug']).strip().lower()
 
-            log_this('Generating Dokuwiki page: [[https://door43.org/' + page_dir
-                     + '/' + page_file + '|' + page_dir + '/' + page_file + '.txt]]')
+            log_this('Generating Dokuwiki page: [[https://door43.org/' + page_dir + '/' +
+                     page_file + '|' + page_dir + '/' + page_file + '.txt]]')
 
             page_file = actual_dir + '/' + page_file + '.txt'
 
@@ -522,6 +522,7 @@ def make_dokuwiki_pages(pages):
             question = get_yaml_string('question', page.yaml_data)
             dependencies = get_yaml_object('dependencies', page.yaml_data)
             recommended = get_yaml_object('recommended', page.yaml_data)
+            page_credits = get_yaml_object('credits', page.yaml_data)
 
             md = '===== ' + page.yaml_data['title'] + " =====\n\n"
 
@@ -535,6 +536,9 @@ def make_dokuwiki_pages(pages):
 
             md += page.page_text + "\n\n"
             check_bad_links(page.page_text)
+
+            if page_credits:
+                md += '*Credits: ' + page_credits + "*\n\n"
 
             if recommended:
                 md += 'Next we recommend you learn about:'
