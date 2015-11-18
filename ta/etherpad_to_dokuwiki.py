@@ -538,7 +538,7 @@ def make_dokuwiki_pages(pages):
             check_bad_links(page.page_text)
 
             if page_credits:
-                md += '*Credits: ' + page_credits + "*\n\n"
+                md += '_Credits: ' + page_credits + "_\n\n"
 
             if recommended:
                 md += 'Next we recommend you learn about:'
