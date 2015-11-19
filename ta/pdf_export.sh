@@ -78,7 +78,7 @@ for lang in "${langs[@]}"; do
     BASENAME="ta-${lang}-v${LANGVER/./_}${tag:+-$tag}"
 
     # Run python (export.py) to generate the .tex file from template .tex files
-    ./ta/export.py -l $lang -f tex ${checking:+-c $checking} -o "$BASENAME.html"
+    ./ta/export.py -l $lang ${checking:+-c $checking} -o "$BASENAME.html"
 
     LOGO="https://unfoldingWord.org/assets/img/icon-ta.png"
     TITLE="translationAcademy"
@@ -92,7 +92,7 @@ for lang in "${langs[@]}"; do
         --latex-engine="xelatex" \
         --template="$TEMPLATE" \
         --toc \
-        --toc-depth=2 \
+        --toc-depth=4 \
         -V documentclass="scrartcl" \
         -V classoption="oneside" \
         -V geometry='hmargin=2cm' \
