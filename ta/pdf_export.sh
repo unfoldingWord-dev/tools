@@ -77,7 +77,7 @@ for lang in "${langs[@]}"; do
     # Pick a filename based on all the parts we have
     BASENAME="ta-${lang}-v${LANGVER/./_}${tag:+-$tag}"
 
-    # Run python (export.py) to generate the .tex file from template .tex files
+    # Run python (json_to_html.py) to generate the html file to use in the PDF
     ./ta/export.py -l $lang ${checking:+-c $checking} -o "$BASENAME.html"
 
     LOGO="https://unfoldingWord.org/assets/img/icon-ta.png"
