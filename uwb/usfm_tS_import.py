@@ -123,12 +123,12 @@ def main(resource, lang, slug, name, checking, contrib, ver):
             print "No book"
             continue
         verses = getVerses(book)
-        #if not verses:
-            #print "No verses"
-            #continue
-        #newlines = addSections(lines, verses)
-        #book_name = '{0}-{1}.usfm'.format(books[book][1], book)
-        #writeFile('{0}/{1}'.format(outdir, book_name), u''.join(newlines))
+        if not verses:
+            print "No verses"
+            continue
+        newlines = addSections(lines, verses)
+        book_name = '{0}-{1}.usfm'.format(books[book][1], book)
+        writeFile('{0}/{1}'.format(outdir, book_name), u''.join(newlines))
         meta = ['Bible: OT']
         if int(books[book][1]) > 39:
             meta = ['Bible: NT']
