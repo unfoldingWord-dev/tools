@@ -39,8 +39,6 @@ def main(base_file, comp_file):
     missing_base = (set(comp_ids) - set(base_ids))
     if missing_base:
         print 'Missing from base file: %s' % missing_base
-    if not missing_comp and not missing_base:
-        print 'Same ids!'
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__,
