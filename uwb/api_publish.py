@@ -69,6 +69,20 @@ def parse(usx):
         if line.startswith(u'\n'): continue
         if 'chapter number' in line:
             if chp:
+                if fr_list:
+                    fr_text = u'\n'.join(fr_list)
+                    try:
+                        firstvs = versere.search(fr_text).group(1)
+                    except AttributeError:
+                        print u'myError, chp {0}'.format(chp_num)
+                        print u'Text: {0}'.format(fr_text)
+                        sys.exit(1)
+                    chp['frames'].append({ u'id': u'{0}-{1}'.format(
+                                     str(chp_num).zfill(2), firstvs.zfill(2)),
+                                       u'img': u'',
+                                       u'format': u'usx',
+                                       u'text': fr_text
+                                      })
                 chapters.append(chp)
             chp_num += 1
             chp = { u'number': str(chp_num).zfill(2),
