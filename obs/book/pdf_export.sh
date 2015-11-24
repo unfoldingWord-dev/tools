@@ -102,7 +102,7 @@ for lang in "${langs[@]}"; do
     LANGVER=${version:-$("$BASEDIR"/uw/get_ver.py $lang)}
 
     # Pick a filename based on all the parts we have
-    BASENAME="obs-${lang}-v${LANGVER/./_}${tag:+-$tag}"
+    BASENAME="obs-${lang}-v${LANGVER//./_}${tag:+-$tag}"
 
     # Run python (export.py) to generate the .tex file from template .tex files
     ./obs/export.py -l $lang -m $max_chapters -f tex ${checking:+-c $checking} -o "$BASENAME.tex"
