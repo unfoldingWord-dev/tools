@@ -58,7 +58,7 @@ done
 BASEDIR=$(cd $(dirname "$0")/../ && pwd)
 BUILDDIR=$(mktemp -d --tmpdir "ta_build_pdf.XXXXXX")
 LOG="$BUILDDIR/shell.log"
-TEMPLATE="$BASEDIR/general_tools/pandoc_pdf_template.tex"
+TEMPLATE="$BASEDIR/ta/tex/ta_template.tex"
 
 # Output info about every command (and don't clean up on exit) if in debug mode
 $debug && set -x
@@ -78,11 +78,13 @@ for lang in "${langs[@]}"; do
     BASENAME="ta-${lang}-v${LANGVER/./_}${tag:+-$tag}"
 
     # Run python (json_to_html.py) to generate the html file to use in the PDF
-    ./ta/export.py -l $lang ${checking:+-c $checking} -o "$BASENAME.html"
+    ./ta/html_export.py -l $lang ${checking:+-c $checking} -o "$BASENAME.html"
 
     LOGO="https://unfoldingWord.org/assets/img/icon-ta.png"
     TITLE="translationAcademy"
+    SUBTITLE="Version 1"
     DATE=`date +"%Y-%m-%d"`
+    LICENSE_FILE="$BASEDIR/ta/tex/ta_license"
 
     curl -o logo.png "$LOGO"
 
@@ -99,7 +101,9 @@ for lang in "${langs[@]}"; do
         -V geometry='vmargin=3cm' \
         -V logo="logo.png" \
         -V title="$TITLE" \
-        -V date="$DATE" \
+        -V subtitle="$SUBTITLE" \
+        -V license_file="$LICENSE_FILE" \
+        -V license_date="$DATE" \
         -V mainfont="Noto Serif" \
         -V sansfont="Noto Sans" \
         -o "${BASENAME}.pdf" "${BASENAME}.html"
