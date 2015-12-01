@@ -137,17 +137,17 @@ def main(lang, json_file):
     for chapter in json_data['chapters']:
         filepath = os.path.join(obspath, chapter['number']+".txt2")
         try:
-            f = open(filepath, "w")
-            try:
-                f.write("====== {0} ======\n\n\n".format(cleanText(chapter['title'])))
-                if 'frames' in chapter:
-                    for frame in chapter['frames']:
-                        if frame['id'] in obsframeset:
-                            f.write("{{{{{0}}}}}\n\n".format(frame['img']))
-                            f.write("{0}\n\n".format(cleanText(frame['text'])))
-                f.write("//{0}//\n\n".format(cleanText(chapter['ref'])))
-            finally:
-                f.close()
+            with codecs.open(filepath,'w',encoding='utf8') as f:
+                try:
+                    f.write("====== {0} ======\n\n\n".format(cleanText(chapter['title'])))
+                    if 'frames' in chapter:
+                        for frame in chapter['frames']:
+                            if frame['id'] in obsframeset:
+                                f.write("{{{{{0}}}}}\n\n".format(frame['img']))
+                                f.write("{0}\n\n".format(cleanText(frame['text'])))
+                    f.write("//{0}//\n\n".format(cleanText(chapter['ref'])))
+                finally:
+                    f.close()
         except IOError:
             print 'Unable to write to {0}. Exiting...'.format(filepath)
             sys.exit(1)
