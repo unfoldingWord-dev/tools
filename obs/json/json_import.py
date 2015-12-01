@@ -10,7 +10,7 @@
 #
 
 '''
-Exports tA for given language from json to html
+Imports an OBS json file into Door43 and commits it to Github 
 '''
 
 import os
