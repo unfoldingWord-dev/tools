@@ -54,12 +54,6 @@ def loadLangStrings(path):
         langdict[code.strip()] = string.strip()
     return langdict
 
-def cleanText(text):
-    # remove smart quotes
-    text = text.replace(u"\u2018","'").replace(u"\u2019","'").replace(u"\u201c",'"').replace(u"\u201d",'"')
-
-    return text
-
 def htmlToMarkdown(text):
     return text.replace(u'<ul>', u"\n") \
     .replace(ur'<li>', u'  * ') \

@@ -58,23 +58,6 @@ def loadLangStrings(path):
         langdict[code.strip()] = string.strip()
     return langdict
 
-def cleanText(text):
-    # remove smart quotes
-    text = text.replace(u"\u2018","'").replace(u"\u2019","'").replace(u"\u201c",'"').replace(u"\u201d",'"')
-
-    return text
-
-def getAppWordKeys(file):
-    keys = {}
-    if os.path.isfile(file):
-        for line in codecs.open(file, 'r', encoding='utf-8'):
-            if ( line.startswith(u'#') or line.startswith(u'\n')
-                              or line.startswith(u'{{') or u':' not in line ):
-                continue
-            k, v = line.split(u':', 1)
-            keys[k.strip().lower().replace(u' ', u'_')] = k.strip()
-    return keys
-
 def main(lang, json_file):
     sys.stdout = codecs.getwriter('utf8')(sys.stdout);
 
