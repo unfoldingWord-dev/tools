@@ -10,7 +10,7 @@
 #
 
 '''
-Imports an OBS tN json file into Door43 and commits it to Github
+Imports an OBS tQ json file into Door43 and commits it to Github
 '''
 
 import os
@@ -58,29 +58,12 @@ def loadLangStrings(path):
         langdict[code.strip()] = string.strip()
     return langdict
 
-def cleanText(text):
-    # remove smart quotes
-    text = text.replace(u"\u2018","'").replace(u"\u2019","'").replace(u"\u201c",'"').replace(u"\u201d",'"')
-
-    return text
-
-def getAppWordKeys(file):
-    keys = {}
-    if os.path.isfile(file):
-        for line in codecs.open(file, 'r', encoding='utf-8'):
-            if ( line.startswith(u'#') or line.startswith(u'\n')
-                              or line.startswith(u'{{') or u':' not in line ):
-                continue
-            k, v = line.split(u':', 1)
-            keys[k.strip().lower().replace(u' ', u'_')] = k.strip()
-    return keys
-
 def main(lang, json_file):
     sys.stdout = codecs.getwriter('utf8')(sys.stdout);
 
     langpath = os.path.join(pages, lang)
     obspath = os.path.join(langpath, 'obs')
-    notespath = os.path.join(obspath, 'notes', 'frames')
+    qpath = os.path.join(obspath, 'notes', 'questions')
 
     if not os.path.isdir(langpath):
         print '{0} has not yet been set up on Door43'.format(lang)
@@ -90,8 +73,8 @@ def main(lang, json_file):
         print 'OBS has not configured in Door43 for {0}'.format(lang)
         sys.exit(1)
 
-    if not os.path.isdir(notespath):
-        print 'OBS Notes has not configured in Door43 for {0}'.format(lang)
+    if not os.path.isdir(qpath):
+        print 'OBS Questions has not configured in Door43 for {0}'.format(lang)
         sys.exit(1)
 
     langdict = loadLangStrings(langnames)
@@ -112,39 +95,34 @@ def main(lang, json_file):
         sys.exit(1)
 
     # INJECT THE NOTES INTO NOTE PAGES FROM JSON
-    pageRe = re.compile(ur'^.*?(====.*?\n.*?)(====.*?\n.*?)(====.*?)(  \* \*\*.*?\n)(\*\*\[\[.*\]\]\*\*.*)', re.UNICODE | re.DOTALL)
+    pageRe = re.compile(ur'^.*?(======.*?\n)[\n\s]*(=====.*?\n)(.*?)\n(\*\*.*?\*\*)[\n\s]*$', re.UNICODE | re.DOTALL)
 
-    for frame in json_array:
-        if 'id' in frame and frame['id'] in obsframeset and 'tn' in frame and frame['tn']:
-            filepath = os.path.join(notespath, frame['id']+".txt")
+    for chapter in json_array:
+        if 'id' in chapter and 'cq' in chapter and chapter['cq']:
+            filepath = os.path.join(qpath, chapter['id']+".txt")
 
             try:
                 page = codecs.open(filepath, 'r', encoding='utf-8').read()
 
                 if not pageRe.match(page):
-                    if 'tn' not in frame or not frame['tn']:
-                        continue
-                    else:
-                        print "{0} is malformed and thus can't inject the notes from the JSON. Please fix, such as by copying the English (en) counterpart. Exiting...".format(filepath)
-                        sys.exit(1)
+                    print "{0} is malformed and thus can't inject the questions from the JSON. Please fix, such as by copying the English (en) counterpart. Exiting...".format(filepath)
+                    sys.exit(1)
 
                 result = pageRe.search(page)
-                intro = result.group(1)
-                terms = result.group(2)
-                notesHeader = result.group(3)
-                notes = result.group(4)
-                footer = result.group(5)
+                story_title = result.group(1)
+                question_title = result.group(2)
+                footer = result.group(4)
 
                 with codecs.open(filepath, 'w', encoding='utf8') as f:
                     try:
-                        f.write(intro)
-                        f.write(terms)
-                        f.write(notesHeader)
+                        f.write(story_title + u"\n")
+                        f.write(question_title + u"\n")
 
-                        for note in frame['tn']:
-                            f.write(u"  * **{0}** - {1}\n".format(note['ref'], note['text']))
+                        for cq in chapter['cq']:
+                            f.write(u"  - **{0}**\n".format(cq['q']))
+                            f.write(u"      * //{0} {1}//\n".format(cq['a'], u', '.join(u'[{0}]'.format(ref) for ref in cq['ref'])))
 
-                        f.write(footer)
+                        f.write(u"\n"+footer+u"\n")
                     finally:
                         f.close()
             except IOError,e:
@@ -152,13 +130,13 @@ def main(lang, json_file):
                 sys.exit(1)
 
     try:
-        gitCommit(langpath, "Imported OBS tN from JSON file")
+        gitCommit(langpath, "Imported OBS tQ from JSON file")
         gitPush(langpath)
     except e:
         print str(e)
         sys.exit(1)
 
-    print "Successfully imported {0} for {1} ({2}) to {3}.".format(json_file, langname, lang, notespath)
+    print "Successfully imported {0} for {1} ({2}) to {3}.".format(json_file, langname, lang, qpath)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__,
