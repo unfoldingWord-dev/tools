@@ -107,13 +107,13 @@ def main(lang, json_file):
     try:
         langstr = langdict[lang]
     except KeyError:
-        print "Configuration for language {0} missing in {1}.".format(lang, langnames)
+        print u"Configuration for language {0} missing in {1}.".format(lang, langnames)
         sys.exit(1)
 
     langname = langdict[lang]
 
     if not 'chapters' in json_data:
-        print "{0} does not contain the 'chapters' key. Exiting...".format(json_file)
+        print u"{0} does not contain the 'chapters' key. Exiting...".format(json_file)
         sys.exit(1)
 
     # GENERATE THE CHAPTER FILES FROM JSON
@@ -122,13 +122,13 @@ def main(lang, json_file):
         try:
             with codecs.open(filepath,'w',encoding='utf8') as f:
                 try:
-                    f.write("====== {0} ======\n\n".format(cleanText(chapter['title'])))
+                    f.write(u"====== {0} ======\n\n".format(cleanText(chapter['title'])))
                     if 'frames' in chapter:
                         for frame in chapter['frames']:
                             if frame['id'] in obsframeset:
-                                f.write("{{{{{0}}}}}\n\n".format(frame['img']))
-                                f.write("{0}\n\n".format(cleanText(frame['text'])))
-                    f.write("//{0}//\n\n".format(cleanText(chapter['ref'])))
+                                f.write(u"{{{{{0}}}}}\n\n".format(frame['img']))
+                                f.write(u"{0}\n\n".format(cleanText(frame['text'])))
+                    f.write(u"//{0}//\n\n".format(cleanText(chapter['ref'])))
                 finally:
                     f.close()
         except IOError,e:

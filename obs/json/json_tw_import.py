@@ -10,7 +10,7 @@
 #
 
 '''
-Imports an OBS tN json file into Door43 and commits it to Github
+Imports an OBS tW json file into Door43 and commits it to Github
 '''
 
 import os
@@ -64,6 +64,18 @@ def cleanText(text):
 
     return text
 
+def htmlToMarkdown(text):
+    return text.replace(u'<ul>', u"\n") \
+    .replace(ur'<li>', u'  * ') \
+    .replace(ur'</li>', u"\n") \
+    .replace(ur'</ul>',u"\n") \
+    .replace(ur'<h2>', u'===== ') \
+    .replace(ur'</h2>', u" =====\n") \
+    .replace(ur'<h3>', u"==== ") \
+    .replace(ur'</h3>', u" ====\n") \
+    .replace(ur'<b>', u'**') \
+    .replace(ur'</b>', u'**')
+
 def getAppWordKeys(file):
     keys = {}
     if os.path.isfile(file):
@@ -79,19 +91,16 @@ def main(lang, json_file):
     sys.stdout = codecs.getwriter('utf8')(sys.stdout);
 
     langpath = os.path.join(pages, lang)
-    obspath = os.path.join(langpath, 'obs')
-    notespath = os.path.join(obspath, 'notes', 'frames')
+    obepath = os.path.join(langpath, 'obe')
+    ktpath = os.path.join(obepath, 'kt')
+    otherpath = os.path.join(obepath, 'other')
 
     if not os.path.isdir(langpath):
         print '{0} has not yet been set up on Door43'.format(lang)
         sys.exit(1)
 
-    if not os.path.isdir(obspath):
-        print 'OBS has not configured in Door43 for {0}'.format(lang)
-        sys.exit(1)
-
-    if not os.path.isdir(notespath):
-        print 'OBS Notes has not configured in Door43 for {0}'.format(lang)
+    if not os.path.isdir(obepath) or not os.path.isdir(ktpath) or not os.path.isdir(otherpath):
+        print 'OBE has not configured in Door43 for {0}'.format(lang)
         sys.exit(1)
 
     langdict = loadLangStrings(langnames)
@@ -112,38 +121,59 @@ def main(lang, json_file):
         sys.exit(1)
 
     # INJECT THE NOTES INTO NOTE PAGES FROM JSON
-    pageRe = re.compile(ur'^.*?(====.*?\n.*?)(====.*?\n.*?)(====.*?)(  \* \*\*.*?\n)(\*\*\[\[.*\]\]\*\*.*)', re.UNICODE | re.DOTALL)
+    seeAlsoRe = re.compile(ur'\n(\(.*?\)\n)[\n\s]*===== Bible', re.UNICODE | re.DOTALL)
+    bibleRefRe = re.compile(ur'(===== Bible References: =====.*?)===', re.UNICODE | re.DOTALL)
+    footerRe = re.compile(ur'(~~DISCUSSION|\{\{tag>|~~NOCACHE).*', re.UNICODE | re.DOTALL)
 
-    for frame in json_array:
-        if 'id' in frame and frame['id'] in obsframeset and 'tn' in frame and frame['tn']:
-            filepath = os.path.join(notespath, frame['id']+".txt")
+    for term in json_array:
+        if 'id' in term and 'def' in term and 'def_title' in term and 'term' in term:
+            filename = "{0}.txt".format(term['id'])
+            if os.path.exists(os.path.join(ktpath, filename)):
+                filepath = os.path.join(ktpath, filename)
+            elif os.path.exists(os.path.join(otherpath, filename)):
+                filepath = os.path.join(otherpath, filename)
+            else:
+                print u"No file {0} for {1} exists in {2}. Please create file with proper sections and try again. Exiting...".format(filename, term['term'], obepath)
+                sys.exit(1)
 
             try:
                 page = codecs.open(filepath, 'r', encoding='utf-8').read()
 
-                if not pageRe.match(page):
-                    if 'tn' not in frame or not frame['tn']:
-                        continue
-                    else:
-                        print "{0} is malformed and thus can't inject the notes from the JSON. Please fix, such as by copying the English (en) counterpart. Exiting...".format(filepath)
-                        sys.exit(1)
-
-                intro = pageRe.search(page).group(1)
-                terms = pageRe.search(page).group(2)
-                notesHeader = pageRe.search(page).group(3)
-                notes = pageRe.search(page).group(4)
-                footer = pageRe.search(page).group(5)
-
                 with codecs.open(filepath, 'w', encoding='utf8') as f:
                     try:
-                        f.write(intro)
-                        f.write(terms)
-                        f.write(notesHeader)
+                        f.write(u"====== {0} ======\n\n".format(term['term']))
+                        f.write(u"===== {0} =====\n\n".format(term['def_title']))
+                        f.write(htmlToMarkdown(term['def']))
 
-                        for note in frame['tn']:
-                            f.write(u"  * **{0}** - {1}\n".format(note['ref'], note['text']))
+                        if seeAlsoRe.search(page):
+                            f.write(seeAlsoRe.search(page).group(1))
+                            f.write(u"\n")
+                        elif 'cf' in term and term['cf']:
+                            alsos = []
+                            for cf in term['cf']:
+                                cf = re.sub(ur'[\[\]\(\)]', '', cf).lower().strip()
+                                term_filename = u"{0}.txt".format(cf)
+                                term_path = None
+                                if os.path.exists(os.path.join(ktpath, term_filename)):
+                                    term_path = "kt"
+                                elif os.path.exists(os.path.join(otherpath, filename)):
+                                    term_path = "other"
+                                if term_path:
+                                    alsos.append(u"[[{0}:obe:{1}:{2}]]".format(lang, term_path, cf))
+                            if alsos:
+                                f.write(u"(See also: {0})\n\n".format(",".join(alsos)));
 
-                        f.write(footer)
+                        if bibleRefRe.search(page):
+                            f.write(bibleRefRe.search(page).group(1))
+
+                        if 'ex' in term and term['ex']:
+                            f.write(u"===== Examples from the Bible stories: =====\n\n")
+                            for ex in term['ex']:
+                                f.write(u"  ***[[:{0}:obs:notes:frames:{1}|[{1}]]]** {2}\n".format(lang, ex['ref'], htmlToMarkdown(ex['text'])))
+                            f.write(u"\n")
+
+                        if footerRe.search(page):
+                            f.write(footerRe.search(page).group(0))
                     finally:
                         f.close()
             except IOError,e:
@@ -157,7 +187,7 @@ def main(lang, json_file):
         print str(e)
         sys.exit(1)
 
-    print "Successfully imported {0} for {1} ({2}) to {3}.".format(json_file, langname, lang, notespath)
+    print u"Successfully imported {0} for {1} ({2}) to {3}.".format(json_file, langname, lang, obepath)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__,
