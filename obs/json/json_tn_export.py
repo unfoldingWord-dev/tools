@@ -45,6 +45,7 @@ examplesre = re.compile(ur'===== Examples from the Bible stories.*',
     re.UNICODE | re.DOTALL)
 extxtre = re.compile(ur'.*?\]\]\]\*\*(.*)', re.UNICODE)
 fridre = re.compile(ur'[0-5][0-9]-[0-9][0-9]', re.UNICODE)
+tNheaderre = re.compile(ur'(.*?)\n=+ Translation Notes', re.UNICODE | re.DOTALL)
 tNre = re.compile(ur'==== Translation Notes.*', re.UNICODE | re.DOTALL)
 itre = re.compile(ur'==== Important Terms: ====(.*?)====', re.UNICODE | re.DOTALL)
 tNtermre = re.compile(ur' \*\*(.*?)\*\* ', re.UNICODE)
@@ -235,7 +236,13 @@ def getAliases(page):
 
 def gettN(page):
     tN = []
+    header = tNheaderre.search(page).group(1)
     text = tNre.search(page).group(0)
+
+#    print page
+    print header
+    sys.exit()
+
     for i in text.split('\n'):
         item = {}
         tNtermse = tNtermre.search(i)
@@ -243,8 +250,7 @@ def gettN(page):
             continue
         if DEBUG: print i
         item['ref'] = tNtermse.group(1)
-        item['text'] = tNtextre.search(i).group(1).strip()
-        item['text'] = getHTML(item['text'])
+        item['text'] = getHTML(tNtextre.search(i).group(1).strip())
         tN.append(item)
     return tN
 

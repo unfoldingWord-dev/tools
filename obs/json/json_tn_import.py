@@ -10,7 +10,7 @@
 #
 
 '''
-Imports an OBS json file into Door43 and commits it to Github 
+Imports an OBS tN json file into Door43 and commits it to Github
 '''
 
 import os
@@ -78,21 +78,9 @@ def getAppWordKeys(file):
 def main(lang, json_file):
     sys.stdout = codecs.getwriter('utf8')(sys.stdout);
 
-    # Parse the json file
-    try:
-        json_data = json.load(codecs.open(json_file, 'r', 'utf8'))
-    except IOError,e:
-        print str(e)
-        sys.exit(1)
-
-    if not lang:
-        if not 'language' in json_data:
-            print "A language code either must be supplied with -l or specified in {0} with the 'language' key. Exiting...".format(json_file)
-            sys.exit(1)
-        lang = json_data['language']
-
     langpath = os.path.join(pages, lang)
     obspath = os.path.join(langpath, 'obs')
+    notespath = os.path.join(obspath, 'notes', 'frames')
 
     if not os.path.isdir(langpath):
         print '{0} has not yet been set up on Door43'.format(lang)
@@ -102,68 +90,74 @@ def main(lang, json_file):
         print 'OBS has not configured in Door43 for {0}'.format(lang)
         sys.exit(1)
 
+    if not os.path.isdir(notespath):
+        print 'OBS Notes has not configured in Door43 for {0}'.format(lang)
+        sys.exit(1)
+
     langdict = loadLangStrings(langnames)
 
     try:
         langstr = langdict[lang]
     except KeyError:
-        print u"Configuration for language {0} missing in {1}.".format(lang, langnames)
+        print "Configuration for language {0} missing in {1}.".format(lang, langnames)
         sys.exit(1)
 
     langname = langdict[lang]
 
-    if not 'chapters' in json_data:
-        print u"{0} does not contain the 'chapters' key. Exiting...".format(json_file)
+    # Parse the json file
+    try:
+        json_array = json.load(codecs.open(json_file, 'r', 'utf8'))
+    except IOError,e:
+        print str(e)
         sys.exit(1)
 
-    # GENERATE THE CHAPTER FILES FROM JSON
-    for chapter in json_data['chapters']:
-        filepath = os.path.join(obspath, chapter['number']+".txt")
-        try:
-            with codecs.open(filepath,'w',encoding='utf8') as f:
-                try:
-                    f.write(u"====== {0} ======\n\n".format(cleanText(chapter['title'])))
-                    if 'frames' in chapter:
-                        for frame in chapter['frames']:
-                            if frame['id'] in obsframeset:
-                                f.write(u"{{{{{0}}}}}\n\n".format(frame['img']))
-                                f.write(u"{0}\n\n".format(cleanText(frame['text'])))
-                    f.write(u"//{0}//\n\n".format(cleanText(chapter['ref'])))
-                finally:
-                    f.close()
-        except IOError,e:
-            print str(e)
-            sys.exit(1)
+    # INJECT THE NOTES INTO NOTE PAGES FROM JSON
+    pageRe = re.compile(ur'^.*?(====.*?\n.*?)(====.*?\n.*?)(====.*?)(  \* \*\*.*?\n)(\*\*\[\[.*\]\]\*\*.*)', re.UNICODE | re.DOTALL)
 
-    # GENERATE THE app_words.txt FILE FROM JSON
-    if 'app_words' in json_data:
-        app_words = json_data['app_words']
+    for frame in json_array:
+        if 'id' in frame and frame['id'] in obsframeset and 'tn' in frame and frame['tn']:
+            filepath = os.path.join(notespath, frame['id']+".txt")
 
-        appwordspath = os.path.join(obspath, 'app_words.txt');
-        app_word_keys = getAppWordKeys(appwordspath)
+            try:
+                page = codecs.open(filepath, 'r', encoding='utf-8').read()
 
-        try:
-            with codecs.open(appwordspath,'w',encoding='utf8') as f:
-                try:
-                    f.write("//Translation for the unfoldingWord mobile app interface //\n\n");
+                if not pageRe.match(page):
+                    if 'tn' not in frame or not frame['tn']:
+                        continue
+                    else:
+                        print "{0} is malformed and thus can't inject the notes from the JSON. Please fix, such as by copying the English (en) counterpart. Exiting...".format(filepath)
+                        sys.exit(1)
 
-                    for key in app_words.keys():
-                        if key in app_word_keys:
-                            f.write("{0}: {1}\n\n".format(app_word_keys[key], app_words[key]))
-                finally:
-                    f.close()
-        except IOError:
-            print 'Unable to write to {0}. Exiting...'.format(filepath)
-            sys.exit(1)
+                intro = pageRe.search(page).group(1)
+                terms = pageRe.search(page).group(2)
+                notesHeader = pageRe.search(page).group(3)
+                notes = pageRe.search(page).group(4)
+                footer = pageRe.search(page).group(5)
+
+                with codecs.open(filepath, 'w', encoding='utf8') as f:
+                    try:
+                        f.write(intro)
+                        f.write(terms)
+                        f.write(notesHeader)
+
+                        for note in frame['tn']:
+                            f.write(u"  * **{0}** - {1}\n".format(note['ref'], note['text']))
+
+                        f.write(footer)
+                    finally:
+                        f.close()
+            except IOError,e:
+                print str(e)
+                sys.exit(1)
 
     try:
-        gitCommit(langpath, "Imported OBS from JSON file")
+        gitCommit(langpath, "Imported OBS tN from JSON file")
         gitPush(langpath)
     except e:
         print str(e)
         sys.exit(1)
 
-    print "Successfully imported {0} for {1} ({2}) to {3}.".format(json_file, langname, lang, obspath)
+    print "Successfully imported {0} for {1} ({2}) to {3}.".format(json_file, langname, lang, notespath)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__,
@@ -171,7 +165,7 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--input', dest="jsonfile",
         required=True, help="Input JSON file")
     parser.add_argument('-l', '--language', dest="lang",
-        required=False, help="Language code")
+        required=True, help="Language code")
     args = parser.parse_args(sys.argv[1:])
 
     main(args.lang, args.jsonfile)
