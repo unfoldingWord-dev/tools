@@ -158,7 +158,7 @@ def main(lang, json_file):
                 sys.exit(1)
 
     try:
-        gitCommit(langpath, "Imported OBS from JSON file")
+        gitCommit(langpath, "Imported OBS tN from JSON file")
         gitPush(langpath)
     except e:
         print str(e)
