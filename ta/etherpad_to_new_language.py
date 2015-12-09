@@ -280,6 +280,7 @@ def create_new_page(e_pad, original_page_name, force=False):
         new_text = new_text.replace(u'[[:en:ta:', u'[[:' + NEW_LANGUAGE_CODE + u':ta:')
         new_text = new_text.replace(u'[[en:ta|', u'[[' + NEW_LANGUAGE_CODE + u':ta|')
         new_text = new_text.replace(u'[[:en:ta|', u'[[:' + NEW_LANGUAGE_CODE + u':ta|')
+        new_text = new_text.replace(u'<br><strong>namespace:</strong> en<br>', u'<br><strong>namespace:</strong> ' + NEW_LANGUAGE_CODE + u'<br>')
 
         # undo the change to hi-ta-modules-template
         new_text = new_text.replace(NEW_LANGUAGE_CODE + u'-ta-modules-template', u'ta-modules-template')
