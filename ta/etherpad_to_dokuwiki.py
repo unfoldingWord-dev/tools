@@ -677,15 +677,16 @@ if __name__ == '__main__':
     with PageGenerator('en', 'ta-modules') as generator:
         generator.generate()
     log_link = u'ta-modules_import.log'
-    log_text = u'[[https://door43.org/playground/' + log_link + u'|' + log_link + u']]\n'
+    log_text = u'[[https://door43.org/playground/' + log_link + u'|' + log_link + u']]\n\n'
 
     for ns in NAMESPACES:
         with PageGenerator(ns, ns + '-ta-modules') as generator:
             generator.generate()
         log_link = ns + u'-ta-modules_import.log'
-        log_text = log_text + u'[[https://door43.org/playground/' + log_link + u'|' + log_link + u']]\n'
+        log_text = log_text + u'[[https://door43.org/playground/' + log_link + u'|' + log_link + u']]\n\n'
 
     # write a log file
-    log_text = u'=== Last run finished at: ' + datetime.utcnow().strftime('%Y-%m-%d %H:%M') + u' UTC ===\n' + log_text
+    log_text = u'=== Last run finished at: ' + datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S') + \
+               u' UTC ===\n' + log_text
     with codecs.open(LOGDIR + '/ta_import.log.txt', 'w', 'utf-8') as log_file_out:
         log_file_out.write(log_text)
