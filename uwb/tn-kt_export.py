@@ -334,13 +334,28 @@ def getQandA(text):
             item['q'] = qre.search(line).group(1).strip()
         elif are.search(line):
             item['a'] = are.search(line).group(1).strip()
-            item['ref'] = refre.findall(item['a'])
+            item['ref'] = fixRefs(refre.findall(item['a']))
             item['a'] = item['a'].split('[')[0].strip()
             cq.append(item)
             continue
         else:
             print line
     return cq
+
+def fixRefs(refs):
+    newrefs = []
+    for i in refs:
+        sep = u'-'
+        try:
+            chp, verses = i.split(u':')
+        except:
+            print i
+        if u',' in verses:
+            sep = u','
+        v_list = verses.split(sep)
+        for v in v_list:
+            newrefs.append(u'{0}-{1}'.format(chp.zfill(2), v.zfill(2)))
+    return newrefs
 
 
 if __name__ == '__main__':
