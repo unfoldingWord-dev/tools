@@ -49,6 +49,10 @@ tNtextre2 = re.compile(ur'\* (.*)', re.UNICODE)
 pubre = re.compile(ur'tag>.*publish.*', re.UNICODE)
 suggestre = re.compile(ur'===== Translation Suggestions:? =====(.*?)[=(][TS]?',
     re.UNICODE | re.DOTALL)
+qre = re.compile(ur'Q\?(.*)', re.UNICODE)
+are = re.compile(ur'A\.(.*)', re.UNICODE)
+refre = re.compile(ur'\[(.*?)]', re.UNICODE)
+
 
 # Regexes for DW to HTML conversion
 boldstartre = re.compile(ur'([ ,.])(\*\*)', re.UNICODE)
@@ -289,8 +293,58 @@ def savetW(filepath, today, twbookdict):
     tw_cat['chapters'].sort(key=lambda x: x['id'])
     writeJSON(filepath, tw_cat)
 
+def runCQ(lang, today):
+    CQpath = os.path.join(pages, lang, 'bible/questions/comprehension')
+    for book in os.listdir(CQpath):
+        book_questions = []
+        book_path = os.path.join(CQpath, book)
+        if len(book) > 3: continue
+        if not os.path.isdir(book_path): continue
+        apipath = os.path.join(api_v2, book, lang)
+        for f in glob.glob('{0}/*.txt'.format(book_path)):
+            if 'home.txt' in f: continue
+            book_questions.append(getCQ(f))
+        # Check to see if there are published questions in this book
+        pub_check = [x['cq'] for x in book_questions if len(x['cq']) > 0]
+        if len(pub_check) == 0:
+            #print "No published questions for {0}".format(book)
+            continue
+        book_questions.sort(key=lambda x: x['id'])
+        book_questions.append({'date_modified': today})
+        writeJSON('{0}/questions.json'.format(apipath), book_questions)
+
+def getCQ(f):
+    page = codecs.open(f, 'r', encoding='utf-8').read()
+    chapter = {}
+    chapter['id'] = f.rsplit('/')[-1].rstrip('.txt')
+    chapter['cq'] = []
+    if pubre.search(page):
+        chapter['cq'] = getQandA(page)
+    return chapter
+
+def getQandA(text):
+    cq = []
+    for line in text.splitlines():
+        if (line.startswith(u'\n') or line == u''
+           or line.startswith(u'~~') or line.startswith('===')
+           or line.startswith(u'{{') or line.startswith(u'**[[')
+           or line.startswith(u'These questions will')): continue
+        if qre.search(line):
+            item = {}
+            item['q'] = qre.search(line).group(1).strip()
+        elif are.search(line):
+            item['a'] = are.search(line).group(1).strip()
+            item['ref'] = refre.findall(item['a'])
+            item['a'] = item['a'].split('[')[0].strip()
+            cq.append(item)
+            continue
+        else:
+            print line
+    return cq
+
 
 if __name__ == '__main__':
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
-    runtN('en', today)
-    runKT('en', today)
+    #runtN('en', today)
+    #runKT('en', today)
+    runCQ('en', today)
