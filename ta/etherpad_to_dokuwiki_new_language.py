@@ -626,7 +626,7 @@ if __name__ == '__main__':
 
     # if no language code supplied, exit
     if not args.lang:
-        log_this('Exiting because noo language code was supplied.', True)
+        log_this('Exiting because no language code was supplied.', True)
         sys.exit(1)
 
     NEW_LANGUAGE_CODE = args.lang
