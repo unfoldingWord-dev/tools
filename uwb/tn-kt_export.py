@@ -44,7 +44,7 @@ fridre = re.compile(ur'[0-9][0-9][0-9]?/[0-9][0-9][0-9]?', re.UNICODE)
 tNre = re.compile(ur'==== Translation Notes.*', re.UNICODE | re.DOTALL)
 itre = re.compile(ur'==== Important Terms: ====(.*?)====', re.UNICODE | re.DOTALL)
 tNtermre = re.compile(ur' \*\*(.*?)\*\*', re.UNICODE)
-tNtextre = re.compile(ur' [–-] ?(.*)', re.UNICODE)
+tNtextre = re.compile(ur' ?[–-] ?(.*)', re.UNICODE)
 tNtextre2 = re.compile(ur'\* (.*)', re.UNICODE)
 pubre = re.compile(ur'tag>.*publish.*', re.UNICODE)
 suggestre = re.compile(ur'===== Translation Suggestions:? =====(.*?)[=(][TS]?',
@@ -55,9 +55,7 @@ refre = re.compile(ur'\[(.*?)]', re.UNICODE)
 
 
 # Regexes for DW to HTML conversion
-boldstartre = re.compile(ur'([ ,.])(\*\*)', re.UNICODE)
-boldstartre2 = re.compile(ur'\*\*', re.UNICODE)
-boldstopre = re.compile(ur'''(\*\*)([ ,.'!])''', re.UNICODE)
+boldre = re.compile(ur'\*\*(.*?)\*\*', re.UNICODE)
 lire = re.compile(ur' +\* ', re.UNICODE)
 h3re = re.compile(ur'\n=== (.*?) ===\n', re.UNICODE)
 
@@ -119,9 +117,7 @@ def getKTCF(page):
 
 def getHTML(text):
     # add ul/li
-    text = boldstartre.sub(ur'\1<b>', text)
-    text = boldstopre.sub(ur'</b>\2', text)
-    text = boldstartre2.sub(ur'<b>', text)
+    text = boldre.sub(ur'<b>\1</b>', text)
     text = h3re.sub(ur'<h3>\1</h3>', text)
     text = getHTMLList(text)
     return text.strip()
@@ -360,6 +356,6 @@ def fixRefs(refs):
 
 if __name__ == '__main__':
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
-    #runtN('en', today)
+    runtN('en', today)
     #runKT('en', today)
     runCQ('en', today)
