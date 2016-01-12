@@ -50,6 +50,9 @@ fi
 # to it ever if called from elsewhere (in, say the directory we want the output)
 BASEDIR=$(cd $(dirname "$0")/../ && pwd)
 
+# Test for required TeX file first
+[ ! -f $($BASEDIR/obs/tex/noto-$LANG.tex) ] && echo "Missing tex file" && exit 1
+
 # Run export of OBS to JSON
 $BASEDIR/obs/json/json_export.py -l $LANG -e || exit 1
 
