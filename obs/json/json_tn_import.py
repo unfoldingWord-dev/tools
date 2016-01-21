@@ -118,9 +118,6 @@ def main(lang, json_file):
                 notes = result.group(4)
                 footer = result.group(5)
 
-		print terms
-		sys.exit(1)
-
                 with codecs.open(filepath, 'w', encoding='utf8') as f:
                     try:
                         f.write(intro)
