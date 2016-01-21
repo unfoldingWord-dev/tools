@@ -54,7 +54,7 @@ def loadLangStrings(path):
         langdict[code.strip()] = string.strip()
     return langdict
 
-def htmlToDW(text):
+def htmlToMarkdown(text):
     return text.replace(u'<ul>', u"\n") \
     .replace(ur'<li>', u'  * ') \
     .replace(ur'</li>', u"\n") \
@@ -133,18 +133,15 @@ def main(lang, json_file):
                     try:
                         f.write(u"====== {0} ======\n\n".format(term['term']))
                         f.write(u"===== {0} =====\n\n".format(term['def_title']))
-                        f.write(htmlToDW(term['def']))
+                        f.write(htmlToMarkdown(term['def']))
 
-                        if 'cf' in term and term['cf']:
+                        if seeAlsoRe.search(page):
+                            f.write(seeAlsoRe.search(page).group(1))
+                            f.write(u"\n")
+                        elif 'cf' in term and term['cf']:
                             alsos = []
                             for cf in term['cf']:
-				parts = cf.split('|')
-				cf = parts[0]
-                                cf = re.sub(ur'[\[\]\(\)]', '', cf).strip()
-				if len(parts) > 1:
-                                    text = u'|'+parts[1]
-                                else:
-                                    text = u''
+                                cf = re.sub(ur'[\[\]\(\)]', '', cf).lower().strip()
                                 term_filename = u"{0}.txt".format(cf)
                                 term_path = None
                                 if os.path.exists(os.path.join(ktpath, term_filename)):
@@ -152,12 +149,9 @@ def main(lang, json_file):
                                 elif os.path.exists(os.path.join(otherpath, filename)):
                                     term_path = "other"
                                 if term_path:
-                                    alsos.append(u"[[{0}:obe:{1}:{2}{3}]]".format(lang, term_path, cf, text))
+                                    alsos.append(u"[[{0}:obe:{1}:{2}]]".format(lang, term_path, cf))
                             if alsos:
-                                f.write(u"(See also: {0})\n\n".format(", ".join(alsos)));
-                        elif seeAlsoRe.search(page):
-                            f.write(seeAlsoRe.search(page).group(1))
-                            f.write(u"\n")
+                                f.write(u"(See also: {0})\n\n".format(",".join(alsos)));
 
                         if bibleRefRe.search(page):
                             f.write(bibleRefRe.search(page).group(1))
@@ -165,7 +159,7 @@ def main(lang, json_file):
                         if 'ex' in term and term['ex']:
                             f.write(u"===== Examples from the Bible stories: =====\n\n")
                             for ex in term['ex']:
-                                f.write(u"  ***[[:{0}:obs:notes:frames:{1}|[{1}]]]** {2}\n".format(lang, ex['ref'], htmlToDW(ex['text'])))
+                                f.write(u"  ***[[:{0}:obs:notes:frames:{1}|[{1}]]]** {2}\n".format(lang, ex['ref'], htmlToMarkdown(ex['text'])))
                             f.write(u"\n")
 
                         if footerRe.search(page):

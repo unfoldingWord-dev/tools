@@ -1,0 +1,351 @@
+% Very helpul: http://ctan.math.washington.edu/tex-archive/macros/latex/contrib/memoir/memman.pdf
+\documentclass[$if(fontsize)$$fontsize$,$endif$$if(lang)$$lang$,$endif$$if(papersize)$$papersize$,$endif$$for(classoption)$$classoption$$sep$,$endfor$,openany]{$documentclass$}
+\usepackage[automark]{scrpage2}
+\usepackage{tocstyle}
+\usepackage{titlesec}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\usepackage{multicol}
+
+\AtBeginDocument{%
+  \pagestyle{scrheadings}%
+  \clearscrheadfoot%
+  \cfoot{\pagemark{}}%
+  \ohead{\headmark}%
+}{}
+
+$if(mainfont)$
+  \usepackage{fontspec}
+  \setmainfont{$mainfont$}
+$endif$
+
+$if(sansfont)$
+  \setsansfont{$sansfont$}
+$endif$
+
+$if(linestretch)$
+  \usepackage{setspace}
+  \setstretch{$linestretch$}
+$endif$
+
+\titleformat*{\section}{\huge\bfseries}
+\titleformat*{\subsection}{\LARGE\bfseries}
+\titleformat*{\subsubsection}{\Large\bfseries}
+\titleformat*{\paragraph}{\large\bfseries}
+\titleformat*{\subparagraph}{\large\bfseries}
+
+\long\def\sectionvc#1{\vfill\section{#1}\vfill\clearpage}
+
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+$if(euro)$
+  \usepackage{eurosym}
+$endif$
+$if(mathfont)$
+  \setmathfont(Digits,Latin,Greek){$mathfont$}
+$endif$
+\fi
+
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+  \usepackage{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+
+$if(geometry)$
+  \usepackage[$for(geometry)$$geometry$$sep$,$endfor$]{geometry}
+$endif$
+
+$if(lang)$
+  \ifxetex
+    \usepackage{polyglossia}
+    \setmainlanguage{$mainlang$}
+  \else
+    \usepackage[shorthands=off,$lang$]{babel}
+  \fi
+$endif$
+
+$if(natbib)$
+  \usepackage{natbib}
+  \bibliographystyle{$if(biblio-style)$$biblio-style$$else$plainnat$endif$}
+$endif$
+
+$if(biblatex)$
+  \usepackage{biblatex}
+  $if(biblio-files)$
+    \bibliography{$biblio-files$}
+  $endif$
+$endif$
+
+$if(listings)$
+  \usepackage{listings}
+$endif$
+
+$if(lhs)$
+  \lstnewenvironment{code}{\lstset{language=Haskell,basicstyle=\small\ttfamily}}{}
+$endif$
+
+$if(highlighting-macros)$
+  $highlighting-macros$
+$endif$
+
+$if(verbatim-in-note)$
+  \usepackage{fancyvrb}
+  \VerbatimFootnotes
+$endif$
+
+$if(tables)$
+  \usepackage{longtable,booktabs}
+$endif$
+
+$if(graphics)$
+  \usepackage{graphicx,grffile}
+  \makeatletter
+  \def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+  \def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+  \makeatother
+  % Scale images if necessary, so that they will not overflow the page
+  % margins by default, and it is still possible to overwrite the defaults
+  % using explicit options in \includegraphics[width, height, ...]{}
+  \setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+$endif$
+
+\ifxetex
+  \usepackage[setpagesize=false, % page size defined by xetex
+              unicode=false, % unicode breaks when used with xetex
+              xetex]{hyperref}
+\else
+  \usepackage[unicode=true]{hyperref}
+\fi
+
+\hypersetup{breaklinks=true,
+            bookmarks=true,
+            pdfauthor={$author-meta$},
+            pdftitle={$title-meta$},
+            colorlinks=true,
+            citecolor=blue,
+            urlcolor=blue,
+            linkcolor=blue,
+            pdfborder={0 0 0}}
+
+\urlstyle{same}  % don't use monospace font for urls
+
+$if(links-as-notes)$
+  % Make links footnotes instead of hotlinks:
+  \renewcommand{\href}[2]{#2\footnote{\url{#1}}}
+$endif$
+
+$if(strikeout)$
+  \usepackage[normalem]{ulem}
+  % avoid problems with \sout in headers with hyperref:
+  \pdfstringdefDisableCommands{\renewcommand{\sout}{}}
+$endif$
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+$if(numbersections)$
+  \setcounter{secnumdepth}{5}
+$else$
+  \setcounter{secnumdepth}{0}
+$endif$
+
+$if(verbatim-in-note)$
+  \VerbatimFootnotes % allows verbatim text in footnotes
+$endif$
+
+$if(title)$
+  \title{$if(logo)$\begin{center}\includegraphics[width=4cm]{$logo$}\end{center}\vspace{\baselineskip}$endif$\Huge $title$$if(subtitle)$\\\vspace{0.5em}{\LARGE $subtitle$}$endif$}
+$endif$
+
+$if(author)$
+  \author{$for(author)$$author$$sep$ \and $endfor$}
+$endif$
+
+\date{\small $date$}
+
+$for(header-includes)$
+  $header-includes$
+$endfor$
+
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+  \let\oldparagraph\paragraph
+  \renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+
+\ifx\subparagraph\undefined\else
+  \let\oldsubparagraph\subparagraph
+  \renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\noindent}
+\fi
+
+\makeatletter
+\renewcommand\subparagraph{\@startsection{subparagraph}{5}{\z@}%
+                                     {-3.25ex\@plus -1ex \@minus -.2ex}%
+                                     {0.0001pt \@plus .2ex}%
+                                     {\normalfont\normalsize\bfseries}}
+\makeatother
+
+\newcommand\sectionbreak{\clearpage}
+
+\usepackage{enumitem}
+\setlistdepth{99}
+
+\renewcommand*\contentsname{Table of Contents}
+
+\usepackage{pdfpages}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[utf8]{inputenc}
+
+\begin{document}
+
+\pagenumbering{gobble}
+
+$if(title)$
+  \maketitle
+$endif$
+
+$if(abstract)$
+  \begin{abstract}
+    $abstract$
+  \end{abstract}
+$endif$
+
+\newpage
+\pagenumbering{arabic}
+
+$for(include-before)$
+  $include-before$
+$endfor$
+
+\section{Copyrights \& Licensing}\label{copyrights-licensing}
+
+\textbf{License:}
+
+This work is made available under a
+\href{http://creativecommons.org/licenses/by-sa/4.0/}{Creative Commons
+Attribution-ShareAlike 4.0 International License}, which means
+
+You are free:
+
+\begin{itemize}
+\item
+  Share --- copy and redistribute the material in any medium or format
+\item
+  Adapt --- remix, transform, and build upon the material for any
+  purpose, even commercially.
+\end{itemize}
+
+Under the following conditions:
+
+\begin{itemize}
+\item
+  Attribution --- You must attribute the work as follows: ``Original
+  work available at
+  \href{http://unfoldingword.org}{http://unfoldingword.org.}''
+  Attribution statements in derivative works should not in any way
+  suggest that we endorse you or your use of this work.
+\item
+  ShareAlike --- If you remix, transform, or build upon the material,
+  you must distribute your contributions under the same license as the
+  original.
+\end{itemize}
+
+Use of trademarks: \textbf{unfoldingWord} is a trademark of Distant
+Shores Media and may not be included on any derivative works created
+from this content. Unaltered content from \url{http://unfoldingword.org}
+must include the \textbf{unfoldingWord} logo when distributed to others.
+But if you alter the content in any way, you must remove the
+\textbf{unfoldingWord} logo before distributing your work.
+
+This work is still being revised, if you have comments or questions please email them to \href{mailto:help@door43.org}{\nolinkurl{help@door43.org}}
+
+\vspace{10 mm}
+
+$if(version)$
+  \textbf{Version:} $version$
+$endif$
+
+$if(publish_date)$
+  \textbf{Published:} $publish_date$
+$endif$
+
+$if(checking_level)$
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\begin{tabular}{@{}p{1.5cm} p{10cm}@{}}
+    \vspace{0pt}
+    \includegraphics[width=1.5cm]{checking.png}
+    &
+    \vspace{0pt}
+    \textbf{Checking level $checking_level$}
+    \newline
+    \newline
+    \em{find out more at \href{https://unfoldingword.org/quality}{https://unfoldingword.org/quality}}
+\end{tabular}
+\hfill\
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+$endif$
+
+$if(toc)$
+{
+  \setcounter{tocdepth}{$toc-depth$}
+
+  \newtocstyle{compact}{%
+    \settocfeature[1]{entryhook}{\bfseries}%
+    \settocfeature[1]{entryvskip}{0pt plus 2pt}%
+  }
+  \usetocstyle{compact}
+
+  \hypersetup{linkcolor=black}
+  \setcounter{secnumdepth}{-1}
+
+  \tableofcontents
+
+  \newpage
+}
+$endif$
+
+$if(lot)$
+\listoftables
+$endif$
+
+$if(lof)$
+\listoffigures
+$endif$
+
+\begin{multicols}{2}
+
+$body$
+
+\end{multicols}
+
+$if(natbib)$
+  $if(biblio-files)$
+    $if(biblio-title)$
+      $if(book-class)$
+        \renewcommand\bibname{$biblio-title$}
+      $else$
+        \renewcommand\refname{$biblio-title$}
+      $endif$
+    $endif$
+    \bibliography{$biblio-files$}
+  $endif$
+$endif$
+
+$if(biblatex)$
+  \printbibliography$if(biblio-title)$[title=$biblio-title$]$endif$
+$endif$
+
+$for(include-after)$
+  $include-after$
+$endfor$
+
+\end{document}
