@@ -291,12 +291,11 @@ book_export () {
 
             if [ -e "$dir/$chapter.html" ];
             then
-                cat "$dir/$chapter.html" |
-                    grep -v '<strong>.*&gt;<\/a><\/strong>' |
+                grep -v '<strong>.*&gt;<\/a><\/strong>' "$dir/$chapter.html" |
                     grep -v ' href="\/tag\/' >> "$TQ_FILE"
 
                 linkname=$(head -3 "$dir/$chapter.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
-                echo "s@/$dir/$chapter\"@#$linkname\"@g" >> "$LINKS_FILE"
+                echo "s@\"[^\"]*/$dir/$chapter\"@\"#$linkname\"@g" >> "$LINKS_FILE"
             else
                 echo "<h1>$book $chapter - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$chapter - page does not exist</p>" >> "$TQ_FILE"
             fi
@@ -348,7 +347,7 @@ book_export () {
             grep -v ' href="\/tag\/' >> "$TW_FILE"
 
             linkname=$(head -3 "$dir/$term.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
-            echo "s@/$dir/$term\"@#$linkname\"@g" >> "$LINKS_FILE"
+            echo "s@\"[^\"]*/$dir/$term\"@\"#$linkname\"@g" >> "$LINKS_FILE"
         else
             echo "<h1>$term - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$section - page does not exist</p>" >> "$TW_FILE"
         fi
@@ -404,7 +403,7 @@ book_export () {
                     grep -v ' href="\/tag\/' >> "$TA_FILE"
 
                 linkname=$(head -3 "$dir/$term.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
-                echo "s@/$dir/$term\"@#$linkname\"@g" >> "$LINKS_FILE"
+                echo "s@\"[^\"]*/$dir/$term\"@\"#$linkname\"@g" >> "$LINKS_FILE"
             else
                 echo "<h1>$term - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$section - page does not exist</p>" >> "$TA_FILE"
             fi

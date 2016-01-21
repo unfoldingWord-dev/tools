@@ -80,9 +80,11 @@ DATE=`date +"%Y-%m-%d"`
 
 CL_FILE="${LANGUAGE}_tw_cl.html" # Copyrights & Licensing
 KT_FILE="${LANGUAGE}_tw_kt.html" # Key Terms file
-OT_FILE="${LANGUAGE}_tw_ot.html" # Other Terms file
+OTHER_FILE="${LANGUAGE}_tw_ot.html" # Other Terms file
 HTML_FILE="${LANGUAGE}_tw_all.html" # Compilation of all above HTML files
 PDF_FILE="$OUTPUT_DIR/tW_${LANGUAGE^^}_$DATE.pdf" # Outputted PDF file
+LINKS_FILE="${LANGUAGE}_tw_links.sed" # SED commands for links
+BAD_LINKS_FILE="${LANGUAGE}_tw_bad_links.txt"
 
 generate_term_file () {
     dir=$1
@@ -90,24 +92,31 @@ generate_term_file () {
 
     echo "GENERATING $out_file"
 
-    mkdir -p "$dir" # creates the dir path in $WORKING_DIR
-
     rm -f $out_file
     touch $out_file
 
-    find "$D43_BASE_DIR/$dir" -type f -name "*.txt" -exec grep -q 'tag>.*publish' {} \; -printf '%P\n' |
-        sort -u |
+    find $dir -type f -name "*.txt" -exec grep -q 'tag>.*publish' {} \; -print | awk -vFS=/ -vOFS=/ '{ print $NF,$0 }' |
+        sort -u -t / | cut -f2- -d/ |
         while read f; do
-            term=${f%%.txt}
+            filename=$(basename $f)
+            term=${filename%%.txt}
+            dir="$TW_DIR/$(basename $(dirname $f))"
+
+            mkdir -p "$dir" # creates the dir path in $WORKING_DIR
+
             # If the file doesn't exit or the file is older than (-ot) the Door43 repo one, fetch it
             if [ ! -e "$dir/$term.html" ] || [ "$dir/$term.html" -ot "$D43_BASE_DIR/$dir/$term.txt" ];
             then
-                wget -U 'me' "$D43_BASE_URL/$dir/$term" -O - |
-                    grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' |
-                    grep -v ' href="\/tag\/' \
-                    >> "$dir/$term.html"
+                wget -U 'me' "$D43_BASE_URL/$dir/$term" -O "$dir/$term.html"
             fi
-            cat "$dir/$term.html" >> "$out_file"
+
+            grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' "$dir/$term.html" |
+                    grep -v ' href="\/tag\/' >> "$out_file"
+
+            echo "<hr/>" >> "$out_file"
+
+            linkname=$(head -3 "$dir/$term.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
+            echo "s@\"[^\"]*/$dir/$term\"@\"#$linkname\"@g" >> "$LINKS_FILE"
         done
 
     # Quick fix for getting rid of these Bible References lists in a table, removing table tags
@@ -124,7 +133,10 @@ generate_term_file () {
 }
 
 # ---- MAIN EXECUTION BEGINS HERE ----- #
-    rm -f $CL_FILE $KT_FILE $OT_FILE $HTML_FILE # We start fresh, only files that remain are any files retrieved with wget
+    rm -f $CL_FILE $KT_FILE $OTHER_FILE $HTML_FILE $LINKS_FILE $BAD_LINKS_FILE # We start fresh, only files that remain are any files retrieved with wget
+
+    touch "$LINKS_FILE"
+    touch "$BAD_LINKS_FILE"
 
     # ----- START GENERATE CL PAGE ----- #
     echo "GENERATING $CL_FILE"
@@ -145,13 +157,18 @@ generate_term_file () {
     sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' "$CL_FILE"
     # ----- END GENERATE CL PAGES ------- #
 
-    # ----- GENERATE KT PAGES --------- #
-    generate_term_file "$TW_DIR/kt" $KT_FILE
-    # ----- EMD GENERATE KT PAGES ----- #
+    if ! $COMBINED_LISTS;
+    then
+        # ----- GENERATE KT PAGES --------- #
+        generate_term_file "$D43_BASE_DIR/$TW_DIR/kt" $KT_FILE
+        # ----- EMD GENERATE KT PAGES ----- #
 
-    # ----- GENERATE OTHRR PAGES --------- #
-    generate_term_file "$TW_DIR/other" $OT_FILE
-    # ----- EMD GENERATE OTHER PAGES ----- #
+        # ----- GENERATE OTHER PAGES --------- #
+        generate_term_file "$D43_BASE_DIR/$TW_DIR/other" $OTHER_FILE
+        # ----- EMD GENERATE OTHER PAGES ----- #
+    else
+        generate_term_file "$D43_BASE_DIR/$TW_DIR/other $D43_BASE_DIR/$TW_DIR/kt" $OTHER_FILE
+    fi
 
     # ----- GENERATE COMPLETE HTML PAGE ----------- #
     echo "GENERATING $HTML_FILE"
@@ -159,11 +176,17 @@ generate_term_file () {
     echo '<h1>Copyrights & Licensing</h1>' >> $HTML_FILE
     cat $CL_FILE >> $HTML_FILE
 
-    echo '<h1>Key Terms</h1>' >> $HTML_FILE
-    cat $KT_FILE >> $HTML_FILE
+    if ! $COMBINED_LISTS;
+    then
+        echo '<h1>Key Terms</h1>' >> $HTML_FILE
+        cat $KT_FILE >> $HTML_FILE
 
-    echo '<h1>Other Terms</h1>' >> $HTML_FILE
-    cat $OT_FILE >> $HTML_FILE
+        echo '<h1>Other Terms</h1>' >> $HTML_FILE
+        cat $OTHER_FILE >> $HTML_FILE
+     else
+        echo '<h1>translationWords</h1>' >> $HTML_FILE
+        cat $OTHER_FILE >> $HTML_FILE
+     fi
     # ----- END GENERATE COMPLETE HTML PAGE --------#
 
     # ----- START LINK FIXES AND CLEANUP ----- #
@@ -172,6 +195,9 @@ generate_term_file () {
         -e 's/jpg[?a-zA-Z=;&0-9]*"/jpg"/g' \
         -e 's/ \(src\|href\)="\// \1="https:\/\/door43.org\//g' \
         $HTML_FILE
+
+    # Link Fixes
+    sed -i -f "$LINKS_FILE" "$HTML_FILE"
     # ----- END LINK FIXES AND CLEANUP ------- #
 
     # ----- START GENERATE PDF FILE ----- #

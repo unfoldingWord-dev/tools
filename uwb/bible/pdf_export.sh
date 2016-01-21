@@ -29,22 +29,21 @@ help() {
 # Process command line options
 while getopts l:v:b:c:del:o:r:t:h opt; do
     case $opt in
-        l) langs=("${langs[@]}" "$OPTARG");;
-        v) vers=("${vers[@]}" "$OPTARG");;
+        l) lang=$OPTARG;;
+        v) ver=$OPTARG;;
         b) books=("${books[@]}" "$OPTARG");;
         d) debug=true;;
         o) outputs=("${outputs[@]}" "$OPTARG");;
         r) reportto=("${reportto[@]}" "$OPTARG");;
         t) tag=$OPTARG;;
-        h) help && exit 0;;
-        ?) help && exit 1;;
+        [h?]) help && exit 1;
     esac
 done
 
 # Setup variable defaults in case flags were not set
 : ${debug=false}
-: ${langs[0]='en'}
-: ${vers[0]='udb'}
+: ${lang='en'}
+: ${ver='udb'}
 : ${books[0]=""}
 : ${max_chapters=0}
 : ${outputs[0]=$(pwd)}
@@ -53,7 +52,7 @@ done
 
 # Note out base location and create a temporary workspace
 BASEDIR=$(cd $(dirname "$0")/../../ && pwd)
-BUILDDIR=$(mktemp -d --tmpdir "uwb_build_pdf.XXXXXX")
+BUILDDIR=$(mktemp -d --tmpdir "uwb_${lang}_build_pdf.XXXXXX")
 LOG="$BUILDDIR/shell.log"
 TEMPLATE="$BASEDIR/uwb/tex/uwb_template.tex"
 
@@ -77,8 +76,6 @@ fi
 pushd "$BUILDDIR"
 ln -sf "$BASEDIR/uwb"
 
-for lang in "${langs[@]}"; do
-for ver in "${vers[@]}"; do
 for book in "${books[@]}"; do
     # Pick a filename based on all the parts we have
     BASENAME="$lang-${ver}${book:+-$book}"
@@ -106,7 +103,11 @@ for book in "${books[@]}"; do
         exit 1
     fi
 
-    if [ $book == 'ot' ];
+    if [ -z "${book// }" ];
+    then
+        SUBTITLE="Old & New Testaments"
+        BOOK_ARG=""
+    elif [ $book == 'ot' ];
     then
        BOOK_ARG='-b gen exo lev num deu jos jdg rut 1sa 2sa 1ki 2ki 1ch 2ch ezr neh est job psa pro ecc sng isa jer lam ezk dan hos jol amo oba jon mic nam hab zep hag zec mal'
        SUBTITLE="Old Testament"
@@ -114,8 +115,7 @@ for book in "${books[@]}"; do
     then
         BOOK_ARG='-b mat mrk luk jhn act rom 1co 2co gal eph php col 1ti 2ti 1th 2th tit phm heb jas 1pe 2pe 1jn 2jn 3jn jud rev'
         SUBTITLE='New Testament'
-    elif [ ! -z "${book// }" ];
-    then
+    else
         BOOK_ARG="-b $book"
         SUBTITLE=$(uwb/catalog_query.py -l $lang -v $ver -b $book -k title);
         if [ -z "${SUBTITLE// }" ];
@@ -129,12 +129,12 @@ for book in "${books[@]}"; do
     # Run python (export.py) to generate the .tex file from template .tex files
     uwb/export.py -l $lang -v $ver $BOOK_ARG -f html -o "$BUILDDIR/$BASENAME.html"
     # Run python (export.py) to generate the .tex file from template .tex files
-#    uwb/export.py -l $lang -v $ver $BOOK_ARG -f tex -o "$BUILDDIR/$BASENAME.tex"
+    #uwb/export.py -l $lang -v $ver $BOOK_ARG -f tex -o "$BUILDDIR/$BASENAME.tex"
 
     # Send to requested output location(s)
     for dir in "${outputs[@]}"; do
         install -Dm 0644 "$BUILDDIR/${BASENAME}.html" "$dir/${BASENAME}.html"
-#        install -Dm 0644 "$BUILDDIR/${BASENAME}.tex" "$dir/${BASENAME}.tex"
+    #    install -Dm 0644 "$BUILDDIR/${BASENAME}.tex" "$dir/${BASENAME}.tex"
     done
 
     # Generate PDF with PANDOC
@@ -145,7 +145,7 @@ for book in "${books[@]}"; do
 
     # Create PDF
     pandoc \
-	-S \
+        -S \
         --latex-engine="xelatex" \
         --template="$TEMPLATE" \
         --toc \
@@ -200,8 +200,6 @@ for book in "${books[@]}"; do
             printf "$formatD" "$lang" $(cat tmp) "$(echo $(cat bad))"
         ) > "$BUILDDIR/$BASENAME-report.txt" || : # Don't worry about exiting if report items failed
     fi
-done
-done
 done
 
 ## SEND REPORTS ##

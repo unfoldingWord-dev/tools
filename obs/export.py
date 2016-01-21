@@ -109,7 +109,7 @@ def checkForStandardKeysJSON():
     #if 'fontface' not in body_json.keys(): body_json['fontface'] = 'dejavu' # this is for production but does not seem to work for Russian
     if 'fontface' not in body_json.keys(): body_json['fontface'] = 'noto'
     if 'fontstyle' not in body_json.keys(): body_json['fontstyle'] = 'sans' # this is for production but does not seem to work for Russian
-    if 'direction' not in body_json.keys(): body_json['fontface'] = 'ltr' # Use 'rtl' for Arabic, Farsi, etc.
+    if 'direction' not in body_json.keys(): body_json['direction'] = 'ltr' # Use 'rtl' for Arabic, Farsi, etc.
     #------------------------------  Body font size and baseline
     if 'bodysize' not in body_json.keys(): body_json['bodysize'] = '10.0pt'
     if 'bodybaseline' not in body_json.keys(): body_json['bodybaseline'] = '12.0pt'
@@ -175,13 +175,16 @@ def tex_load_snippet_file(xtr, entryname):
     str = xtr + (u'\n'+xtr).join(each) + u'\n'
     return str
 
-def getTitle(text, format='plain'):
+def getTitle(text, format='plain', direction='ltr'):
     if format == 'html':
         return u'<h1>{0}</h1>'.format(text)
     elif format == 'md':
         return u'{0}\n=========='.format(text)
     elif format == 'tex':
-        return u'    \\startmakeup\\section{{{0}}}\\stopmakeup'.format(text)
+        if direction == 'rtl':
+          return u'    \\startmakeup\\textdir TRT\\section{{{0}}}\\stopmakeup'.format(text)
+        else:
+          return u'    \\startmakeup\\textdir TLT\\section{{{0}}}\\stopmakeup'.format(text)
     return text
 
 def getImage(xtr, lang, fid, res, format='plain'):
@@ -366,7 +369,7 @@ def export(chapters_json, format, max_chapters, img_res, lang):
         past_max_chapters = (max_chapters > 0) and (ixchp >= max_chapters)
         if (past_max_chapters):
             break
-        output.append(getTitle(chp['title'], format))
+        output.append(getTitle(chp['title'], format, body_json['direction']))
         ixframe = (-1)
         ChapterFrames = chp['frames']
         nframe = len(ChapterFrames)

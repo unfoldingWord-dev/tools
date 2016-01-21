@@ -11,12 +11,22 @@
 	\ohead{\headmark}%
 }{}
 
-$if(mainfont)$
 \usepackage{fontspec}
+$if(mainfont)$
 \setmainfont{$mainfont$}
+$else$
+\setmainfont{Noto Serif}
 $endif$
 $if(sansfont)$
 \setsansfont{$sansfont$}
+$else$
+\setsansfont{Noto Sans}
+$endif$
+$if(specialfont)$
+\usepackage[$specialfont$]{ucharclasses}
+\usepackage{xltxtra}
+\newfontfamily\specialfontfont{Noto Sans $specialfont$}
+\setTransitionsFor{$specialfont$}{\specialfont}{\rm}
 $endif$
 
 $if(linestretch)$
