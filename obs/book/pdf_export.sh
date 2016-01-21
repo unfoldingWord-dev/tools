@@ -82,11 +82,13 @@ if ! command -v context >/dev/null; then
 fi
 # Reload fonts in case any were added recently
 export OSFONTDIR="/usr/share/fonts/google-noto;/usr/share/fonts/noto-fonts/hinted;/usr/local/share/fonts;/usr/share/fonts"
-mtxrun --script fonts --reload
-context --generate
 if ! mtxrun --script fonts --list --all | grep -q noto; then
-    echo 'Noto fonts not found, bailing...'
-    exit 1
+    mtxrun --script fonts --reload
+    context --generate
+    if ! mtxrun --script fonts --list --all | grep -q noto; then
+        echo 'Noto fonts not found, bailing...'
+        exit 1
+    fi
 fi
 
 ## PROCESS LANGUAGES AND BUILD PDFS ##
