@@ -66,15 +66,13 @@ $DEBUG || trap 'cd "$BASEDIR"; rm -rf "$BUILDDIR"' EXIT SIGHUP SIGTERM
 export OSFONTDIR="/usr/share/fonts/google-noto;/usr/share/fonts/noto-fonts/hinted;/usr/local/share/fonts;/usr/share/fonts"
 #mtxrun --script fonts --reload
 if ! mtxrun --script fonts --list --all | grep -q noto; then
-    echo 'Noto fonts not found, bailing...'
-    exit 1
+    mtxrun --script fonts --reload
+    context --generate
+    if ! mtxrun --script fonts --list --all | grep -q noto; then
+        echo 'Noto fonts not found, bailing...'
+        exit 1
+    fi
 fi
-
-: ${TOOLS_DIR:=$(cd $(dirname "$0")/../../ && pwd)}
-# Gets us an associative array called $bookS
-source "$TOOLS_DIR/general_tools/bible_books.sh"
-
-## PROCESS LANGUAGES AND BUILD PDFs ##
 
 pushd "$BUILDDIR"
 ln -sf "$BASEDIR/uwb"
@@ -112,7 +110,7 @@ for BOOK in "${BOOKS[@]}"; do
 
     if [ $BOOK == 'full' ];
     then
-        SUBTITLE="Old & New Testaments"
+        SUBTITLE="Old \\& New Testaments"
         BOOK_ARG=""
         BASENAME="${VER^^}"
     elif [ $BOOK == 'ot' ];

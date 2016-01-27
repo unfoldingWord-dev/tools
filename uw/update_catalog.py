@@ -36,7 +36,6 @@ bible_dirs = [
   'zep', 'isa', 'psa'
 ]
 bible_slugs = [('udb', 'en'), ('ulb', 'en'), ('avd', 'ar')]
-usfm_local = u'/var/www/vhosts/api.unfoldingword.org/{0}/txt/1/{0}-{1}/{2}'
 usfm_api = u'https://api.unfoldingword.org/{0}/txt/1/{0}-{1}/{2}?{3}'
 bible_stat = u'https://api.unfoldingword.org/{0}/txt/1/{0}-{1}/status.json'
 obs_v1_api = u'https://api.unfoldingword.org/obs/txt/1'
@@ -286,11 +285,7 @@ def uw_cat(obs_v1_cat, bible_status):
             source_sig = source.replace('.usfm', '.sig')
 
             pdf_name = usfm_name.replace('.usfm', '.pdf')
-            pdf_file = usfm_local.format(slug, lang, pdf_name);
-            if os.path.exists(pdf_file):
-                pdf = usfm_api.format(slug, lang, pdf_name, u'').rstrip('?')
-            else:
-                pdf = ''
+            pdf = usfm_api.format(slug, lang, pdf_name, u'').rstrip('?')
             ver['toc'].append({ 'title': bk_pub[x]['name'],
                                 'slug': x,
                                 'mod': date_mod,
