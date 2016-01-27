@@ -175,16 +175,18 @@ def tex_load_snippet_file(xtr, entryname):
     str = xtr + (u'\n'+xtr).join(each) + u'\n'
     return str
 
-def getTitle(text, format='plain', direction='ltr'):
+def getTitle(text, format='plain'):
+    global body_json
     if format == 'html':
         return u'<h1>{0}</h1>'.format(text)
     elif format == 'md':
         return u'{0}\n=========='.format(text)
     elif format == 'tex':
-        if direction == 'rtl':
-          return u'    \\startmakeup\\textdir TRT\\section{{{0}}}\\stopmakeup'.format(text)
+        if 'direction' in body_json and body_json['direction'] == 'rtl':
+            textdir = 'TRT'
         else:
-          return u'    \\startmakeup\\textdir TLT\\section{{{0}}}\\stopmakeup'.format(text)
+            textdir = 'TLT'
+        return u'    \\startmakeup\\textdir {0}\\section{{{1}}}\\stopmakeup'.format(textdir, text)
     return text
 
 def getImage(xtr, lang, fid, res, format='plain'):
@@ -233,8 +235,13 @@ def getRef(xtr, place_ref_template, text, format='plain'):
     elif format == 'tex':
         #copy = do_not_break_before_chapter_verse(format, text)
         #each = place_ref_template.safe_substitute(thetext=copy).split(u'\n')
-        each = place_ref_template.safe_substitute(thetext=text).split(u'\n')
-        return xtr + (u'\n'+xtr).join(each) + u'\n\\vskip 6.0pt\n'
+        if body_json['direction'] == 'rtl':
+           pardir = 'TRT'
+        else:
+           pardir = 'TLT'
+        each = place_ref_template.substitute(thetext=text,pardir=pardir).split(u'\n')
+        #return xtr + (u'\n'+xtr).join(each) + u'\n\\vskip 6.0pt\n'
+        return u'\n'.join(each)
     return text
 
 def filter_apply_docuwiki_start(single_line):
@@ -369,7 +376,7 @@ def export(chapters_json, format, max_chapters, img_res, lang):
         past_max_chapters = (max_chapters > 0) and (ixchp >= max_chapters)
         if (past_max_chapters):
             break
-        output.append(getTitle(chp['title'], format, body_json['direction']))
+        output.append(getTitle(chp['title'], format))
         ixframe = (-1)
         ChapterFrames = chp['frames']
         nframe = len(ChapterFrames)

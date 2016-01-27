@@ -48,7 +48,6 @@ lang_url = u'http://td.unfoldingword.org/exports/langnames.json'
 ts_obs_langs_url = u'https://api.unfoldingword.org/ts/txt/2/obs/languages.json'
 obs_audio_url = u'https://api.unfoldingword.org/obs/mp3/1/en/en-obs-v4/status.json'
 
-
 def getURL(url):
     try:
         request = urllib2.urlopen(url).read()
@@ -284,13 +283,17 @@ def uw_cat(obs_v1_cat, bible_status):
             usfm_name = u'{0}-{1}.usfm'.format(bk_pub[x]['sort'], x.upper())
             source = usfm_api.format(slug, lang, usfm_name, u'').rstrip('?')
             source_sig = source.replace('.usfm', '.sig')
+
+            pdf_name = usfm_name.replace('.usfm', '.pdf')
+            pdf = usfm_api.format(slug, lang, pdf_name, u'').rstrip('?')
             ver['toc'].append({ 'title': bk_pub[x]['name'],
                                 'slug': x,
                                 'mod': date_mod,
                                 'desc': bk_pub[x]['desc'],
                                 'sort': bk_pub[x]['sort'],
                                 'src': source,
-                                'src_sig': source_sig
+                                'src_sig': source_sig,
+                                'pdf': pdf
                               })
         ver['toc'].sort(key=lambda s: s['sort'])
         for x in ver['toc']:
