@@ -402,9 +402,9 @@ def export(chapters_json, format, max_chapters, img_res, lang):
                 output.append(ImageFrame)
                 output.append(TextFrame)
             else:
-                AlsoReg = u'\\EmptyString'#u'\\refneed' if (is_last_page) else u'\\EmptyString'
-                NeedAlso = u''#u'\\refneed + ' if (is_last_page) else u''
-                pageword = u'CONTINUED'#u'LAST_PAGE' if (is_last_page) else u'CONTINUED'
+                AlsoReg = u'\\refneed' if (is_last_page) else u'\\EmptyString'
+                NeedAlso = u'\\refneed + ' if (is_last_page) else u''
+                pageword = u'LAST_PAGE' if (is_last_page) else u'CONTINUED'
                 TruthIsLastPage = 'true' if (is_last_page) else 'false'
                 if (not is_even):
                     output.append(spaces4 + spaces4 + u'\\vskip \\the\\leftover')
