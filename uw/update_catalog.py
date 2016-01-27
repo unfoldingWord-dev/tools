@@ -36,6 +36,7 @@ bible_dirs = [
   'zep', 'isa', 'psa'
 ]
 bible_slugs = [('udb', 'en'), ('ulb', 'en'), ('avd', 'ar')]
+usfm_local = u'/var/www/vhosts/api.unfoldingword.org/{0}/txt/1/{0}-{1}/{2}'
 usfm_api = u'https://api.unfoldingword.org/{0}/txt/1/{0}-{1}/{2}?{3}'
 bible_stat = u'https://api.unfoldingword.org/{0}/txt/1/{0}-{1}/status.json'
 obs_v1_api = u'https://api.unfoldingword.org/obs/txt/1'
@@ -47,7 +48,6 @@ uw_v2_local = u'/var/www/vhosts/api.unfoldingword.org/httpdocs/uw/txt/2/catalog.
 lang_url = u'http://td.unfoldingword.org/exports/langnames.json'
 ts_obs_langs_url = u'https://api.unfoldingword.org/ts/txt/2/obs/languages.json'
 obs_audio_url = u'https://api.unfoldingword.org/obs/mp3/1/en/en-obs-v4/status.json'
-
 
 def getURL(url):
     try:
@@ -284,13 +284,21 @@ def uw_cat(obs_v1_cat, bible_status):
             usfm_name = u'{0}-{1}.usfm'.format(bk_pub[x]['sort'], x.upper())
             source = usfm_api.format(slug, lang, usfm_name, u'').rstrip('?')
             source_sig = source.replace('.usfm', '.sig')
+
+            pdf_name = usfm_name.replace('.usfm', '.pdf')
+            pdf_file = usfm_local.format(slug, lang, pdf_name);
+            if os.path.exists(pdf_file):
+                pdf = usfm_api.format(slug, lang, pdf_name, u'').rstrip('?')
+            else:
+                pdf = ''
             ver['toc'].append({ 'title': bk_pub[x]['name'],
                                 'slug': x,
                                 'mod': date_mod,
                                 'desc': bk_pub[x]['desc'],
                                 'sort': bk_pub[x]['sort'],
                                 'src': source,
-                                'src_sig': source_sig
+                                'src_sig': source_sig,
+                                'pdf': pdf
                               })
         ver['toc'].sort(key=lambda s: s['sort'])
         for x in ver['toc']:

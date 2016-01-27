@@ -236,13 +236,12 @@ def getRef(xtr, place_ref_template, text, format='plain'):
         #copy = do_not_break_before_chapter_verse(format, text)
         #each = place_ref_template.safe_substitute(thetext=copy).split(u'\n')
         if body_json['direction'] == 'rtl':
-           alignment = 'left'
-           textdir = 'TRT'
+           pardir = 'TRT'
         else:
-           alignment = 'right'
-           textdir = 'TLT'
-        each = place_ref_template.safe_substitute(thetext=text,alignment=alignment,textdir=textdir).split(u'\n')
-        return xtr + (u'\n'+xtr).join(each) + u'\n\\vskip 6.0pt\n'
+           pardir = 'TLT'
+        each = place_ref_template.substitute(thetext=text,pardir=pardir).split(u'\n')
+        #return xtr + (u'\n'+xtr).join(each) + u'\n\\vskip 6.0pt\n'
+        return u'\n'.join(each)
     return text
 
 def filter_apply_docuwiki_start(single_line):
@@ -403,9 +402,9 @@ def export(chapters_json, format, max_chapters, img_res, lang):
                 output.append(ImageFrame)
                 output.append(TextFrame)
             else:
-                AlsoReg = u'\\refneed' if (is_last_page) else u'\\EmptyString'
-                NeedAlso = u'\\refneed + ' if (is_last_page) else u''
-                pageword = u'LAST_PAGE' if (is_last_page) else u'CONTINUED'
+                AlsoReg = u'\\EmptyString'#u'\\refneed' if (is_last_page) else u'\\EmptyString'
+                NeedAlso = u''#u'\\refneed + ' if (is_last_page) else u''
+                pageword = u'CONTINUED'#u'LAST_PAGE' if (is_last_page) else u'CONTINUED'
                 TruthIsLastPage = 'true' if (is_last_page) else 'false'
                 if (not is_even):
                     output.append(spaces4 + spaces4 + u'\\vskip \\the\\leftover')

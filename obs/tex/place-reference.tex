@@ -1,7 +1,7 @@
 % -*- coding: utf-8 -*-
 \setupbodyfont[<<<[fontface]>>>,<<<[fontstyle]>>>,<<<[bodysize]>>>]
-\setupinterlinespace[line=1.2em,top=0.25,bottom=0.0]
+%\setupinterlinespace[line=1em,top=0,bottom=0.0]
 \startplacefigure[location=nonumber]
     %{\startalignment[middle] {\vskip \the\refskip \tfx {\em $thetext}} \blank[small,flexible] \stopalignment}
-    {\startalignment[$alignment] {\vskip \the\refskip \tfx {\textdir $textdir\em $thetext}} \stopalignment}
+    {\startalignment[right] {\vskip \the\refskip \tfx {\pardir $pardir \em $thetext}} \stopalignment}
 \stopplacefigure
