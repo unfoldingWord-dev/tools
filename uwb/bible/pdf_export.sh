@@ -29,7 +29,7 @@ help() {
 # Process command line options
 while getopts l:v:b:c:o:r:t:d opt; do
     case $opt in
-        l) LANG=$OPTARG;;
+        l) LANGUAGE=$OPTARG;;
         v) VER=$OPTARG;;
         b) BOOKS=("${BOOKS[@]}" "$OPTARG");;
         o) OUTPUTS=("${OUTPUTS[@]}" "$OPTARG");;
@@ -54,6 +54,7 @@ BASEDIR=$(cd $(dirname "$0")/../../ && pwd)
 BUILDDIR=$(mktemp -d --tmpdir "uwb_${LANGUAGE}_build_pdf.XXXXXX")
 LOG="$BUILDDIR/shell.log"
 TEMPLATE="$BASEDIR/uwb/tex/uwb_template.tex"
+NOTOFILE="$BASEDIR/uwb/tex/noto-${LANGUAGE}.tex"
 
 # Capture all console output if a report-to flag has been set
 [[ -n "$REPORTTO" ]] && exec 2>&1 > $LOG
@@ -142,11 +143,25 @@ for BOOK in "${BOOKS[@]}"; do
     # Run python (export.py) to generate the .tex file from template .tex files
     #uwb/export.py -l $LANGUAGE -v $VER $BOOK_ARG -f tex -o "$BUILDDIR/$BASENAME.tex"
 
+    sed -i -e 's/<span class="chunk-break"\/>/<hr\/>/g' "$BUILDDIR/$BASENAME.html"
+
     # Generate PDF with PANDOC
     LOGO="https://unfoldingword.org/assets/img/icon-${VER}.png"
+    response=$(curl --write-out %{http_code} --silent --output logo.png "$LOGO");
+    if [ $response -eq "200" ];
+    then
+      LOGO_FILE="-V logo=logo.png"
+    fi
 
-    curl -o logo.png "$LOGO"
-    curl -o checking.png "https://api.unfoldingword.org/obs/jpg/1/checkinglevels/uW-Level${CHECKING_LEVEL}-128px.png"
+    CHECKING="https://api.unfoldingword.org/obs/jpg/1/checkinglevels/uW-Level${CHECKING_LEVEL}-128px.png"
+    response=$(curl --write-out %{http_code} --silent --output checking.png "$CHECKING")
+    if [ $response -eq "200" ];
+    then
+      CHECKING_FILE="-V checking_level=checking.png"
+    fi
+
+    echo "$TITLE" > title.txt
+    echo "$SUBTITLE" > subtitle.txt
 
     # Create PDF
     pandoc \
@@ -157,12 +172,13 @@ for BOOK in "${BOOKS[@]}"; do
         --toc-depth="$TOC_DEPTH" \
         -V documentclass="scrartcl" \
         -V classoption="oneside" \
-        -V geometry='hmargin=2cm' \
-        -V geometry='vmargin=3cm' \
-        -V logo="logo.png" \
-        -V title="$TITLE" \
-        -V subtitle="$SUBTITLE" \
-        -V checking_level="$CHECKING_LEVEL" \
+        -V geometry="hmargin=2cm" \
+        -V geometry="vmargin=3cm" \
+        -V title="title.txt" \
+        -V subtitle="subtitle.txt" \
+        $LOGO_FILE \
+        $CHECKING_FILE \
+        -V notofile="$NOTOFILE" \
         -V version="$VERSION" \
         -V publish_date="$PUBLISH_DATE" \
         -V mainfont="Noto Serif" \

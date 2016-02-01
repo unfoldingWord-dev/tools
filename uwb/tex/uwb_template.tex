@@ -15,9 +15,20 @@
   \ohead{\headmark}%
 }{}
 
+\usepackage{fontspec}
 $if(mainfont)$
-  \usepackage{fontspec}
-  \setmainfont{$mainfont$}
+  \setmainfont[Mapping=tex-text]{$mainfont$}
+$else$
+  \setmainfont[Mapping=tex-text]{Noto Serif}
+$endif$
+$if(sansfont)$
+  \setsansfont[Mapping=tex-text]{$sansfont$}
+$else$
+  \setsansfont[Mapping=tex-text]{Noto Sans}
+$endif$
+$if(notofile)$
+  \usepackage{xltxtra}
+  \InputIfFileExists{$notofile$}{}{}
 $endif$
 
 $if(sansfont)$
@@ -162,7 +173,7 @@ $if(verbatim-in-note)$
 $endif$
 
 $if(title)$
-  \title{$if(logo)$\begin{center}\includegraphics[width=4cm]{$logo$}\end{center}\vspace{\baselineskip}$endif$\Huge $title$$if(subtitle)$\\\vspace{0.5em}{\LARGE $subtitle$}$endif$}
+  \title{$if(logo)$\begin{center}\includegraphics[width=4cm]{$logo$}\end{center}\vspace{\baselineskip}$endif$\Huge \input{$title$}$if(subtitle)$\\\vspace{0.5em}{\LARGE \input{$subtitle$}}$endif$}
 $endif$
 
 $if(author)$
