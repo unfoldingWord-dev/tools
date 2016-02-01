@@ -19,7 +19,7 @@ import re
 import sys
 import yaml
 
-NAMESPACES = ['hi', 'ru', 'tr']
+NAMESPACES = ['hi', 'ru', 'tr', 'ps']
 LOGDIR = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/playground'
 BADLINKREGEX = re.compile(r"(.*?)(\[\[?)(:?en:ta:?)(.*?)(]]?)(.*?)", re.DOTALL | re.MULTILINE | re.UNICODE)
 YAMLREGEX = re.compile(r"(---\s*\n)(.+?)(^-{3}\s*\n)+?(.*)$", re.DOTALL | re.MULTILINE)
