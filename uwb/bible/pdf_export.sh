@@ -27,7 +27,7 @@ help() {
 }
 
 # Process command line options
-while getopts l:v:b:c:o:r:t:d:hr opt; do
+while getopts l:v:b:c:o:r:t:d:C opt; do
     case $opt in
         l) LANGUAGE=$OPTARG;;
         v) VER=$OPTARG;;
@@ -36,7 +36,7 @@ while getopts l:v:b:c:o:r:t:d:hr opt; do
         r) REPORTTO=("${REPORTTO[@]}" "$OPTARG");;
         t) TAG=$OPTARG;;
         d) DEBUG=true;;
-        hr) HR_BETWEEN_CHUNKS=true;;
+        C) HR_BETWEEN_CHUNKS=true;;
         [h?]) help && exit 1;
     esac
 done
@@ -56,6 +56,10 @@ BASEDIR=$(cd $(dirname "$0")/../../ && pwd)
 BUILDDIR=$(mktemp -d --tmpdir "uwb_${LANGUAGE}_build_pdf.XXXXXX")
 LOG="$BUILDDIR/shell.log"
 TEMPLATE="$BASEDIR/uwb/tex/uwb_template.tex"
+if $HR_BETWEEN_CHUNKS;
+then
+  TEMPLATE="$BASEDIR/uwb/tex/uwb_chunk_template.tex"
+fi
 NOTOFILE="$BASEDIR/uwb/tex/noto-${LANGUAGE}.tex"
 
 # Capture all console output if a report-to flag has been set
@@ -177,10 +181,11 @@ for BOOK in "${BOOKS[@]}"; do
         --toc-depth="$TOC_DEPTH" \
         -V documentclass="scrartcl" \
         -V classoption="oneside" \
-        -V geometry="hmargin=2cm" \
-        -V geometry="vmargin=3cm" \
+        -V geometry="hmargin=1cm" \
+        -V geometry="vmargin=1cm" \
         -V title="title.txt" \
         -V subtitle="subtitle.txt" \
+        -V fontsize="12" \
         $LOGO_FILE \
         $CHECKING_FILE \
         -V notofile="$NOTOFILE" \
