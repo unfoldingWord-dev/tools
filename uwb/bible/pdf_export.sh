@@ -27,7 +27,7 @@ help() {
 }
 
 # Process command line options
-while getopts l:v:b:c:o:r:t:d opt; do
+while getopts l:v:b:c:o:r:t:d:hr opt; do
     case $opt in
         l) LANGUAGE=$OPTARG;;
         v) VER=$OPTARG;;
@@ -36,6 +36,7 @@ while getopts l:v:b:c:o:r:t:d opt; do
         r) REPORTTO=("${REPORTTO[@]}" "$OPTARG");;
         t) TAG=$OPTARG;;
         d) DEBUG=true;;
+        hr) HR_BETWEEN_CHUNKS=true;;
         [h?]) help && exit 1;
     esac
 done
@@ -48,6 +49,7 @@ done
 : ${OUTPUTS[0]=$(pwd)}
 : ${REPORTTO[0]=}
 : ${TAG=}
+: ${HR_BETWEEN_CHUNKS=false}
 
 # Note out base location and create a temporary workspace
 BASEDIR=$(cd $(dirname "$0")/../../ && pwd)
@@ -143,7 +145,10 @@ for BOOK in "${BOOKS[@]}"; do
     # Run python (export.py) to generate the .tex file from template .tex files
     #uwb/export.py -l $LANGUAGE -v $VER $BOOK_ARG -f tex -o "$BUILDDIR/$BASENAME.tex"
 
-    sed -i -e 's/<span class="chunk-break"\/>/<hr\/>/g' "$BUILDDIR/$BASENAME.html"
+    if $HR_BETWEEN_CHUNKS;
+    then
+        sed -i -e 's/<span class="chunk-break"\/>/<hr\/>/g' "$BUILDDIR/$BASENAME.html"
+    fi
 
     # Generate PDF with PANDOC
     LOGO="https://unfoldingword.org/assets/img/icon-${VER}.png"

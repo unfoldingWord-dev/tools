@@ -29,8 +29,7 @@ import urllib2
 CatalogJSON='https://api.unfoldingword.org/uw/txt/2/catalog.json'
 
 # Import USFM-Tools
-#USFMTools='/var/www/vhosts/door43.org/USFM-Tools'
-USFMTools='/home/rmahn/USFM-Tools'
+USFMTools='/var/www/vhosts/door43.org/USFM-Tools'
 
 sys.path.append(USFMTools)
 try:
