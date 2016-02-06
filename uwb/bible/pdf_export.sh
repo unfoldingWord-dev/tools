@@ -27,7 +27,7 @@ help() {
 }
 
 # Process command line options
-while getopts l:v:b:c:o:r:t:d opt; do
+while getopts l:v:b:c:o:r:t:d:C opt; do
     case $opt in
         l) LANGUAGE=$OPTARG;;
         v) VER=$OPTARG;;
@@ -36,6 +36,7 @@ while getopts l:v:b:c:o:r:t:d opt; do
         r) REPORTTO=("${REPORTTO[@]}" "$OPTARG");;
         t) TAG=$OPTARG;;
         d) DEBUG=true;;
+        C) HR_BETWEEN_CHUNKS=true;;
         [h?]) help && exit 1;
     esac
 done
@@ -48,12 +49,17 @@ done
 : ${OUTPUTS[0]=$(pwd)}
 : ${REPORTTO[0]=}
 : ${TAG=}
+: ${HR_BETWEEN_CHUNKS=false}
 
 # Note out base location and create a temporary workspace
 BASEDIR=$(cd $(dirname "$0")/../../ && pwd)
 BUILDDIR=$(mktemp -d --tmpdir "uwb_${LANGUAGE}_build_pdf.XXXXXX")
 LOG="$BUILDDIR/shell.log"
 TEMPLATE="$BASEDIR/uwb/tex/uwb_template.tex"
+if $HR_BETWEEN_CHUNKS;
+then
+  TEMPLATE="$BASEDIR/uwb/tex/uwb_chunk_template.tex"
+fi
 NOTOFILE="$BASEDIR/uwb/tex/noto-${LANGUAGE}.tex"
 
 # Capture all console output if a report-to flag has been set
@@ -143,7 +149,10 @@ for BOOK in "${BOOKS[@]}"; do
     # Run python (export.py) to generate the .tex file from template .tex files
     #uwb/export.py -l $LANGUAGE -v $VER $BOOK_ARG -f tex -o "$BUILDDIR/$BASENAME.tex"
 
-    sed -i -e 's/<span class="chunk-break"\/>/<hr\/>/g' "$BUILDDIR/$BASENAME.html"
+    if $HR_BETWEEN_CHUNKS;
+    then
+        sed -i -e 's/<span class="chunk-break"\/>/<hr\/>/g' "$BUILDDIR/$BASENAME.html"
+    fi
 
     # Generate PDF with PANDOC
     LOGO="https://unfoldingword.org/assets/img/icon-${VER}.png"
@@ -172,10 +181,11 @@ for BOOK in "${BOOKS[@]}"; do
         --toc-depth="$TOC_DEPTH" \
         -V documentclass="scrartcl" \
         -V classoption="oneside" \
-        -V geometry="hmargin=2cm" \
-        -V geometry="vmargin=3cm" \
+        -V geometry="hmargin=1cm" \
+        -V geometry="vmargin=1cm" \
         -V title="title.txt" \
         -V subtitle="subtitle.txt" \
+        -V fontsize="12" \
         $LOGO_FILE \
         $CHECKING_FILE \
         -V notofile="$NOTOFILE" \
