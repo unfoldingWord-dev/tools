@@ -86,7 +86,7 @@ def renderHTMLFromJSON():
     output = re.sub('(?i)(help@door43.org)', '<a href="mailto:\g<1>">\g<1></a>', output)
     return output
 
-def main(lang, outpath, checkinglevel):
+def main(lang, inpath, outpath, checkinglevel):
     global body_json, refs
 
     refs['/{0}/ta/vol1/intro/toc_intro'.format(lang)] = u'#the-unfoldingword-project'
@@ -108,9 +108,11 @@ def main(lang, outpath, checkinglevel):
 
     sys.stdout = codecs.getwriter('utf8')(sys.stdout);
     # Parse the body
-    json_file = 'ta-{0}.json'.format(lang)
-    json_url = '/'.join([api_url, lang, json_file])
-    body_json = json.load(urllib2.urlopen(json_url))
+    if inpath.startswith('http'):
+        body_json = json.load(urllib2.urlopen(inpath))
+    else:
+        with open(inpath) as data:
+             body_json = json.load(data)
     output = renderHTMLFromJSON()
 
 #    license = getURL(u'https://door43.org/_export/xhtmlbody/{0}/legal/license/uw-trademark'.format(lang))
@@ -130,6 +132,11 @@ if __name__ == '__main__':
         required=False, help="Language code")
     parser.add_argument('-c', '--checkinglevel', dest="checkinglevel", default="1",
         help="Quality Assurace level campleted: 1, 2, or 3", required=False)
-    args = parser.parse_args(sys.argv[1:])
+    parser.add_argument('-i', '--input', dest="inpath",
+        help="Input file or url for the JSON file, will use api.unfoldingword.org if none specified.", required=False)
 
-    main(args.lang, args.outpath, args.checkinglevel)
+    args = parser.parse_args(sys.argv[1:])
+    if not args.inpath:
+         args.inpath = '/'.join([api_url, args.lang, 'ta-{0}.json'.format(args.lang)])
+
+    main(args.lang, args.inpath, args.outpath, args.checkinglevel)
