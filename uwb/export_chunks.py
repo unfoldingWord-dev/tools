@@ -10,7 +10,8 @@
 
 
 """
-This script exports a Bible into the given format from the API.
+This script exports a Bible into the given format in chunks from the chunk API
+(e.g. https://api.unfoldingword.org/ts/txt/2/1ch/en/udb/source.json).
 
 Requires that https://github.com/Door43/USFM-Tools be checked out to
 /var/www/vhosts/door43.org/USFM-Tools or be on the path
@@ -26,11 +27,10 @@ import argparse
 import datetime
 import urllib2
 
-CatalogJSON='https://api.unfoldingword.org/uw/txt/2/catalog.json'
+sourceJSON='https://api.unfoldingword.org/ts/txt/2/{0}/{1}/{2}/source.json'
 
 # Import USFM-Tools
 USFMTools='/var/www/vhosts/door43.org/USFM-Tools'
-
 sys.path.append(USFMTools)
 try:
     import transform
@@ -38,56 +38,22 @@ except ImportError:
     print "Please ensure that {0} exists.".format(USFMTools)
     sys.exit(1)
 
-def main(langcode, ver, books, format, outfile):
+def main(book, lang, ver, format, outfile):
     sys.stdout = codecs.getwriter('utf8')(sys.stdout);
 
     # Get the JSON
-    catalog = json.load(urllib2.urlopen(CatalogJSON))
+    data = json.load(urllib2.urlopen(sourceJSON.format(book, lang, ver)))
 
-    bible=None
-    for item in catalog['cat']:
-        if item['slug'] == 'bible':
-            bible = item
-            break
-
-    lang=None
-    for language in bible['langs']:
-        if language['lc'] == langcode:
-            lang=language
-            break
-
-    if lang is None:
-        print "The language code {0} is not found in the catalog at {1}. Exiting...".format(langcode, CatalogJSON)
-        sys.exit(1)
-
-    bible=None
-    for version in lang['vers']:
-        if version['slug'] == ver:
-            bible=version
-            break
-
-    if bible is None:
-        print "The Bible version {0} for language {1} is not found in the catalog at {2}. Exiting...".format(ver, langcode, CatalogJSON)
-        sys.exit(1)
-
-    sources = []
-    for source in bible['toc']:
-        if books is None or source['slug'] in books:
-            sources += [source['src']]
-
-    if not sources:
-        print "No sources were found for langage {0} of version {1} in {2}. Exiting...".format(langcode, ver, CatalogJSON)
-        sys.exit(1)
-
-    tmpdir = '/tmp/uwb-{0}-{1}'.format(ver, langcode)
+    tmpdir = '/tmp/uwb-{0}-{1}-{2}'.format(book, lang, ver)
 
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     os.makedirs(tmpdir+"/sources")
-    for source in sources:
-        f = urllib2.urlopen(source)
-        with open(tmpdir+"/sources/"+os.path.basename(source), "wb") as local_file:
-            local_file.write(f.read())
+
+    for chapter in data['chapters']:
+        for frame in chapter.frames:
+            f = open(tmpdir+"/sources/{0}/{1}.usfm".format(book,frame['id']), 'w')
+            f.write(frame['text']
 
     if format == 'html':
         transform.buildSingleHtml(tmpdir+"/sources", tmpdir, "bible")

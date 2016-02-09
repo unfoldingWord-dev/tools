@@ -1,12 +1,11 @@
 % Very helpul: http://ctan.math.washington.edu/tex-archive/macros/latex/contrib/memoir/memman.pdf
-\documentclass[$if(fontsize)$$fontsize$,$endif$$if(lang)$$lang$,$endif$$if(papersize)$$papersize$,$endif$$for(classoption)$$classoption$$sep$,$endfor$,openany]{$documentclass$}
+\documentclass[16pt,$if(lang)$$lang$,$endif$$if(papersize)$$papersize$,$endif$$for(classoption)$$classoption$$sep$,$endfor$,openany]{$documentclass$}
 \usepackage[automark]{scrpage2}
 \usepackage{tocstyle}
 \usepackage{titlesec}
 \usepackage{amssymb,amsmath}
 \usepackage{ifxetex,ifluatex}
 \usepackage{fixltx2e} % provides \textsubscript
-\usepackage{multicol}
 
 \AtBeginDocument{%
   \pagestyle{scrheadings}%
@@ -332,11 +331,7 @@ $if(lof)$
 \listoffigures
 $endif$
 
-\begin{multicols}{2}
-
 $body$
-
-\end{multicols}
 
 $if(natbib)$
   $if(biblio-files)$
