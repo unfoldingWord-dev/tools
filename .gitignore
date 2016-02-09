@@ -5,3 +5,4 @@ local_settings.py
 /bin
 /tex
 /status-of-update.lua
+/gogs/config.py
