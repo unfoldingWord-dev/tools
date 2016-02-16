@@ -40,14 +40,10 @@ def push(repo_path, username = None):
             command = '''
                 unset GIT_DIR
                 unset GIT_WORK_TREE
-                git remote add git.door43.org https://{0}:{1}@{2}/{0}/{3} &&
+                git remote add {2} https://{0}:{1}@{2}/{0}/{3} &&
                 git filter-branch --force --index-filter "git rm --cached --ignore-unmatch manifest.json project.json" --prune-empty --tag-name-filter cat -- --all &&
-                echo project.json >> .gitignore &&
-                echo manifest.json >> .gitignore &&
-                git add .gitignore &&
-                git commit -m "Added manifest.json and project.json to .gitignore" &&
                 git push --force --all -u {2} &&
-                git push --force --tags -u {2}
+                git push --force --tags -u {2} &&
                 git checkout -f origin/master
             '''.format(username, urllib2.quote(user.password), 'git.door43.org', repo_name)
             os.chdir(repo_path)
