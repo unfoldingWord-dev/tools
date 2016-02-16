@@ -36,8 +36,6 @@ def main():
     stdin, stdout, stderr = client.exec_command('info -json')
     json_data = json.load(stdout)
 
-    users = {}
-
     for repo_path in json_data['repos']:
         parts = repo_path.split('/')
         if len(parts) == 3:
@@ -46,7 +44,9 @@ def main():
             repo_name = parts[2]
 
             if org == 'tS' and repo_name.startswith('uw-') and len(username) >= 10:
-                push_repo.push(repo_path, username)
+                os.system('rm -rf /tmp/{0}'.format(repo_path))
+                os.system('git clone gitolite3@us.door43.org:{0} /tmp/{0}'.format(repo_path))
+                push_repo.push('/tmp/{0}'.format(repo_path), username)
 
 if __name__ == '__main__':
     main()
