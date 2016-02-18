@@ -54,9 +54,9 @@ def push(repo_path, username = None):
                         if 'phone' in translator:
                             del translator['phone']
                 json_text = json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
-                with open(filename+'2', 'w') as file:
+                with open(filename, 'w') as file:
                     print >> file, json_text
-                os.system('git commit -a -m "Updated {0}"'.format(filename+'2'));
+                os.system('git commit -a -m "Updated {0}"'.format(filename));
 
             #Removes 'translators' from project.json:
             filename = 'project.json'
