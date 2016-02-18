@@ -46,7 +46,7 @@ def push(repo_path, username = None):
                 with open(filename) as data:
                     data = json.load(data)
                 #Totally remove old file from repo
-                os.system('git filter-branch --force --index-filter "git rm --cached --ignore-unmatch {0}" --prune-empty --tag-name-filter cat -- --all'.format(filename))
+                os.system('unset GIT_DIR && unset GIT_WORK_TREE && git filter-branch --force --index-filter "git rm --cached --ignore-unmatch {0}" --prune-empty --tag-name-filter cat -- --all'.format(filename))
                 if 'translators' in data:
                     for translator in data['translators']:
                         if 'email' in translator:
@@ -63,7 +63,7 @@ def push(repo_path, username = None):
                 with open(filename) as data:
                     data = json.load(data)
                 #Totally remove old file from repo
-                os.system('git filter-branch --force --index-filter "git rm --cached --ignore-unmatch {0}" --prune-empty --tag-name-filter cat -- --all'.format(filename))
+                os.system('unset GIT_DIR && unset GIT_WORK_TREE && git filter-branch --force --index-filter "git rm --cached --ignore-unmatch {0}" --prune-empty --tag-name-filter cat -- --all'.format(filename))
                 if 'translators' in data:
                     for translator in data['translators']:
                         if 'email' in translator:
@@ -75,8 +75,8 @@ def push(repo_path, username = None):
                     print >> file, json_text
 
             command = '''
-                unset GIT_DIR
-                unset GIT_WORK_TREE
+                unset GIT_DIR &&
+                unset GIT_WORK_TREE &&
                 git add . &&
                 git commit -a -m "Updated manifest file" &&
                 git remote add {2} {4}://{0}:{1}@{2}/{0}/{3} &&
