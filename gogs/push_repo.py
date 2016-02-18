@@ -40,13 +40,21 @@ def push(repo_path, username = None):
 
             os.chdir(repo_path)
 
+            scrub_file_command = '''
+                unset GIT_DIR && unset GIT_WORK_TREE &&
+                git filter-branch --force --index-filter "git rm --cached --ignore-unmatch {0}" --prune-empty --tag-name-filter cat -- --all
+                rm -rf .git/refs/original/ && \
+                git reflog expire --all && \
+                git gc --aggressive --prune
+            '''
+
             #Removes 'translators' from manifest.json:
             filename = 'manifest.json'
             if os.path.exists(filename) and os.stat(filename).st_size > 0:
                 with open(filename) as data:
                     data = json.load(data)
                 #Totally remove old file from repo
-                os.system('unset GIT_DIR && unset GIT_WORK_TREE && git filter-branch --force --index-filter "git rm --cached --ignore-unmatch {0}" --prune-empty --tag-name-filter cat -- --all'.format(filename))
+                os.system(scrub_file_command.format(filename))
                 if 'translators' in data:
                     for translator in data['translators']:
                         if 'email' in translator:
@@ -63,7 +71,7 @@ def push(repo_path, username = None):
                 with open(filename) as data:
                     data = json.load(data)
                 #Totally remove old file from repo
-                os.system('unset GIT_DIR && unset GIT_WORK_TREE && git filter-branch --force --index-filter "git rm --cached --ignore-unmatch {0}" --prune-empty --tag-name-filter cat -- --all'.format(filename))
+                os.system(scrub_file_command.format(filename))
                 if 'translators' in data:
                     for translator in data['translators']:
                         if 'email' in translator:
