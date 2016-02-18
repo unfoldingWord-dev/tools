@@ -56,7 +56,6 @@ def push(repo_path, username = None):
                 json_text = json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
                 with open(filename, 'w') as file:
                     print >> file, json_text
-                os.system('git commit -a -m "Updated {0}"'.format(filename));
 
             #Removes 'translators' from project.json:
             filename = 'project.json'
@@ -74,11 +73,12 @@ def push(repo_path, username = None):
                 json_text = json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
                 with open(filename, 'w') as file:
                     print >> file, json_text
-                os.system('git commit -a -m "Updated {0}"'.format(filename));
 
             command = '''
                 unset GIT_DIR
                 unset GIT_WORK_TREE
+                git add . &&
+                git commit -a -m "Updated manifest file" &&
                 git remote add {2} {4}://{0}:{1}@{2}/{0}/{3} &&
                 git push --force --all -u {2} &&
                 git push --force --tags -u {2}
