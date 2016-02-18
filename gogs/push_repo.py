@@ -40,7 +40,7 @@ def push(repo_path, username = None):
             command = '''
                 unset GIT_DIR
                 unset GIT_WORK_TREE
-                git remote add {2} {4}://{0}:{1}@{2}:{5}/{0}/{3} &&
+                git remote add {2} {4}://{0}:{1}@{2}/{0}/{3} &&
                 git filter-branch --force --index-filter "git rm --cached --ignore-unmatch manifest.json project.json" --prune-empty --tag-name-filter cat -- --all &&
                 git push --force --all -u {2} &&
                 git push --force --tags -u {2} &&
