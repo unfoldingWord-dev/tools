@@ -21,14 +21,15 @@ help() {
     echo "    -o DIR   Add output location(s) for final PDF"
     echo "    -r LOC   Send build report to directory(s) or email address(s)"
     echo "    -t TAG   Add a tag to the output filename"
-	echo "    -C       Adds breaks between Chunks, uses 1 column, bigger font"
+    echo "    -b BOOK* Specify which book of the Bible to generate. No -b means a file for every book of the Bible. \"nt\", \"ot\" or \"all\" means Old Testament, New Testament, or the whole Bible in one file, respectively"
+    echo "    -c       Adds breaks between Chunks, uses 1 column, bigger font"
     echo "    -h       Show this help"
     echo "Notes:"
     echo "    Option flags whose values are marked '(s)' may be specified multiple times"
 }
 
 # Process command line options
-while getopts l:v:b:c:o:r:t:d:C opt; do
+while getopts l:v:b:o:r:t:dch opt; do
     case $opt in
         l) LANGUAGE=$OPTARG;;
         v) VER=$OPTARG;;
@@ -37,7 +38,7 @@ while getopts l:v:b:c:o:r:t:d:C opt; do
         r) REPORTTO=("${REPORTTO[@]}" "$OPTARG");;
         t) TAG=$OPTARG;;
         d) DEBUG=true;;
-        C) HR_BETWEEN_CHUNKS=true;;
+        c) HR_BETWEEN_CHUNKS=true;;
         [h?]) help && exit 1;
     esac
 done
