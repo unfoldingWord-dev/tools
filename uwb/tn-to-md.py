@@ -21,13 +21,9 @@ import json
 import codecs
 import urllib2
 linknamere = re.compile(ur'\|.*?(\]\])', re.UNICODE)
-BOOKS = [ 'GEN', 'EXO', 'LEV', #'NUM',
-          'DEU', 'JOS', 'JDG', 'RUT', '1SA',
-          '2SA', '1KI', '2KI', #'1CH', '2CH', 'EZR',
-          'NEH', 'EST', 'JOB',
-          'PSA', 'PRO', 'ECC', #'SNG',
-          'ISA', #'JER',
-          'LAM', 'EZK', 'DAN',
+BOOKS = [ 'GEN', 'EXO', 'LEV', 'NUM', 'DEU', 'JOS', 'JDG', 'RUT', '1SA',
+          '2SA', '1KI', '2KI', '1CH', '2CH', 'EZR', 'NEH', 'EST', 'JOB',
+          'PSA', 'PRO', 'ECC', 'SNG', 'ISA', 'JER', 'LAM', 'EZK', 'DAN',
           'HOS', 'JOL', 'AMO', 'OBA', 'JON', 'MIC', 'NAM', 'HAB', 'ZEP',
           'HAG', 'ZEC', 'MAL',
           'MAT', 'MRK', 'LUK', 'JHN', 'ACT', 'ROM', '1CO', '2CO', 'GAL',
