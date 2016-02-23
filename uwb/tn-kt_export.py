@@ -82,7 +82,7 @@ def getKT(f):
 
 def getKTDef(page):
     for def_title in def_titles:
-        defre = re.compile(ur'===== {0}:? =====(.*?)[=(]'.format(
+        defre = re.compile(ur'===== {0}:? =====(.*?)\n[=(]'.format(
                                            def_title), re.UNICODE | re.DOTALL)
         defse = defre.search(page)
         if defse: break
@@ -158,7 +158,7 @@ def writeJSON(outfile, p):
     f.close()
 
 def getDump(j):
-    return json.dumps(j, sort_keys=True, indent=2)
+    return json.dumps(j, sort_keys=True)
 
 def getFrame(f, book):
     page = codecs.open(f, 'r', encoding='utf-8').read()
