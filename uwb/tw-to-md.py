@@ -28,8 +28,6 @@ def getURL(url):
     try:
         request = urllib2.urlopen(url)
         content = request.read()
-        #encoding = request.headers['content-type'].split('charset=')[-1]
-        #ucontent = unicode(content, encoding)
     except:
         print "  => ERROR retrieving %s\nCheck the URL" % url
         sys.exit(1)
