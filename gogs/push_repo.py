@@ -82,6 +82,8 @@ def push(repo_path, username = None):
                 with open(filename, 'w') as file:
                     print >> file, json_text
 
+
+
             command = '''
                 unset GIT_DIR &&
                 unset GIT_WORK_TREE &&
