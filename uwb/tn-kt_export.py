@@ -82,7 +82,7 @@ def getKT(f):
 
 def getKTDef(page):
     for def_title in def_titles:
-        defre = re.compile(ur'===== {0}:? =====(.*?)[=(]'.format(
+        defre = re.compile(ur'===== {0}:? =====(.*?)\n[=(]'.format(
                                            def_title), re.UNICODE | re.DOTALL)
         defse = defre.search(page)
         if defse: break
@@ -245,7 +245,7 @@ def runKT(lang, today):
             # this just means no aliases were found
             pass
     keyterms.sort(key=lambda x: len(x['term']), reverse=True)
-    keyterms.append({'date_modified': today})
+    keyterms.append({'date_modified': today, 'version': u'2'})
     apipath = os.path.join(api_v2, 'bible', lang)
     writeJSON('{0}/terms.json'.format(apipath), keyterms)
 
@@ -265,12 +265,13 @@ def runtN(lang, today):
                 continue
             for f in glob.glob('{0}/{1}/*.txt'.format(book_path, chapter)):
                 if 'home.txt' in f: continue
+                if '00/intro.txt' in f: continue
                 frame = getFrame(f, book)
                 if frame: 
                     frames.append(frame)
 
         frames.sort(key=lambda x: x['id'])
-        frames.append({'date_modified': today})
+        frames.append({'date_modified': today, 'version': u'2'})
         writeJSON('{0}/notes.json'.format(apipath), frames)
         if not book in twdict:
             print 'Terms not found for {0}'.format(book)
@@ -279,7 +280,7 @@ def runtN(lang, today):
         del twdict[book]
 
 def savetW(filepath, today, twbookdict):
-    tw_cat = { 'chapters': [], 'date_modified': today }
+    tw_cat = { 'chapters': [], 'date_modified': today, 'version': u'2' }
     for chp in twbookdict:
         twbookdict[chp].sort(key=lambda x: x['id'])
         entry = { 'id': chp,
@@ -303,7 +304,7 @@ def runCQ(lang, today):
         # Check to see if there are published questions in this book
         pub_check = [x['cq'] for x in book_questions if len(x['cq']) > 0]
         if len(pub_check) == 0:
-            #print "No published questions for {0}".format(book)
+            print "No published questions for {0}".format(book)
             continue
         book_questions.sort(key=lambda x: x['id'])
         book_questions.append({'date_modified': today})
@@ -357,5 +358,5 @@ def fixRefs(refs):
 if __name__ == '__main__':
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
     runtN('en', today)
-    #runKT('en', today)
+    runKT('en', today)
     runCQ('en', today)

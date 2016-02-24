@@ -11,6 +11,7 @@
 #
 
 import codecs
+# noinspection PyUnresolvedReferences
 from datetime import datetime
 from etherpad_lite import EtherpadLiteClient, EtherpadException
 from itertools import ifilter
@@ -20,9 +21,9 @@ import sys
 import yaml
 
 NAMESPACES = ['hi', 'ru', 'tr', 'ps']
-LOGDIR = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/playground'
-BADLINKREGEX = re.compile(r"(.*?)(\[\[?)(:?en:ta:?)(.*?)(]]?)(.*?)", re.DOTALL | re.MULTILINE | re.UNICODE)
-YAMLREGEX = re.compile(r"(---\s*\n)(.+?)(^-{3}\s*\n)+?(.*)$", re.DOTALL | re.MULTILINE)
+LOG_DIR = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/playground'
+BAD_LINK_REGEX = re.compile(r"(.*?)(\[\[?)(:?en:ta:?)(.*?)(]]?)(.*?)", re.DOTALL | re.MULTILINE | re.UNICODE)
+YAML_REGEX = re.compile(r"(---\s*\n)(.+?)(^-{3}\s*\n)+?(.*)$", re.DOTALL | re.MULTILINE)
 
 # YAML file heading data format:
 #
@@ -89,6 +90,7 @@ class SectionData(object):
         if name.lower().startswith('intro'):
             return 'Introduction'
 
+        # noinspection SpellCheckingInspection
         if name.lower().startswith('transla'):
             return 'Translation'
 
@@ -114,7 +116,7 @@ class PageData(object):
 
 class PageGenerator(object):
     def __init__(self, namespace, root_page_id):
-        global LOGDIR
+        global LOG_DIR
 
         self.namespace = namespace
         self.root_page_id = root_page_id
@@ -125,10 +127,9 @@ class PageGenerator(object):
         self.error_count = 0
         self.process_volumes = [1, 2]
 
-        self.log_file = LOGDIR + '/' + root_page_id + '_import.log.txt'
+        self.log_file = LOG_DIR + '/' + root_page_id + '_import.log.txt'
         if os.path.exists(self.log_file):
             os.remove(self.log_file)
-
 
     def __enter__(self):
         return self
@@ -153,7 +154,7 @@ class PageGenerator(object):
 
     def get_page_yaml_data(self, raw_yaml_text, skip_checks=False):
 
-        returnval = {}
+        return_val = {}
 
         # convert windows line endings
         cleaned = raw_yaml_text.replace("\r\n", "\n")
@@ -190,12 +191,12 @@ class PageGenerator(object):
 
             # add the successfully parsed value to the dictionary
             for key in parsed.keys():
-                returnval[key] = parsed[key]
+                return_val[key] = parsed[key]
 
-        if not skip_checks and not self.check_yaml_values(returnval):
-            returnval['invalid'] = True
+        if not skip_checks and not self.check_yaml_values(return_val):
+            return_val['invalid'] = True
 
-        return returnval
+        return return_val
 
     def get_ta_pages(self, e_pad, sections):
         """
@@ -205,7 +206,7 @@ class PageGenerator(object):
         :return: PageData[]
         """
 
-        global YAMLREGEX
+        global YAML_REGEX
 
         pages = []
 
@@ -219,7 +220,7 @@ class PageGenerator(object):
                 # get the page
                 try:
                     page_raw = e_pad.getText(padID=pad_id)
-                    match = YAMLREGEX.match(page_raw['text'])
+                    match = YAML_REGEX.match(page_raw['text'])
                     if match:
 
                         # check for valid yaml data
@@ -248,31 +249,31 @@ class PageGenerator(object):
 
     def check_yaml_values(self, yaml_data):
 
-        returnval = True
+        return_val = True
 
         # check the required yaml values
         if not self.check_value_is_valid_int('volume', yaml_data):
             self.log_error('Volume value is not valid.')
-            returnval = False
+            return_val = False
 
         if not self.check_value_is_valid_string('manual', yaml_data):
             self.log_error('Manual value is not valid.')
-            returnval = False
+            return_val = False
 
         if not self.check_value_is_valid_string('slug', yaml_data):
             self.log_error('Volume value is not valid.')
-            returnval = False
+            return_val = False
         else:
             # slug cannot contain a dash, only underscores
             test_slug = str(yaml_data['slug']).strip()
             if '-' in test_slug:
                 self.log_error('Slug values cannot contain hyphen (dash).')
-                returnval = False
+                return_val = False
 
         if not self.check_value_is_valid_string('title', yaml_data):
-            returnval = False
+            return_val = False
 
-        return returnval
+        return return_val
 
     def check_value_is_valid_string(self, value_to_check, yaml_data):
 
@@ -296,6 +297,7 @@ class PageGenerator(object):
 
         return True
 
+    # noinspection SpellCheckingInspection
     def make_dependency_chart(self, sections, pages):
 
         chart_lines = []
@@ -360,9 +362,6 @@ class PageGenerator(object):
         with codecs.open(chart_file, 'w', 'utf-8') as file_out:
             file_out.write(file_text)
 
-
-            # noinspection PyBroadException
-
     # noinspection PyBroadException
     def check_value_is_valid_int(self, value_to_check, yaml_data):
 
@@ -426,7 +425,7 @@ class PageGenerator(object):
                 md = '===== ' + page.yaml_data['title'] + " =====\n\n"
 
                 if question:
-                    md += self.question_label + ' ' + question + "\\\\\n"
+                    md += self.question_label + ' //' + question + "//\n\n"
 
                 if dependencies:
                     md += self.depends_label
@@ -456,13 +455,12 @@ class PageGenerator(object):
         self.log_this('Generated ' + str(pages_generated) + ' Dokuwiki pages.', True)
 
     def check_bad_links(self, page_text):
-        matches = BADLINKREGEX.findall(u'{0}'.format(page_text).replace(u'–', u'-'))
+        matches = BAD_LINK_REGEX.findall(u'{0}'.format(page_text).replace(u'–', u'-'))
 
         # check for vol1 or vol2
         for match in matches:
             if len(match[3]) > 3 and match[3][:3] != u'vol':
                 self.log_error(u'Bad link => {0}{1}'.format(match[2], match[3]))
-
 
     def output_list(self, pages, option_list):
         md = ''
@@ -471,18 +469,17 @@ class PageGenerator(object):
             for option in option_list:
                 link = self.get_page_link_by_slug(pages, option)
                 if link:
-                    md += "\n  * " + link
+                    md += "\n  * //" + link + '//'
                 else:
                     self.log_error('Linked page not found: ' + option)
         else:
             link = self.get_page_link_by_slug(pages, option_list)
             if link:
-                md += ' ' + link
+                md += ' //' + link + '//'
             else:
                 self.log_error('Linked page not found: ' + option_list)
 
         return md
-
 
     def get_page_url(self, page):
 
@@ -494,14 +491,12 @@ class PageGenerator(object):
 
         return page_dir + ':' + page_file
 
-
     def get_page_link_by_slug(self, pages, slug):
         found = [page for page in pages if page.yaml_data['slug'].strip().lower() == slug.strip().lower()]
         if len(found) == 0:
             return ''
 
         return '[[' + self.get_page_url(found[0]) + '|' + found[0].yaml_data['title'] + ']]'
-
 
     def generate(self):
 
@@ -510,7 +505,7 @@ class PageGenerator(object):
         with SelfClosingEtherpad() as ep:
             text = ep.getText(padID=self.root_page_id)
 
-            default_match = YAMLREGEX.match(text['text'])
+            default_match = YAML_REGEX.match(text['text'])
             if default_match:
 
                 # check for valid yaml data
@@ -573,16 +568,17 @@ def parse_ta_modules(raw_text):
     :rtype: SectionData[]
     """
 
-    returnval = []
+    return_val = []
+    # noinspection SpellCheckingInspection
     colors = ['#ff9999', '#99ff99', '#9999ff', '#ffff99', '#99ffff', '#ff99ff', '#cccccc']
     color_index = 0
 
     # remove everything before the first ======
     pos = raw_text.find("\n======")
-    tmpstr = raw_text[pos + 7:]
+    tmp_str = raw_text[pos + 7:]
 
     # break at "\n======" for major sections
-    arr = tmpstr.split("\n======")
+    arr = tmp_str.split("\n======")
     for itm in arr:
 
         # split section at line breaks
@@ -611,10 +607,10 @@ def parse_ta_modules(raw_text):
         no_dupes = set(urls)
 
         # add the list of URLs to the dictionary
-        returnval.append(SectionData(section_name, no_dupes, colors[color_index]))
+        return_val.append(SectionData(section_name, no_dupes, colors[color_index]))
         color_index += 1
 
-    return returnval
+    return return_val
 
 
 def get_yaml_string(value_name, yaml_data, default_value=''):
@@ -670,8 +666,8 @@ def compare_pages(page_a, page_b):
 if __name__ == '__main__':
 
     # enable logging for this script
-    if not os.path.exists(LOGDIR):
-        os.makedirs(LOGDIR, 0755)
+    if not os.path.exists(LOG_DIR):
+        os.makedirs(LOG_DIR, 0755)
 
     # start with English
     with PageGenerator('en', 'ta-modules') as generator:
@@ -688,5 +684,5 @@ if __name__ == '__main__':
     # write a log file
     log_text = u'=== Last run finished at: ' + datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S') + \
                u' UTC ===\n' + log_text
-    with codecs.open(LOGDIR + '/ta_import.log.txt', 'w', 'utf-8') as log_file_out:
+    with codecs.open(LOG_DIR + '/ta_import.log.txt', 'w', 'utf-8') as log_file_out:
         log_file_out.write(log_text)
