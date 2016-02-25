@@ -21,7 +21,7 @@ help() {
     echo "    -o DIR   Add output location(s) for final PDF"
     echo "    -r LOC   Send build report to directory(s) or email address(s)"
     echo "    -t TAG   Add a tag to the output filename"
-    echo "    -C       Adds breaks between Chunks, uses 1 column, bigger font"
+	echo "    -C       Adds breaks between Chunks, uses 1 column, bigger font"
     echo "    -h       Show this help"
     echo "Notes:"
     echo "    Option flags whose values are marked '(s)' may be specified multiple times"
@@ -182,8 +182,8 @@ for BOOK in "${BOOKS[@]}"; do
         --toc-depth="$TOC_DEPTH" \
         -V documentclass="scrartcl" \
         -V classoption="oneside" \
-        -V geometry="hmargin=1cm" \
-        -V geometry="vmargin=1cm" \
+        -V geometry='hmargin=2cm' \
+        -V geometry='vmargin=3cm' \
         -V title="title.txt" \
         -V subtitle="subtitle.txt" \
         -V fontsize="12" \
