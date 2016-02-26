@@ -65,8 +65,11 @@ def parse(usx):
     frid = 0
     chp_num = 0
     fr_list = []
+    currentvs = -1
     for line in usx:
         if line.startswith(u'\n'): continue
+        if "verse number" in line:
+            currentvs = versere.search(line).group(1)
         if 'chapter number' in line:
             if chp:
                 if fr_list:
@@ -81,7 +84,8 @@ def parse(usx):
                                      str(chp_num).zfill(2), firstvs.zfill(2)),
                                        u'img': u'',
                                        u'format': u'usx',
-                                       u'text': fr_text
+                                       u'text': fr_text,
+                                       u'lastvs': currentvs
                                       })
                 chapters.append(chp)
             chp_num += 1
@@ -107,7 +111,8 @@ def parse(usx):
                                      str(chp_num).zfill(2), firstvs.zfill(2)),
                                        u'img': u'',
                                        u'format': u'usx',
-                                       u'text': fr_text
+                                       u'text': fr_text,
+                                       u'lastvs': currentvs
                                       })
                 fr_list = []
                 continue
@@ -118,7 +123,8 @@ def parse(usx):
                                    str(chp_num).zfill(2), str(frid).zfill(2)),
                            u'img': u'',
                            u'format': u'usx',
-                           u'text': u'\n'.join(fr_list)
+                           u'text': u'\n'.join(fr_list),
+                           u'lastvs': currentvs
                           })
     chapters.append(chp)
     return chapters
@@ -128,7 +134,8 @@ def getChunks(book):
     for c in book:
         for frame in c['frames']:
             chunks.append({ 'id': frame['id'],
-                            'firstvs': versere.search(frame['text']).group(1)
+                            'firstvs': versere.search(frame['text']).group(1),
+                            'lastvs': frame["lastvs"]
                           })
     return chunks
 
