@@ -1,7 +1,15 @@
-# Author: Ben R. Olson
-# Date: March 1, 2016
+#!/usr/bin/env sh
+# -*- coding: utf8 -*-
 #
-# Note: Some code adapted from a tutorial by
+#  Copyright (c) 2014 unfoldingWord
+#  http://creativecommons.org/licenses/MIT/
+#  See LICENSE file for details.
+#
+#  Contributors:
+#  Ben R. Olson 
+#  Date: March 1, 2016
+#
+# Note: This code is adapted from a tutorial by
 #   Jesse Griffin, found at
 #   http://slides.com/jessegriffin/git_presentation
 #   "How to Merge tS Uploads?"
