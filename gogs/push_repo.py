@@ -22,6 +22,7 @@ import base64
 import getpass
 import gogs
 import config
+import fileinput
 
 def push(repo_path, username = None):
     api = gogs.GogsAPI(config.api_base_url, config.admin_username, config.admin_password)
@@ -39,6 +40,17 @@ def push(repo_path, username = None):
             print "Repo result: ",repo_name,' ',result
 
             os.chdir(repo_path)
+
+            for path, subdirs, files in os.walk('.'):
+                if path.startswith('./.git'):
+                    continue
+                for name in files:
+                    if not name.endswith('.txt'):
+                        continue
+                    file = fileinput.FileInput(os.path.join(path, name), inplace=True)
+                    for line in file:
+                        print(line.replace('/v', '\\v '))
+                    file.close()
 
             scrub_file_command = '''
                 unset GIT_DIR && unset GIT_WORK_TREE &&

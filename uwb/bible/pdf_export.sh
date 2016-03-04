@@ -28,7 +28,7 @@ help() {
 }
 
 # Process command line options
-while getopts l:v:b:c:o:r:t:d:C opt; do
+while getopts l:v:b:o:r:t:dc opt; do
     case $opt in
         l) LANGUAGE=$OPTARG;;
         v) VER=$OPTARG;;
@@ -37,7 +37,7 @@ while getopts l:v:b:c:o:r:t:d:C opt; do
         r) REPORTTO=("${REPORTTO[@]}" "$OPTARG");;
         t) TAG=$OPTARG;;
         d) DEBUG=true;;
-        C) HR_BETWEEN_CHUNKS=true;;
+        c) HR_BETWEEN_CHUNKS=true;;
         [h?]) help && exit 1;
     esac
 done
@@ -182,8 +182,8 @@ for BOOK in "${BOOKS[@]}"; do
         --toc-depth="$TOC_DEPTH" \
         -V documentclass="scrartcl" \
         -V classoption="oneside" \
-        -V geometry="hmargin=1cm" \
-        -V geometry="vmargin=1cm" \
+        -V geometry='hmargin=2cm' \
+        -V geometry='vmargin=3cm' \
         -V title="title.txt" \
         -V subtitle="subtitle.txt" \
         -V fontsize="12" \
