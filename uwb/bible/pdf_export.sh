@@ -21,15 +21,14 @@ help() {
     echo "    -o DIR   Add output location(s) for final PDF"
     echo "    -r LOC   Send build report to directory(s) or email address(s)"
     echo "    -t TAG   Add a tag to the output filename"
-    echo "    -b BOOK* Specify which book of the Bible to generate. No -b means a file for every book of the Bible. \"nt\", \"ot\" or \"all\" means Old Testament, New Testament, or the whole Bible in one file, respectively"
-    echo "    -c       Adds breaks between Chunks, uses 1 column, bigger font"
+	echo "    -C       Adds breaks between Chunks, uses 1 column, bigger font"
     echo "    -h       Show this help"
     echo "Notes:"
     echo "    Option flags whose values are marked '(s)' may be specified multiple times"
 }
 
 # Process command line options
-while getopts l:v:b:o:r:t:dch opt; do
+while getopts l:v:b:o:r:t:dc opt; do
     case $opt in
         l) LANGUAGE=$OPTARG;;
         v) VER=$OPTARG;;
@@ -183,8 +182,8 @@ for BOOK in "${BOOKS[@]}"; do
         --toc-depth="$TOC_DEPTH" \
         -V documentclass="scrartcl" \
         -V classoption="oneside" \
-        -V geometry="hmargin=1cm" \
-        -V geometry="vmargin=1cm" \
+        -V geometry='hmargin=2cm' \
+        -V geometry='vmargin=3cm' \
         -V title="title.txt" \
         -V subtitle="subtitle.txt" \
         -V fontsize="12" \

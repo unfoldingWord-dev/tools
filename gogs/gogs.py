@@ -24,9 +24,10 @@ import config
 from urllib2 import Request, urlopen, URLError, HTTPError
 
 class GogsToken:
-    def __init__(self, name = None, sha1 = None):
+    def __init__(self, owner, name, sha1 = None):
         self.name = name
         self.sha1 = sha1
+        self.owner = owner
 
 class GogsUser:
     def __init__(self, username, password = None):
@@ -80,6 +81,12 @@ class GogsAPI:
     STATUS_ERROR_DELETING_REPO = 12
     STATUS_USER_STILL_HAS_REPOS = 13
     STATUS_CONNECTION_ERROR = 14
+    STATUS_TOKEN_CREATED = 15
+    STATUS_TOKEN_EXISTS = 16
+    STATUS_ERROR_CREATING_TOKEN = 17
+    STATUS_TOKEN_DELETED = 18
+    STATUS_TOKEN_DOES_NOT_EXIST = 19
+    STATUS_ERROR_DELETING_TOKEN = 20
 
     catalog = None
 
@@ -94,9 +101,6 @@ class GogsAPI:
     def connectToGogs(self, partialUrl, authUser=None, data=None, delete=False):
         url = self.api_base_url.format(partialUrl)
 
-        print url
-        print authUser.username
-
         req = urllib2.Request(url)
         if delete:
             req.get_method = lambda: 'DELETE'
@@ -109,8 +113,6 @@ class GogsAPI:
             return urllib2.urlopen(req, json.dumps(data))
         else:
             return urllib2.urlopen(req)
-
-
 
     def createUser(self, user, populateIfExists=False):
         data = {
@@ -203,7 +205,35 @@ class GogsAPI:
         response = self.connectToGogs(url, user)
         tokens = json.load(response)
         for token in tokens:
-            user.tokens.append(GogsToken(token['name'], token['sha1']))
+            user.tokens.append(GogsToken(user, token['name'], token['sha1']))
+
+    def populateToken(self, token, data):
+        token.name = data['name']
+        token.sha1 = data['sha1']
+
+    def createToken(self, token, populateIfExists = False):
+        url = 'users/{0}/tokens'.format(token.owner.username)
+        data = {
+            'name': token.name,
+        }
+        try:
+            response = self.connectToGogs(url, token.owner, data)
+        except HTTPError as e:
+            if e.code == 422: # token already exists
+                if populateIfExists:
+                    self.populateToken(token)
+                return self.STATUS_TOKEN_EXISTS
+            else:
+                print 'The system rejected this request.'
+                print e.reason
+                return self.STATUS_ERROR_CREATING_TOKEN
+        except URLError as e:
+            print 'We failed to reach a server.'
+            print 'Reason: ', e.reason
+            return self.STATUS_ERROR_CREATING_TOKEN
+        else:
+            self.populateToken(token, json.load(response))
+            return self.STATUS_TOKEN_CREATED
 
     def createRepo(self, repo, populateIfExists=False):
         data = {
