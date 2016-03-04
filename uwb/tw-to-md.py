@@ -52,7 +52,7 @@ if __name__ == '__main__':
     
     for x in terms_json:
         if 'id' not in x: continue
-        chkf = codecs.open('{0}/{1}.md'.format(outdir, x['id']), 'w', encoding='utf-8')
+        chkf = codecs.open('{0}/01/{1}.md'.format(outdir, x['id']), 'w', encoding='utf-8')
         # Write tW
         chkf.write(u'# {0}\n\n'.format(x['term']))
         chkf.write(u'## {0}\n\n'.format(x['def_title']))
