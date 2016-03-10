@@ -102,7 +102,7 @@ books = { u'GEN': [ u'Genesis', '01' ],
 
 
 
-def main(resource, lang, slug, name, checking, contrib, ver):
+def main(resource, lang, slug, name, checking, contrib, ver, check_level, comments):
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
     local_res = '/tmp/{0}'.format(resource.rpartition('/')[2])
     sourceDir = '/tmp/{0}'.format(resource.rpartition('/')[2].strip('.zip'))
@@ -116,7 +116,7 @@ def main(resource, lang, slug, name, checking, contrib, ver):
     files = glob.glob('{0}/{1}'.format(sourceDir, '*[Ss][Ff][Mm]'))
     for path in files:
         lines = codecs.open(path, encoding='utf-8').readlines()
-        book = getRE('\n'.join(lines[:10]), idre)
+        book = getRE('\n'.join(lines[:10]), idre).upper()
         print book
         bookname = getRE('\n'.join(lines[:10]), bknmre)
         if not book:
@@ -145,8 +145,8 @@ def main(resource, lang, slug, name, checking, contrib, ver):
                "date_modified": today,
                "books_published": books_published,
                "status": { "checking_entity": checking,
-                           "checking_level": "3",
-                           "comments": "Original source text",
+                           "checking_level": check_level,
+                           "comments": comments,
                            "contributors": contrib,
                            "publish_date": today,
                            "source_text": lang,
@@ -256,7 +256,11 @@ if __name__ == '__main__':
         required=True, help="Contributing translators.")
     parser.add_argument('-v', '--version', dest="version", default=False,
         required=True, help="Version of resource.")
+    parser.add_argument('-e', '--check_level', dest="check_level", default=3,
+        required=False, help="Checking level of the resource.")
+    parser.add_argument('-m', '--comments', dest="comments", default="",
+        required=False, help="Comments on the resource.")
 
     args = parser.parse_args(sys.argv[1:])
     main(args.resource, args.lang, args.slug, args.name, args.checking,
-                                                   args.contrib, args.version)
+                  args.contrib, args.version, args.check_level, args.comments)
