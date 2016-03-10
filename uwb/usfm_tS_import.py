@@ -137,8 +137,9 @@ def main(resource, lang, slug, name, checking, contrib, ver, check_level, commen
                                           'sort': books[book][1],
                                           'desc': ''
                                         }
-    del books_published['psa']
-    del books_published['isa']
+    source_ver = ver
+    if u'.' in ver:
+        source_ver = ver.split(u'.')[0]
     status = { "slug": slug.lower(),
                "name": name,
                "lang": lang,
@@ -150,7 +151,7 @@ def main(resource, lang, slug, name, checking, contrib, ver, check_level, commen
                            "contributors": contrib,
                            "publish_date": today,
                            "source_text": lang,
-                           "source_text_version": ver,
+                           "source_text_version": source_ver,
                            "version": ver
                           }
              }
