@@ -36,7 +36,7 @@ bible_dirs = [
   'zep', 'isa', 'psa'
 ]
 bible_slugs = [('udb', 'en'), ('ulb', 'en'), ('avd', 'ar'),
-               ('ulb_pt-br', 'pt-br')]
+               ('ulb-pt-br', 'pt-br')]
 usfm_api = u'https://api.unfoldingword.org/{0}/txt/1/{0}-{1}/{2}?{3}'
 bible_stat = u'https://api.unfoldingword.org/{0}/txt/1/{0}-{1}/status.json'
 obs_v1_api = u'https://api.unfoldingword.org/obs/txt/1'
@@ -378,7 +378,7 @@ def main():
     bible_bks = []
     langs = set([x[1] for x in bible_slugs])
     for slug, lang in bible_slugs:
-        stat = getURL(bible_stat.format(slug, lang))
+        stat = getURL(bible_stat.format(slug.split('-', 1)[0], lang))
         bible_status[(slug, lang)] = json.loads(stat)
         bible_bks += bible_status[(slug, lang)]['books_published'].keys()
     bible(langnames, bible_status, bible_bks, langs)
