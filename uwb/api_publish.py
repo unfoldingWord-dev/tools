@@ -136,15 +136,14 @@ def main(source):
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
     dirs = []
     if source:
-        source_dirs = [os.path.join(source, x) for x in os.listdir(source)]
-        dirs += source_dirs
+        dirs.append(source)
     else:
         udbd = [os.path.join(UDBSource, x) for x in os.listdir(UDBSource)]
         dirs += udbd
         ulbd = [os.path.join(ULBSource, x) for x in os.listdir(ULBSource)]
         dirs += ulbd
     for d in dirs:
-        ver, lang = d.rsplit('/', 1)[1].split('-')
+        ver, lang = d.rsplit('/', 1)[1].split('-', 1)
         tmpdir = '/tmp/{0}-{1}'.format(ver, lang)
         if os.path.isdir(tmpdir):
             shutil.rmtree(tmpdir)
