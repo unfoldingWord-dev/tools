@@ -24,6 +24,10 @@ import gogs
 import config
 import fileinput
 
+#import inspect
+#sys.path.insert(0, '../uw')
+#import usx_to_usfm
+
 def push(repo_path, username = None):
     api = gogs.GogsAPI(config.api_base_url, config.admin_username, config.admin_password)
     parts = repo_path.split('/')
@@ -99,10 +103,10 @@ def push(repo_path, username = None):
                 unset GIT_WORK_TREE &&
                 git add . &&
                 git commit -a -m "Updated manifest file" &&
-                git remote add {2} {4}://{0}:{1}@{2}/{0}/{3} &&
+                git remote add {2} {4}://{0}:{1}@{2}:{5}/{0}/{3} &&
                 git push --force --all -u {2} &&
                 git push --force --tags -u {2}
-            '''.format(username, urllib2.quote(user.password), config.api_domain, repo_name, config.api_protocol)
+            '''.format(username, urllib2.quote(user.password), config.api_domain, repo_name, config.api_protocol, config.api_port)
             os.system(command)
 
 if __name__ == '__main__':

@@ -79,8 +79,10 @@ def renderHTMLFromJSON():
     for url in refs.keys():
         output = output.replace(u'href="{0}"'.format(url), u'href="{0}"'.format(refs[url]))
 
-    # output = re.sub(' (href|src)="/', ' \g<1>="https://door43.org/', output)
-    output = re.sub(' (src)="/', ' \g<1>="https://door43.org/', output)
+    # output = re.sub(' (src)="/', ' \g<1>="https://unfoldingword.org/', output)
+    output = re.sub(' src="assets/img/ta/audio_ocenaudio_properties.jpg"', '', output)
+    output = re.sub(' src="/', ' src="http://test.unfoldingword.org/', output)
+    output = re.sub(' src="assets/', ' src="http://test.unfoldingword.org/assets/', output)
     output = re.sub('href="/en/slack', 'href="https://door43.org/en/slack', output)
     output = re.sub('<img ([^>]*)>', '</p>\n<p><img \g<1>></p>\n<p>', output)
     output = re.sub('(?i)(help@door43.org)', '<a href="mailto:\g<1>">\g<1></a>', output)

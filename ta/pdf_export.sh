@@ -52,7 +52,7 @@ done
 : ${outdir=$(pwd)}
 : ${reportto[0]=}
 : ${tag=}
-: ${version=}
+: ${version=2}
 
 # Note out base location and create a temporary workspace
 BASEDIR=$(cd $(dirname "$0")/../ && pwd)
@@ -72,7 +72,7 @@ ln -sf "$BASEDIR/ta"
 for lang in "${langs[@]}"; do
     # Get the version for this language (if not forced from an option flag)
 #    LANGVER=${version:-$("$BASEDIR"/uw/get_ver.py $lang)}
-    LANGVER=1
+    LANGVER=$version
 
     # Pick a filename based on all the parts we have
     BASENAME="ta-${lang}-v${LANGVER/./_}${tag:+-$tag}"
@@ -82,7 +82,7 @@ for lang in "${langs[@]}"; do
 
     LOGO="https://unfoldingWord.org/assets/img/icon-ta.png"
     TITLE="translationAcademy"
-    SUBTITLE="Version 1"
+    SUBTITLE="Version $version"
     DATE=`date +"%Y-%m-%d"`
     LICENSE_FILE="$BASEDIR/ta/tex/ta_license"
 

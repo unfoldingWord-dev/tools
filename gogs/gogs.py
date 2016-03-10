@@ -101,6 +101,9 @@ class GogsAPI:
     def connectToGogs(self, partialUrl, authUser=None, data=None, delete=False):
         url = self.api_base_url.format(partialUrl)
 
+        print url
+        print data
+
         req = urllib2.Request(url)
         if delete:
             req.get_method = lambda: 'DELETE'
