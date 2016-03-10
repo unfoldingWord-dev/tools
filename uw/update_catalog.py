@@ -35,7 +35,8 @@ bible_dirs = [
   'phm', 'php', 'pro', 'rev', 'rom', 'rut', 'sng', 'tit', 'zec',
   'zep', 'isa', 'psa'
 ]
-bible_slugs = [('udb', 'en'), ('ulb', 'en'), ('avd', 'ar')]
+bible_slugs = [('udb', 'en'), ('ulb', 'en'), ('avd', 'ar'),
+               ('ulb_pt-br', 'pt-br')]
 usfm_api = u'https://api.unfoldingword.org/{0}/txt/1/{0}-{1}/{2}?{3}'
 bible_stat = u'https://api.unfoldingword.org/{0}/txt/1/{0}-{1}/status.json'
 obs_v1_api = u'https://api.unfoldingword.org/obs/txt/1'
