@@ -140,7 +140,7 @@ def main(resource, lang, slug, name, checking, contrib, ver, check_level, commen
     source_ver = ver
     if u'.' in ver:
         source_ver = ver.split(u'.')[0]
-    status = { "slug": u'{0}_{1}'.format(slug.lower(), lang),
+    status = { "slug": u'{0}-{1}'.format(slug.lower(), lang),
                "name": name,
                "lang": lang,
                "date_modified": today,
