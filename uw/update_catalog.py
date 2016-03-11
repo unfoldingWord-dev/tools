@@ -172,7 +172,7 @@ def bible(langnames, bible_status, bible_bks, langs):
                 usfm_name = u'{0}-{1}.usfm'.format(bible_status[(slug, lang)][
                                    'books_published'][bk]['sort'], bk.upper())
                 slug_cat['usfm'] = usfm_api.format(slug.split('-', 1)[0],
-                                                 lang, usfm_name, source_date)
+                                   lang, usfm_name, source_date).rstrip(u'?')
                 slug_cat['terms'] = addDate('{0}/bible/{1}/terms.json'.format(
                                                              obs_v2_api, lang))
                 slug_cat['notes'] = addDate('{0}/{1}/{2}/notes.json'.format(
@@ -253,7 +253,6 @@ def ts_cat():
                             'lang_catalog': u'{0}?date_modified={1}'.format(
                                                      proj_url, dates_list[0]),
                             'sort': sort,
-    print uw_bible['langs']
                             'meta': meta
                           })
     # Write global catalog
@@ -282,7 +281,6 @@ def uw_cat(obs_v1_cat, bible_status):
               }
         bk_pub = bible_status[(slug, lang)]['books_published']
         short_slug = slug.split('-', 1)[0]
-        print lang
         for x in bk_pub:
             usfm_name = u'{0}-{1}.usfm'.format(bk_pub[x]['sort'], x.upper())
             source = usfm_api.format(short_slug, lang, usfm_name, u'').rstrip(u'?')
