@@ -102,7 +102,8 @@ books = { u'GEN': [ u'Genesis', '01' ],
 
 
 
-def main(resource, lang, slug, name, checking, contrib, ver, check_level, comments):
+def main(resource, lang, slug, name, checking, contrib, ver, check_level,
+                                                           comments, source):
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
     local_res = '/tmp/{0}'.format(resource.rpartition('/')[2])
     sourceDir = '/tmp/{0}'.format(resource.rpartition('/')[2].strip('.zip'))
@@ -150,7 +151,7 @@ def main(resource, lang, slug, name, checking, contrib, ver, check_level, commen
                            "comments": comments,
                            "contributors": contrib,
                            "publish_date": today,
-                           "source_text": lang,
+                           "source_text": source,
                            "source_text_version": source_ver,
                            "version": ver
                           }
@@ -261,7 +262,9 @@ if __name__ == '__main__':
         required=False, help="Checking level of the resource.")
     parser.add_argument('-m', '--comments', dest="comments", default="",
         required=False, help="Comments on the resource.")
+    parser.add_argument('-o', '--source', dest="source", default="en",
+        required=False, help="Source language code.")
 
     args = parser.parse_args(sys.argv[1:])
     main(args.resource, args.lang, args.slug, args.name, args.checking,
-                  args.contrib, args.version, args.check_level, args.comments)
+      args.contrib, args.version, args.check_level, args.comments, args.source)
