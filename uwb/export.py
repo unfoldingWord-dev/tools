@@ -26,7 +26,7 @@ import argparse
 import datetime
 import urllib2
 
-CatalogJSON='https://api.unfoldingword.org/uw/txt/2/catalog.json'
+CatalogJSON='https://api.unfoldingword.org/test/catalog.json'
 
 # Import USFM-Tools
 #USFMTools='/var/www/vhosts/door43.org/USFM-Tools'

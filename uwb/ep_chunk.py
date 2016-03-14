@@ -261,8 +261,10 @@ def getLastSection(bk, chp):
     if not os.path.exists(dirpath):
         return chp
     seclist = glob.glob('{0}/[0-9]*.txt'.format(dirpath))
-    seclist.sort()
-    ref = seclist[-1].rpartition('/')[-1].rstrip('.txt')
+    ref = chp
+    if len(seclist):
+        seclist.sort()
+        ref = seclist[-1].rpartition('/')[-1].rstrip('.txt')
     return ref
 
 def getNav(refs, i, chunked):

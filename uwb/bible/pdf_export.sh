@@ -21,25 +21,29 @@ help() {
     echo "    -o DIR   Add output location(s) for final PDF"
     echo "    -r LOC   Send build report to directory(s) or email address(s)"
     echo "    -t TAG   Add a tag to the output filename"
-	echo "    -C       Adds breaks between Chunks, uses 1 column, bigger font"
+	echo "    -c COL#  Number of Columns (defaults to 2)"
+	echo "    -f SIZE  Font size in pt"
     echo "    -h       Show this help"
+	echo "    --chunk-divider HTML   Adds the given HTML between chunks"
     echo "Notes:"
     echo "    Option flags whose values are marked '(s)' may be specified multiple times"
 }
 
-# Process command line options
-while getopts l:v:b:o:r:t:dc opt; do
-    case $opt in
-        l) LANGUAGE=$OPTARG;;
-        v) VER=$OPTARG;;
-        b) BOOKS=("${BOOKS[@]}" "$OPTARG");;
-        o) OUTPUTS=("${OUTPUTS[@]}" "$OPTARG");;
-        r) REPORTTO=("${REPORTTO[@]}" "$OPTARG");;
-        t) TAG=$OPTARG;;
-        d) DEBUG=true;;
-        c) HR_BETWEEN_CHUNKS=true;;
-        [h?]) help && exit 1;
+while test $# -gt 0; do
+    case "$1" in
+        -l|--lang) shift; LANGUAGE=$1;;
+        -v|--version) shift; VER=$1;;
+        -b|--bible) shift; BOOKS=("${BOOKS[@]}" "$1");;
+        -o|--output) shift; OUTPUTS=("${OUTPUTS[@]}" "$1");;
+        -r|--reportto) shift; REPORTTO=("${REPORTTO[@]}" "$1");;
+        -t|--tag) shift; TAG=$1;;
+        -d|--debug) DEBUG=true;;
+        -c) shift; NUM_COLS=$1;;
+        -f) shift; FONT_SIZE=$1;;
+        --chunk-divider) shift;CHUNK_DIVIDER=$1;;
+        -[h?]) help && exit 1;;
     esac
+    shift;
 done
 
 # Setup variable defaults in case flags were not set
@@ -50,18 +54,23 @@ done
 : ${OUTPUTS[0]=$(pwd)}
 : ${REPORTTO[0]=}
 : ${TAG=}
-: ${HR_BETWEEN_CHUNKS=false}
+: ${CHUNK_DIVIDER=''}
+: ${NUM_COLS=2}
+: ${FONT_SIZE=12}
 
 # Note out base location and create a temporary workspace
 BASEDIR=$(cd $(dirname "$0")/../../ && pwd)
 BUILDDIR=$(mktemp -d --tmpdir "uwb_${LANGUAGE}_build_pdf.XXXXXX")
 LOG="$BUILDDIR/shell.log"
 TEMPLATE="$BASEDIR/uwb/tex/uwb_template.tex"
-if $HR_BETWEEN_CHUNKS;
-then
-  TEMPLATE="$BASEDIR/uwb/tex/uwb_chunk_template.tex"
-fi
 NOTOFILE="$BASEDIR/uwb/tex/noto-${LANGUAGE}.tex"
+
+if [ "$NUM_COLS" == "2" ];
+then
+  MULTICOLS='-V multicols="true"'
+else
+  MULTICOLS=""
+fi
 
 # Capture all console output if a report-to flag has been set
 [[ -n "$REPORTTO" ]] && exec 2>&1 > $LOG
@@ -150,10 +159,7 @@ for BOOK in "${BOOKS[@]}"; do
     # Run python (export.py) to generate the .tex file from template .tex files
     #uwb/export.py -l $LANGUAGE -v $VER $BOOK_ARG -f tex -o "$BUILDDIR/$BASENAME.tex"
 
-    if $HR_BETWEEN_CHUNKS;
-    then
-        sed -i -e 's/<span class="chunk-break"\/>/<hr\/>/g' "$BUILDDIR/$BASENAME.html"
-    fi
+    sed -i -e "s/<span class=\"chunk-break\"\/>/<span class=\"chunk-break\"\/>$CHUNK_DIVIDER/g" "$BUILDDIR/$BASENAME.html"
 
     # Generate PDF with PANDOC
     LOGO="https://unfoldingword.org/assets/img/icon-${VER}.png"
@@ -186,7 +192,8 @@ for BOOK in "${BOOKS[@]}"; do
         -V geometry='vmargin=3cm' \
         -V title="title.txt" \
         -V subtitle="subtitle.txt" \
-        -V fontsize="12" \
+        -V fontsize="$FONT_SIZE" \
+        $MULTICOLS \
         $LOGO_FILE \
         $CHECKING_FILE \
         -V notofile="$NOTOFILE" \

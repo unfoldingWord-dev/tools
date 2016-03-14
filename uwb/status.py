@@ -40,10 +40,22 @@ class BibleStatus:
         return self.status['status']
 
     def getBibleStatus(self, key):
-        return self.getStatus()[key]
+        status = self.getStatus()
+        if key in status:
+            return status[key]
+        else:
+            return None
 
     def getBook(self, book):
-        return self.getBooksPublished()[book]
+        books = self.getBooksPublished()
+        if book in books:
+            return books[book]
+        else:
+            return None
 
     def getBookStatus(self, book, key):
-        return self.getBook(book)[key]
+        bookStatus = self.getBook(book)
+        if key in bookStatus:
+            return bookStatus[key]
+        else:
+            return None
