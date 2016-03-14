@@ -237,7 +237,7 @@ def writeOrAppend(f, chunk):
                            .replace(u' ULBSUB ', chunk['ulb']) )
     else:
         content = TMPL.format(**chunk)
-    writeFile(f, unicode_string_utils.replace_non_ascii_unicode(content))
+    writeFile(f, content)
 
 def writeChunks(chunked):
     fill = getFill(bk)
