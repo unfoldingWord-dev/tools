@@ -70,7 +70,8 @@ $BASEDIR/obs/book/pdf_export.sh -l $LANG -c "$LEV" -v "$VER" \
 #$BASEDIR/obs/book/odt_export.sh -l $LANG
 
 # Create web reveal.js viewer
-$BASEDIR/obs/js/reveal_export.py
+# Removed as uW website does this now
+#$BASEDIR/obs/js/reveal_export.py
 
 # Run update of v2 API
 $BASEDIR/uw/update_catalog.py
