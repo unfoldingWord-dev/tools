@@ -22,6 +22,7 @@ import glob
 import codecs
 import urllib2
 from etherpad_lite import EtherpadLiteClient
+import unicode_string_utils
 
 
 NP = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes'
@@ -227,7 +228,7 @@ def makeDir(d):
 
 def writeOrAppend(f, chunk):
     if os.path.exists(f):
-        content = codecs.open(f, encoding='utf-8', mode='r').read()
+        content, has_bad_chars, errors = unicode_string_utils.open_file_read_unicode(f)
         content = tftp.sub(ur'\1\n TFTSUB \n\2', content)
         content = udbp.sub(ur'\1\n UDBSUB \n\2', content)
         content = ulbp.sub(ur'\1\n ULBSUB \n\2', content)

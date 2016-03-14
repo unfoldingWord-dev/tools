@@ -64,7 +64,7 @@ def push(repo_path, username = None):
                 git gc --aggressive --prune
             '''
 
-            #Removes 'translators' from manifest.json:
+            #Removes email and phone from 'translators' in manifest.json:
             filename = 'manifest.json'
             if os.path.exists(filename) and os.stat(filename).st_size > 0:
                 with open(filename) as data:
@@ -73,15 +73,16 @@ def push(repo_path, username = None):
                 os.system(scrub_file_command.format(filename))
                 if 'translators' in data:
                     for translator in data['translators']:
-                        if 'email' in translator:
-                            del translator['email']
-                        if 'phone' in translator:
-                            del translator['phone']
+                        if isinstance(translator,dict):
+                            if 'email' in translator:
+                                del translator['email']
+                            if 'phone' in translator:
+                                del translator['phone']
                 json_text = json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
                 with open(filename, 'w') as file:
                     print >> file, json_text
 
-            #Removes 'translators' from project.json:
+            #Removes email and phone from 'translators' in project.json:
             filename = 'project.json'
             if os.path.exists(filename) and os.stat(filename).st_size > 0:
                 with open(filename) as data:
