@@ -228,9 +228,7 @@ def makeDir(d):
 
 def writeOrAppend(f, chunk):
     if os.path.exists(f):
-        content, has_non_ascii_chars, errors = unicode_string_utils.open_file_read_unicode(f, 'replace-all')
-        if has_non_ascii_chars:
-            content = unicode_string_utils.replace_non_ascii_unicode(content)
+        content, has_non_ascii_chars, errors = unicode_string_utils.open_file_read_unicode(f)
         content = tftp.sub(ur'\1\n TFTSUB \n\2', content)
         content = udbp.sub(ur'\1\n UDBSUB \n\2', content)
         content = ulbp.sub(ur'\1\n ULBSUB \n\2', content)
@@ -239,7 +237,7 @@ def writeOrAppend(f, chunk):
                            .replace(u' ULBSUB ', chunk['ulb']) )
     else:
         content = TMPL.format(**chunk)
-    writeFile(f, content)
+    writeFile(f, unicode_string_utils.replace_non_ascii_unicode(content))
 
 def writeChunks(chunked):
     fill = getFill(bk)
