@@ -99,15 +99,18 @@ def push(repo_path, username = None):
                 with open(filename, 'w') as file:
                     print >> file, json_text
 
+            api_port = ''
+            if hasattr(config, 'api_port') and config.api_port and config.api_port != '80':
+                api_port = ':{0}'.format(config.api_port)
             command = '''
                 unset GIT_DIR &&
                 unset GIT_WORK_TREE &&
                 git add . &&
                 git commit -a -m "Updated manifest file" &&
-                git remote add {2} {4}://{0}:{1}@{2}:{5}/{0}/{3} &&
+                git remote add {2} {4}://{0}:{1}@{2}{5}/{0}/{3} &&
                 git push --force --all -u {2} &&
                 git push --force --tags -u {2}
-            '''.format(username, urllib2.quote(user.password), config.api_domain, repo_name, config.api_protocol, config.api_port)
+            '''.format(username, urllib2.quote(user.password), config.api_domain, repo_name, config.api_protocol, api_port)
             os.system(command)
 
 if __name__ == '__main__':
