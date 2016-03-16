@@ -107,7 +107,13 @@ def push(repo_path, username = None):
                 unset GIT_WORK_TREE &&
                 git add . &&
                 git commit -a -m "Updated manifest file" &&
+              
+                # this line is from Github
                 git remote add {2} {4}://{0}:{1}@{2}{5}/{0}/{3} &&
+
+                # this line is from the production server
+                # git remote add {2} {4}://{0}:{1}@{2}/{0}/{3} &&
+
                 git push --force --all -u {2} &&
                 git push --force --tags -u {2}
             '''.format(username, urllib2.quote(user.password), config.api_domain, repo_name, config.api_protocol, api_port)
