@@ -14,6 +14,7 @@ Goes through all tS users and repos on the gitolite server and creates a user
 and mirrors the repo in Gogs
 '''
 
+import sys
 import os
 import json
 import urllib2
@@ -36,6 +37,7 @@ def main():
     stdin, stdout, stderr = client.exec_command('info -json')
     json_data = json.load(stdout)
 
+    sys.setrecursionlimit(2000)
     for repo_path in json_data['repos']:
         parts = repo_path.split('/')
         if len(parts) == 3:

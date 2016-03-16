@@ -64,56 +64,53 @@ def push(repo_path, username = None):
                 git gc --aggressive --prune
             '''
 
-            #Removes email and phone from 'translators' in manifest.json:
+            #Removes email and phone from 'translators' in manifest.json if package_version < 5:
             filename = 'manifest.json'
             if os.path.exists(filename) and os.stat(filename).st_size > 0:
                 with open(filename) as data:
                     data = json.load(data)
-                #Totally remove old file from repo
-                os.system(scrub_file_command.format(filename))
-                if 'translators' in data:
-                    for translator in data['translators']:
-                        if isinstance(translator,dict):
-                            if 'email' in translator:
-                                del translator['email']
-                            if 'phone' in translator:
-                                del translator['phone']
-                json_text = json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
-                with open(filename, 'w') as file:
-                    print >> file, json_text
 
-            #Removes email and phone from 'translators' in project.json:
+                if not 'package_version' in data or data['package_version'] < 5:
+                    os.system(scrub_file_command.format(filename))
+                    if 'translators' in data:
+                        for translator in data['translators']:
+                            if isinstance(translator,dict):
+                                if 'email' in translator:
+                                    del translator['email']
+                                if 'phone' in translator:
+                                    del translator['phone']
+                    json_text = json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
+                    with open(filename, 'w') as file:
+                        print >> file, json_text
+
+            #Removes email and phone from 'translators' in project.json if package_version < 5:
             filename = 'project.json'
             if os.path.exists(filename) and os.stat(filename).st_size > 0:
                 with open(filename) as data:
                     data = json.load(data)
-                #Totally remove old file from repo
-                os.system(scrub_file_command.format(filename))
-                if 'translators' in data:
-                    for translator in data['translators']:
-                        if 'email' in translator:
-                            del translator['email']
-                        if 'phone' in translator:
-                            del translator['phone']
-                json_text = json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
-                with open(filename, 'w') as file:
-                    print >> file, json_text
+                if not 'package_version' in data or data['package_version'] < 5:
+                    os.system(scrub_file_command.format(filename))
+                    if 'translators' in data:
+                        for translator in data['translators']:
+                            if 'email' in translator:
+                                del translator['email']
+                            if 'phone' in translator:
+                                del translator['phone']
+                    json_text = json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
+                    with open(filename, 'w') as file:
+                        print >> file, json_text
 
+            # Need to see if the api_port is not standard 80, if isn't we need to add :<port> to the remote URL, but empty if is 80
             api_port = ''
             if hasattr(config, 'api_port') and config.api_port and config.api_port != '80':
                 api_port = ':{0}'.format(config.api_port)
+
             command = '''
                 unset GIT_DIR &&
                 unset GIT_WORK_TREE &&
                 git add . &&
                 git commit -a -m "Updated manifest file" &&
-              
-                # this line is from Github
                 git remote add {2} {4}://{0}:{1}@{2}{5}/{0}/{3} &&
-
-                # this line is from the production server
-                # git remote add {2} {4}://{0}:{1}@{2}/{0}/{3} &&
-
                 git push --force --all -u {2} &&
                 git push --force --tags -u {2}
             '''.format(username, urllib2.quote(user.password), config.api_domain, repo_name, config.api_protocol, api_port)
