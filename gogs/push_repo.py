@@ -49,10 +49,13 @@ def push(repo_path, username = None):
 			for path, subdirs, files in os.walk('.'):
 				if path.startswith('./.git'):
 					continue
+				file_path = os.path.join(path, name)
 				for name in files:
-					if not name.endswith('.txt'):
+					if not name.endswith('.txt') or os.stat(file_path).st_size == 0:
 						continue
-					content = codecs.open(os.path.join(path, name), 'r', 'utf-8').read()
+					content = codecs.open(file_path, 'r', 'utf-8').read()
+					if not content:
+						continue
 					if u'/v' in content:
 						content = content.replace('/v', '\\v ')
 					content = re.sub('<verse number="(\d+)" style="v"\s*/>\s*', ur' \\v \1 ', content)
@@ -65,7 +68,7 @@ def push(repo_path, username = None):
 						if name == '01.txt' and not '\c ' in content:
 							chapter = re.sub(u'^\.\/0*', u'', path)
 							content = u"\c {0}\n{1}".format(chapter, content)
-					file = codecs.open(os.path.join(path, name), 'w', 'utf-8')
+					file = codecs.open(file_path, 'w', 'utf-8')
 					file.write(content)
 					file.close()
 
