@@ -62,9 +62,9 @@ def push(repo_path, username = None):
 						if not '\p' in content:
 							content = u"\p \n"+content
 						content = u"\n\s5 \n"+content
-					if name == '01.txt' and not '\c ' in content:
-						chapter = re.sub(u'^\.\/0*', u'', path)
-						content = u"\c {0}\n{1}".format(chapter, content)
+						if name == '01.txt' and not '\c ' in content:
+							chapter = re.sub(u'^\.\/0*', u'', path)
+							content = u"\c {0}\n{1}".format(chapter, content)
 					file = codecs.open(os.path.join(path, name), 'w', 'utf-8')
 					file.write(content)
 					file.close()
