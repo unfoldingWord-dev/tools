@@ -49,8 +49,8 @@ def push(repo_path, username = None):
 			for path, subdirs, files in os.walk('.'):
 				if path.startswith('./.git'):
 					continue
-				file_path = os.path.join(path, name)
 				for name in files:
+					file_path = os.path.join(path, name)
 					if not name.endswith('.txt') or os.stat(file_path).st_size == 0:
 						continue
 					content = codecs.open(file_path, 'r', 'utf-8').read()
