@@ -74,7 +74,7 @@ def push(repo_path, username = None):
 					file.close()
 
 			scrub_file_command = '''
-				unset GIT_DIR && unset GIT_WORK_TREE &&
+				unset GIT_DIR && unset GIT_WORK_TREE;
 				git filter-branch --force --index-filter "git rm --cached --ignore-unmatch {0}" --prune-empty --tag-name-filter cat -- --all
 				rm -rf .git/refs/original/ && \
 				git reflog expire --all && \
@@ -123,13 +123,13 @@ def push(repo_path, username = None):
 				api_port = ':{0}'.format(config.api_port)
 
 			command = '''
-				unset GIT_DIR &&
-				unset GIT_WORK_TREE &&
-				git add . &&
-				git commit -a -m "Initial commit" &&
-				git remote add {2} {4}://{0}:{1}@{2}{5}/{0}/{3} &&
-				git push --force --all -u {2} &&
-				git push --force --tags -u {2}
+				unset GIT_DIR;
+				unset GIT_WORK_TREE;
+				git add .;
+				git commit -a -m "Initial commit";
+				git remote add {2} {4}://{0}:{1}@{2}{5}/{0}/{3};
+				git push --force --all -u {2};
+				git push --force --tags -u {2};
 			'''.format(username, urllib2.quote(user.password), config.api_domain, repo_name, config.api_protocol, api_port)
 			os.system(command)
 
