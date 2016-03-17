@@ -23,160 +23,204 @@ import json
 import codecs
 import shutil
 import argparse
+# noinspection PyUnresolvedReferences
 import datetime
+
 # Import USFM-Tools
-USFMTools='/var/www/vhosts/door43.org/USFM-Tools'
+USFMTools = '/var/www/vhosts/door43.org/USFM-Tools'
 sys.path.append(USFMTools)
 try:
+    # noinspection PyUnresolvedReferences
     import transform
-except ImportError:
+except ImportError as e:
+    print e.message
     print "Please ensure that {0} exists.".format(USFMTools)
     sys.exit(1)
 
 ULBSource = '/var/www/vhosts/api.unfoldingword.org/httpdocs/ulb/txt/1/'
 UDBSource = '/var/www/vhosts/api.unfoldingword.org/httpdocs/udb/txt/1/'
 api_v2 = '/var/www/vhosts/api.unfoldingword.org/httpdocs/ts/txt/2/'
-versere = re.compile(ur'<verse number="([0-9]*)', re.UNICODE)
+verse_re = re.compile(ur'<verse number="([0-9]*)', re.UNICODE)
+
+# remember these so we can delete them
+temp_dir = ''
 
 
-def makeDir(d):
-    '''
+def make_dir(d):
+    """
     Simple wrapper to make a directory if it does not exist.
-    '''
+    :param d:
+    """
     if not os.path.exists(d):
         os.makedirs(d, 0755)
 
-def writeJSON(outfile, p):
-    '''
+
+def write_json(outfile, p):
+    """
     Simple wrapper to write a file as JSON.
-    '''
-    makeDir(outfile.rsplit('/', 1)[0])
+    :param outfile:
+    :param p:
+    """
+    make_dir(outfile.rsplit('/', 1)[0])
     f = codecs.open(outfile, 'w', encoding='utf-8')
     f.write(json.dumps(p, sort_keys=True))
     f.close()
 
+
 def parse(usx):
-    '''
+    """
     Iterates through the source and splits it into frames based on the
     s5 markers.
-    '''
+    :param usx:
+    """
+    chunk_marker = u'<note caller="u" style="s5"></note>'
     chapters = []
     chp = ''
-    frid = 0
+    fr_id = 0
     chp_num = 0
     fr_list = []
-    currentvs = -1
+    current_vs = -1
     for line in usx:
-        if line.startswith(u'\n'): continue
+        if line.startswith(u'\n'):
+            continue
+
         if "verse number" in line:
-            currentvs = versere.search(line).group(1)
+            current_vs = verse_re.search(line).group(1)
+
         if 'chapter number' in line:
             if chp:
                 if fr_list:
                     fr_text = u'\n'.join(fr_list)
                     try:
-                        firstvs = versere.search(fr_text).group(1)
+                        first_vs = verse_re.search(fr_text).group(1)
                     except AttributeError:
                         print u'myError, chp {0}'.format(chp_num)
                         print u'Text: {0}'.format(fr_text)
                         sys.exit(1)
-                    chp['frames'].append({ u'id': u'{0}-{1}'.format(
-                                     str(chp_num).zfill(2), firstvs.zfill(2)),
-                                       u'img': u'',
-                                       u'format': u'usx',
-                                       u'text': fr_text,
-                                       u'lastvs': currentvs
-                                      })
+                    chp['frames'].append({u'id': u'{0}-{1}'.format(
+                            str(chp_num).zfill(2), first_vs.zfill(2)),
+                        u'img': u'',
+                        u'format': u'usx',
+                        u'text': fr_text,
+                        u'lastvs': current_vs
+                    })
                 chapters.append(chp)
             chp_num += 1
-            chp = { u'number': str(chp_num).zfill(2),
-                    u'ref': u'',
-                    u'title': u'',
-                    u'frames': []
-                  }
+            chp = {u'number': str(chp_num).zfill(2),
+                   u'ref': u'',
+                   u'title': u'',
+                   u'frames': []
+                   }
             fr_list = []
             continue
-        if 'para style="s5"' in line:
+
+        if chunk_marker in line:
             if chp_num == 0:
                 continue
+
+            # is there something else on the line with it? (probably an end-of-paragraph marker)
+            if len(line.strip()) > len(chunk_marker):
+
+                # get the text following the chunk marker
+                rest_of_line = line.replace(chunk_marker, '')
+
+                # append the text to the previous line, removing the unnecessary \n
+                fr_list[-1] = fr_list[-1][:-1] + rest_of_line
+
             if fr_list:
                 fr_text = u'\n'.join(fr_list)
                 try:
-                    firstvs = versere.search(fr_text).group(1)
+                    first_vs = verse_re.search(fr_text).group(1)
                 except AttributeError:
                     print u'Error, chp {0}'.format(chp_num)
                     print u'Text: {0}'.format(fr_text)
                     sys.exit(1)
-                chp['frames'].append({ u'id': u'{0}-{1}'.format(
-                                     str(chp_num).zfill(2), firstvs.zfill(2)),
-                                       u'img': u'',
-                                       u'format': u'usx',
-                                       u'text': fr_text,
-                                       u'lastvs': currentvs
-                                      })
+
+                chp['frames'].append({u'id': u'{0}-{1}'.format(
+                        str(chp_num).zfill(2), first_vs.zfill(2)),
+                    u'img': u'',
+                    u'format': u'usx',
+                    u'text': fr_text,
+                    u'lastvs': current_vs
+                })
                 fr_list = []
-                continue
+
+            continue
+
         fr_list.append(line)
 
     # Append the last frame and the last chapter
-    chp['frames'].append({ u'id': u'{0}-{1}'.format(
-                                   str(chp_num).zfill(2), str(frid).zfill(2)),
-                           u'img': u'',
-                           u'format': u'usx',
-                           u'text': u'\n'.join(fr_list),
-                           u'lastvs': currentvs
-                          })
+    chp['frames'].append({u'id': u'{0}-{1}'.format(
+            str(chp_num).zfill(2), str(fr_id).zfill(2)),
+        u'img': u'',
+        u'format': u'usx',
+        u'text': u'\n'.join(fr_list),
+        u'lastvs': current_vs
+    })
     chapters.append(chp)
     return chapters
 
-def getChunks(book):
+
+def get_chunks(book):
     chunks = []
     for c in book:
         for frame in c['frames']:
-            chunks.append({ 'id': frame['id'],
-                            'firstvs': versere.search(frame['text']).group(1),
-                            'lastvs': frame["lastvs"]
-                          })
+            chunks.append({'id': frame['id'],
+                           'firstvs': verse_re.search(frame['text']).group(1),
+                           'lastvs': frame["lastvs"]
+                           })
     return chunks
 
+
 def main(source):
+    global temp_dir
+
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
     dirs = []
     if source:
         dirs.append(source)
     else:
-        udbd = [os.path.join(UDBSource, x) for x in os.listdir(UDBSource)]
-        dirs += udbd
-        ulbd = [os.path.join(ULBSource, x) for x in os.listdir(ULBSource)]
-        dirs += ulbd
+        udb_dir = [os.path.join(UDBSource, x) for x in os.listdir(UDBSource)]
+        dirs += udb_dir
+        ulb_dir = [os.path.join(ULBSource, x) for x in os.listdir(ULBSource)]
+        dirs += ulb_dir
     for d in dirs:
         ver, lang = d.rsplit('/', 1)[1].split('-', 1)
-        tmpdir = '/tmp/{0}-{1}'.format(ver, lang)
-        if os.path.isdir(tmpdir):
-            shutil.rmtree(tmpdir)
-        transform.buildUSX(d, tmpdir, '', True)
+        temp_dir = '/tmp/{0}-{1}'.format(ver, lang)
+        if os.path.isdir(temp_dir):
+            shutil.rmtree(temp_dir)
+        transform.buildUSX(d, temp_dir, '', True)
         print "#### Chunking..."
-        for f in os.listdir(tmpdir):
-            usx = codecs.open(os.path.join(tmpdir, f), 'r', encoding='utf-8'
-                                                                 ).readlines()
+        for f in os.listdir(temp_dir):
+
+            # use utf-8-sig to remove the byte order mark
+            usx = codecs.open(os.path.join(temp_dir, f), 'r', encoding='utf-8-sig'
+                              ).readlines()
             slug = f.split('.')[0].lower()
             print '     ({0})'.format(slug.upper())
             book = parse(usx)
-            payload = { 'chapters': book,
-                        'date_modified': today
-                      }
-            writeJSON(os.path.join(api_v2, slug, lang, ver, 'source.json'),
-                                                                     payload)
-            chunks = getChunks(book)
-            writeJSON(os.path.join(api_v2, slug, lang, ver, 'chunks.json'),
-                                                                       chunks)
+            payload = {'chapters': book,
+                       'date_modified': today
+                       }
+            write_json(os.path.join(api_v2, slug, lang, ver, 'source.json'),
+                       payload)
+            chunks = get_chunks(book)
+            write_json(os.path.join(api_v2, slug, lang, ver, 'chunks.json'),
+                       chunks)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-s', '--sourceDir', dest="sourcedir", default=False,
-                                                     help="Source directory.")
+                        help="Source directory.")
     args = parser.parse_args(sys.argv[1:])
-    main(args.sourcedir)
-    ### chown -R syncthing:syncthing /var/www/vhosts/api.unfoldingword.org/httpdocs/
+
+    # noinspection SpellCheckingInspection
+    try:
+        main(args.sourcedir)
+        # chown -R syncthing:syncthing /var/www/vhosts/api.unfoldingword.org/httpdocs/
+    finally:
+        # delete temp files
+        if os.path.isdir(temp_dir):
+            shutil.rmtree(temp_dir, ignore_errors=True)
