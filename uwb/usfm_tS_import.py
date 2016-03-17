@@ -192,6 +192,7 @@ def get_verses(book):
 
 
 def add_sections(lines, verses):
+    previous_line = u''
     newlines = []
     i = 0
     for line in lines:
@@ -207,14 +208,25 @@ def add_sections(lines, verses):
         if chapter_search:
             newlines.append(u'\\s5\n')
             newlines.append(line)
+            previous_line = line
             i += 1
             continue
+
         if i < len(verses):
             verse_search = re.search(ur'\\v {0} '.format(verses[i]), line)
             if verse_search:
-                newlines.append(u'\\s5\n')
+
+                # insert before \p, not after
+                if previous_line == u'\\p\n':
+                    newlines.insert(len(newlines) - 1, u'\\s5\n')
+                else:
+                    newlines.append(u'\\s5\n')
+
                 i += 1
+
         newlines.append(line)
+        previous_line = line
+
     return newlines
 
 
