@@ -56,18 +56,19 @@ def push(repo_path, username = None):
 					content = codecs.open(file_path, 'r', 'utf-8').read()
 					if not content:
 						continue
-					if u'/v' in content:
-						content = content.replace('/v', '\\v ')
-					content = re.sub('<verse number="(\d+)" style="v"\s*/>\s*', ur' \\v \1 ', content)
-					content = re.sub('^ \\\\v ', ur'\\v ', content)
- 					content = re.sub(u'^\\\\v (\d+)( \\\\v \d+)* \\\\v (\d+)', ur'\\v \1-\3', content)
- 					if not 'uw-obs-' in repo_path and name != 'title.txt' and not '\s5' in content:
-						if not '\p' in content:
-							content = u"\p \n"+content
-						content = u"\n\s5 \n"+content
-						if name == '01.txt' and not '\c ' in content:
-							chapter = re.sub(u'^\.\/0*', u'', path)
-							content = u"\c {0}\n{1}".format(chapter, content)
+ 					if not 'uw-obs-' in repo_path and name != 'title.txt':
+						if u'/v' in content:
+							content = content.replace('/v', '\\v ')
+						content = re.sub('<verse number="(\d+)" style="v"\s*/>\s*', ur' \\v \1 ', content)
+						content = re.sub('^ \\\\v ', ur'\\v ', content)
+ 						content = re.sub(u'^\\\\v (\d+)( \\\\v \d+)* \\\\v (\d+)', ur'\\v \1-\3', content)
+ 						if not '\s5' in content:
+							if not '\p' in content:
+								content = u"\p \n"+content
+							content = u"\n\s5 \n"+content
+							if name == '01.txt' and not '\c ' in content:
+								chapter = re.sub(u'^\.\/0*', u'', path)
+								content = u"\c {0}\n{1}".format(chapter, content)
 					file = codecs.open(file_path, 'w', 'utf-8')
 					file.write(content)
 					file.close()
