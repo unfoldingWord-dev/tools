@@ -55,19 +55,16 @@ def push(repo_path, username = None):
 					content = codecs.open(os.path.join(path, name), 'r', 'utf-8').read()
 					if u'/v' in content:
 						content = content.replace('/v', '\\v ')
-					if u'\\v' in content:
-						matches = re.search(u'^\\\\v (\d+)( \\\\v (\d+))*(.*)', content)
-						if matches:
-							content = u'\\v {0}-{1} {2}'.format(matches.group(1), matches.group(3), matches.group(4))
-					if not '\s5' in content:
+					content = re.sub('<verse number="(\d+)" style="v"\s*/>\s*', ur' \\v \1 ', content)
+					content = re.sub('^ \\\\v ', ur'\\v ', content)
+ 					content = re.sub(u'^\\\\v (\d+)( \\\\v \d+)* \\\\v (\d+)', ur'\\v \1-\3', content)
+ 					if not '\s5' in content:
 						if not '\p' in content:
 							content = u"\p \n"+content
 						content = u"\n\s5 \n"+content
 					if name == '01.txt' and not '\c ' in content:
-						matches = re.search('^\.\/0*(\d+)$', path)
-						if matches:
-							chapter = matches.group(1)
-							content = u"\c {0}\n{1}".format(chapter, content)
+						chapter = re.sub(u'^\.\/0*', u'', path)
+						content = u"\c {0}\n{1}".format(chapter, content)
 					file = codecs.open(os.path.join(path, name), 'w', 'utf-8')
 					file.write(content)
 					file.close()
