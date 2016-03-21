@@ -51,9 +51,11 @@ def push(repo_path, username = None):
 
 			os.chdir(repo_path)
 
+			# Go through all files to update USFM in #.txt files
 			for path, subdirs, files in os.walk('.'):
 				if path.startswith('./.git'):
 					continue
+					
 				for name in files:
 					file_path = os.path.join(path, name)
 					chunk = re.search(u'^(\d*).txt$', name)
@@ -75,13 +77,27 @@ def push(repo_path, username = None):
 					file = codecs.open(file_path, 'w', 'utf-8')
 					file.write(content)
 					file.close()
+			cleanup_usfm_command = '''
+				unset GIT_DIR;
+				unset GIT_WORK_TREE;
+				git commit -a -m "Cleanup of USFM";
+			'''
+			os.system(cleanup_usfm_command)
 
 			scrub_file_command = '''
-				unset GIT_DIR && unset GIT_WORK_TREE;
-				git filter-branch --force --index-filter "git rm --cached --ignore-unmatch {0}" --prune-empty --tag-name-filter cat -- --all
-				rm -rf .git/refs/original/ && \
-				git reflog expire --all && \
-				git gc --aggressive --prune
+				unset GIT_DIR;
+				unset GIT_WORK_TREE;
+				git filter-branch --force --index-filter "git rm --cached --ignore-unmatch {0}" --prune-empty --tag-name-filter cat -- --all;
+				rm -rf .git/refs/original/;
+				git reflog expire --all;
+				git gc --aggressive --prune;
+			'''
+
+			add_json_command = '''
+				unset GIT_DIR;
+				unset GIT_WORK_TREE;
+				git add .;
+				git commit -a -m "Adding new {0}";
 			'''
 
 			#Removes email and phone from 'translators' in manifest.json if package_version < 5:
@@ -102,6 +118,8 @@ def push(repo_path, username = None):
 					json_text = json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
 					with open(filename, 'w') as file:
 						print >> file, json_text
+					file.close()
+					os.system(add_json_command.format(filename))
 
 			#Removes email and phone from 'translators' in project.json if package_version < 5:
 			filename = 'project.json'
@@ -119,6 +137,8 @@ def push(repo_path, username = None):
 					json_text = json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
 					with open(filename, 'w') as file:
 						print >> file, json_text
+					file.close()
+					os.system(add_json_command.format(filename))
 
 			# Need to see if the api_port is not standard 80, if isn't we need to add :<port> to the remote URL, but empty if is 80
 			api_port = ''
@@ -128,8 +148,6 @@ def push(repo_path, username = None):
 			command = '''
 				unset GIT_DIR;
 				unset GIT_WORK_TREE;
-				git add .;
-				git commit -a -m "Initial commit";
 				git remote add {2} {4}://{0}:{1}@{2}{5}/{0}/{3};
 				git push --force --all -u {2};
 				git push --force --tags -u {2};
