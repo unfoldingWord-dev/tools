@@ -410,10 +410,10 @@ def get_seconds(date_str):
 
 
 def main():
-    # # OBS
-    # obs_v1 = get_url(obs_v1_url)
-    # obs_v1_catalog = json.loads(obs_v1)
-    # obs(deepcopy(obs_v1_catalog))
+    # OBS
+    obs_v1 = get_url(obs_v1_url)
+    obs_v1_catalog = json.loads(obs_v1)
+    obs(deepcopy(obs_v1_catalog))
 
     # Bible
     lang_names = json.loads(get_url(lang_url))
@@ -426,9 +426,9 @@ def main():
         bible_bks += bible_status[(slug, lang)]['books_published'].keys()
     bible(lang_names, bible_status, bible_bks, langs)
 
-    # # Global
-    # ts_cat()
-    # uw_cat(obs_v1_catalog, bible_status)
+    # Global
+    ts_cat()
+    uw_cat(obs_v1_catalog, bible_status)
 
 
 if __name__ == '__main__':
