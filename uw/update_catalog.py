@@ -13,7 +13,7 @@
 """
 Updates the catalog for the translationStudio and unfoldingWord v2 APIs.
 """
-
+import argparse
 import os
 import json
 import time
@@ -22,6 +22,7 @@ import urllib2
 # noinspection PyUnresolvedReferences
 import datetime as dt
 from copy import deepcopy
+import sys
 
 rtl_langs = ['ar']
 project_dirs = ['obs']
@@ -65,7 +66,7 @@ def get_additional_bibles():
 
             # skip english
             if lang_code != 'en':
-                bible_slugs.append((sub_dir, lang_code))
+                bible_slugs.append((ver, lang_code))
 
 
 def get_url(url):
@@ -409,13 +410,12 @@ def get_seconds(date_str):
 
 
 def main():
-    # # OBS
-    # obs_v1 = get_url(obs_v1_url)
-    # obs_v1_catalog = json.loads(obs_v1)
-    # obs(deepcopy(obs_v1_catalog))
+    # OBS
+    obs_v1 = get_url(obs_v1_url)
+    obs_v1_catalog = json.loads(obs_v1)
+    obs(deepcopy(obs_v1_catalog))
 
     # Bible
-    get_additional_bibles()
     lang_names = json.loads(get_url(lang_url))
     bible_status = {}
     bible_bks = []
@@ -426,10 +426,24 @@ def main():
         bible_bks += bible_status[(slug, lang)]['books_published'].keys()
     bible(lang_names, bible_status, bible_bks, langs)
 
-    # # Global
-    # ts_cat()
-    # uw_cat(obs_v1_catalog, bible_status)
+    # Global
+    ts_cat()
+    uw_cat(obs_v1_catalog, bible_status)
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('-l', '--lang', dest="lang", default=False,
+                        required=False, help="Language code of resource.")
+    parser.add_argument('-s', '--slug', dest="slug", default=False,
+                        required=False, help="Slug of resource name (e.g. ulb).")
+
+    args = parser.parse_args(sys.argv[1:])
+
+    if args.slug and args.lang:
+        bible_slugs = [(args.slug, args.lang), ]
+    else:
+        get_additional_bibles()
+
     main()
