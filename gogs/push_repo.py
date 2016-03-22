@@ -69,6 +69,7 @@ def push(repo_path, username = None):
 						content = re.sub(u'<verse number="(\d+)" style="v"\s*/>\s*', ur'\\v \1 ', content) # change <verse number="1" style="v" /> to \v 1
  						content = re.sub(u'^\\\\v (\d+)( \\\\v \d+)* \\\\v (\d+)', ur'\\v \1-\3', content) # change \v 1 \v 2 \v 3 to \v 1-3
  						content = re.sub(u'([^\s])\s*\\\\v\s*(\d+)\s*', ur'\1\n\\v \2 ', content) # put a new line before a \v if it isn't at the beginning of the line
+ 						content = re.sub(u'^\s*\\\\v\s*(\d+)\s*', ur'\\v \1 ', content) # remove spaces from beginning of verse marker
  						if not '\p' in content:
 							content = u"\n\p\n"+content # Prepend a \p line if there isn't a \p in the chunk
 						if name == '01.txt' and not '\c ' in content:

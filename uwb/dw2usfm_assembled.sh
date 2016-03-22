@@ -8,23 +8,20 @@
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
 
-UTBDW='/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/udb/v1/'
+UTBDW='/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/udb/ep'
 UTBUSFM='/tmp/UTB-USFM'
 
 rm -rf "$UTBUSFM"
 mkdir -p "$UTBUSFM"
 
-for d in `find "$UTBDW" -type d -name '[a-z0-9][a-z0-9][a-z0-9]'`; do
-    bk="${d##*/}"
-    for f in `ls "$d" | sort -n`; do
-        [ -d "$d/$f" ] && continue
-        [ "$f" == "home.txt" ] && continue
-        cat "$d/$f" | \
-         sed -e 's/\\add\*/ /g' \
-             -e 's/\\add/ /g' \
-          >> "$UTBUSFM/$bk.usfm"
-    done
+for f in `find "$UTBDW" -type f -name '[0-9]*-[a-z]*.usfm.txt'`; do
+    filename=$(basename $f)
+    filename=${filename%.*}
+    cat "$f" | \
+    sed -e 's/\\add\*/ /g' \
+        -e 's/\\add/ /g' \
+       >> "$UTBUSFM/$filename.usfm"
 done
 
 # Run the python script in the same directory as this to rename books
-python "${0%/*}/uwb_usfm_rename.py" "$UTBUSFM"
+#python "${0%/*}/uwb_usfm_rename.py" "$UTBUSFM"
