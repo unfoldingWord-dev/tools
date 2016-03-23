@@ -8,7 +8,7 @@
 #  Contributors:
 #  Richard Mahn <richard_mahn@wycliffeassociates.org>
 #
-# These are short snippets that are useful for accomplishing certain tasks.
+# This script is to clean up the Dokuwiki pages in the en/bible/notes namespace
 #
 
 : ${BIBLE_NOTES_DIR:=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes}
