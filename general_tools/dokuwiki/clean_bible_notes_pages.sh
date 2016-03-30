@@ -14,5 +14,5 @@
 : ${BIBLE_NOTES_DIR:=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes}
 
 for f in `find $BIBLE_NOTES_DIR -type f -name '[0-9]*.txt'`; do
-    sed -i -e 's/\(:\(ta\|other\|kt\):[^]]\+\)|[^]]\+]]/\1]]/g' $f
+    sed -i -e 's/\(:\(ta\|other\|kt\):[^]]\+\)|[^]]\+_]]/\1]]/g' $f
 done
