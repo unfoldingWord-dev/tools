@@ -325,5 +325,5 @@ if __name__ == '__main__':
     udb = getText('udb', lang, book, chapter)
     tft = getURL(TFTURL.format(book, chapter.zfill(3)))
 
-    chunked = splice(ulb, udb, tft, bk, chp)
+    chunked = splice(ulb, udb, tft, book, chapter)
     writeChunks(chunked)
