@@ -315,8 +315,6 @@ if __name__ == '__main__':
         required=True, help="Chapter to convert")
 
     args = parser.parse_args(sys.argv[1:])
-    main(args.slug.upper(), args.ver, args.book)
-
 
     lang = args.lang.lower()
     book = args.book.lower()
