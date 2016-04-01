@@ -172,7 +172,7 @@ def save(books_to_process, outdir, slug, ver):
             if book not in COMPLETE: continue
 
         path = book_files.format(slug.lower(), 'en', books[book][1], book)
-        files = glob.glob(path)
+        files = sorted(glob.glob(path))
         content = []
         for name in files:
             content.append(codecs.open(name, "r", "utf-8").read())
