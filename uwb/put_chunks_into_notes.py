@@ -160,7 +160,7 @@ TMPL = u'''====== {book} {chp}:{refrng} ======
 '''
 
 def getText(resource, lang, book, chapter):
-    return fix_text(codecs.open(CHAPTERFILE.format(resource, lang, books[book.upper()][1], book, chapter), "r", "utf-8").read())
+    return fix_text(codecs.open(CHAPTERFILE.format(resource, lang, books[book.upper()][1], book.upper(), chapter), "r", "utf-8").read())
 
 def splice(ulb, udb, tft, bk, chp):
     chunks = {}
