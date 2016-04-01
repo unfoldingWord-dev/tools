@@ -159,8 +159,8 @@ TMPL = u'''====== {book} {chp}:{refrng} ======
 {{{{tag>draft}}}}
 '''
 
-def getText(resource, lang, book, chapter):
-    return fix_text(codecs.open(CHAPTERFILE.format(resource, lang, books[book.upper()][1], book.upper(), chapter), "r", "utf-8").read())
+def getText(resource, lang, bk, chp):
+    return fix_text(codecs.open(CHAPTERFILE.format(resource, lang, books[bk.upper()][1], bk.upper(), chp), "r", "utf-8").read())
 
 def splice(ulb, udb, tft, bk, chp):
     chunks = {}
@@ -318,12 +318,12 @@ if __name__ == '__main__':
     args = parser.parse_args(sys.argv[1:])
 
     lang = args.lang.lower()
-    book = args.book.lower()
-    chapter = args.chapter.lower()
+    bk = args.book.lower()
+    chp = args.chapter.lower()
 
-    ulb = getText('ulb', lang, book, chapter)
-    udb = getText('udb', lang, book, chapter)
-    tft = getURL(TFTURL.format(book, chapter.zfill(3)))
+    ulb = getText('ulb', lang, bk, chp)
+    udb = getText('udb', lang, bk, chp)
+    tft = getURL(TFTURL.format(bk, chp.zfill(3)))
 
-    chunked = splice(ulb, udb, tft, book, chapter)
+    chunked = splice(ulb, udb, tft, bk, chp)
     writeChunks(chunked)
