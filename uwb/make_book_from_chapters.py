@@ -174,8 +174,8 @@ def save(books_to_process, outdir, slug, ver):
         path = book_files.format(slug.lower(), 'en', books[book][1], book)
         files = sorted(glob.glob(path))
         content = []
-        for name in files:
-            content.append(codecs.open(name, "r", "utf-8").read())
+        for file in files:
+            content.append(codecs.open(file, "r", "utf-8").read())
         outfile = '{0}/{1}-{2}.usfm'.format(outdir, books[book][1], book)
         if ver.lower() == 'draft':
             outfile = '{0}.txt'.format(outfile).lower()
