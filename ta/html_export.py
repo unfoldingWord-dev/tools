@@ -30,6 +30,8 @@ sys.setdefaultencoding('utf8')
 
 api_url = u'https://api.unfoldingword.org/ta/txt/1'
 
+addHorizontalLine = False
+
 def getURL(url):
     try:
         request = urllib2.urlopen(url).read()
@@ -60,6 +62,8 @@ def getHtmlFromHash(hash, level):
             text = re.sub(u'<h2([^>]*)>\s*(.*?)\s*</h2>', u'<h{0}\g<1>>\g<2></h{0}>'.format(level), text)
 
             output += text
+            if addHorizontalLine:
+                output += "\n<hr/>\n"
             output += getHtmlFromHash(frame, level+1)
     if 'sections' in hash:
         for section in hash['sections']:
@@ -79,9 +83,10 @@ def renderHTMLFromJSON():
     for url in refs.keys():
         output = output.replace(u'href="{0}"'.format(url), u'href="{0}"'.format(refs[url]))
 
-    output = re.sub(' src="assets/img/ta/audio_ocenaudio_properties.jpg"', '', output)
-    output = re.sub(' src="/', ' src="https://unfoldingword.org/', output)
-    output = re.sub(' src="assets/', ' src="https://unfoldingword.org/assets/', output)
+    #output = re.sub(' src="assets/img/ta/audio_ocenaudio_properties.jpg"', '', output)
+    output = re.sub(' src="/', ' src="https://test.unfoldingword.org/', output)
+    output = re.sub(' src="assets/', ' src="https://test.unfoldingword.org/assets/', output)
+    output = re.sub('( src="https://test.unfoldingword.org/assets/img/ta/)[^"]+/', ' \g<1>', output)
     output = re.sub('href="/en/slack', 'href="https://door43.org/en/slack', output)
     output = re.sub('<img ([^>]*)>', '</p>\n<p><img \g<1>></p>\n<p>', output)
     output = re.sub('(?i)(help@door43.org)', '<a href="mailto:\g<1>">\g<1></a>', output)
@@ -135,9 +140,12 @@ if __name__ == '__main__':
         help="Quality Assurace level campleted: 1, 2, or 3", required=False)
     parser.add_argument('-i', '--input', dest="inpath",
         help="Input file or url for the JSON file, will use api.unfoldingword.org if none specified.", required=False)
+    parser.add_argument('-s', '--section-separator', dest="addHorizontalLine",
+        help="Add a horizontal line between sections", required=False, default=False, action="store_true")
 
     args = parser.parse_args(sys.argv[1:])
     if not args.inpath:
          args.inpath = '/'.join([api_url, args.lang, 'ta-{0}.json'.format(args.lang)])
 
+    addHorizontalLine = args.addHorizontalLine
     main(args.lang, args.inpath, args.outpath, args.checkinglevel)
