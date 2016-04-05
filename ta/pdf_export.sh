@@ -54,7 +54,7 @@ done
 : ${outdir=$(pwd)}
 : ${reportto[0]=}
 : ${tag=}
-: ${version=2}
+: ${version=3}
 
 # Note out base location and create a temporary workspace
 BASEDIR=$(cd $(dirname "$0")/../ && pwd)
