@@ -24,13 +24,14 @@ help() {
     echo "    -r LOC   Send build report to directory(s) or email address(s)"
     echo "    -t TAG   Add a tag to the output filename"
     echo "    -v VER   Override the version field in the output"
+    echo "    -s       Separate sections with a horizontal line"
     echo "    -h       Show this help"
     echo "Notes:"
     echo "    Option flags whose values are marked '(s)' may be specified multiple times"
 }
 
 # Process command line options
-while getopts c:del:m:o:r:t:v:h opt; do
+while getopts c:del:m:o:r:t:v:sh opt; do
     case $opt in
         c) checking=$OPTARG;;
         d) debug=true;;
@@ -39,6 +40,7 @@ while getopts c:del:m:o:r:t:v:h opt; do
         r) reportto=("${reportto[@]}" "$OPTARG");;
         t) tag=$OPTARG;;
         v) version=$OPTARG;;
+        s) separate=true;;
         h) help && exit 0;;
         ?) help && exit 1;;
     esac
@@ -52,13 +54,14 @@ done
 : ${outdir=$(pwd)}
 : ${reportto[0]=}
 : ${tag=}
-: ${version=2}
+: ${version=3}
 
 # Note out base location and create a temporary workspace
 BASEDIR=$(cd $(dirname "$0")/../ && pwd)
-BUILDDIR=$(mktemp -d --tmpdir "ta_build_pdf.XXXXXX")
-LOG="$BUILDDIR/shell.log"
 TEMPLATE="$BASEDIR/ta/tex/ta_template.tex"
+
+: ${BUILDDIR:=$(mktemp -d --tmpdir "ta_build_pdf.XXXXXX")}
+LOG="$BUILDDIR/shell.log"
 
 # Output info about every command (and don't clean up on exit) if in debug mode
 $debug && set -x
@@ -78,7 +81,7 @@ for lang in "${langs[@]}"; do
     BASENAME="ta-${lang}-v${LANGVER/./_}${tag:+-$tag}"
 
     # Run python (json_to_html.py) to generate the html file to use in the PDF
-    ./ta/html_export.py -l $lang ${checking:+-c $checking} -o "$BASENAME.html"
+    ./ta/html_export.py -l $lang ${checking:+-c $checking} -o "$BASENAME.html" ${separate:+-s}
 
     LOGO="https://unfoldingWord.org/assets/img/icon-ta.png"
     TITLE="translationAcademy"
