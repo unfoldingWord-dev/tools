@@ -30,15 +30,18 @@ class GogsToken:
         self.owner = owner
 
 class GogsUser:
-    def __init__(self, username, password = None):
+    def __init__(self, username, password = None, full_name = None):
         self.id = None
         self.username = username
         if password:
             self.password = password
         else:
             self.password = config.new_user_password
+        if full_name:
+            self.full_name = full_name
+        else:
+            self.full_name = None
         self.token = None
-        self.full_name = None
         self.email = None
         self.avatar_url = None
         self.tokens = []

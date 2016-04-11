@@ -19,8 +19,8 @@ import config
 
 api = gogs.GogsAPI(config.api_base_url, config.admin_username, config.admin_password)
 
-def create(username, passowrd=None):
-    user = gogs.GogsUser(username, password)
+def create(username, passowrd=None, fullname=None):
+    user = gogs.GogsUser(username, password, fullname)
     return api.createUser(user)
 
 if __name__ == '__main__':
@@ -32,7 +32,7 @@ if __name__ == '__main__':
     password = config.new_user_password
     if len(sys.argv) > 2:
         password = sys.argv[2]
-    result = create(username, password)
+    result = create(username, password, username)
     if result == api.STATUS_USER_CREATED:
         print "User {0} created successfully.".format(username)
         exit(0)
