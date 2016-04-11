@@ -30,7 +30,7 @@ class GogsToken:
         self.owner = owner
 
 class GogsUser:
-    def __init__(self, username, password = None, full_name = None):
+    def __init__(self, username, password = None, full_name = None, token = None):
         self.id = None
         self.username = username
         if password:
@@ -41,7 +41,10 @@ class GogsUser:
             self.full_name = full_name
         else:
             self.full_name = None
-        self.token = None
+        if token:
+            self.token = token
+        else:
+            self.token = None
         self.email = None
         self.avatar_url = None
         self.tokens = []
@@ -96,26 +99,32 @@ class GogsAPI:
     adminUser = None
     api_base_url = None
 
-    def __init__(self, api_base_url, admin_username, admin_password):
+    def __init__(self, api_base_url, admin_username, admin_password = None, admin_token = None):
         sys.stdout = codecs.getwriter('utf8')(sys.stdout);
         self.api_base_url = api_base_url
-        self.adminUser = GogsUser(admin_username, admin_password)
+        self.adminUser = GogsUser(username=admin_username, password=admin_password, token=admin_token)
 
     def connectToGogs(self, partialUrl, authUser=None, data=None, delete=False):
         url = self.api_base_url.format(partialUrl)
 
+        if authUser:
+            authStr = ''
+            if hasattr(authUser, 'token') and authUser.token:
+                authStr = 'token {0}'.format(authUser.token)
+                url = url+"?token="+authUser.token
+                req = urllib2.Request(url)
+            elif hasattr(authUser, 'password') and authUser.password:
+                base64string = base64.encodestring('%s:%s' % (authUser.username, authUser.password)).replace('\n', '')
+                authStr = "Basic %s" % base64string
+                print authStr
+                req = urllib2.Request(url)
+                req.add_header("Authorization", authStr)
         print url
         print data
-
-        req = urllib2.Request(url)
         if delete:
             req.get_method = lambda: 'DELETE'
         if data:
             req.add_header('Content-Type', 'application/json')
-        if authUser:
-            base64string = base64.encodestring('%s:%s' % (authUser.username, authUser.password)).replace('\n', '')
-            req.add_header("Authorization", "Basic %s" % base64string)
-        if data:
             return urllib2.urlopen(req, json.dumps(data))
         else:
             return urllib2.urlopen(req)

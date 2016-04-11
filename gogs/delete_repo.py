@@ -17,7 +17,7 @@ import sys
 import gogs
 import config
 
-api = gogs.GogsAPI(config.api_base_url, config.admin_username, config.admin_password)
+api = gogs.GogsAPI(config.api_base_url, config.admin_username, config.admin_password, config.admin_token)
 
 def delete(username, repo_name):
     user = gogs.GogsUser(username, config.new_user_password)

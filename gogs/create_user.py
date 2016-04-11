@@ -17,10 +17,10 @@ import sys
 import gogs
 import config
 
-api = gogs.GogsAPI(config.api_base_url, config.admin_username, config.admin_password)
+api = gogs.GogsAPI(config.api_base_url, config.admin_username, config.admin_password, config.admin_token)
 
-def create(username, passowrd=None, fullname=None):
-    user = gogs.GogsUser(username, password, fullname)
+def create(username, passowrd=None, full_name=None):
+    user = gogs.GogsUser(username, password, full_name)
     return api.createUser(user)
 
 if __name__ == '__main__':
