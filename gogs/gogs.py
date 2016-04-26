@@ -201,7 +201,7 @@ class GogsAPI:
         user.email = data['email']
         user.full_name = data['full_name']
         user.avatar_url = data['avatar_url']
-        self.populateTokens(user)
+#        self.populateTokens(user)
         self.populateRepos(user)
 
     def deleteUser(self, user, alsoDeleteRepos=False):
