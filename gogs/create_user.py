@@ -32,7 +32,11 @@ if __name__ == '__main__':
     password = config.new_user_password
     if len(sys.argv) > 2:
         password = sys.argv[2]
-    result = create(username, password, username)
+    if len(sys.argv) > 3:
+        full_name = ' '.join(sys.argv[3:])
+    else:
+        full_name = username
+    result = create(username, password, full_name)
     if result == api.STATUS_USER_CREATED:
         print "User {0} created successfully.".format(username)
         exit(0)
