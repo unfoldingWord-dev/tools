@@ -46,7 +46,6 @@ itre = re.compile(ur'==== Important Terms: ====(.*?)====', re.UNICODE | re.DOTAL
 tNtermre = re.compile(ur' \*\*(.*?)\*\*', re.UNICODE)
 tNtextre = re.compile(ur' ?[–-] ?(.*)', re.UNICODE)
 tNtextre2 = re.compile(ur'\* (.*)', re.UNICODE)
-pubre = re.compile(ur'tag>.*publish.*', re.UNICODE)
 suggestre = re.compile(ur'===== Translation Suggestions:? =====(.*?)[=(][TS]?',
     re.UNICODE | re.DOTALL)
 qre = re.compile(ur'Q\?(.*)', re.UNICODE)
@@ -62,7 +61,6 @@ h3re = re.compile(ur'\n=== (.*?) ===\n', re.UNICODE)
 
 def getKT(f):
     page = codecs.open(f, 'r', encoding='utf-8').read()
-    if not pubre.search(page): return False
     kt = {}
     # The filename is the ID
     kt['id'] = f.rsplit('/', 1)[1].replace('.txt', '')
@@ -162,7 +160,6 @@ def getDump(j):
 
 def getFrame(f, book):
     page = codecs.open(f, 'r', encoding='utf-8').read()
-    if not pubre.search(page): return False
     frame = {}
     getAliases(page, f)
     frame['id'] = fridre.search(f).group(0).strip().replace('/', '-')
@@ -314,9 +311,7 @@ def getCQ(f):
     page = codecs.open(f, 'r', encoding='utf-8').read()
     chapter = {}
     chapter['id'] = f.rsplit('/')[-1].rstrip('.txt')
-    chapter['cq'] = []
-    if pubre.search(page):
-        chapter['cq'] = getQandA(page)
+    chapter['cq'] = getQandA(page)
     return chapter
 
 def getQandA(text):

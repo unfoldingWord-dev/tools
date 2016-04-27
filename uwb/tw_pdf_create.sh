@@ -95,7 +95,7 @@ generate_term_file () {
     rm -f $out_file
     touch $out_file
 
-    find $dir -type f -name "*.txt" -exec grep -q 'tag>.*publish' {} \; -print | awk -vFS=/ -vOFS=/ '{ print $NF,$0 }' |
+    find $dir -type f -name "*.txt" -print | awk -vFS=/ -vOFS=/ '{ print $NF,$0 }' |
         sort -u -t / | cut -f2- -d/ |
         while read f; do
             filename=$(basename $f)
