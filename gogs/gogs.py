@@ -30,15 +30,21 @@ class GogsToken:
         self.owner = owner
 
 class GogsUser:
-    def __init__(self, username, password = None):
+    def __init__(self, username, password = None, full_name = None, token = None):
         self.id = None
         self.username = username
         if password:
             self.password = password
         else:
             self.password = config.new_user_password
-        self.token = None
-        self.full_name = None
+        if full_name:
+            self.full_name = full_name
+        else:
+            self.full_name = None
+        if token:
+            self.token = token
+        else:
+            self.token = None
         self.email = None
         self.avatar_url = None
         self.tokens = []
@@ -93,26 +99,34 @@ class GogsAPI:
     adminUser = None
     api_base_url = None
 
-    def __init__(self, api_base_url, admin_username, admin_password):
+    def __init__(self, api_base_url, admin_username, admin_password = None, admin_token = None):
         sys.stdout = codecs.getwriter('utf8')(sys.stdout);
         self.api_base_url = api_base_url
-        self.adminUser = GogsUser(admin_username, admin_password)
+        self.adminUser = GogsUser(username=admin_username, password=admin_password, token=admin_token)
 
-    def connectToGogs(self, partialUrl, authUser=None, data=None, delete=False):
+    def connectToGogs(self, partialUrl, authUser=None, data=None, method='POST'):
         url = self.api_base_url.format(partialUrl)
 
+        if authUser:
+            authStr = ''
+            if hasattr(authUser, 'token') and authUser.token:
+                authStr = 'token {0}'.format(authUser.token)
+                url = url+"?token="+authUser.token
+                req = urllib2.Request(url)
+            elif hasattr(authUser, 'password') and authUser.password:
+                base64string = base64.encodestring('%s:%s' % (authUser.username, authUser.password)).replace('\n', '')
+                authStr = "Basic %s" % base64string
+                print authStr
+                req = urllib2.Request(url)
+                req.add_header("Authorization", authStr)
         print url
         print data
-
-        req = urllib2.Request(url)
-        if delete:
+        if method == 'DELETE':
             req.get_method = lambda: 'DELETE'
+        if method == 'PATCH':
+            req.get_method = lambda: 'PATCH'
         if data:
             req.add_header('Content-Type', 'application/json')
-        if authUser:
-            base64string = base64.encodestring('%s:%s' % (authUser.username, authUser.password)).replace('\n', '')
-            req.add_header("Authorization", "Basic %s" % base64string)
-        if data:
             return urllib2.urlopen(req, json.dumps(data))
         else:
             return urllib2.urlopen(req)
@@ -146,6 +160,21 @@ class GogsAPI:
             self.populateUser(user, json.load(response))
             return self.STATUS_USER_CREATED
 
+    def updateUserFullName(self, user):
+        data = {
+            "full_name": user.full_name,
+            "email": user.email,
+        }
+        if not data['email']:
+            data['email'] = '{0}@door43.org'.format(user.username)
+        try:
+            response = self.connectToGogs('admin/users/'+user.username, self.adminUser, data, 'PATCH')
+        except URLError as e:
+            print 'We failed to reach a server.'
+            print 'Reason: ', e.reason
+            return self.STATUS_ERROR_CREATING_USER
+        print "Success!"
+
     def populateUser(self, user, data=None):
         if not data:
             try:
@@ -172,13 +201,13 @@ class GogsAPI:
         user.email = data['email']
         user.full_name = data['full_name']
         user.avatar_url = data['avatar_url']
-        self.populateTokens(user)
+#        self.populateTokens(user)
         self.populateRepos(user)
 
     def deleteUser(self, user, alsoDeleteRepos=False):
         url = 'admin/users/{0}'.format(user.username)
         try:
-            response = self.connectToGogs(url, self.adminUser, None, True)
+            response = self.connectToGogs(url, self.adminUser, None, 'DELETE')
         except HTTPError as e:
             if e.code == 422: # user still has content, such as repos
                 if alsoDeleteRepos:
@@ -311,7 +340,7 @@ class GogsAPI:
     def deleteRepo(self, repo):
         url = 'repos/{0}/{1}'.format(repo.owner.username, repo.name)
         try:
-            response = self.connectToGogs(url, repo.owner, None, True)
+            response = self.connectToGogs(url, repo.owner, None, 'DELETE')
         except HTTPError as e:
             if e.code == 404: # repo doesn't exist
                 return self.STATUS_REPO_DOES_NOT_EXIST
