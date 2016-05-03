@@ -88,6 +88,7 @@ for lang in "${langs[@]}"; do
     SUBTITLE="Version $version"
     DATE=`date +"%Y-%m-%d"`
     LICENSE_FILE="$BASEDIR/ta/tex/ta_license"
+    FORMAT_FILE="$BASEDIR/ta/tex/format.tex"
 
     curl -o logo.png "$LOGO"
 
@@ -109,6 +110,7 @@ for lang in "${langs[@]}"; do
         -V license_date="$DATE" \
         -V mainfont="Noto Serif" \
         -V sansfont="Noto Sans" \
+        -H "$FORMAT_FILE" \
         -o "${BASENAME}.pdf" "${BASENAME}.html"
 
         if [ $BUILDDIR != $outdir ]; then
