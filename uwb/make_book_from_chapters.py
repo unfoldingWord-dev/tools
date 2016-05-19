@@ -38,7 +38,7 @@ names = { 'ULB': 'Unlocked Literal Bible',
         }
 book_files = '/var/www/vhosts/door43.org/{0}-{1}/{2}-{3}/*.usfm'
 baseout = '/var/www/vhosts/api.unfoldingword.org/httpdocs/{0}/txt/1/{0}-{1}'
-draftout = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/{1}/{0}/ep/'
+draftout = '/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/{1}/{0}/ep'
 testout = '/tmp/api/{0}/txt/1/{0}-{1}'
 _digits = re.compile('\d')
 httpsre = re.compile(ur'https://pad.door43.org.*', re.UNICODE)
@@ -141,6 +141,7 @@ books = { u'GEN': [ u'Genesis', '01' ],
           u'REV': [ u'Revelation', '67' ],
 }
 
+bookOrder = [u'GEN',u'EXO',u'LEV',u'NUM',u'DEU',u'JOS',u'JDG',u'RUT',u'1SA',u'2SA',u'1KI',u'2KI',u'1CH',u'2CH',u'EZR',u'NEH',u'EST',u'JOB',u'PSA',u'PRO',u'ECC',u'SNG',u'ISA',u'JER',u'LAM',u'EZK',u'DAN',u'HOS',u'JOL',u'AMO',u'OBA',u'JON',u'MIC',u'NAM',u'HAB',u'ZEP',u'HAG',u'ZEC',u'MAL',u'MAT',u'MRK',u'LUK',u'JHN',u'ACT',u'ROM',u'1CO',u'2CO',u'GAL',u'EPH',u'PHP',u'COL',u'1TH',u'2TH',u'1TI',u'2TI',u'TIT',u'PHM',u'HEB',u'JAS',u'1PE',u'2PE',u'1JN',u'2JN',u'3JN',u'JUD',u'REV']
 
 def contains_digits(d):
     return bool(_digits.search(d))
@@ -149,9 +150,9 @@ def makeDir(d):
     if not os.path.exists(d):
         os.makedirs(d, 0755)
 
-def writeFile(outfile, content):
+def writeFile(outfile, content, mode = 'w'):
     makeDir(outfile.rpartition('/')[0])
-    f = codecs.open(outfile, 'w', encoding='utf-8')
+    f = codecs.open(outfile, mode, encoding='utf-8')
     f.write(content)
     f.close()
 
@@ -164,7 +165,7 @@ def writeJSON(outfile, p):
     f.write(json.dumps(p, sort_keys=True))
     f.close()
 
-def save(books_to_process, outdir, slug, ver):
+def save_book(books_to_process, outdir, slug, ver):
     books_published = {}
 
     for book in books_to_process:
@@ -175,10 +176,11 @@ def save(books_to_process, outdir, slug, ver):
         files = sorted(glob.glob(path))
         content = []
         for file in files:
+            print file
             content.append(codecs.open(file, "r", "utf-8").read())
-        outfile = '{0}/{1}-{2}.usfm'.format(outdir, books[book][1], book)
+        outfile = '{0}/{1}-{2}.usfm'.format(outdir, books[book][1], book.lower())
         if ver.lower() == 'draft':
-            outfile = '{0}.txt'.format(outfile).lower()
+            outfile = '{0}.txt'.format(outfile)
         writeFile(outfile, u''.join(content))
         meta = ['Bible: OT']
         if int(books[book][1]) > 39:
@@ -190,10 +192,47 @@ def save(books_to_process, outdir, slug, ver):
                                       }
     return books_published
 
+def save_ot(outdir, ver):
+    if ver.lower() == 'draft':
+        outfile = '{0}/ot.usfm.txt'.format(outdir)
+    else:
+        outfile = '{0}/ot.usfm'.format(outdir)
+    if os.path.exists(outfile):
+        os.remove(outfile)
+    for book in bookOrder:
+        if ver.lower() != 'draft':
+            if book not in COMPLETE: continue
+        if int(books[book][1]) > 39:
+            continue
+        bookfile = '{0}/{1}-{2}.usfm'.format(outdir, books[book][1], book.lower())
+        if ver.lower() == 'draft':
+            bookfile = '{0}.txt'.format(bookfile)
+        writeFile(outfile, codecs.open(bookfile, "r", "utf-8").read(), 'a')
+    return
+
+def save_nt(outdir, ver):
+    if ver.lower() == 'draft':
+        outfile = '{0}/nt.usfm.txt'.format(outdir)
+    else:
+        outfile = '{0}/nt.usfm'.format(outdir)
+    if os.path.exists(outfile):
+        os.remove(outfile)
+    for book in bookOrder:
+        if ver.lower() != 'draft':
+            if book not in COMPLETE: continue
+        if int(books[book][1]) < 41:
+            continue
+        bookfile = '{0}/{1}-{2}.usfm'.format(outdir, books[book][1], book.lower())
+        if ver.lower() == 'draft':
+            bookfile = '{0}.txt'.format(bookfile)
+        writeFile(outfile, codecs.open(bookfile, "r", "utf-8").read(), 'a')
+    return
+
 def main(slug, ver, book = None):
     today = ''.join(str(datetime.date.today()).rsplit('-')[0:3])
 
     books_to_process = []
+    bible_part = 'all'
 
     if book:
         book = book.upper()
@@ -204,9 +243,13 @@ def main(slug, ver, book = None):
         if not book in books:
             print "Book not valid: "+book+". Exiting."
             sys.exit(1)
+        if books[book][1] < 40:
+            bible_part = 'ot'
+        else:
+            bible_part = 'nt'
         books_to_process.append(book)
-    else :
-        books_to_process = books.keys()
+    else:
+        books_to_process = bookOrder
 
     if ver.lower() == 'draft':
         outdir = draftout.format(slug.lower(), 'en')
@@ -215,7 +258,12 @@ def main(slug, ver, book = None):
     else:
         outdir = baseout.format(slug.lower(), 'en')
 
-    books_published = save(books_to_process, outdir, slug, ver)
+    books_published = save_book(books_to_process, outdir, slug, ver)
+
+    if bible_part == 'all' or bible_part == 'ot':
+        save_ot(outdir, ver)
+    if bible_part == 'all' or bible_part == 'nt':
+        save_nt(outdir, ver)
 
     if not book:
         status = { "slug": slug.lower(),
