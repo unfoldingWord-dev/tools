@@ -18,13 +18,9 @@ via their Github repos.
 import os
 import sys
 import codecs
+from general_tools.git_wrapper import *
+
 sys.path.append('/var/www/vhosts/door43.org/tools/general_tools')
-try:
-    from git_wrapper import *
-except:
-    print "Please verify that"
-    print "/var/www/vhosts/door43.org/tools/general_tools exists."
-    sys.exit(1)
 try:
     from github import Github
     from github import GithubException
