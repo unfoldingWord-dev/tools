@@ -19,15 +19,10 @@ import sys
 import json
 import codecs
 import argparse
+from general_tools.git_wrapper import *
 
 gen_tools = '/var/www/vhosts/door43.org/tools/general_tools'
 sys.path.append(gen_tools)
-
-try:
-    from git_wrapper import *
-except ImportError:
-    print "Please ensure that {0} exists.".format(gen_tools)
-    sys.exit(1)
 try:
     from github import Github
     from github import GithubException

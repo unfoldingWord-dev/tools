@@ -60,8 +60,8 @@ done
 : ${version=}
 
 # Note out base location and create a temporary workspace
-BASEDIR=$(cd $(dirname "$0")/../../ && pwd)
-BUILDDIR=$(mktemp -d --tmpdir "obs_build_pdf.XXXXXX")
+BASEDIR=$(cd $(dirname "$0")/../../ && pwd)                 # tools directory
+BUILDDIR=$(mktemp -d --tmpdir "obs_build_pdf.XXXXXX")       # temp directory
 LOG="$BUILDDIR/shell.log"
 
 # Capture all console output if a report-to flag has been set
