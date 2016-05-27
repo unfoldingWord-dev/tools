@@ -153,7 +153,7 @@ book_export () {
 
     CL_FILE="${LANGUAGE}_${book}_cl.html" # Copyrights & Licensing
     TQ_FILE="${LANGUAGE}_${book}_tq.html" # translationQuestions
-    HTML_FILE="${LANGUAGE}_${book}_all.html" # Compilation of all above HTML files
+    HTML_FILE="${LANGUAGE}_${book}_tq_all.html" # Compilation of all above HTML files
     LINKS_FILE="${LANGUAGE}_${book}_links.sed" # SED commands for links
     OUTPUT_FILE="$OUTPUT_DIR/tq-${BOOK_NUMBERS[$book]}-${book^^}-v${VERSION}"
     BAD_LINKS_FILE="${LANGUAGE}_${book}_bad_links.txt"
@@ -248,7 +248,9 @@ book_export () {
         
         # REMOVE Comprehension Questions and Answers title
         sed -i -e '\@<h2.*Comprehension Questions and Answers<\/h2>@d' "$TQ_FILE"
-        
+        sed -i -e 's@^A\.\(.*\)$@A.\1\n</p>\n\n<p>\n<hr/>@' "$TQ_FILE"
+        sed -i -e 's@^\(Q?\|A\.\) @<b>\1</b> @' "$TQ_FILE"
+
         # REMOVE links at end of quesiton page to return to question home page
         sed -i -e "\@/$dir/home@d" "$TQ_FILE"
     else

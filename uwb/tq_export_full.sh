@@ -127,7 +127,7 @@ fi
 
 CL_FILE="${LANGUAGE}_cl.html" # Copyrights & Licensing
 TQ_FILE="${LANGUAGE}_tq.html" # translationQuestions
-HTML_FILE="${LANGUAGE}_all.html" # Compilation of all above HTML files
+HTML_FILE="${LANGUAGE}_tq_all.html" # Compilation of all above HTML files
 OUTPUT_FILE="$OUTPUT_DIR/tq-v${VERSION}"
 BOOKS_TO_PROCESS=(gen exo lev num deu jos jdg rut 1sa 2sa 1ki 2ki 1ch 2ch ezr neh est job psa pro ecc sng isa jer lam ezk dan hos jol amo oba jon mic nam hab zep hag zec mal mat mrk luk jhn act rom 1co 2co gal eph php col 1ti 2ti 1th 2th tit phm heb jas 1pe 2pe 1jn 2jn 3jn jud rev)
 
@@ -214,6 +214,11 @@ then
                     echo "<h1>$book $chapter - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$chapter - page does not exist</p>" >> "$TQ_FILE"
                 fi
             done
+
+        # REMOVE Comprehension Questions and Answers title
+        sed -i -e '\@<h2.*Comprehension Questions and Answers<\/h2>@d' "$TQ_FILE"
+        sed -i -e 's@^A\.\(.*\)$@A.\1\n</p>\n\n<p>\n<hr/>@' "$TQ_FILE"
+        sed -i -e 's@^\(Q?\|A\.\) @<b>\1</b> @' "$TQ_FILE"
 
         # REMOVE links at end of quesiton page to return to question home page
         sed -i -e "\@/$dir/home@d" "$TQ_FILE"
