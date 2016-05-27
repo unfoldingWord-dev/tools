@@ -20,7 +20,6 @@ set -e
 # DEBUG - true/false -  If true, will run "set -x"
 # TOOLS_DIR - Directory of the "tools" repo where scripts and templates resides. Defaults to the parent directory of this script
 # WORKING_DIR - Directory where all HTML files for tN, tQ, tW, tA are collected and then a full HTML file is made before conversion to PDF, defaults to a system suggested temp location
-# OUTPUT_DIR - Directory to put the PDF, defaults to the current working directory
 # BASE_URL - URL for the _export/xhtmlbody to get Dokuwiki content, defaults to 'https://door43.org/_export/xhtmlbody'
 # TEMPLATE - Location of the TeX template for Pandoc, defaults to "$TOOLS_DIR/general_tools/pandoc_pdf_template.tex
 
@@ -46,10 +45,6 @@ while [[ $# > 0 ]]
 do
     arg="$1"
     case $arg in
-        -o|--output)
-            OUTPUT_DIR="$2"
-            shift # past argument
-        ;;
         -w|--working)
             WORKING_DIR="$2"
             shift # past argument
@@ -102,14 +97,16 @@ done
 : ${DEBUG:=false}
 : ${LANGUAGE:=en}
 
-: ${OUTPUT_DIR:=$(pwd)}
 : ${TEMPLATE:=$TOOLS_DIR/general_tools/pandoc_pdf_template.tex}
 
 : ${D43_BASE_DIR:=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages}
 : ${D43_BASE_URL:=https://door43.org/_export/xhtmlbody}
 
 : ${CL_DIR:=$LANGUAGE/legal/license}
+: ${TN_DIR:=$LANGUAGE/bible/notes}
 : ${TQ_DIR:=$LANGUAGE/bible/questions/comprehension}
+: ${TW_DIR:=$LANGUAGE/obe}
+: ${TA_DIR:=$LANGUAGE/ta}
 : ${VERSION:=2}
 : ${REGENERATE_HTML_FILES:=true}
 : ${REDOWNLOAD_FILES:=false}
@@ -151,58 +148,64 @@ book_export () {
         exit 1;
     fi
 
-    CL_FILE="${LANGUAGE}_${book}_cl.html" # Copyrights & Licensing
+    TN_FILE="${LANGUAGE}_${book}_tn.html" # translationNotes
     TQ_FILE="${LANGUAGE}_${book}_tq.html" # translationQuestions
-    HTML_FILE="${LANGUAGE}_${book}_tq_all.html" # Compilation of all above HTML files
-    LINKS_FILE="${LANGUAGE}_${book}_links.sed" # SED commands for links
-    OUTPUT_FILE="$OUTPUT_DIR/tq-${BOOK_NUMBERS[$book]}-${book^^}-v${VERSION}"
+    TW_FILE="${LANGUAGE}_${book}_tw.html" # translationWords
+    TA_FILE="${LANGUAGE}_${book}_ta.html" # translationAcademy
     BAD_LINKS_FILE="${LANGUAGE}_${book}_bad_links.txt"
 
-	if $REGENERATE_HTML_FILES; then
-        rm -f "$CL_FILE" "$TQ_FILE" "$LINKS_FILE" "$HTML_FILE" "$BAD_LINKS_FILE" "$OUTPUT_FILE".*  # We start fresh, only files that remain are any files retrieved with wget
+    if $REGENERATE_HTML_FILES; then
+        rm -f "$TN_FILE" "$TQ_FILE" "$TW_FILE" "$TA_FILE" "$BAD_LINKS_FILE" # We start fresh, only files that remain are any files retrieved with wget
     fi
 
-    touch "$LINKS_FILE"
     touch "$BAD_LINKS_FILE"
 
-    # ----- START GENERATE CL PAGE ----- #
-    if [ ! -e "$CL_FILE" ];
+    # ----- START GENERATE tN PAGES ----- #
+    if [ ! -e "$TN_FILE" ];
     then
-        echo "GENERATING $CL_FILE"
+        echo "GENERATING $TN_FILE"
         
-        touch "$CL_FILE"
+        touch "$TN_FILE"
         
-        mkdir -p "$CL_DIR"
+        find "$D43_BASE_DIR/$TN_DIR/$book" -mindepth 1 -maxdepth 1 -type d -name "[0-9]*" -printf '%P\n' |
+            sort -u |
+            while read chapter;
+            do
+                dir="$TN_DIR/$book/$chapter";
+                mkdir -p "$dir"
         
-        # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
-        if $REDOWNLOAD_FILES || [ ! -e "$CL_DIR/uw.html" ] || [ "$CL_DIR/uw.html" -ot "$D43_BASE_DIR/$CL_DIR/uw.txt" ];
-        then
-            set +e
-            wget -U 'me' "$D43_BASE_URL/$CL_DIR/uw" -O "$CL_DIR/uw.html"
+                find "$D43_BASE_DIR/$dir" -mindepth 1 -maxdepth 1 -type f \( -name "[0-9]*.txt" -or -name "intro.txt" -or -name "tatopics.txt" -or -name "words.txt" \) \( -exec grep -q 'tag>.*publish' {} \; -or -not -exec grep -q 'tag>.*draft' {} \; \) -printf '%P\n' |
+                    grep -v 'asv-ulb' |
+                    sort -u |
+                    while read f; do
+                        section=${f%%.txt}
         
-            if [ $? != 0 ];
-            then
-                rm "$CL_DIR/uw.html";
-                echo "$D43_BASE_URL/$CL_DIR/uw ($CL_FILE)" >> "$BAD_LINKS_FILE"
-            fi
-            set -e
-        fi
+                        # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
+                        if $REDOWNLOAD_FILES || [ ! -e "$dir/$section.html" ] || [ "$dir/$section.html" -ot "$D43_BASE_DIR/$dir/$section.txt" ];
+                        then
+                            set +e
+                            wget -U 'me' "$D43_BASE_URL/$dir/$section" -O "$dir/$section.html"
         
-        if [ -e "$CL_DIR/uw.html" ];
-        then
-            cat "$CL_DIR/uw.html" > "$CL_FILE"
-        else
-            echo "<h1>Copyrights & Licensing - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$CL_DIR/uw - page does not exist</p>" >> "$CL_FILE"
-        fi
+                            if [ $? != 0 ];
+                            then
+                                rm "$dir/$section.html";
+                                echo "$D43_BASE_URL/$dir/$section ($TN_FILE)" >> "$BAD_LINKS_FILE"
+                            fi
+                            set -e
+                        fi
         
-        # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
-        sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' "$CL_FILE"
-        sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' "$CL_FILE"
-        sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' "$CL_FILE"
+                        if [ -e "$dir/$section.html" ];
+                        then
+                            cat "$dir/$section.html" >> "$TN_FILE"
+                        else
+                            echo "<h1>$book $chapter:$section - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$section - page does not exist</p>"
+                        fi
+                    done
+            done
     else
-        echo "NOTE: $CL_FILE already generated."
+        echo "NOTE: $TN_FILE already generated."
     fi
-    # ----- END GENERATE CL PAGES ------- #
+    # ----- END GENERATE tN PAGES ------- #
 
     # ----- START GENERATE tQ PAGES ----- #
     if [ ! -e "$TQ_FILE" ];
@@ -238,96 +241,104 @@ book_export () {
                 then
                     grep -v '<strong>.*&gt;<\/a><\/strong>' "$dir/$chapter.html" |
                         grep -v ' href="\/tag\/' >> "$TQ_FILE"
-        
-                    linkname=$(head -3 "$dir/$chapter.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
-                    echo "s@\"[^\"]*/$dir/$chapter\"@\"#$linkname\"@g" >> "$LINKS_FILE"
                 else
-                    echo "<h1>$book $chapter - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$chapter - page does not exist</p>" >> "$TQ_FILE"
+                    echo "<h1>$book $chapter - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$chapter - page does not exist</p>" 
                 fi
             done
-        
-        # REMOVE Comprehension Questions and Answers title
-        sed -i -e '\@<h2.*Comprehension Questions and Answers<\/h2>@d' "$TQ_FILE"
-        sed -i -e 's@^A\.\(.*\)$@A.\1\n</p>\n\n<p>\n<hr/>@' "$TQ_FILE"
-        sed -i -e 's@^\(Q?\|A\.\) @<b>\1</b> @' "$TQ_FILE"
-
-        # REMOVE links at end of quesiton page to return to question home page
-        sed -i -e "\@/$dir/home@d" "$TQ_FILE"
     else
         echo "NOTE: $TQ_FILE already generated."
     fi
     # ----- END GENERATE tQ PAGES ------- #
 
-    # ----- START GENERATE HTML PAGE ----- #
-    if [ ! -e "$HTML_FILE" ];
+    # ----- START GENERATE tW PAGES ----- #
+    if [ ! -e "$TW_FILE" ];
     then
-        # Compile all the above CL and tQ HTML files into one with headers
-        echo "GENERATING $HTML_FILE"
+        echo "GENERATING $TW_FILE"
         
-        echo '<h1>Copyrights & Licensing</h1>' >> "$HTML_FILE"
-        cat "$CL_FILE" >> "$HTML_FILE"
+        touch "$TW_FILE"
         
-        echo '<h1>translationQuestions</h1>' >> "$HTML_FILE"
-        cat "$TQ_FILE" >> "$HTML_FILE"
-
-        # ----- START LINK FIXES AND CLEANUP ----- #
-        # Link Fixes
-        sed -i -f "$LINKS_FILE" "$HTML_FILE"
-        sed -i -e 's/\/en\/bible.*"/"/' "$HTML_FILE"
-        sed -i -e 's/\/en\/obs.*"/"/' "$HTML_FILE"
-
-        # Cleanup
-        sed -i -e 's/\xe2\x80\x8b//g' -e '/^<hr>/d' -e '/&lt;&lt;/d' \
-            -e 's/<\/span>/<\/span> /g' -e 's/jpg[?a-zA-Z=;&0-9]*"/jpg"/g' \
-            -e 's/ \(src\|href\)="\// \1="https:\/\/door43.org\//g' \
-            "$HTML_FILE"
-        # ----- END LINK FIXES AND CLEANUP ------- #
+        # Get the linked key terms
+        for url in $(grep -oPh "\"\/$LANGUAGE\/obe.*?\"" "$TN_FILE" | tr -d '"' | sort -u);
+        do
+            dir=${url#/} # remove preceeding /
+            dir=${dir%/*} # remove term from dir
+            term=${url##*/}
+        
+            mkdir -p "$dir"
+        
+            # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
+            if $REDOWNLOAD_FILES || [ ! -e "$dir/$term.html" ] || [ "$dir/$term.html" -ot "$D43_BASE_DIR/$dir/$term.txt" ];
+            then
+                set +e
+                wget -U 'me' "$D43_BASE_URL/$dir/$term" -O "$dir/$term.html"
+        
+                if [ $? != 0 ];
+                then
+                    rm "$dir/$term.html";
+                    echo "$D43_BASE_URL/$dir/$term ($TW_FILE)" 
+                    echo "$D43_BASE_URL/$dir/$term ($TW_FILE)" >> "$BAD_LINKS_FILE"
+                fi
+                set -e
+            fi
+        
+            if [ -e "$dir/$term.html" ];
+            then
+		cat "$dir/$term.html" >> "$TW_FILE"
+            else
+                echo "<h1>$term - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$term - page does not exist</p>"
+            fi
+        done
     else
-        echo "NOTE: $HTML_FILE already generated."
+        echo "NOTE: $TW_FILE already generated."
     fi
-    # ----- END GENERATE HTML PAGES ------- #
+    # ----- END GENERATE tW PAGES ------- #
 
-    # ----- START GENERATE OUTPUT FILES ----- #
-    TITLE="${BOOK_NAMES[$book]}"
-    SUBTITLE="translationQuestions"
-
-    LOGO="https://unfoldingword.org/assets/img/icon-tq.png"
-    response=$(curl --write-out %{http_code} --silent --output logo-tq.png "$LOGO");
-    if [ $response -eq "200" ];
+    # ----- START GENERATE tA PAGES ----- #
+    if [ ! -e "$TA_FILE" ];
     then
-      LOGO_FILE="-V logo=logo-tq.png"
+        echo "GENERATING $TA_FILE"
+        
+        touch "$TA_FILE"
+        
+        # Get the linked tA
+        grep -oPh "\"\/$LANGUAGE\/ta\/.*?\"" "$TN_FILE" "$TW_FILE" "$TQ_FILE" |
+            tr -d '"' |
+            sort -u |
+            while read url;
+            do
+                dir=${url#/} # remove preceeding /
+                dir=${dir%/*} # remove term from dir
+                term=${url##*/}
+        
+                mkdir -p "$dir"
+        
+                # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
+                if $REDOWNLOAD_FILES || [ ! -e "$dir/$term.html" ] || [ "$dir/$term.html" -ot "$D43_BASE_DIR/$dir/$term.txt" ];
+                then
+                    set +e
+                    wget -U 'me' "$D43_BASE_URL/$dir/$term" -O "$dir/$term.html"
+        
+                    if [ $? != 0 ];
+                    then
+                        rm "$dir/$term.html";
+                        echo "$D43_BASE_URL/$dir/$term ($TA_FILE)" 
+                        echo "$D43_BASE_URL/$dir/$term ($TA_FILE)" >> "$BAD_LINKS_FILE"
+                    fi
+                    set -e
+                fi
+        
+                if [ -e "$dir/$term.html" ];
+                then
+                    cat "$dir/$term.html" |
+                        grep -v ' href="\/tag\/' >> "$TA_FILE"
+                else
+                    echo "<h1>$term - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$section - page does not exist</p>" 
+                fi
+            done
+    else
+        echo "NOTE: $TA_FILE already generated."
     fi
-
-    for type in "${FILE_TYPES[@]}"
-    do
-        if [ ! -e "$OUTPUT_FILE.$type" ];
-        then
-            echo "GENERATING $OUTPUT_FILE.$type";
-
-            pandoc \
-                -S \
-                --latex-engine="xelatex" \
-                --template="$TEMPLATE" \
-                --toc \
-                --toc-depth=2 \
-                -V documentclass="scrartcl" \
-                -V classoption="oneside" \
-                -V geometry='hmargin=2cm' \
-                -V geometry='vmargin=3cm' \
-                -V title="$TITLE" \
-                -V subtitle="$SUBTITLE" \
-                $LOGO_FILE \
-                -V date="$DATE" \
-                -V mainfont="Noto Serif" \
-                -V sansfont="Noto Sans" \
-                -o "$OUTPUT_FILE.$type" "$HTML_FILE"
-                
-            echo "GENERATED FILE: $OUTPUT_FILE.$type"
-        else
-            echo "NOTE: $OUTPUT_FILE.$type already generated."
-        fi
-    done
-    # ----- END GENERATE OUTPUT FILES ------- #
+    # ----- END GENERATE tA PAGES ------- #
 }
 
 # ---- EXECUTION BEGINS HERE ----- #
