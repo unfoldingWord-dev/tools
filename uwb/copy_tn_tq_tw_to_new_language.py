@@ -15,16 +15,7 @@ import codecs
 from datetime import datetime
 import os
 import sys
-
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'general_tools'))
-# noinspection PyBroadException
-try:
-    from git_wrapper import *
-except:
-    print "Please verify that"
-    print "tools/general_tools exists."
-    sys.exit(1)
-
+from general_tools.git_wrapper import *
 
 DIRECTORIES = [u'en:bible:notes', u'en:bible:questions', u'en:obe']
 FILES = [u'en:bible:team-info:training:topics:kt-yes-no',

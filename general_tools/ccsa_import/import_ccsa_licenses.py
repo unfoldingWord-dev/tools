@@ -15,15 +15,7 @@ import httplib
 import lxml.html as html
 import re
 import sys
-
-sys.path.append('/var/www/vhosts/door43.org/tools/general_tools')
-# noinspection PyBroadException
-try:
-    from git_wrapper import *
-except:
-    print "Please verify that"
-    print "/var/www/vhosts/door43.org/tools/general_tools exists."
-    sys.exit(1)
+from general_tools.git_wrapper import *
 
 
 class SelfClosingConnection(httplib.HTTPConnection):

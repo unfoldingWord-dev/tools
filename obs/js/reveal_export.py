@@ -14,20 +14,10 @@ import codecs
 import sys
 import urllib2
 import re
+from general_tools.git_wrapper import *
 
 # use a path relative to the current file rather than a hard-coded path
 tools_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-general_dir = os.path.join(tools_dir, 'general_tools')
-git_wrapper_file = os.path.join(general_dir, 'git_wrapper.py')
-
-# be sure the git_wrapper.py file exists because import does not throw an exception if the name is not found
-if (not os.path.isdir(general_dir)) or (not os.path.isfile(git_wrapper_file)):
-    print "Please verify that"
-    print git_wrapper_file + " exists."
-    sys.exit(1)
-
-sys.path.append(general_dir)
-from git_wrapper import *
 
 catalog_url = u'https://api.unfoldingword.org/obs/txt/1/obs-catalog.json'
 obs_web = '/var/www/vhosts/unfoldingword.org/httpdocs/'
