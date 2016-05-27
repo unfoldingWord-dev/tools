@@ -1,16 +1,13 @@
-#!/bin/sh
-# NAME: dw2md  -  Docuwiki Markdown to Github Markdown
-# USAGE: dw2md <infile >outfile
-# DESCRIPTION: Markdown language is not standard. This script
-#      attempts to deal with the differences between Docuwiki
-#      supported markdown Github documented markdown
-# AUTHOR: Bruce spidel
-# TEST: cat dw2md | ./dw2md
-#      Numbered lines should transform example column to github markdown
-#      A few lines will also transform the github column since they extend to 
-#      end of line.
-# REQUIRES: GNU: bash, sed
-
+#!/usr/bin/env python2
+# -*- coding: utf8 -*-
+#
+#  Copyright (c) 2014 unfoldingWord
+#  http://creativecommons.org/licenses/MIT/
+#  See LICENSE file for details.
+#
+#  Contributors:
+#  Ricahrd Mahn <richard_mahn@wycliffeassociates.org>
+#
 #      docuwiki patterns        docuwiki example                 Y github markdown
 # ---- ------------------------ -------------------------------- - ----------------------------------
 #  1   tgt-url img-url alt-text [[tgt-url|{{img-url|alt-text}}]] Y [![alt-text](img-url)](tgt-url)
@@ -41,7 +38,7 @@
 # 26   unordered sublist          * unordered sublist                * unordered sublist        
 # 27   italic                   //italic//                       Y *italic* _italic_
 # 28   bold                     **bold**                           **bold** __bold__
-# 29   underscore               __underscore__                   Y <span style="text-decoration: underline;">text</span>
+# 29   underscore               __underscore__                   Y <u>text</u>
 # 30   superscript              <sup>superscript</sup>             <sup>superscript</sup>
 # 31   subscript                <sub>subscript</sub>               <sub>subscript</sub>
 # 32   overstrike               <del>overstrike</del>            Y ~~overstrike~~
@@ -68,41 +65,48 @@
 
 # convert docuwiki markup to github markdown
 
-sed -e '
-s/\[\[\([^|]*\)|{{\([^|]*\)|\([^}]*\)}}\]\]/[![\3](\2)](\1)/;
-s/\[\[\([^|]*\)|{{\([^|]*\)}}\]\]/[![](\2)](\1)/;
-s/{{ \([^ ]*\) }}/![](\1)/;
-s/{{\([^ ]*\) }}/![](\1)/;
-s/{{ \([^}]*\)}}/![](\1)/;
-s/{{\([^}]*\)}}/![](\1)/;
-s/{{\([^|]*\)|\([^}]*\)}}/[\2](\1)/;
-s/\[\[\([^|]*\)|\([^]]*\)\]\]/[\2](\1)/;
-s/====== \([^=]*\)======/# \1/;
-s/====== \(.*\)$/# \1/;
-s/===== \([^=]*\)=====/## \1/;
-s/===== \(.*\)$/## \1/;
-s/==== \([^=]*\)====/### \1/;
-s/==== \(.*\)/### \1/;
-s/=== \([^=]*\)===/#### \1/;
-s/=== \(.*\)$/#### \1/;
-s/== \([^=]*\)==/##### \1/;
-s/== \(.*\)/##### \1/;
-s/^[-]\{3,\}$/---/;
-s/(\s*) - /\1 1. /;
-s/\/\/\([^/]*\)/*\1*/;
-s/__\([^_]*\)__/<span style="text-decoration: underline;">\1<\/span>/;
-s/<del>\([^<]*\)<\/del>/~~\1~~/;
-s/<nowiki>\([^<]*\)<\/nowiki>/`\1`/;
-s/<code>\([^<]*\)<\/code>/`\1`/;
-s/%%\([^%]*\)%%/`\1`/;
-s/<code \([^>]*\)>/``` \1/;
-s/<code>\(.*\)$/```\1/;
-s/<nowiki>\(.*\)$/```\1/;
-s/<\/\(nowiki\|code\|php\)>/```/;
-s/<php>/``` php/;
-s/<del>\([^<]*\)<\/del>/~~\1~~/;
-s/^\^\(.*\)\^$/\1/;
-s/^|\(.*\)|$/\1/;
-s/\^\(.*\)|/\1/;
-'
+import sys
+import re
+import codecs
+
+def convert(dwText):
+    mdText = dwText
+    mdText = re.sub(ur'\[\[(.+?)\|\{\{(.+?)\|(.+?)\}\}\]\]', ur'[![\g<3>](\g<2>)](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\[\[(.+?)\|\{\{(.+?)\|(.+?)\}\}\]\]', ur'[![\g<3>](\g<2>)](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\[\[(.+?)\|\{\{(.+?)\}\}\]\]', ur'[![](\g<2>)](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\{\{\s+(.+?)\s+\}\}', ur'![](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\{\{(.+?) +\}\}', ur'![](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\{\{ +(.+?)\}\}', ur'![](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\{\{(.+?)\}\}', ur'![](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\{\{(.+?)\|(.+?)\}\}', ur'[\g<2>](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\[\[(.+?)\|(.+?)\]\]', ur'[\g<2>](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\[\[(.+?)\|(.+?)\]\]', ur'[\g<2>](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\[\[(.+?)\]\]', ur'[\g<1>](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'====== *(.+?) *==+ *$', ur'# \g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'===== *(.*?) *==+ *$', ur'## \g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'==== *(.*?) *==+ *$', ur'### \g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'=== *(.*?) *==+ *$', ur'#### \g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'== *(.*?) *== *$', ur'##### \g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'^[-]{3,} *$', ur'---', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'^( *) - ', ur'\g<1> 1. ', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'(?<!http:)(?<!https:)\/\/(.+?)(?<!http:)(?<!https:)\/\/', ur'*\g<1>*', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'__(.+?)__', ur'<u>\g<1></u>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'%%(.+?)%%', ur'`\g<1>`', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'<del>(.*?)</del>', ur'~~\g<1>~~', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'</*nowiki(.*?)>', ur'```\g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'</*code(.*?)>', ur'```\g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'</*php(.*?)>', ur'```', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'<del>(.*?)</del>', ur'~~\g<1>~~', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'^\^(.+)\^$', ur'\g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'^\|(.+)\|$', ur'\g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\^(.+)\|', ur'\g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
+    return mdText
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print "Usage: dw2md.py <filename>"
+        exit(1)
+
+    filename = sys.argv[1]
+    print convert(codecs.open(filename, 'r', encoding='utf-8').read())
 

@@ -20,9 +20,6 @@ import codecs
 import datetime
 import argparse
 import glob
-import errno
-from etherpad_lite import EtherpadLiteClient
-from etherpad_lite import EtherpadException
 
 COMPLETE = [ 'GEN', 'EXO', 'LEV', 'NUM', 'DEU', 'JOS', 'JDG', 'RUT', '1SA',
              '2SA', '1KI', '2KI', '1CH', '2CH', 'EZR', 'NEH', 'EST', 'JOB',

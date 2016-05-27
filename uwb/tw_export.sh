@@ -18,6 +18,11 @@
 # we know out temp dir situation is sane before we get started.
 set -e
 
+export PATH=$PATH:/usr/local/texlive/2015/bin/x86_64-linux
+
+FILE_TYPES=()
+VALID_FILE_TYPES=(pdf docx html tex txt text)
+
 # ENVIRONMENT VARIABLES:
 # DEBUG - true/false -  If true, will run "set -x"
 # TOOLS_DIR - Directory of the "tools" repo where scripts and templates resides. Defaults to the parent directory of this script
@@ -26,6 +31,44 @@ set -e
 # BASE_URL - URL for the _export/xhtmlbody to get Dokuwiki content, defaults to 'https://door43.org/_export/xhtmlbody'
 # NOTES_URL - URL for getting translationNotes, defaults to $BASE_URL/en/bible/notes
 # TEMPLATE - Location of the TeX template for Pandoc, defaults to "$TOOLS_DIR/general_tools/pandoc_pdf_template.tex
+
+#gather command-line arguments
+while [[ $# > 0 ]]
+do
+    arg="$1"
+    case $arg in
+        -o|--output)
+            OUTPUT_DIR="$2"
+            shift # past argument
+        ;;
+        -w|--working)
+            WORKING_DIR="$2"
+            shift # past argument
+        ;;
+        -l|--lang|-language)
+            LANGUAGE="$2"
+            shift # past argument
+        ;;
+        -d|--debug)
+            DEBUG=true
+        ;;
+        -t|--type)
+            arg2=${2,,}
+
+            if [ ! ${VALID_FILE_TYPES[$arg2]+_} ];
+            then
+                echo "Invalid type: $arg2"
+                echo "Valid types: pdf, docx, html, tex, txt, text"
+                exit 1
+            fi
+
+            FILE_TYPES+=("$arg2")
+
+            shift # past argument
+        ;;
+    esac
+    shift # past argument or value
+done
 
 # Instantiate a DEBUG flag (default to false). This enables output usful durring
 # script development or later DEBUGging but not normally needed durring
@@ -36,6 +79,10 @@ set -e
 : ${TOOLS_DIR:=$(cd $(dirname "$0")/../ && pwd)}
 : ${OUTPUT_DIR:=$(pwd)}
 : ${TEMPLATE:=$TOOLS_DIR/general_tools/pandoc_pdf_template.tex}
+: ${VERSION:=2}
+: ${REGENERATE_HTML_FILES:=true}
+: ${REDOWNLOAD_FILES:=false}
+: ${COMBINED_LISTS:=false}
 
 # If running in DEBUG mode, output information about every command being run
 $DEBUG && set -x
@@ -82,7 +129,7 @@ CL_FILE="${LANGUAGE}_tw_cl.html" # Copyrights & Licensing
 KT_FILE="${LANGUAGE}_tw_kt.html" # Key Terms file
 OTHER_FILE="${LANGUAGE}_tw_ot.html" # Other Terms file
 HTML_FILE="${LANGUAGE}_tw_all.html" # Compilation of all above HTML files
-PDF_FILE="$OUTPUT_DIR/tW_${LANGUAGE^^}_$DATE.pdf" # Outputted PDF file
+OUTPUT_FILE="$OUTPUT_DIR/tw-v${VERSION}.pdf" # Outputted PDF file
 LINKS_FILE="${LANGUAGE}_tw_links.sed" # SED commands for links
 BAD_LINKS_FILE="${LANGUAGE}_tw_bad_links.txt"
 
@@ -95,7 +142,7 @@ generate_term_file () {
     rm -f $out_file
     touch $out_file
 
-    find $dir -type f -name "*.txt" -exec grep -q 'tag>.*publish' {} \; -print | awk -vFS=/ -vOFS=/ '{ print $NF,$0 }' |
+    find $dir -type f -name "*.txt" \( -exec grep -q 'tag>.*publish' {} \; -or -not -exec grep -q 'tag>.*draft' {} \; \) -print | awk -vFS=/ -vOFS=/ '{ print $NF,$0 }' |
         sort -u -t / | cut -f2- -d/ |
         while read f; do
             filename=$(basename $f)
@@ -105,7 +152,7 @@ generate_term_file () {
             mkdir -p "$dir" # creates the dir path in $WORKING_DIR
 
             # If the file doesn't exit or the file is older than (-ot) the Door43 repo one, fetch it
-            if [ ! -e "$dir/$term.html" ] || [ "$dir/$term.html" -ot "$D43_BASE_DIR/$dir/$term.txt" ];
+            if $REDOWNLOAD_FILES || [ ! -e "$dir/$term.html" ] || [ "$dir/$term.html" -ot "$D43_BASE_DIR/$dir/$term.txt" ];
             then
                 wget -U 'me' "$D43_BASE_URL/$dir/$term" -O "$dir/$term.html"
             fi
@@ -132,13 +179,18 @@ generate_term_file () {
     sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' "$out_file"
 }
 
-# ---- MAIN EXECUTION BEGINS HERE ----- #
-    rm -f $CL_FILE $KT_FILE $OTHER_FILE $HTML_FILE $LINKS_FILE $BAD_LINKS_FILE # We start fresh, only files that remain are any files retrieved with wget
+# ---- MAIN EXECUTION BEGINS HErm -f $CL_FILE $KT_FILE $OTHER_FILE $HTML_FILE $LINKS_FILE $BAD_LINKS_FILE # We start fresh, only files that remain are any files retrieved with wget
 
-    touch "$LINKS_FILE"
-    touch "$BAD_LINKS_FILE"
+if $REFRESH_HTML_FILES; then
+    rm -f "$CL_FILE" "$TW_FILE" "$HTML_FILE" "$OUTPUT_FILE.*"  # We start fresh, only files that remain are any files retrieved with wget
+fi
 
-    # ----- START GENERATE CL PAGE ----- #
+touch "$LINKS_FILE"
+touch "$BAD_LINKS_FILE"
+
+# ----- START GENERATE CL PAGE ----- #
+if [ ! -e "$CL_FILE" ];
+then
     echo "GENERATING $CL_FILE"
 
     mkdir -p "$CL_DIR"
@@ -148,46 +200,50 @@ generate_term_file () {
     then
         wget -U 'me' "$D43_BASE_URL/$CL_DIR/uw" -O "$CL_DIR/uw.html"
     fi
-
+        
     cat "$CL_DIR/uw.html" > "$CL_FILE"
-
+        
     # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
     sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' "$CL_FILE"
     sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' "$CL_FILE"
     sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' "$CL_FILE"
-    # ----- END GENERATE CL PAGES ------- #
+else
+    echo "NOTE: $CL_FILE already generated."
+fi
+# ----- END GENERATE CL PAGES ------- #
 
-    if ! $COMBINED_LISTS;
-    then
-        # ----- GENERATE KT PAGES --------- #
-        generate_term_file "$D43_BASE_DIR/$TW_DIR/kt" $KT_FILE
-        # ----- EMD GENERATE KT PAGES ----- #
+if ! $COMBINED_LISTS;
+then
+    # ----- GENERATE KT PAGES --------- #
+    generate_term_file "$D43_BASE_DIR/$TW_DIR/kt" $KT_FILE
+    # ----- EMD GENERATE KT PAGES ----- #
 
-        # ----- GENERATE OTHER PAGES --------- #
-        generate_term_file "$D43_BASE_DIR/$TW_DIR/other" $OTHER_FILE
-        # ----- EMD GENERATE OTHER PAGES ----- #
-    else
-        generate_term_file "$D43_BASE_DIR/$TW_DIR/other $D43_BASE_DIR/$TW_DIR/kt" $OTHER_FILE
-    fi
+    # ----- GENERATE OTHER PAGES --------- #
+    generate_term_file "$D43_BASE_DIR/$TW_DIR/other" $OTHER_FILE
+    # ----- EMD GENERATE OTHER PAGES ----- #
+else
+    generate_term_file "$D43_BASE_DIR/$TW_DIR/other $D43_BASE_DIR/$TW_DIR/kt" $OTHER_FILE
+fi
 
-    # ----- GENERATE COMPLETE HTML PAGE ----------- #
+# ----- GENERATE COMPLETE HTML PAGE ----------- #
+if [ ! -e "$HTML_FILE" ];
+then
     echo "GENERATING $HTML_FILE"
-
+        
     echo '<h1>Copyrights & Licensing</h1>' >> $HTML_FILE
     cat $CL_FILE >> $HTML_FILE
-
+        
     if ! $COMBINED_LISTS;
     then
         echo '<h1>Key Terms</h1>' >> $HTML_FILE
         cat $KT_FILE >> $HTML_FILE
-
+        
         echo '<h1>Other Terms</h1>' >> $HTML_FILE
         cat $OTHER_FILE >> $HTML_FILE
      else
         echo '<h1>translationWords</h1>' >> $HTML_FILE
         cat $OTHER_FILE >> $HTML_FILE
      fi
-    # ----- END GENERATE COMPLETE HTML PAGE --------#
 
     # ----- START LINK FIXES AND CLEANUP ----- #
     sed -i \
@@ -195,32 +251,50 @@ generate_term_file () {
         -e 's/jpg[?a-zA-Z=;&0-9]*"/jpg"/g' \
         -e 's/ \(src\|href\)="\// \1="https:\/\/door43.org\//g' \
         $HTML_FILE
-
+        
     # Link Fixes
     sed -i -f "$LINKS_FILE" "$HTML_FILE"
     # ----- END LINK FIXES AND CLEANUP ------- #
+else
+    echo "NOTE: $HTML_FILE already generated."
+fi
+# ----- END GENERATE COMPLETE HTML PAGE --------#
 
-    # ----- START GENERATE PDF FILE ----- #
-    echo "GENERATING $PDF_FILE";
+# ----- START GENERATE FILES ----- #
+TITLE='translationWords'
 
-    TITLE='translationWords'
+LOGO="https://unfoldingword.org/assets/img/icon-tw.png"
+response=$(curl --write-out %{http_code} --silent --output logo-tw.png "$LOGO");
+if [ $response -eq "200" ];
+then
+  LOGO_FILE="-V logo=logo-tw.png"
+fi
 
-    # Create PDF
-    pandoc \
-        -S \
-        --latex-engine="xelatex" \
-        --template="$TEMPLATE" \
-        --toc \
-        --toc-depth=2 \
-        -V documentclass="scrartcl" \
-        -V classoption="oneside" \
-        -V geometry='hmargin=2cm' \
-        -V geometry='vmargin=3cm' \
-        -V title="$TITLE" \
-        -V date="$DATE" \
-        -V mainfont="Noto Serif" \
-        -V sansfont="Noto Sans" \
-        -o $PDF_FILE $HTML_FILE
+for type in "${FILE_TYPES[@]}"
+do
+    if [ ! -e "$OUTPUT_FILE.$type" ];
+    then
+        echo "GENERATING $OUTPUT_FILE.$type";
+        pandoc \
+            -S \
+            --latex-engine="xelatex" \
+            --template="$TEMPLATE" \
+            --toc \
+            --toc-depth=2 \
+            -V documentclass="scrartcl" \
+            -V classoption="oneside" \
+            -V geometry='hmargin=2cm' \
+            -V geometry='vmargin=3cm' \
+            -V title="$TITLE" \
+            $LOGO_FILE \
+            -V date="$DATE" \
+            -V mainfont="Noto Serif" \
+            -V sansfont="Noto Sans" \
+            -o "$OUTPUT_FILE.$type" "$HTML_FILE"
 
-    echo "PDF FILE: $PDF_FILE"
-    echo "Done!"
+        echo "GENERATED FILE: $OUTPUT_FILE.$type"
+    fi
+done
+# ----- END GENERATE FILES ----- #
+
+echo "Done!"

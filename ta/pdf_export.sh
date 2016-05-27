@@ -90,7 +90,7 @@ for lang in "${langs[@]}"; do
     LICENSE_FILE="$BASEDIR/ta/tex/ta_license"
     FORMAT_FILE="$BASEDIR/ta/tex/format.tex"
 
-    curl -o logo.png "$LOGO"
+    curl -o logo-ta.png "$LOGO"
 
     # Create PDF
     pandoc \
@@ -103,7 +103,7 @@ for lang in "${langs[@]}"; do
         -V classoption="oneside" \
         -V geometry='hmargin=2cm' \
         -V geometry='vmargin=3cm' \
-        -V logo="logo.png" \
+        -V logo="logo-ta.png" \
         -V title="$TITLE" \
         -V subtitle="$SUBTITLE" \
         -V license_file="$LICENSE_FILE" \

@@ -142,14 +142,17 @@ $if(verbatim-in-note)$
 $endif$
 
 $if(title)$
-\title{$if(logo)$\begin{center}\includegraphics[width=2cm]{$logo$}\end{center}\vspace{\baselineskip}$endif$\Huge $title$$if(subtitle)$\\\vspace{0.5em}{\Large $subtitle$}$endif$}
+  \title{$if(logo)$\begin{center}\includegraphics[width=4cm]{$logo$}\end{center}\vspace{\baselineskip}$endif$\Huge $title$$if(subtitle)$\\\vspace{0.5em}{\LARGE $subtitle$}$endif$}
 $endif$
+
 $if(author)$
-\author{$for(author)$$author$$sep$ \and $endfor$}
+  \author{$for(author)$$author$$sep$ \and $endfor$}
 $endif$
+
 \date{\small $date$}
+
 $for(header-includes)$
-$header-includes$
+  $header-includes$
 $endfor$
 
 % Redefines (sub)paragraphs to behave more like sections
