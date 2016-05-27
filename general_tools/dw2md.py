@@ -38,7 +38,7 @@
 # 26   unordered sublist          * unordered sublist                * unordered sublist        
 # 27   italic                   //italic//                       Y *italic* _italic_
 # 28   bold                     **bold**                           **bold** __bold__
-# 29   underscore               __underscore__                   Y <span style="text-decoration: underline;">text</span>
+# 29   underscore               __underscore__                   Y <u>text</u>
 # 30   superscript              <sup>superscript</sup>             <sup>superscript</sup>
 # 31   subscript                <sub>subscript</sub>               <sub>subscript</sub>
 # 32   overstrike               <del>overstrike</del>            Y ~~overstrike~~
@@ -71,42 +71,35 @@ import codecs
 
 def convert(dwText):
     mdText = dwText
-    mdText = re.sub(ur'\[\[(http[^\|]*)\|\{\{(http[^\|]*)\|([^\}]*)\}\}\]\]', ur'[![\3](\2)](\1)', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'\[\[(http[^\|]*)\|\{\{(http[^\|]*)\|([^\}]*)\}\}\]\]', ur'[![\3](\2)](\1)', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'\[\[(http[^\|]*)\|\{\{(http[^\|]*)\}\}\]\]', ur'[![](\2)](\1)', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'\{\{ (http[^ ]*) \}\}', ur'![](\1)', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'\{\{(http[^ ]*) \}\}', ur'![](\1)', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'\{\{ (http[^\}]*)\}\}', ur'![](\1)', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'\{\{(http[^\}]*)\}\}', ur'![](\1)', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'\{\{(http[^\|]*)\|([^\}]*)\}\}', ur'[\2](\1)', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'\[\[([^\|]*)\|([^]]*)\]\]', ur'[\2](\1)', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'====== ([^=]*)======', ur'# \1#', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'====== (.*)$', ur'# \1', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'===== ([^=]*)=====', ur'## \1##', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'===== (.*)$', ur'## \1', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'==== ([^=]*)====', ur'### \1###', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'==== (.*)', ur'### \1', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'=== ([^=]*)===', ur'#### \1####', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'=== (.*)$', ur'#### \1', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'== ([^=]*)==', ur'##### \1#####', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'== (.*)', ur'##### \1', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'^[-]{3,}$', ur'---', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'^\s*- ', ur' 1 ', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'\/\/([^\/]*)', ur'*\1*', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'__([^_]*)__', ur'<span style="text-decoration: underline;">\1<\/span>', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'<del>([^<]*)<\/del>', ur'~~\1~~', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'<nowiki>([^<]*)<\/nowiki>', ur'`\1`', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'<code>([^<]*)<\/code>', ur'`\1`', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'%%([^%]*)%%', ur'`\1`', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'<code ([^>]*)>', ur'``` \1', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'<code>(.*)$', ur'```\1', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'<nowiki>(.*)$', ur'```\1', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'<\/(nowiki\|code\|php)>', ur'```', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'<php>', ur'``` php', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'<del>([^<]*)<\/del>', ur'~~\1~~', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'^\^(.*)\^$', ur'\1', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'^\|(.*)\|$', ur'\1', mdText, flags=re.UNICODE|re.MULTILINE)
-    mdText = re.sub(ur'\^(.*)\|', ur'\1', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\[\[(.+?)\|\{\{(.+?)\|(.+?)\}\}\]\]', ur'[![\g<3>](\g<2>)](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\[\[(.+?)\|\{\{(.+?)\|(.+?)\}\}\]\]', ur'[![\g<3>](\g<2>)](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\[\[(.+?)\|\{\{(.+?)\}\}\]\]', ur'[![](\g<2>)](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\{\{\s+(.+?)\s+\}\}', ur'![](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\{\{(.+?) +\}\}', ur'![](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\{\{ +(.+?)\}\}', ur'![](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\{\{(.+?)\}\}', ur'![](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\{\{(.+?)\|(.+?)\}\}', ur'[\g<2>](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\[\[(.+?)\|(.+?)\]\]', ur'[\g<2>](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\[\[(.+?)\|(.+?)\]\]', ur'[\g<2>](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\[\[(.+?)\]\]', ur'[\g<1>](\g<1>)', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'====== *(.+?) *==+ *$', ur'# \g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'===== *(.*?) *==+ *$', ur'## \g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'==== *(.*?) *==+ *$', ur'### \g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'=== *(.*?) *==+ *$', ur'#### \g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'== *(.*?) *== *$', ur'##### \g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'^[-]{3,} *$', ur'---', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'^( *) - ', ur'\g<1> 1. ', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'(?<!http:)(?<!https:)\/\/(.+?)(?<!http:)(?<!https:)\/\/', ur'*\g<1>*', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'__(.+?)__', ur'<u>\g<1></u>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'%%(.+?)%%', ur'`\g<1>`', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'<del>(.*?)</del>', ur'~~\g<1>~~', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'</*nowiki(.*?)>', ur'```\g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'</*code(.*?)>', ur'```\g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'</*php(.*?)>', ur'```', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'<del>(.*?)</del>', ur'~~\g<1>~~', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'^\^(.+)\^$', ur'\g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'^\|(.+)\|$', ur'\g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
+    mdText = re.sub(ur'\^(.+)\|', ur'\g<1>', mdText, flags=re.UNICODE|re.MULTILINE)
     return mdText
 
 if __name__ == '__main__':
