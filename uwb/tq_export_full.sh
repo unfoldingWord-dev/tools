@@ -132,7 +132,7 @@ OUTPUT_FILE="$OUTPUT_DIR/tq-v${VERSION}"
 BOOKS_TO_PROCESS=(gen exo lev num deu jos jdg rut 1sa 2sa 1ki 2ki 1ch 2ch ezr neh est job psa pro ecc sng isa jer lam ezk dan hos jol amo oba jon mic nam hab zep hag zec mal mat mrk luk jhn act rom 1co 2co gal eph php col 1ti 2ti 1th 2th tit phm heb jas 1pe 2pe 1jn 2jn 3jn jud rev)
 
 if $REGENERATE_HTML_FILES; then
-    rm -f "$CL_FILE" "$TQ_FILE" "$HTML_FILE" "$OUTPUT_FILE.*"  # We start fresh, only files that remain are any files retrieved with wget
+    rm -f "$CL_FILE" "$TQ_FILE" "$HTML_FILE" "$OUTPUT_FILE".*  # We start fresh, only files that remain are any files retrieved with wget
 fi
 
 # ----- START GENERATE CL PAGE ----- #

@@ -187,7 +187,7 @@ generate_term_file () {
 # ---- MAIN EXECUTION BEGINS HErm -f $CL_FILE $KT_FILE $OTHER_FILE $HTML_FILE $LINKS_FILE $BAD_LINKS_FILE # We start fresh, only files that remain are any files retrieved with wget
 
 if $REGENERATE_HTML_FILES; then
-    rm -f "$CL_FILE" "$KT_FILE" "$OTHER_FILE" "$HTML_FILE" "$OUTPUT_FILE.*"  # We start fresh, only files that remain are any files retrieved with wget
+    rm -f "$CL_FILE" "$KT_FILE" "$OTHER_FILE" "$HTML_FILE" "$OUTPUT_FILE".*  # We start fresh, only files that remain are any files retrieved with wget
 fi
 
 touch "$LINKS_FILE"
