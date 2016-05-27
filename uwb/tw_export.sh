@@ -129,9 +129,14 @@ CL_FILE="${LANGUAGE}_tw_cl.html" # Copyrights & Licensing
 KT_FILE="${LANGUAGE}_tw_kt.html" # Key Terms file
 OTHER_FILE="${LANGUAGE}_tw_ot.html" # Other Terms file
 HTML_FILE="${LANGUAGE}_tw_all.html" # Compilation of all above HTML files
-OUTPUT_FILE="$OUTPUT_DIR/tw-v${VERSION}.pdf" # Outputted PDF file
+OUTPUT_FILE="$OUTPUT_DIR/tw-v${VERSION}" # Outputted PDF file
 LINKS_FILE="${LANGUAGE}_tw_links.sed" # SED commands for links
 BAD_LINKS_FILE="${LANGUAGE}_tw_bad_links.txt"
+
+if [ ${#FILE_TYPES[@]} -eq 0 ];
+then
+    FILE_TYPES=(pdf)
+fi
 
 generate_term_file () {
     dir=$1
@@ -181,8 +186,8 @@ generate_term_file () {
 
 # ---- MAIN EXECUTION BEGINS HErm -f $CL_FILE $KT_FILE $OTHER_FILE $HTML_FILE $LINKS_FILE $BAD_LINKS_FILE # We start fresh, only files that remain are any files retrieved with wget
 
-if $REFRESH_HTML_FILES; then
-    rm -f "$CL_FILE" "$TW_FILE" "$HTML_FILE" "$OUTPUT_FILE.*"  # We start fresh, only files that remain are any files retrieved with wget
+if $REGENERATE_HTML_FILES; then
+    rm -f "$CL_FILE" "$KT_FILE" "$OTHER_FILE" "$HTML_FILE" "$OUTPUT_FILE.*"  # We start fresh, only files that remain are any files retrieved with wget
 fi
 
 touch "$LINKS_FILE"
@@ -215,14 +220,25 @@ fi
 if ! $COMBINED_LISTS;
 then
     # ----- GENERATE KT PAGES --------- #
-    generate_term_file "$D43_BASE_DIR/$TW_DIR/kt" $KT_FILE
+    if [ ! -e "$KT_FILE" ];
+    then
+        generate_term_file "$D43_BASE_DIR/$TW_DIR/kt" $KT_FILE
+    fi
     # ----- EMD GENERATE KT PAGES ----- #
-
+    
     # ----- GENERATE OTHER PAGES --------- #
+    if [ ! -e "$OTHER_FILE" ];
+    then
     generate_term_file "$D43_BASE_DIR/$TW_DIR/other" $OTHER_FILE
+    fi
     # ----- EMD GENERATE OTHER PAGES ----- #
 else
-    generate_term_file "$D43_BASE_DIR/$TW_DIR/other $D43_BASE_DIR/$TW_DIR/kt" $OTHER_FILE
+    # ----- GENERATE ALL PAGES --------- #
+    if [ ! -e "$OTHER_FILE" ];
+    then
+        generate_term_file "$D43_BASE_DIR/$TW_DIR/other $D43_BASE_DIR/$TW_DIR/kt" $OTHER_FILE
+    fi
+    # ----- EMD GENERATE ALL PAGES ----- #
 fi
 
 # ----- GENERATE COMPLETE HTML PAGE ----------- #
@@ -240,10 +256,10 @@ then
         
         echo '<h1>Other Terms</h1>' >> $HTML_FILE
         cat $OTHER_FILE >> $HTML_FILE
-     else
+    else
         echo '<h1>translationWords</h1>' >> $HTML_FILE
         cat $OTHER_FILE >> $HTML_FILE
-     fi
+    fi
 
     # ----- START LINK FIXES AND CLEANUP ----- #
     sed -i \

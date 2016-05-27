@@ -34,6 +34,8 @@ set -e
 export PATH=$PATH:/usr/local/texlive/2015/bin/x86_64-linux
 
 FILE_TYPES=()
+BOOKS_TO_PROCESS=()
+
 VALID_FILE_TYPES=(pdf docx html tex txt text)
 
 # Gets us an associative array called $bookS
@@ -72,6 +74,26 @@ do
             FILE_TYPES+=("$arg2")
 
             shift # past argument
+        ;;
+        *)
+            if [ ! ${BOOK_NAMES[${arg,,}]+_} ];
+            then
+                if [ ${arg,,} = "ot" ];
+                then
+                    BOOKS_TO_PROCESS+=(gen exo lev num deu jos jdg rut 1sa 2sa 1ki 2ki 1ch 2ch ezr neh est job psa pro ecc sng isa jer lam ezk dan hos jol amo oba jon mic nam hab zep hag zec mal)
+                elif [ ${arg,,} = "nt" ];
+                then
+                    BOOKS_TO_PROCESS+=(mat mrk luk jhn act rom 1co 2co gal eph php col 1ti 2ti 1th 2th tit phm heb jas 1pe 2pe 1jn 2jn 3jn jud rev)
+                elif [ ${arg,,} = "all" ];
+                then
+                    BOOKS_TO_PROCESS+=(gen exo lev num deu jos jdg rut 1sa 2sa 1ki 2ki 1ch 2ch ezr neh est job psa pro ecc sng isa jer lam ezk dan hos jol amo oba jon mic nam hab zep hag zec mal mat mrk luk jhn act rom 1co 2co gal eph php col 1ti 2ti 1th 2th tit phm heb jas 1pe 2pe 1jn 2jn 3jn jud rev)
+                else
+                    echo "Invalid book given: $arg"
+                    exit 1;
+                fi
+            else
+                BOOKS_TO_PROCESS+=("$arg")
+            fi
         ;;
     esac
     shift # past argument or value
@@ -120,84 +142,90 @@ then
     exit 1;
 fi
 
-if [ ${#FILE_TYPES[@]} -eq 0 ];
-then
-    FILE_TYPES=(pdf)
-fi
+book_export () {
+    book=$1
 
-CL_FILE="${LANGUAGE}_cl.html" # Copyrights & Licensing
-TQ_FILE="${LANGUAGE}_tq.html" # translationQuestions
-HTML_FILE="${LANGUAGE}_all.html" # Compilation of all above HTML files
-OUTPUT_FILE="$OUTPUT_DIR/tq-v${VERSION}"
-BOOKS_TO_PROCESS=(gen exo lev num deu jos jdg rut 1sa 2sa 1ki 2ki 1ch 2ch ezr neh est job psa pro ecc sng isa jer lam ezk dan hos jol amo oba jon mic nam hab zep hag zec mal mat mrk luk jhn act rom 1co 2co gal eph php col 1ti 2ti 1th 2th tit phm heb jas 1pe 2pe 1jn 2jn 3jn jud rev)
-
-if $REGENERATE_HTML_FILES; then
-    rm -f "$CL_FILE" "$TQ_FILE" "$HTML_FILE" "$OUTPUT_FILE.*"  # We start fresh, only files that remain are any files retrieved with wget
-fi
-
-# ----- START GENERATE CL PAGE ----- #
-if [ ! -e "$CL_FILE" ];
-then
-    echo "GENERATING $CL_FILE"
-
-    touch "$CL_FILE"
-
-    mkdir -p "$CL_DIR"
-
-    # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
-    if $REDOWNLOAD_FILES || [ ! -e "$CL_DIR/uw.html" ] || [ "$CL_DIR/uw.html" -ot "$D43_BASE_DIR/$CL_DIR/uw.txt" ];
+    if [ ! ${BOOK_NAMES[$book]+_} ];
     then
-        set +e
-        wget -U 'me' "$D43_BASE_URL/$CL_DIR/uw" -O "$CL_DIR/uw.html"
+        echo "Invalid book given: $book"
+        exit 1;
+    fi
 
-        if [ $? != 0 ];
+    CL_FILE="${LANGUAGE}_${book}_cl.html" # Copyrights & Licensing
+    TQ_FILE="${LANGUAGE}_${book}_tq.html" # translationQuestions
+    HTML_FILE="${LANGUAGE}_${book}_all.html" # Compilation of all above HTML files
+    LINKS_FILE="${LANGUAGE}_${book}_links.sed" # SED commands for links
+    OUTPUT_FILE="$OUTPUT_DIR/tq-${BOOK_NUMBERS[$book]}-${book^^}-v${VERSION}"
+    BAD_LINKS_FILE="${LANGUAGE}_${book}_bad_links.txt"
+
+	if $REGENERATE_HTML_FILES; then
+        rm -f "$CL_FILE" "$TQ_FILE" "$LINKS_FILE" "$HTML_FILE" "$BAD_LINKS_FILE" "$OUTPUT_FILE".*  # We start fresh, only files that remain are any files retrieved with wget
+    fi
+
+    touch "$LINKS_FILE"
+    touch "$BAD_LINKS_FILE"
+
+    # ----- START GENERATE CL PAGE ----- #
+    if [ ! -e "$CL_FILE" ];
+    then
+        echo "GENERATING $CL_FILE"
+        
+        touch "$CL_FILE"
+        
+        mkdir -p "$CL_DIR"
+        
+        # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
+        if $REDOWNLOAD_FILES || [ ! -e "$CL_DIR/uw.html" ] || [ "$CL_DIR/uw.html" -ot "$D43_BASE_DIR/$CL_DIR/uw.txt" ];
         then
-            rm "$CL_DIR/uw.html";
-            echo "$D43_BASE_URL/$CL_DIR/uw ($CL_FILE)" >> "$BAD_LINKS_FILE"
+            set +e
+            wget -U 'me' "$D43_BASE_URL/$CL_DIR/uw" -O "$CL_DIR/uw.html"
+        
+            if [ $? != 0 ];
+            then
+                rm "$CL_DIR/uw.html";
+                echo "$D43_BASE_URL/$CL_DIR/uw ($CL_FILE)" >> "$BAD_LINKS_FILE"
+            fi
+            set -e
         fi
-        set -e
-    fi
-
-    if [ -e "$CL_DIR/uw.html" ];
-    then
-        cat "$CL_DIR/uw.html" > "$CL_FILE"
+        
+        if [ -e "$CL_DIR/uw.html" ];
+        then
+            cat "$CL_DIR/uw.html" > "$CL_FILE"
+        else
+            echo "<h1>Copyrights & Licensing - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$CL_DIR/uw - page does not exist</p>" >> "$CL_FILE"
+        fi
+        
+        # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
+        sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' "$CL_FILE"
+        sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' "$CL_FILE"
+        sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' "$CL_FILE"
     else
-        echo "<h1>Copyrights & Licensing - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$CL_DIR/uw - page does not exist</p>" >> "$CL_FILE"
+        echo "NOTE: $CL_FILE already generated."
     fi
+    # ----- END GENERATE CL PAGES ------- #
 
-    # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
-    sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' "$CL_FILE"
-    sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' "$CL_FILE"
-    sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' "$CL_FILE"
-else
-    echo "NOTE: $CL_FILE already generated."
-fi
-# ----- END GENERATE CL PAGES ------- #
-
-# ----- START GENERATE tQ PAGES ----- #
-if [ ! -e "$TQ_FILE" ];
-then
-    echo "GENERATING $TQ_FILE"
-
-    touch "$TQ_FILE"
-
-    for book in "${BOOKS_TO_PROCESS[@]}"
-    do
+    # ----- START GENERATE tQ PAGES ----- #
+    if [ ! -e "$TQ_FILE" ];
+    then
+        echo "GENERATING $TQ_FILE"
+        
+        touch "$TQ_FILE"
+        
         dir="$TQ_DIR/$book"
         mkdir -p "$dir"
-
+        
         find "$D43_BASE_DIR/$TQ_DIR/$book" -type f -name "[0-9]*.txt" -exec grep -q 'tag>.*publish' {} \; -printf '%P\n' |
             sort |
             while read f;
             do
                 chapter=${f%%.txt}
-
+        
                 # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
                 if $REDOWNLOAD_FILES || [ ! -e "$dir/$chapter.html" ] || [ "$dir/$chapter.html" -ot "$D43_BASE_DIR/$dir/$chapter.txt" ];
                 then
                     set +e
                     wget -U 'me' "$D43_BASE_URL/$dir/$chapter" -O "$dir/$chapter.html"
-
+        
                     if [ $? != 0 ];
                     then
                         rm "$dir/$chapter.html";
@@ -205,79 +233,124 @@ then
                     fi
                     set -e
                 fi
-
+        
                 if [ -e "$dir/$chapter.html" ];
                 then
                     grep -v '<strong>.*&gt;<\/a><\/strong>' "$dir/$chapter.html" |
                         grep -v ' href="\/tag\/' >> "$TQ_FILE"
+        
+                    linkname=$(head -3 "$dir/$chapter.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
+                    echo "s@\"[^\"]*/$dir/$chapter\"@\"#$linkname\"@g" >> "$LINKS_FILE"
                 else
                     echo "<h1>$book $chapter - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$chapter - page does not exist</p>" >> "$TQ_FILE"
                 fi
             done
-
+        
+        # REMOVE Comprehension Questions and Answers title
+        sed -i -e '\@<h2.*Comprehension Questions and Answers<\/h2>@d' "$TQ_FILE"
+        
         # REMOVE links at end of quesiton page to return to question home page
         sed -i -e "\@/$dir/home@d" "$TQ_FILE"
-    done
-else
-    echo "NOTE: $TQ_FILE already generated."
-fi
-# ----- END GENERATE tQ PAGES ------- #
-
-# ----- START GENERATE HTML PAGE ----- #
-if [ ! -e "$HTML_FILE" ];
-then
-    # Compile all the CL, & tQ HTML files into one with headers
-    echo "GENERATING $HTML_FILE"
-
-    echo '<h1>Copyrights & Licensing</h1>' >> "$HTML_FILE"
-    cat "$CL_FILE" >> "$HTML_FILE"
-
-    echo '<h1>translationQuestions</h1>' >> "$HTML_FILE"
-    cat "$TQ_FILE" >> "$HTML_FILE"
-else
-    echo "NOTE: $HTML_FILE already generated."
-fi
-# ----- END GENERATE HTML PAGES ------- #
-
-# ----- START GENERATE OUTPUT FILES ----- #
-TITLE="translationQuestions"
-
-LOGO="https://unfoldingword.org/assets/img/icon-tq.png"
-response=$(curl --write-out %{http_code} --silent --output logo-tq.png "$LOGO");
-if [ $response -eq "200" ];
-then
-  LOGO_FILE="-V logo=logo-tq.png"
-fi
-
-for type in "${FILE_TYPES[@]}"
-do
-    if [ ! -e "$OUTPUT_FILE.$type" ];
-    then
-        echo "GENERATING $OUTPUT_FILE.$type";
-
-        pandoc \
-            -S \
-            --latex-engine="xelatex" \
-            --template="$TEMPLATE" \
-            --toc \
-            --toc-depth=2 \
-            -V documentclass="scrartcl" \
-            -V classoption="oneside" \
-            -V geometry='hmargin=2cm' \
-            -V geometry='vmargin=3cm' \
-            -V title="$TITLE" \
-            -V subtitle="$SUBTITLE" \
-            $LOGO_FILE \
-            -V date="$DATE" \
-            -V mainfont="Noto Serif" \
-            -V sansfont="Noto Sans" \
-            -o "$OUTPUT_FILE.$type" "$HTML_FILE"
-
-        echo "GENERATED FILE: $OUTPUT_FILE.$type"
     else
-        echo "NOTE: $OUTPUT_FILE.$type already generated."
+        echo "NOTE: $TQ_FILE already generated."
     fi
+    # ----- END GENERATE tQ PAGES ------- #
+
+    # ----- START GENERATE HTML PAGE ----- #
+    if [ ! -e "$HTML_FILE" ];
+    then
+        # Compile all the above CL and tQ HTML files into one with headers
+        echo "GENERATING $HTML_FILE"
+        
+        echo '<h1>Copyrights & Licensing</h1>' >> "$HTML_FILE"
+        cat "$CL_FILE" >> "$HTML_FILE"
+        
+        echo '<h1>translationQuestions</h1>' >> "$HTML_FILE"
+        cat "$TQ_FILE" >> "$HTML_FILE"
+
+        # ----- START LINK FIXES AND CLEANUP ----- #
+        # Link Fixes
+        sed -i -f "$LINKS_FILE" "$HTML_FILE"
+        sed -i -e 's/\/en\/bible.*"/"/' "$HTML_FILE"
+        sed -i -e 's/\/en\/obs.*"/"/' "$HTML_FILE"
+
+        # Cleanup
+        sed -i -e 's/\xe2\x80\x8b//g' -e '/^<hr>/d' -e '/&lt;&lt;/d' \
+            -e 's/<\/span>/<\/span> /g' -e 's/jpg[?a-zA-Z=;&0-9]*"/jpg"/g' \
+            -e 's/ \(src\|href\)="\// \1="https:\/\/door43.org\//g' \
+            "$HTML_FILE"
+        # ----- END LINK FIXES AND CLEANUP ------- #
+    else
+        echo "NOTE: $HTML_FILE already generated."
+    fi
+    # ----- END GENERATE HTML PAGES ------- #
+
+    # ----- START GENERATE OUTPUT FILES ----- #
+    TITLE="${BOOK_NAMES[$book]}"
+    SUBTITLE="translationQuestions"
+
+    LOGO="https://unfoldingword.org/assets/img/icon-tq.png"
+    response=$(curl --write-out %{http_code} --silent --output logo-tq.png "$LOGO");
+    if [ $response -eq "200" ];
+    then
+      LOGO_FILE="-V logo=logo-tq.png"
+    fi
+
+    for type in "${FILE_TYPES[@]}"
+    do
+        if [ ! -e "$OUTPUT_FILE.$type" ];
+        then
+            echo "GENERATING $OUTPUT_FILE.$type";
+
+            pandoc \
+                -S \
+                --latex-engine="xelatex" \
+                --template="$TEMPLATE" \
+                --toc \
+                --toc-depth=2 \
+                -V documentclass="scrartcl" \
+                -V classoption="oneside" \
+                -V geometry='hmargin=2cm' \
+                -V geometry='vmargin=3cm' \
+                -V title="$TITLE" \
+                -V subtitle="$SUBTITLE" \
+                $LOGO_FILE \
+                -V date="$DATE" \
+                -V mainfont="Noto Serif" \
+                -V sansfont="Noto Sans" \
+                -o "$OUTPUT_FILE.$type" "$HTML_FILE"
+                
+            echo "GENERATED FILE: $OUTPUT_FILE.$type"
+        else
+            echo "NOTE: $OUTPUT_FILE.$type already generated."
+        fi
+    done
+    # ----- END GENERATE OUTPUT FILES ------- #
+}
+
+# ---- EXECUTION BEGINS HERE ----- #
+
+if [ ${#BOOKS_TO_PROCESS[@]} -eq 0 ];
+then
+    echo "Please specify one or more books by adding their abbreviations, separated by spaces. Book abbreviations are as follows:";
+
+    for key in "${!BOOK_NAMES[@]}"
+    do
+        echo "$key: ${BOOK_NAMES[$key]}";
+    done |
+    sort -n -k3
+
+    exit 1;
+fi
+
+if [ ${#FILE_TYPES[@]} -eq 0 ];
+then
+    FILE_TYPES=(pdf)
+fi
+
+for book in "${BOOKS_TO_PROCESS[@]}"
+do
+    book_export ${book,,}
 done
-# ----- END GENERATE OUTPUT FILES ------- #
 
 echo "Done!"
