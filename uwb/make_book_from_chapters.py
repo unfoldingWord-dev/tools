@@ -257,10 +257,10 @@ def main(slug, ver, book = None):
 
     books_published = save_book(books_to_process, outdir, slug, ver)
 
-    if bible_part == 'all' or bible_part == 'ot':
-        save_ot(outdir, ver)
-    if bible_part == 'all' or bible_part == 'nt':
-        save_nt(outdir, ver)
+#    if bible_part == 'all' or bible_part == 'ot':
+#        save_ot(outdir, ver)
+#    if bible_part == 'all' or bible_part == 'nt':
+#        save_nt(outdir, ver)
 
     if not book:
         status = { "slug": slug.lower(),

@@ -101,10 +101,10 @@ then
 fi
 
 for BOOK in "${BOOKS[@]}"; do
-    TITLE=$(uwb/catalog_query.py -l $LANGUAGE -v $VER -k name);
-    PUBLISH_DATE=$(date -d $(uwb/catalog_query.py -l $LANGUAGE -v $VER -k publish_date) +"%Y-%m-%d")
-    VERSION=$(uwb/catalog_query.py -l $LANGUAGE -v $VER -k version)
-    CHECKING_LEVEL=$(uwb/catalog_query.py -l $LANGUAGE -v $VER -k checking_level)
+    TITLE=$(uwb/catalog_query.py -l $LANGUAGE -v ${VER}-${LANGUAGE} -k name);
+    PUBLISH_DATE=$(date -d $(uwb/catalog_query.py -l $LANGUAGE -v ${VER}-${LANGUAGE} -k publish_date) +"%Y-%m-%d")
+    VERSION=$(uwb/catalog_query.py -l $LANGUAGE -v ${VER}-${LANGUAGE} -k version)
+    CHECKING_LEVEL=$(uwb/catalog_query.py -l $LANGUAGE -v ${VER}-${LANGUAGE} -k checking_level)
     TOC_DEPTH=1
 
     if [ -z "${VER// }" ];
@@ -155,7 +155,7 @@ for BOOK in "${BOOKS[@]}"; do
     fi
 
     # Run python (export.py) to generate the .tex file from template .tex files
-    uwb/export.py -l $LANGUAGE -v $VER $BOOK_ARG -f html -o "$BUILDDIR/$BASENAME.html"
+    uwb/export.py -l $LANGUAGE -v ${VER}-${LANGUAGE} $BOOK_ARG -f html -o "$BUILDDIR/$BASENAME.html"
     # Run python (export.py) to generate the .tex file from template .tex files
     #uwb/export.py -l $LANGUAGE -v $VER $BOOK_ARG -f tex -o "$BUILDDIR/$BASENAME.tex"
 
