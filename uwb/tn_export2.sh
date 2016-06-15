@@ -10,12 +10,28 @@
 #  Richard Mahn <richard_mahn@wycliffeassociates.org>
 #  Caleb Maclennan <caleb@alerque.com>
 
-set -e # die if there is an error
-shopt -s extglob # allow globbing
+# Set script to die if any of the subprocesses exit with a fail code. This
+# catches a lot of scripting mistakes that might otherwise only show up as side
+# effects later in the run (or at a later time). This is especially important so
+# we know out temp dir situation is sane before we get started.
+set -e
 
-: ${TOOLS_DIR:=$(cd $(dirname "$0")/../ && pwd)} # Tools directory, relative to this script
+# ENVIRONMENT VARIABLES:
+# DEBUG - true/false -  If true, will run "set -x"
+# TOOLS_DIR - Directory of the "tools" repo where scripts and templates resides. Defaults to the parent directory of this script
+# WORKING_DIR - Directory where all HTML files for tN, tQ, tW, tA are collected and then a full HTML file is made before conversion to PDF, defaults to a system suggested temp location
+# OUTPUT_DIR - Directory to put the PDF, defaults to the current working directory
+# BASE_URL - URL for the _export/xhtmlbody to get Dokuwiki content, defaults to 'https://door43.org/_export/xhtmlbody'
+# TEMPLATE - Location of the TeX template for Pandoc, defaults to "$TOOLS_DIR/general_tools/pandoc_pdf_template.tex
 
-export PATH=/usr/local/texlive/2016/bin/x86_64-linux:$PATH
+# Instantiate a DEBUG flag (default to false). This enables output usful durring
+# script development or later DEBUGging but not normally needed durring
+# production runs. It can be used by calling the script with the var set, e.g.:
+#     $ DEBUG=true ./uwb/pdf_create.sh <book>
+
+: ${TOOLS_DIR:=$(cd $(dirname "$0")/../ && pwd)}
+
+export PATH=$PATH:/usr/local/texlive/2015/bin/x86_64-linux
 
 FILE_TYPES=()
 BOOKS_TO_PROCESS=()
@@ -90,7 +106,6 @@ done
 : ${TEMPLATE:=$TOOLS_DIR/uwb/tex/tn_tw_tq_template.tex}
 
 : ${D43_BASE_DIR:=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages}
-: ${D43_BASE_URL:=https://door43.org/_export/xhtmlbody}
 
 : ${CL_DIR:=$LANGUAGE/legal/license}
 : ${TN_DIR:=$LANGUAGE/bible/notes}
@@ -138,6 +153,7 @@ book_export () {
         exit 1;
     fi
 
+    CL_FILE="${LANGUAGE}_${book}_cl.html" # Copyrights & Licensing
     TN_FILE="${LANGUAGE}_${book}_tn.html" # translationNotes
     TQ_FILE="${LANGUAGE}_${book}_tq.html" # translationQuestions
     TW_FILE="${LANGUAGE}_${book}_tw.html" # translationWords
@@ -148,13 +164,39 @@ book_export () {
     BAD_LINKS_FILE="${LANGUAGE}_${book}_bad_links.txt"
 
     if $REGENERATE_HTML_FILES; then
-        rm -f "$TN_FILE" "$TQ_FILE" "$TW_FILE" "$TA_FILE" "$LINKS_FILE" "$HTML_FILE" "$BAD_LINKS_FILE" "$OUTPUT_FILE".*  # We start fresh, only files that remain are any files retrieved with wget
+        rm -f "$CL_FILE" "$TN_FILE" "$TQ_FILE" "$TW_FILE" "$TA_FILE" "$LINKS_FILE" "$HTML_FILE" "$BAD_LINKS_FILE" "$OUTPUT_FILE".*  # We start fresh, only files that remain are any files retrieved with wget
     else
         rm -f "$OUTPUT_FILE".*  # Only remove the output files so they are regenerated
     fi
 
     touch "$LINKS_FILE"
     touch "$BAD_LINKS_FILE"
+
+    # ----- START GENERATE CL PAGE ----- #
+    if [ ! -e "$CL_FILE" ];
+    then
+        echo "GENERATING $CL_FILE"
+        
+        touch "$CL_FILE"
+        
+        mkdir -p "$CL_DIR"
+        
+        # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
+        if $REDOWNLOAD_FILES || [ ! -e "$CL_DIR/uw.md" ] || [ "$CL_DIR/uw.md" -ot "$D43_BASE_DIR/$CL_DIR/uw.txt" ];
+        then
+            "$TOOLS_DIR/general_tools/dw2md.py" "$D43_BASE_DIR/$CL_DIR/uw.txt" > "$CL_DIR/uw.md"
+        fi
+        
+        if [ -e "$CL_DIR/uw.md" ];
+        then
+            cat "$CL_DIR/uw.md" > "$CL_FILE"
+        else
+            printf "# Copyrights & Licensing - MISSING - CONTENT UNAVAILABLE\n\nUnable to get content from $D43_BASE_DIR/$CL_DIR/uw.txt - page does not exist\n\n" >> "$CL_FILE"
+        fi
+    else
+        echo "NOTE: $CL_FILE already generated."
+    fi
+    # ----- END GENERATE CL PAGES ------- #
 
     # ----- START GENERATE tN PAGES ----- #
     if [ ! -e "$TN_FILE" ];
@@ -163,105 +205,76 @@ book_export () {
         
         touch "$TN_FILE"
         
-        find "$D43_BASE_DIR/$TN_DIR/$book" -mindepth 1 -maxdepth 1 -type d -name "[[:digit:]]*" -printf '%P\n' |
+        find "$D43_BASE_DIR/$TN_DIR/$book" -mindepth 1 -maxdepth 1 -type d -name "[0-9]*" -printf '%P\n' |
             sort -u |
             while read chapter;
             do
                 dir="$TN_DIR/$book/$chapter";
                 mkdir -p "$dir"
         
-                find "$D43_BASE_DIR/$dir" -mindepth 1 -maxdepth 1 -type f \( -name "[[:digit:]]*.txt" -or -name "intro.txt" -or -name "tatopics.txt" -or -name "words.txt" \) \( -exec grep -q 'tag>.*publish' {} \; -or -not -exec grep -q 'tag>.*draft' {} \; \) -printf '%P\n' |
+                find "$D43_BASE_DIR/$dir" -mindepth 1 -maxdepth 1 -type f \( -name "[0-9]*.txt" -or -name "intro.txt" -or -name "tatopics.txt" -or -name "words.txt" \) \( -exec grep -q 'tag>.*publish' {} \; -or -not -exec grep -q 'tag>.*draft' {} \; \) -printf '%P\n' |
                     grep -v 'asv-ulb' |
                     sort -u |
                     while read f; do
                         section=${f%%.txt}
-
+                        linkname=${dir//\//-}-$section
+        
                         # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
                         if $REDOWNLOAD_FILES || [ ! -e "$dir/$section.html" ] || [ "$dir/$section.html" -ot "$D43_BASE_DIR/$dir/$section.txt" ];
                         then
-                            set +e
-                            wget -U 'me' "$D43_BASE_URL/$dir/$section" -O "$dir/$section.html"
-        
-                            if [ $? != 0 ];
-                            then
-                                rm "$dir/$section.html";
-                                echo "$D43_BASE_URL/$dir/$section ($TN_FILE)" >> "$BAD_LINKS_FILE"
-                            fi
-                            set -e
+                            echo '<a name="$linkname"/>' > "$dir/$section.md"
+                            "$TOOLS_DIR/general_tools/dw2md.py" "$D43_BASE_DIR/$dir/$section.txt" >> "$dir/$section.md"
                         fi
         
-                        if [ -e "$dir/$section.html" ];
-                        then
-                            # Remove TFT and >> and /tag/ lines
-                            TFT=false
-                            while read line; do
-                                if [[ $line == '<h2 class="sectionedit2" id="tft">TFT:</h2>' ]]; then
-                                    TFT=true
-                                    continue
-                                fi
-        
-                                if [[ ${line:0:25} == '<!-- EDIT2 SECTION "TFT:"' ]]; then
-                                    TFT=false
-                                    continue
-                                fi
-        
-                                $TFT && continue
-        
-                                if [[ ! $line =~ '<strong>'.*'&gt;</a></strong>' ]] && [[ ! $line =~ ' href="/tag/' ]];
-                                then
-                                    echo "$line" >> "$TN_FILE"
-                                fi
-                            done < "$dir/$section.html"
+                        # Remove TFT and >> and /tag/ lines
+                        TFT=false
+                        USFM=false
+                        while read line; do
+                            if [[ $line == '## TFT:' ]]; then
+                                TFT=true
+                                continue
+                            fi
+    
+                            if [[ ${line:0:25} == '## UDB:' ]]; then
+                                TFT=false
+                            fi
+    
+                            $TFT && continue
 
-                            linkname=$(head -3 "$dir/$section.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
-                            start_verse=${section##+(0)} # strip leading zeros from section to get the start verse
-                            end_verse=$(head -3 "$dir/$section.html" | grep -o ':[[:digit:]]\+-[[:digit:]]\+' | cut -f 2 -d '-')
-                            if [ -z "$end_verse" ];
-                            then
-                                end_verse=$start_verse
+                            if [[ $line == '<usfm>' ]]; then
+                                USFM=true
+                                usfm_text=""
+                                continue
                             fi
-                            if [[ $start_verse =~ ^-?[[:digit:]]+$ ]];
-                            then
-                                while [ $start_verse -le $end_verse ];
-                                do
-                                    if [ $start_verse -lt 10 ];
-                                    then
-                                        if [ "$book" == "psa" ];
-                                        then
-                                            url="/$dir/00$start_verse"
-                                        else
-                                            url="/$dir/0$start_verse"
-                                        fi
-                                    else
-                                        if [ $start_verse -lt 100 ] && [ "$book" == "psa" ];
-                                        then
-                                            url="/$dir/0$start_verse"
-                                        else
-                                            url="/$dir/$start_verse"
-                                        fi
-                                    fi
-                                    echo "s@\"[^\"]*$url\"@\"#$linkname\"@g" >> "$LINKS_FILE"
-                                    let start_verse=start_verse+1
-                                done
-                            else
-                                url="/$dir/$start_verse"
-                                echo "s@\"[^\"]*$url\"@\"#$linkname\"@g" >> "$LINKS_FILE"
+
+                            if $USFM; then
+                                if [[ $line == '</usfm>' ]]; then
+                                    usfm_text=${usfm_text//\\/\\\\}
+                                    usfm_text=${usfm_text2//\"/\\\"}
+                                    php_code='$dir="/var/www/vhosts/door43.org/httpdocs/lib/plugins/usfmtag/";include $dir."UsfmParagraphState.php";include $dir."UsfmText.php";include $dir."UsfmTagDecoder.php";$utd = new UsfmTagDecoder(); echo $utd->decode("'$usfm_text2'");'
+                                    php -r "$php_code"
+                                    continue
+                                else
+                                    usfm_text="$usfm_text $line"
+                                fi
                             fi
-                        else
-                            echo "<h1>$book $chapter:$section - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$section - page does not exist</p>" >> "$TN_FILE"
-                        fi
+    
+                            if [[ ! $line =~ '**[>>]('.*')' ]] && [[ ! $line =~ '![](tag>' ]];
+                            then
+                                echo "$line" >> "$TN_FILE"
+                            fi
+                        done < "$dir/$section.md"
+        
+                        echo "s@\"[^\"]*/$dir/$section\"@\"#$linkname\"@g" >> "$LINKS_FILE"
                     done
             done
         
-        # Increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
-        sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' "$TN_FILE"
-        sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' "$TN_FILE"
-        sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' "$TN_FILE"
-        # Superscript all verses
-        sed -i -e "s@\(<span class=['\"]usfm-v['\"]><b class=['\"]usfm['\"]><a name=['\"][^'\"]*['\"]></a>[[:digit:]]\+</b></span>\) *@<sup>\1</sup> @g" "$TN_FILE"
-        # Change chapter numbers to <b>#</b>
-        sed -i -e "s@<p class='usfm-flush' align='justify'><span class='usfm-c'><big class='usfm-c'><big class='usfm-c'><big class='usfm-c'><big class='usfm-c'>\([[:digit:]]\+\)</big></big></big></big></span>\(.*\)@<b>\1</b> \2@" "$TN_FILE"
-        sed -i -e 's@>\([^>]\+\) 0*\([[:digit:]]\+\)\([^<]*\)</h2>@>\1 \2\3</h2>@' "$TN_FILE" # Strip 0 off of any tN title
+        # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
+        sed -i -e 's/^### /#### /' "$TN_FILE"
+        sed -i -e 's/^## /### /' "$TN_FILE"
+        sed -i -e 's/^# /## /' "$TN_FILE"
+        sed -i -e "s@\(<span class=['\"]usfm-v['\"]><b class=['\"]usfm['\"]><a name=['\"][^'\"]*['\"]></a>[0-9]\+</b></span>\) *@<sup>\1</sup>@g" "$TN_FILE"
+        sed -i -e "s@<p class='usfm-flush' align='justify'><span class='usfm-c'><big class='usfm-c'><big class='usfm-c'><big class='usfm-c'><big class='usfm-c'>\([0-9]\+\)</big></big></big></big></span>\(.*\)@<h1>\1</h1> \2@" "$TN_FILE"
     else
         echo "NOTE: $TN_FILE already generated."
     fi
@@ -277,59 +290,32 @@ book_export () {
         dir="$TQ_DIR/$book"
         mkdir -p "$dir"
         
-        find "$D43_BASE_DIR/$TQ_DIR/$book" -type f -name "[[:digit:]]*.txt" -exec grep -q 'tag>.*publish' {} \; -printf '%P\n' |
+        find "$D43_BASE_DIR/$TQ_DIR/$book" -type f -name "[0-9]*.txt" -exec grep -q 'tag>.*publish' {} \; -printf '%P\n' |
             sort |
             while read f;
             do
                 chapter=${f%%.txt}
-        
+                linkname=${dir//\//-}-$chapter
+
                 # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
                 if $REDOWNLOAD_FILES || [ ! -e "$dir/$chapter.html" ] || [ "$dir/$chapter.html" -ot "$D43_BASE_DIR/$dir/$chapter.txt" ];
                 then
-                    set +e
-                    wget -U 'me' "$D43_BASE_URL/$dir/$chapter" -O "$dir/$chapter.html"
-        
-                    if [ $? != 0 ];
-                    then
-                        rm "$dir/$chapter.html";
-                        echo "$D43_BASE_URL/$dir/$chapter ($TQ_FILE)" >> "$BAD_LINKS_FILE"
-                    fi
-                    set -e
+                    echo '<a name="$linkname"/>' > "$dir/$chapter.md"
+                    "$TOOLS_DIR/general_tools/dw2md.py" "$D43_BASE_DIR/$dir/$section.txt" >> "$dir/$chapter.md"
                 fi
         
-                if [ -e "$dir/$chapter.html" ];
-                then
-                    grep -v '<strong>.*&gt;<\/a><\/strong>' "$dir/$chapter.html" |
-                        grep -v ' href="\/tag\/' >> "$TQ_FILE"
-        
-                    linkname=$(head -3 "$dir/$chapter.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
-                    echo "s@\"[^\"]*/$dir/$chapter\"@\"#$linkname\"@g" >> "$LINKS_FILE"
-                else
-                    echo "<h1>$book $chapter - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$chapter - page does not exist</p>" >> "$TQ_FILE"
-                fi
+                grep -v '\*\*\[>>' "$dir/$chapter.md" |
+                    grep -v '![](tag>' >> "$TQ_FILE"
+    
+                echo "s@\"[^\"]*/$dir/$chapter\"@\"#$linkname\"@g" >> "$LINKS_FILE"
             done
-
-        # Make Q? and A. bold and put a <hr> between Q/A pairs
-        sed -i -e 's@^A\.\(.*\)$@A.\1\n</p>\n\n<p>\n<hr/>@' "$TQ_FILE"
-        sed -i -e 's@^\(Q?\|A\.\) @<b>\1</b> @' "$TQ_FILE"
-        # Pad all verse references with 0s if single digits and then make a link to the chunk of the chapter number and first verse #
-        sed -i -e 's@\[\([1-9]\):@[0\1:@g' "$TQ_FILE" # [1: => [01:
-        sed -i -e 's@\[\([[:digit:]]\+\):\([[:digit:]]\)\]@[\1:0\2]@g' "$TQ_FILE" # [01:1] => [01:01]
-        sed -i -e 's@\[\([[:digit:]]\+\):\([[:digit:]]-[[:digit:]]\+\)\]@[\1:0\2]@g' "$TQ_FILE" # [01:1-2] => [01:01-2]
-        sed -i -e 's@\[\([[:digit:]]\+\):\([[:digit:]]+\+\)-\([[:digit:]]\)\]@[\1:\2-0\3]@g' "$TQ_FILE" # [01:01-2] => [01:01-02]
-        # Add an extra 0 for padding in Psalm chapters and verses
-        if [ "$book" == "psa" ];
-        then
-            sed -i -e 's@\[\([[:digit:]][[:digit:]]\):@[0\1:@g' "$TQ_FILE" # [01: => [001:
-            sed -i -e 's@\[\([[:digit:]]\+\):\([[:digit:]][[:digit:]]\)\]@[\1:0\2]@g' "$TQ_FILE" # [001:1] => [001:001]
-            sed -i -e 's@\[\([[:digit:]]\+\):\([[:digit:]][[:digit:]]-[[:digit:]]\+\)\]@[\1:0\2]@g' "$TQ_FILE" # [001:01-02] => [001:001-02]
-            sed -i -e 's@\[\([[:digit:]]\+\):\([[:digit:]]+\+\)-\([[:digit:]][[:digit:]]\)\]@[\1:\2-0\3]@g' "$TQ_FILE" # [001:001-02] => [001:001-002]
-        fi
-        sed -i -e 's@\[\(0*\)\([[:digit:]]\+\):\(0*\)\([[:digit:]]\+\)\(0*\)\([0-9-]*\)\]@[<a href="/en/bible/notes/'$book'/\1\2/\3\4">\2:\4\6</a>]@g' "$TQ_FILE" # Try to link all verse to their chunk
-        # Remove "Translation Questions" from title and any leading 0s
-        sed -i -e 's@>\([^>]\+\) 0*\([[:digit:]]\+\) Translation Questions@>\1 \2@' "$TQ_FILE"
-        # REMOVE links at end of question page to return to question home page
-        sed -i -e "\@/$dir/home@d" "$TQ_FILE"
+        
+        sed -i -e 's@^A\.\(.*\)$@A.\1\n\n---\n@' "$TQ_FILE"
+        sed -i -e 's@^\(Q?\|A\.\) @**\1** @' "$TQ_FILE"
+        sed -i -e 's@\[\([0-9]\):@[0\1:@g' "$TQ_FILE"
+        sed -i -e 's@:\([0-9]\)\]@:0\1]@g' "$TQ_FILE"
+        sed -i -e 's@\[\([0-9]\+\):\([0-9]\+\)\]@[[\1:\2](#en-bible-notes-'$book'-\1-\2)]@g' "$TQ_FILE"
+        sed -i -e "@\*\*\[\[home@d" "$TQ_FILE"
     else
         echo "NOTE: $TQ_FILE already generated."
     fi
@@ -343,52 +329,33 @@ book_export () {
         touch "$TW_FILE"
         
         # Get the linked key terms
-        export IFS=$'\n'
-        for term_data in $(grep -oPh "\"\/$LANGUAGE\/obe.*?\"" "$TN_FILE" | sed 's@^"/\(.*\)/\(.*\)"@\2\t\1@' | sort -u);
+        for url in $(grep -oPh "\[:$LANGUAGE:obe:.*?\]" "$TN_FILE" | tr -d '[' | tr -d ']' | sort -u);
         do
-            dir=$(awk -F '\t' '{print $2}'<<<$term_data)
-            term=$(awk -F '\t' '{print $1}'<<<$term_data)
+            dir=${url#:} # remove preceeding :
+            dir=${dir%:*} # remove term from dir
+            term=${url##*/} # get the term
+            dir=${dir//:/\/} # change colons to / in dir
+            linkname=${dir//\//-}-$term
 
             mkdir -p "$dir"
         
             # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
-            if $REDOWNLOAD_FILES || [ ! -e "$dir/$term.html" ] || [ "$dir/$term.html" -ot "$D43_BASE_DIR/$dir/$term.txt" ];
+            if $REDOWNLOAD_FILES || [ ! -e "$dir/$term.md" ] || [ "$dir/$term.md" -ot "$D43_BASE_DIR/$dir/$term.txt" ];
             then
-                set +e
-                wget -U 'me' "$D43_BASE_URL/$dir/$term" -O "$dir/$term.html"
-        
-                if [ $? != 0 ];
-                then
-                    rm "$dir/$term.html";
-                    echo "$D43_BASE_URL/$dir/$term ($TW_FILE)" >> "$BAD_LINKS_FILE"
-                fi
-                set -e
+                echo '<a name="$linkname"/>' > "$dir/$term.md"
+                "$TOOLS_DIR/general_tools/dw2md.py" "$D43_BASE_DIR/$dir/$section.txt" >> "$dir/$term.md"
             fi
         
-            if [ -e "$dir/$term.html" ];
-            then
-                TAG_LINES=false
-                while read line; do
-                    # Remove everything after the <div class="tags"><span> tags but keep the closing </div> tag
-                    if [[ $line == '<div class="tags"><span>' ]] || $TAG_LINES; then
-                        TAG_LINES=true
-                        if [[ $line == '</span></div>' ]]; then
-                            TAG_LINES=false
-                        fi
-                        continue
-                    fi
-        
-                    echo "$line" >> "$TW_FILE"
-                done < "$dir/$term.html"
-        
-                linkname=$(head -3 "$dir/$term.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
-                echo "s@\"[^\"]*/$dir/$term\"@\"#$linkname\"@g" >> "$LINKS_FILE"
-            else
-                echo "<h1>$term - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$term - page does not exist</p>" >> "$TW_FILE"
-            fi
+            grep -v '\*\*\[>>' "$dir/$term.md" |
+                grep -v '![](tag>' >> "$TW_FILE"
+    
+                echo "$line" >> "$TW_FILE"
+            done < "$dir/$term.md"
+    
+            linkname=$(head -3 "$dir/$term.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
+            echo "s@\"[^\"]*/$dir/$term\"@\"#$linkname\"@g" >> "$LINKS_FILE"
         done
-        unset IFS
-
+        
         # Quick fix for getting rid of these Bible References lists in a table, removing table tags
         sed -i -e 's/^\s*<table class="ul">/<ul>/' "$TW_FILE"
         sed -i -e 's/^\s*<tr>//' "$TW_FILE"
@@ -438,16 +405,11 @@ book_export () {
                     set -e
                 fi
         
-                if [ -e "$dir/$term.html" ];
-                then
-                    cat "$dir/$term.html" |
-                        grep -v ' href="\/tag\/' >> "$TA_FILE"
-        
-                    linkname=$(head -3 "$dir/$term.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
-                    echo "s@\"[^\"]*/$dir/$term\"@\"#$linkname\"@g" >> "$LINKS_FILE"
-                else
-                    echo "<h1>$term - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$section - page does not exist</p>" >> "$TA_FILE"
-                fi
+                cat "$dir/$term.html" |
+                    grep -v ' href="\/tag\/' >> "$TA_FILE"
+    
+                linkname=$(head -3 "$dir/$term.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
+                echo "s@\"[^\"]*/$dir/$term\"@\"#$linkname\"@g" >> "$LINKS_FILE"
             done
         
         # get rid of the pad.door43.org links and the <hr> with it
@@ -464,6 +426,8 @@ book_export () {
     then
         # Compile all the above CL, tN, tQ, tW, and tA HTML files into one with headers
         echo "GENERATING $HTML_FILE"
+        
+        cat "$CL_FILE" >> "$HTML_FILE"
         
         echo '<h1>translationNotes</h1>' >> "$HTML_FILE"
         cat "$TN_FILE" >> "$HTML_FILE"
@@ -506,8 +470,6 @@ book_export () {
       LOGO_FILE="-V logo=logo-tn.png"
     fi
 
-    FORMAT_FILE="$TOOLS_DIR/uwb/tex/format.tex"
-
     for type in "${FILE_TYPES[@]}"
     do
         if [ ! -e "$OUTPUT_FILE.$type" ];
@@ -527,13 +489,8 @@ book_export () {
                 -V subtitle="$SUBTITLE" \
                 $LOGO_FILE \
                 -V date="$DATE" \
-                -V version="$VERSION.0" \
                 -V mainfont="Noto Serif" \
                 -V sansfont="Noto Sans" \
-                -V fontsize="13pt" \
-                -V urlcolor="Bittersweet" \
-                -V linkcolor="Bittersweet" \
-                -H "$FORMAT_FILE" \
                 -o "$OUTPUT_FILE.$type" "$HTML_FILE"
                 
             echo "GENERATED FILE: $OUTPUT_FILE.$type"

@@ -12,25 +12,12 @@
 #  Richard Mahn <richard_mahn@wycliffeassociates.org>
 #  Caleb Maclennan <caleb@alerque.com>
 
-# Set script to die if any of the subprocesses exit with a fail code. This
-# catches a lot of scripting mistakes that might otherwise only show up as side
-# effects later in the run (or at a later time). This is especially important so
-# we know out temp dir situation is sane before we get started.
-set -e
+set -e # die if errors
 
-export PATH=$PATH:/usr/local/texlive/2015/bin/x86_64-linux
+export PATH=/usr/local/texlive/2016/bin/x86_64-linux:$PATH
 
 FILE_TYPES=()
 VALID_FILE_TYPES=(pdf docx html tex txt text)
-
-# ENVIRONMENT VARIABLES:
-# DEBUG - true/false -  If true, will run "set -x"
-# TOOLS_DIR - Directory of the "tools" repo where scripts and templates resides. Defaults to the parent directory of this script
-# WORKING_DIR - Directory where all HTML files for tN, tQ, tW, tA are collected and then a full HTML file is made before conversion to PDF, defaults to a system suggested temp location
-# OUTPUT_DIR - Directory to put the PDF, defaults to the current working directory
-# BASE_URL - URL for the _export/xhtmlbody to get Dokuwiki content, defaults to 'https://door43.org/_export/xhtmlbody'
-# NOTES_URL - URL for getting translationNotes, defaults to $BASE_URL/en/bible/notes
-# TEMPLATE - Location of the TeX template for Pandoc, defaults to "$TOOLS_DIR/general_tools/pandoc_pdf_template.tex
 
 #gather command-line arguments
 while [[ $# > 0 ]]
@@ -76,9 +63,9 @@ done
 #     $ DEBUG=true ./uwb/pdf_create.sh <book>
 : ${DEBUG:=false}
 
-: ${TOOLS_DIR:=$(cd $(dirname "$0")/../ && pwd)}
+: ${TOOLS_DIR:=$(cd $(dirname "$0")/../ && pwd)} # Tools dir relative to this script
 : ${OUTPUT_DIR:=$(pwd)}
-: ${TEMPLATE:=$TOOLS_DIR/general_tools/pandoc_pdf_template.tex}
+: ${TEMPLATE:=$TOOLS_DIR/uwb/tex/tn_tw_tq_template.tex}
 : ${VERSION:=2}
 : ${REGENERATE_HTML_FILES:=true}
 : ${REDOWNLOAD_FILES:=false}
@@ -125,7 +112,6 @@ fi
 
 DATE=`date +"%Y-%m-%d"`
 
-CL_FILE="${LANGUAGE}_tw_cl.html" # Copyrights & Licensing
 KT_FILE="${LANGUAGE}_tw_kt.html" # Key Terms file
 OTHER_FILE="${LANGUAGE}_tw_ot.html" # Other Terms file
 HTML_FILE="${LANGUAGE}_tw_all.html" # Compilation of all above HTML files
@@ -184,38 +170,14 @@ generate_term_file () {
     sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' "$out_file"
 }
 
-# ---- MAIN EXECUTION BEGINS HErm -f $CL_FILE $KT_FILE $OTHER_FILE $HTML_FILE $LINKS_FILE $BAD_LINKS_FILE # We start fresh, only files that remain are any files retrieved with wget
+# ---- MAIN EXECUTION BEGINS HERE ----
 
 if $REGENERATE_HTML_FILES; then
-    rm -f "$CL_FILE" "$KT_FILE" "$OTHER_FILE" "$HTML_FILE" "$OUTPUT_FILE".*  # We start fresh, only files that remain are any files retrieved with wget
+    rm -f "$KT_FILE" "$OTHER_FILE" "$HTML_FILE" "$OUTPUT_FILE".*  # We start fresh, only files that remain are any files retrieved with wget
 fi
 
 touch "$LINKS_FILE"
 touch "$BAD_LINKS_FILE"
-
-# ----- START GENERATE CL PAGE ----- #
-if [ ! -e "$CL_FILE" ];
-then
-    echo "GENERATING $CL_FILE"
-
-    mkdir -p "$CL_DIR"
-
-    # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
-    if [ ! -e "$CL_DIR/uw.html" ] || [ "$CL_DIR/uw.html" -ot "$D43_BASE_DIR/$CL_DIR/uw.txt" ];
-    then
-        wget -U 'me' "$D43_BASE_URL/$CL_DIR/uw" -O "$CL_DIR/uw.html"
-    fi
-        
-    cat "$CL_DIR/uw.html" > "$CL_FILE"
-        
-    # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
-    sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' "$CL_FILE"
-    sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' "$CL_FILE"
-    sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' "$CL_FILE"
-else
-    echo "NOTE: $CL_FILE already generated."
-fi
-# ----- END GENERATE CL PAGES ------- #
 
 if ! $COMBINED_LISTS;
 then
@@ -245,9 +207,6 @@ fi
 if [ ! -e "$HTML_FILE" ];
 then
     echo "GENERATING $HTML_FILE"
-        
-    echo '<h1>Copyrights & Licensing</h1>' >> $HTML_FILE
-    cat $CL_FILE >> $HTML_FILE
         
     if ! $COMBINED_LISTS;
     then
@@ -286,6 +245,8 @@ then
   LOGO_FILE="-V logo=logo-tw.png"
 fi
 
+FORMAT_FILE="$TOOLS_DIR/uwb/tex/format.tex"
+
 for type in "${FILE_TYPES[@]}"
 do
     if [ ! -e "$OUTPUT_FILE.$type" ];
@@ -304,8 +265,11 @@ do
             -V title="$TITLE" \
             $LOGO_FILE \
             -V date="$DATE" \
+            -V version="$VERSION.0" \
             -V mainfont="Noto Serif" \
             -V sansfont="Noto Sans" \
+            -V linkcolor="Green" \
+            -H "$FORMAT_FILE" \
             -o "$OUTPUT_FILE.$type" "$HTML_FILE"
 
         echo "GENERATED FILE: $OUTPUT_FILE.$type"
