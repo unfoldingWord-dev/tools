@@ -108,5 +108,5 @@ if __name__ == '__main__':
         exit(1)
 
     filename = sys.argv[1]
-    print convert(codecs.open(filename, 'r', encoding='utf-8').read())
+    print convert(codecs.open(filename, 'r', encoding='utf-8').read()).encode('utf-8')
 
