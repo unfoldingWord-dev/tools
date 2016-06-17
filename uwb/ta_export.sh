@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # -*- coding: utf8 -*-
 #
-#  tw_pdf_create.sh - generates a PDF for translationWords, including all words from KT and Other
+#  ta_pdf_create.sh - generates a PDF for translationWords, including all words from KT and Other
 #
 #  Copyright (c) 2015 unfoldingWord
 #  http://creativecommons.org/licenses/MIT/
@@ -101,7 +101,10 @@ fi
 : ${D43_BASE_DIR:=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages}
 : ${D43_BASE_URL:=https://door43.org/_export/xhtmlbody}
 
-: ${TW_DIR:=$LANGUAGE/obe}
+: ${TA_DIR:=$LANGUAGE/ta}
+: ${VOL1_DIR:=$TA_DIR/vol1}
+: ${VOL2_DIR:=$TA_DIR/vol2}
+: ${VOL3_DIR:=$TA_DIR/vol3}
 
 if [ ! -e $D43_BASE_DIR ];
 then
@@ -111,12 +114,13 @@ fi
 
 DATE=`date +"%Y-%m-%d"`
 
-KT_FILE="${LANGUAGE}_tw_kt.html" # Key Terms file
-OTHER_FILE="${LANGUAGE}_tw_ot.html" # Other Terms file
-HTML_FILE="${LANGUAGE}_tw_all.html" # Compilation of all above HTML files
-OUTPUT_FILE="$OUTPUT_DIR/tw-v${VERSION}" # Outputted PDF file
-LINKS_FILE="${LANGUAGE}_tw_links.sed" # SED commands for links
-BAD_LINKS_FILE="${LANGUAGE}_tw_bad_links.txt"
+VOL1_FILE="${LANGUAGE}_ta_vol1.html" # VOL1 file
+VOL2_FILE="${LANGUAGE}_ta_vol2.html" # VOL2 file
+VOL3_FILE="${LANGUAGE}_ta_vol3.html" # VOL3 file
+HTML_FILE="${LANGUAGE}_ta_all.html" # Compilation of all above HTML files
+OUTPUT_FILE="$OUTPUT_DIR/ta_vol-1-2-3" # Outputted PDF file
+LINKS_FILE="${LANGUAGE}_ta_links.sed" # SED commands for links
+BAD_LINKS_FILE="${LANGUAGE}_ta_bad_links.txt"
 
 if [ ${#FILE_TYPES[@]} -eq 0 ];
 then
@@ -124,7 +128,7 @@ then
 fi
 
 generate_term_file () {
-    dir=$1
+    path=$1
     out_file=$2
 
     echo "GENERATING $out_file"
@@ -132,92 +136,76 @@ generate_term_file () {
     rm -f $out_file
     touch $out_file
 
-    find $dir -type f -name "*.txt" \( -exec grep -q 'tag>.*publish' {} \; -or -not -exec grep -q 'tag>.*draft' {} \; \) -print | awk -vFS=/ -vOFS=/ '{ print $NF,$0 }' |
-        sort -u -t / | cut -f2- -d/ |
+    find $path -type f -name "*.txt" \( -exec grep -q 'tag>.*publish' {} \; -or -not -exec grep -q 'tag>.*draft' {} \; \) -print |
+        sort -u |
         while read f; do
+            fdir=$(dirname $f)
+            dir="${fdir#$D43_BASE_DIR/}" # strip $D43_BASE_DIR from $fdir
             filename=$(basename $f)
             term=${filename%%.txt}
-            dir="$TW_DIR/$(basename $(dirname $f))"
 
             mkdir -p "$dir" # creates the dir path in $WORKING_DIR
 
-            # If the file doesn't exit or the file is older than (-ot) the Door43 repo one, fetch it
+            # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
             if $REDOWNLOAD_FILES || [ ! -e "$dir/$term.html" ] || [ "$dir/$term.html" -ot "$D43_BASE_DIR/$dir/$term.txt" ];
             then
+                set +e
                 wget -U 'me' "$D43_BASE_URL/$dir/$term" -O "$dir/$term.html"
+                set -e
             fi
 
-            grep -v '<strong>.*&gt;&gt;<\/a><\/strong>' "$dir/$term.html" |
+            if [ -e "$dir/$term.html" ];
+            then
+                cat "$dir/$term.html" |
                     grep -v ' href="\/tag\/' >> "$out_file"
 
-            echo "<hr/>" >> "$out_file"
-
-            linkname=$(head -3 "$dir/$term.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
-            echo "s@\"[^\"]*/$dir/$term\"@\"#$linkname\"@g" >> "$LINKS_FILE"
+                linkname=$(head -3 "$dir/$term.html" | grep -o 'id=".*"' | cut -f 2 -d '=' | tr -d '"')
+                echo "s@\"[^\"]*/$dir/$term\"@\"#$linkname\"@g" >> "$LINKS_FILE"
+            else
+                echo "<h1>$term - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$dir/$section - page does not exist</p>" >> "$out_file"
+            fi
         done
 
-    # Quick fix for getting rid of these Bible References lists in a table, removing table tags
-    sed -i -e 's/^\s*<table class="ul">/<ul>/' "$out_file"
-    sed -i -e 's/^\s*<tr>//' "$out_file"
-    sed -i -e 's/^\s*<td class="page"><ul>\(.*\)<\/ul><\/td>/\1/' "$out_file"
-    sed -i -e 's/^\s*<\/tr>//' "$out_file"
-    sed -i -e 's/^\s*<\/table>/<\/ul>/' "$out_file"
-
-    # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
-    sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' "$out_file"
-    sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' "$out_file"
-    sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' "$out_file"
+    sed -i -e 's/^\s*<a href="https:\/\/pad\.door43\.org.*//' "$out_file"
+    sed -i -e 's/^<hr \/>//' "$out_file"
 }
 
 # ---- MAIN EXECUTION BEGINS HERE ----
 
 if $REGENERATE_HTML_FILES; then
-    rm -f "$KT_FILE" "$OTHER_FILE" "$HTML_FILE" "$OUTPUT_FILE".*  # We start fresh, only files that remain are any files retrieved with wget
+    rm -f "$VOL1_FILE" "$VOL2_FILE" "$VOL3_FILE" "$HTML_FILE" "$OUTPUT_FILE".*  # We start fresh, only files that remain are any files retrieved with wget
 fi
 
 touch "$LINKS_FILE"
 touch "$BAD_LINKS_FILE"
 
-if ! $COMBINED_LISTS;
-then
-    # ----- GENERATE KT PAGES --------- #
-    if [ ! -e "$KT_FILE" ];
+# ----- GENERATE VOL_FILES --------- #
+    if [ ! -e "$VOL1_FILE" ];
     then
-        generate_term_file "$D43_BASE_DIR/$TW_DIR/kt" $KT_FILE
+        generate_term_file "$D43_BASE_DIR/$VOL1_DIR" $VOL1_FILE
     fi
-    # ----- EMD GENERATE KT PAGES ----- #
-    
-    # ----- GENERATE OTHER PAGES --------- #
-    if [ ! -e "$OTHER_FILE" ];
+    if [ ! -e "$VOL2_FILE" ];
     then
-    generate_term_file "$D43_BASE_DIR/$TW_DIR/other" $OTHER_FILE
+        generate_term_file "$D43_BASE_DIR/$VOL2_DIR" $VOL2_FILE
     fi
-    # ----- EMD GENERATE OTHER PAGES ----- #
-else
-    # ----- GENERATE ALL PAGES --------- #
-    if [ ! -e "$OTHER_FILE" ];
+    if [ ! -e "$VOL3_FILE" ];
     then
-        generate_term_file "$D43_BASE_DIR/$TW_DIR/other $D43_BASE_DIR/$TW_DIR/kt" $OTHER_FILE
+        generate_term_file "$D43_BASE_DIR/$VOL3_DIR" $VOL3_FILE
     fi
-    # ----- EMD GENERATE ALL PAGES ----- #
-fi
 
 # ----- GENERATE COMPLETE HTML PAGE ----------- #
 if [ ! -e "$HTML_FILE" ];
 then
     echo "GENERATING $HTML_FILE"
         
-    if ! $COMBINED_LISTS;
-    then
-        echo '<h1>Key Terms</h1>' >> $HTML_FILE
-        cat $KT_FILE >> $HTML_FILE
-        
-        echo '<h1>Other Terms</h1>' >> $HTML_FILE
-        cat $OTHER_FILE >> $HTML_FILE
-    else
-        echo '<h1>translationWords</h1>' >> $HTML_FILE
-        cat $OTHER_FILE >> $HTML_FILE
-    fi
+    echo '<h1>VOL 1</h1>' >> $HTML_FILE
+        cat $VOL1_FILE >> $HTML_FILE
+
+    echo '<h1>VOL 2</h1>' >> $HTML_FILE
+        cat $VOL2_FILE >> $HTML_FILE
+
+    echo '<h1>VOL 3</h1>' >> $HTML_FILE
+        cat $VOL3_FILE >> $HTML_FILE
 
     # ----- START LINK FIXES AND CLEANUP ----- #
     sed -i \
@@ -235,13 +223,13 @@ fi
 # ----- END GENERATE COMPLETE HTML PAGE --------#
 
 # ----- START GENERATE FILES ----- #
-TITLE='translationWords'
+TITLE='translationAcademy'
 
-LOGO="https://unfoldingword.org/assets/img/icon-tw.png"
-response=$(curl --write-out %{http_code} --silent --output logo-tw.png "$LOGO");
+LOGO="https://unfoldingword.org/assets/img/icon-ta.png"
+response=$(curl --write-out %{http_code} --silent --output logo-ta.png "$LOGO");
 if [ $response -eq "200" ];
 then
-  LOGO_FILE="-V logo=logo-tw.png"
+  LOGO_FILE="-V logo=logo-ta.png"
 fi
 
 FORMAT_FILE="$TOOLS_DIR/uwb/tex/format.tex"

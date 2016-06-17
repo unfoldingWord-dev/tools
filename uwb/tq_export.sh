@@ -10,28 +10,11 @@
 #  Richard Mahn <richard_mahn@wycliffeassociates.org>
 #  Caleb Maclennan <caleb@alerque.com>
 
-# Set script to die if any of the subprocesses exit with a fail code. This
-# catches a lot of scripting mistakes that might otherwise only show up as side
-# effects later in the run (or at a later time). This is especially important so
-# we know out temp dir situation is sane before we get started.
-set -e
+set -e # die if errors
 
-# ENVIRONMENT VARIABLES:
-# DEBUG - true/false -  If true, will run "set -x"
-# TOOLS_DIR - Directory of the "tools" repo where scripts and templates resides. Defaults to the parent directory of this script
-# WORKING_DIR - Directory where all HTML files for tN, tQ, tW, tA are collected and then a full HTML file is made before conversion to PDF, defaults to a system suggested temp location
-# OUTPUT_DIR - Directory to put the PDF, defaults to the current working directory
-# BASE_URL - URL for the _export/xhtmlbody to get Dokuwiki content, defaults to 'https://door43.org/_export/xhtmlbody'
-# TEMPLATE - Location of the TeX template for Pandoc, defaults to "$TOOLS_DIR/general_tools/pandoc_pdf_template.tex
+: ${TOOLS_DIR:=$(cd $(dirname "$0")/../ && pwd)} # Tools directory, relative to this script
 
-# Instantiate a DEBUG flag (default to false). This enables output usful durring
-# script development or later DEBUGging but not normally needed durring
-# production runs. It can be used by calling the script with the var set, e.g.:
-#     $ DEBUG=true ./uwb/pdf_create.sh <book>
-
-: ${TOOLS_DIR:=$(cd $(dirname "$0")/../ && pwd)}
-
-export PATH=$PATH:/usr/local/texlive/2015/bin/x86_64-linux
+export PATH=/usr/local/texlive/2016/bin/x86_64-linux:$PATH
 
 FILE_TYPES=()
 BOOKS_TO_PROCESS=()
@@ -103,12 +86,11 @@ done
 : ${LANGUAGE:=en}
 
 : ${OUTPUT_DIR:=$(pwd)}
-: ${TEMPLATE:=$TOOLS_DIR/general_tools/pandoc_pdf_template.tex}
+: ${TEMPLATE:=$TOOLS_DIR/uwb/tex/tn_tw_tq_template.tex}
 
 : ${D43_BASE_DIR:=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages}
 : ${D43_BASE_URL:=https://door43.org/_export/xhtmlbody}
 
-: ${CL_DIR:=$LANGUAGE/legal/license}
 : ${TQ_DIR:=$LANGUAGE/bible/questions/comprehension}
 : ${VERSION:=2}
 : ${REGENERATE_HTML_FILES:=true}
@@ -151,58 +133,18 @@ book_export () {
         exit 1;
     fi
 
-    CL_FILE="${LANGUAGE}_${book}_cl.html" # Copyrights & Licensing
     TQ_FILE="${LANGUAGE}_${book}_tq.html" # translationQuestions
-    HTML_FILE="${LANGUAGE}_${book}_all.html" # Compilation of all above HTML files
+    HTML_FILE="${LANGUAGE}_${book}_tq_all.html" # Compilation of all above HTML files
     LINKS_FILE="${LANGUAGE}_${book}_links.sed" # SED commands for links
     OUTPUT_FILE="$OUTPUT_DIR/tq-${BOOK_NUMBERS[$book]}-${book^^}-v${VERSION}"
     BAD_LINKS_FILE="${LANGUAGE}_${book}_bad_links.txt"
 
 	if $REGENERATE_HTML_FILES; then
-        rm -f "$CL_FILE" "$TQ_FILE" "$LINKS_FILE" "$HTML_FILE" "$BAD_LINKS_FILE" "$OUTPUT_FILE".*  # We start fresh, only files that remain are any files retrieved with wget
+        rm -f "$TQ_FILE" "$LINKS_FILE" "$HTML_FILE" "$BAD_LINKS_FILE" "$OUTPUT_FILE".*  # We start fresh, only files that remain are any files retrieved with wget
     fi
 
     touch "$LINKS_FILE"
     touch "$BAD_LINKS_FILE"
-
-    # ----- START GENERATE CL PAGE ----- #
-    if [ ! -e "$CL_FILE" ];
-    then
-        echo "GENERATING $CL_FILE"
-        
-        touch "$CL_FILE"
-        
-        mkdir -p "$CL_DIR"
-        
-        # If the file doesn't exist or is older than (-ot) the file in the Door43 repo, fetch the file
-        if $REDOWNLOAD_FILES || [ ! -e "$CL_DIR/uw.html" ] || [ "$CL_DIR/uw.html" -ot "$D43_BASE_DIR/$CL_DIR/uw.txt" ];
-        then
-            set +e
-            wget -U 'me' "$D43_BASE_URL/$CL_DIR/uw" -O "$CL_DIR/uw.html"
-        
-            if [ $? != 0 ];
-            then
-                rm "$CL_DIR/uw.html";
-                echo "$D43_BASE_URL/$CL_DIR/uw ($CL_FILE)" >> "$BAD_LINKS_FILE"
-            fi
-            set -e
-        fi
-        
-        if [ -e "$CL_DIR/uw.html" ];
-        then
-            cat "$CL_DIR/uw.html" > "$CL_FILE"
-        else
-            echo "<h1>Copyrights & Licensing - MISSING - CONTENT UNAVAILABLE</h1><p>Unable to get content from $D43_BASE_URL/$CL_DIR/uw - page does not exist</p>" >> "$CL_FILE"
-        fi
-        
-        # increase all headers by one so that the headers we add when making the HTML_FILE are the only h1 headers
-        sed -i -e 's/<\(\/\)\{0,1\}h3/<\1h4/g' "$CL_FILE"
-        sed -i -e 's/<\(\/\)\{0,1\}h2/<\1h3/g' "$CL_FILE"
-        sed -i -e 's/<\(\/\)\{0,1\}h1/<\1h2/g' "$CL_FILE"
-    else
-        echo "NOTE: $CL_FILE already generated."
-    fi
-    # ----- END GENERATE CL PAGES ------- #
 
     # ----- START GENERATE tQ PAGES ----- #
     if [ ! -e "$TQ_FILE" ];
@@ -248,7 +190,10 @@ book_export () {
         
         # REMOVE Comprehension Questions and Answers title
         sed -i -e '\@<h2.*Comprehension Questions and Answers<\/h2>@d' "$TQ_FILE"
-        
+        sed -i -e 's@^A\.\(.*\)$@A.\1\n</p>\n\n<p>\n<hr/>@' "$TQ_FILE"
+        sed -i -e 's@^\(Q?\|A\.\) @<b>\1</b> @' "$TQ_FILE"
+        sed -i -e 's@>\([^>]\+\) 0*\([0-9]\+\) Translation Questions@>\1 \2@' "$TQ_FILE"
+
         # REMOVE links at end of quesiton page to return to question home page
         sed -i -e "\@/$dir/home@d" "$TQ_FILE"
     else
@@ -261,9 +206,6 @@ book_export () {
     then
         # Compile all the above CL and tQ HTML files into one with headers
         echo "GENERATING $HTML_FILE"
-        
-        echo '<h1>Copyrights & Licensing</h1>' >> "$HTML_FILE"
-        cat "$CL_FILE" >> "$HTML_FILE"
         
         echo '<h1>translationQuestions</h1>' >> "$HTML_FILE"
         cat "$TQ_FILE" >> "$HTML_FILE"
@@ -296,6 +238,8 @@ book_export () {
       LOGO_FILE="-V logo=logo-tq.png"
     fi
 
+    FORMAT_FILE="$TOOLS_DIR/uwb/tex/format.tex"
+
     for type in "${FILE_TYPES[@]}"
     do
         if [ ! -e "$OUTPUT_FILE.$type" ];
@@ -316,8 +260,11 @@ book_export () {
                 -V subtitle="$SUBTITLE" \
                 $LOGO_FILE \
                 -V date="$DATE" \
+                -V version="$VERSION.0" \
                 -V mainfont="Noto Serif" \
                 -V sansfont="Noto Sans" \
+                -V linkcolor="Magenta" \
+                -H "$FORMAT_FILE" \
                 -o "$OUTPUT_FILE.$type" "$HTML_FILE"
                 
             echo "GENERATED FILE: $OUTPUT_FILE.$type"

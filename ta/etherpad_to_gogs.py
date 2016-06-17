@@ -416,7 +416,6 @@ class PageGenerator(object):
             mdlink = "https://git.door43.org/Door43/{0}/src/master/content/{1}.md".format(dir, slug)
             title = page.yaml_data["title"]
             links[dwlink] = (mdlink, title)
-            print "s@\[.*\?\](:*{0})@[{1}]({2})@gi".format(dwlink, title, mdlink)
         return links
 
     def convert_dw_links(self, text, links):
@@ -430,6 +429,7 @@ class PageGenerator(object):
             dw_link = "![](page>{0})".format(link)
             md_link = "[INCLUDE: {0} - [{1}]({1})\]".format(links[link][1], links[link][0])
             text = text.replace(dw_link, md_link)
+            #print "s@\[.*\?\](:*{0})@[{1}]({2})@gi".format(dwlink, title, mdlink)
 
             # dw_link = "[{0}]({0})".format(link)
             # md_link = "[{0}]({1})".format(links[link][1], links[link][0])
@@ -459,7 +459,6 @@ class PageGenerator(object):
         global REPO_MAP
         pages_generated = 0
         links = self.make_pages_link_dict(pages)
-        exit(1)
 
         # pages
         for page in pages:
