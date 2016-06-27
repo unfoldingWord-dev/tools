@@ -22,8 +22,8 @@ import urllib2
 class UWCatalog:
     catalog = None
 
-    #jsonURL = 'https://api.unfoldingword.org/uw/txt/2/catalog.json'
-    jsonURL = 'https://api.unfoldingword.org/test/catalog.json'
+    jsonURL = 'https://api.unfoldingword.org/uw/txt/2/catalog.json'
+    #jsonURL = 'https://api.unfoldingword.org/test/catalog.json'
 
     def __init__(self):
         sys.stdout = codecs.getwriter('utf8')(sys.stdout);

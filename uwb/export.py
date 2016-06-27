@@ -26,11 +26,11 @@ import argparse
 import datetime
 import urllib2
 
-CatalogJSON='https://api.unfoldingword.org/test/catalog.json'
+CatalogJSON='https://api.unfoldingword.org/uw/txt/2/catalog.json'
 
 # Import USFM-Tools
-#USFMTools='/var/www/vhosts/door43.org/USFM-Tools'
-USFMTools='/home/rmahn/repos/USFM-Tools'
+USFMTools='/var/www/vhosts/door43.org/USFM-Tools'
+#USFMTools='/home/rmahn/repos/USFM-Tools'
 
 sys.path.append(USFMTools)
 try:
