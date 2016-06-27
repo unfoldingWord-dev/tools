@@ -8,10 +8,10 @@
 #  Contributors:
 #  Richard Mahn <richard_mahn@wycliffeassociates.org>
 #
-
-'''
-Converts a tA repo into a PDF
-'''
+#  Converts a tA repo into a PDF
+#
+#  Usage: md_to_pdf.py -i <directory of all ta repos> -o <directory where html flies will be placed>
+#
 
 import os
 import re
@@ -273,10 +273,10 @@ table tr:nth-child(2n) {
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('-o', '--output', dest="outpath", default='.',
-        required=False, help="Output path")
     parser.add_argument('-i', '--input', dest="inpath",
-        help="Directory of the tA repo to be made into a PDF.", required=True)
+        help="Directory of the tA repos to be compiled into html", required=True)
+    parser.add_argument('-o', '--output', dest="outpath", default='.',
+        required=False, help="Output path of html files")
 
     args = parser.parse_args(sys.argv[1:])
 
