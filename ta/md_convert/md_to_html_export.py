@@ -64,9 +64,9 @@ def generatePage(f, myManual, data, header, pageBreak):
     if meta and ('question' in meta or ('dependencies' in meta and meta['dependencies'] and meta['dependencies'][0])):
         top_box = '<div class="box" style="float:right;width:20%;">'
         if 'question' in meta:
-            top_box += u'This page answers the question:<br/><span style="padding-top:.5em;"><em>'+meta['question'][0]+u'</em></span>'
-        if 'dependencies' in meta and meta['dependencies'] and meta['dependencies'][0]:
-            dependencies = json.loads(meta['dependencies'][0])
+            top_box += u'This page answers the question:<p><em>'+meta['question']+u'</em></p>'
+        if 'dependencies' in meta and meta['dependencies'] and meta['dependencies']:
+            dependencies = json.loads(meta['dependencies'])
             if dependencies:
                 top_box += u'<br/><br/>In order to understand this topic, it would be good to read:<ul style="list-style:none;padding-left:2px;margin-top:1px;">'
                 for dep in dependencies:
@@ -85,7 +85,8 @@ def generatePage(f, myManual, data, header, pageBreak):
         html = re.sub(u'https://git.door43.org/Door43/'+myManual+'/src/master/content/(.*)\.md', '#\\1', html, flags=re.MULTILINE)
         f.write(html+"\n")
     if meta and 'recommended' in meta and meta['recommended'] and meta['recommended'][0]:
-        recommended = json.loads(meta['recommended'][0])
+        print myManual+", "+slug+", "+meta['recommended']
+        recommended = json.loads(meta['recommended'])
         if recommended:
             bottom_box = '<div class="box" style="margin:5px 10px;clear:both;">'
             bottom_box += 'Next we recommend you learn about:<ul style="margin-top:0;padding-top:0;list-style:none">'
@@ -117,12 +118,13 @@ def populatePageDict(manual, data):
         slug = data['slug']
         manualDir = taRoot+os.path.sep+manual+os.path.sep
         filepath = manualDir+"content"+os.path.sep+slug+'.md'
-        md = markdown.Markdown(extensions = ['markdown.extensions.extra','markdown.extensions.abbr','markdown.extensions.attr_list','markdown.extensions.def_list','markdown.extensions.fenced_code','markdown.extensions.footnotes','markdown.extensions.tables','markdown.extensions.smart_strong','markdown.extensions.admonition','markdown.extensions.codehilite','markdown.extensions.headerid','markdown.extensions.meta','markdown.extensions.nl2br','markdown.extensions.sane_lists','markdown.extensions.smarty','markdown.extensions.toc','markdown.extensions.wikilinks'])
+        # md = markdown.Markdown(extensions = ['markdown.extensions.abbr','markdown.extensions.attr_list','markdown.extensions.def_list','markdown.extensions.fenced_code','markdown.extensions.footnotes','markdown.extensions.tables','markdown.extensions.smart_strong','markdown.extensions.admonition','markdown.extensions.codehilite','markdown.extensions.headerid','markdown.extensions.meta','markdown.extensions.nl2br','markdown.extensions.sane_lists','markdown.extensions.smarty','markdown.extensions.toc','markdown.extensions.wikilinks'])
+        html = markdown2.markdown_path(filepath, extras=["tables", "metadata"])
         pageDict[slug] = {
             'title': title,
             'manual': manual,
-            'html': md.convert(open(filepath).read()),
-            'meta': md.Meta
+            'html': html,
+            'meta': html.metadata
         }
     if 'subitems' in data:
        for subitem in data['subitems']:
@@ -217,6 +219,11 @@ table {
   overflow: auto;
   word-break: normal;
   word-break: keep-all;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+thead {
+  box-shadow: none;
 }
 table th {
   font-weight: bold;
@@ -232,6 +239,32 @@ table tr {
 }
 table tr:nth-child(2n) {
   background-color: #f8f8f8;
+}
+table td, table th {
+    -webkit-transition: background .1s ease,color .1s ease;
+    transition: background .1s ease,color .1s ease;
+}
+thead th {
+    cursor: auto;
+    background: #f9fafb;
+    text-align: inherit;
+    color: rgba(0,0,0,.87);
+    padding: .92857143em .71428571em;
+    vertical-align: inherit;
+    font-style: none;
+    font-weight: 700;
+    text-transform: none;
+    border-bottom: 1px solid rgba(34,36,38,.1);
+    border-left: none;
+}
+thead tr>th:first-child {
+    border-left: none;
+}
+thead tr:first-child>th:first-child {
+    border-radius: .28571429rem 0 0;
+}
+a {
+  color: maroon;
 }
 </style>
 </head>
@@ -251,6 +284,12 @@ table tr:nth-child(2n) {
 <html>
 <head>
   <meta charset="UTF-8" />
+  <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
+  <style type="text/css">
+    body {
+      font-family: 'Noto Sans', sans-serif;
+    }
+  </style>
 </head>
 <body>
   <div style="text-align:center;padding-top:100px">
