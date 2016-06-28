@@ -34,7 +34,7 @@ pushd "$WORKING_DIR" > /dev/null
 # If running in DEBUG mode, output information about every command being run
 $DEBUG && set -x
 
-repos=(en-ta-intro en-ta-process en-ta-translate-vol1 en-ta-translate-vol2)
+repos=(en-ta-intro en-ta-checking-vol1 en-ta-checking-vol2 en-ta-process en-ta-translate-vol1 en-ta-translate-vol2)
 
 for repo in "${repos[@]}"
 do
@@ -51,5 +51,5 @@ done
 
 for repo in "${repos[@]}"
 do
-     wkhtmltopdf --encoding utf-8 -O portrait -L 15 -R 15 -T 15 -B 15 --header-left '[section]' --header-right '[subsection]' --header-line --header-spacing 5 --footer-center '[page]' cover "file://$OUTPUT_DIR/${repo}-cover.html" toc --disable-dotted-lines --xsl-style-sheet "$TEMPLATE" "file://$OUTPUT_DIR/$repo.html" "$OUTPUT_DIR/$repo.pdf"
+     wkhtmltopdf --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 15  --header-html "$MY_DIR/header.html" --header-spacing 5 --footer-html "$MY_DIR/footer.html" cover "file://$OUTPUT_DIR/${repo}-cover.html" toc --disable-dotted-lines --xsl-style-sheet "$TEMPLATE" "file://$OUTPUT_DIR/$repo.html" "$OUTPUT_DIR/$repo.pdf"
 done
