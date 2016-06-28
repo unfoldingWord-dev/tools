@@ -68,7 +68,7 @@ def generatePage(f, myManual, data, header, pageBreak):
         if 'dependencies' in meta and meta['dependencies'] and meta['dependencies']:
             dependencies = json.loads(meta['dependencies'])
             if dependencies:
-                top_box += u'<br/><br/>In order to understand this topic, it would be good to read:<ul style="list-style:none;padding-left:2px;margin-top:1px;">'
+                top_box += u'In order to understand this topic, it would be good to read:<ul style="list-style:none;padding-left:2px;margin-top:1px;">'
                 for dep in dependencies:
                     if dep in pageDict:
                         manual = pageDict[dep]['manual']
