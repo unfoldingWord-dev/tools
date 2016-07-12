@@ -26,7 +26,7 @@ import markdown
 import markdown2
 import time
 
-academyUrl = u'https://test.unfoldingword.org/academy/'
+academyUrl = u'https://unfoldingword.org/academy/'
 
 manualOrder = ['en-ta-intro','en-ta-process','en-ta-translate-vol1','en-ta-translate-vol2','en-ta-checking-vol1','en-ta-checking-vol2','en-ta-gl','en-ta-audio']
 manualUrls = {
