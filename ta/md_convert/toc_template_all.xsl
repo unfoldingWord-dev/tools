@@ -55,7 +55,7 @@
                         list-style: none outside none;
                         padding-left:1.3em;
                     }
-                    uuuuul ul ul {
+                    ul ul {
                         display: none;
                     }
                 </style>
