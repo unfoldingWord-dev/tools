@@ -13,12 +13,9 @@
 Exports tA for ru from json to html
 '''
 
-import os
-import re
 import sys
 import json
 import codecs
-import operator
 
 reload(sys)
 sys.setdefaultencoding('utf8')
