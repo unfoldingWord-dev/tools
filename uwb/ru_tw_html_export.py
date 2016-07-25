@@ -24,7 +24,7 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 def main():
-    filepath = u'/home/rich/Downloads/ru/tw-ru.json'
+    filepath = u'/home/rmahn/tw-ru.json'
 
     sys.stdout = codecs.getwriter('utf8')(sys.stdout);
     # Parse the body
@@ -45,16 +45,18 @@ def main():
         if 'aliases' in term and term['aliases']:
             if isinstance(term['aliases'], basestring):
                 term['aliases'] = [term['aliases']]
-            output += u'<p><b>Aliases:</b> '+', '.join(term['aliases'])+u'</p>'
+            if term['aliases'][0]:
+                output += u'<p><b>Aliases:</b> '+', '.join(term['aliases'])+u'</p>'
         if 'cf' in term and term['cf']:
             if isinstance(term['cf'], basestring):
                 term['cf'] = [term['cf']]
-            output += u'<p><b>Смотрите также:</b> '
-            for idx, cf in enumerate(term['cf']):
-                output += u'<a href="#'+cf.lower()+u'">'+(terms[cf.lower()]['term'] if cf.lower() in terms else cf)+u'</a>'
-                if idx < len(term['cf']) - 1:
-                    output += u'; '
-            output += u'</p>'
+            if term['cf'][0]:
+                output += u'<p><b>Смотрите также:</b> '
+                for idx, cf in enumerate(term['cf']):
+                    output += u'<a href="#'+cf.lower()+u'">'+(terms[cf.lower()]['term'] if cf.lower() in terms else cf)+u'</a>'
+                    if idx < len(term['cf']) - 1:
+                        output += u'; '
+                output += u'</p>'
 
     f = codecs.open('tw-ru.html', 'w', encoding='utf-8')
     f.write(output)
