@@ -26,7 +26,7 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 def main():
-    filepath = u'/home/rich/Downloads/ru/ta-ru.json'
+    filepath = u'/home/rmahn/ta-ru.json'
 
     sys.stdout = codecs.getwriter('utf8')(sys.stdout);
     # Parse the body
@@ -41,7 +41,7 @@ def main():
     output = ''
     for manual in js['manuals']:
         output += u'<div class="page break" id="'+manual['pages'][0]['manual']+u'">'
-        output += u'<h1>'+manual['name']+u' Volume '+str(manual['pages'][0]['volume'])+u'</h1>'
+        output += u'<h1>'+manual['name']+u'</h1>'
         for page in manual['pages']:
             output += u'<h2 id="'+page['slug']+'">'+page['title']+'</h2>'
 
@@ -50,6 +50,8 @@ def main():
 
             if 'dependencies' in page and page['dependencies']:
                 output += u'<p><b>In order to understand this topic, it would be good to read: </b>'
+                if isinstance(page['dependencies'], basestring):
+                    page['dependencies'] = [page['dependencies']]
                 for dep in page['dependencies']:
                     output += u'<a href="#'+dep+u'">'+(titles[dep] if dep in titles else dep)+u'</a> '
                 output += u'</p>'
@@ -65,6 +67,8 @@ def main():
 
             if 'recommended' in page and page['recommended']:
                 output += u'<p><b>Next we recommend you learn about: </b>'
+                if isinstance(page['recommended'], basestring):
+                    page['recommended'] = [page['recommended']]
                 for rec in page['recommended']:
                     output += u'<a href="#'+rec+u'">'+(titles[rec] if rec in titles else rec)+u'</a> '
                 output += u'</p>'

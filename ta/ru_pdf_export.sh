@@ -54,7 +54,7 @@ done
 : ${outdir=$(pwd)}
 : ${reportto[0]=}
 : ${tag=}
-: ${version=3}
+: ${version=1}
 
 # Note out base location and create a temporary workspace
 BASEDIR=$(cd $(dirname "$0")/../ && pwd)
@@ -85,7 +85,7 @@ for lang in "${langs[@]}"; do
 
     LOGO="https://unfoldingWord.org/assets/img/icon-ta.png"
     TITLE="translationAcademy"
-    SUBTITLE="Version $version"
+    SUBTITLE="Russian, Version $version"
     DATE=`date +"%Y-%m-%d"`
     LICENSE_FILE="$BASEDIR/ta/tex/ta_license"
     FORMAT_FILE="$BASEDIR/ta/tex/format.tex"
@@ -98,7 +98,7 @@ for lang in "${langs[@]}"; do
         --latex-engine="xelatex" \
         --template="$TEMPLATE" \
         --toc \
-        --toc-depth=4 \
+        --toc-depth=3 \
         -V documentclass="scrartcl" \
         -V classoption="oneside" \
         -V geometry='hmargin=2cm' \
