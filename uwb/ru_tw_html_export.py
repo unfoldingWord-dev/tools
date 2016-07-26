@@ -50,9 +50,10 @@ def main():
             if term['cf'][0]:
                 output += u'<p><b>Смотрите также:</b> '
                 for idx, cf in enumerate(term['cf']):
-                    output += u'<a href="#'+cf.lower()+u'">'+(terms[cf.lower()]['term'] if cf.lower() in terms else cf)+u'</a>'
-                    if idx < len(term['cf']) - 1:
-                        output += u'; '
+                    if cf:
+                        output += u'<a href="#'+cf.lower()+u'">'+(terms[cf.lower()]['term'] if cf.lower() in terms else cf)+u'</a>'
+                        if idx < len(term['cf']) - 1:
+                            output += u'; '
                 output += u'</p>'
 
     f = codecs.open('tw-ru.html', 'w', encoding='utf-8')
