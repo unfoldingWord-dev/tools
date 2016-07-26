@@ -12,8 +12,6 @@
 This class parses information in the UW catalog.
 """
 
-import os
-import re
 import sys
 import json
 import codecs
@@ -22,8 +20,8 @@ import urllib2
 class UWCatalog:
     catalog = None
 
-    jsonURL = 'https://api.unfoldingword.org/uw/txt/2/catalog.json'
-    #jsonURL = 'https://api.unfoldingword.org/test/catalog.json'
+    #jsonURL = 'https://api.unfoldingword.org/uw/txt/2/catalog.json'
+    jsonURL = 'file:///var/www/vhosts/api.unfoldingword.org/httpdocs/uw/txt/2/catalog.json'
 
     def __init__(self):
         sys.stdout = codecs.getwriter('utf8')(sys.stdout);

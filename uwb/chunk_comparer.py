@@ -12,7 +12,6 @@
 Script to compare ids between different source texts.
 '''
 
-import os
 import sys
 import json
 import codecs

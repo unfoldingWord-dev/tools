@@ -17,13 +17,11 @@ and mirrors the repo in Gogs
 import sys
 import os
 import json
-import urllib2
 import paramiko
-import base64
 import gogs
 import config
 import push_repo
-import delete_user
+
 
 def main():
     api = gogs.GogsAPI(config.api_base_url, config.admin_username, config.admin_password)
@@ -32,7 +30,7 @@ def main():
     client.get_host_keys().add('git.door43.org', 'ssh-rsa', key)
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     print "connecting"
-    client.connect( hostname = "us.door43.org", username = "gitolite3", port=9299, pkey = key )
+    client.connect(hostname="us.door43.org", username="gitolite3", port=9299, pkey=key)
     print "connected"
     stdin, stdout, stderr = client.exec_command('info -json')
     json_data = json.load(stdout)

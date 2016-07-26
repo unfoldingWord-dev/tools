@@ -1,5 +1,6 @@
 # Door43 Tools
 
+### NOTICE: Issues are tracked in https://github.com/unfoldingWord-dev/door43.org/issues and Wiki pages at https://github.com/unfoldingWord-dev/door43.org/wiki
 ### NOTICE: These files have been moved to the _uw_tools_ library
 * git_wrapper.py
 * smartquotes.pu
@@ -11,10 +12,6 @@
 
 -----
 
-We are now using the issue tracker in the Door43 repo for manages tasks:
-https://github.com/unfoldingWord-dev/Door43/issues.
-
-Door43 tools for rendering and exporting Door43 pages and media. Project Homepage: http://door43.org/en/dev/tools.
 
 The directory structure is organized like this: `<Door43 project>/<tool>`. This is so that tools 
 designed to process specific projects can be easily organized and used. Tools that work across all projects are 
