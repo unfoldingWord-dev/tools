@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf8 -*-
 #
-#  Copyright (c) 2015 unfoldingWord
+#  Copyright (c) 2016 unfoldingWord
 #  http://creativecommons.org/licenses/MIT/
 #  See LICENSE file for details.
 #
@@ -9,7 +9,7 @@
 #  Richard Mahn <richard_mahn@wycliffeassociates.org>
 
 """
-This class parses information in the UW catalog.
+This class allows one to connect to a Gogs server and gather information through the API
 """
 
 import os
