@@ -30,21 +30,12 @@ class GogsToken:
         self.owner = owner
 
 class GogsUser:
-    def __init__(self, username, password = None, full_name = None, token = None):
+    def __init__(self, username, password=None, full_name=None, token=None):
         self.id = None
         self.username = username
-        if password:
-            self.password = password
-        else:
-            self.password = config.new_user_password
-        if full_name:
-            self.full_name = full_name
-        else:
-            self.full_name = None
-        if token:
-            self.token = token
-        else:
-            self.token = None
+        self.password = password if password is not None else config.new_user_password
+        self.full_name = full_name
+        self.token = token
         self.email = None
         self.avatar_url = None
         self.tokens = []
@@ -100,7 +91,7 @@ class GogsAPI:
     api_base_url = None
 
     def __init__(self, api_base_url, admin_username, admin_password = None, admin_token = None):
-        sys.stdout = codecs.getwriter('utf8')(sys.stdout);
+        sys.stdout = codecs.getwriter('utf8')(sys.stdout)
         self.api_base_url = api_base_url
         self.adminUser = GogsUser(username=admin_username, password=admin_password, token=admin_token)
 
@@ -209,7 +200,7 @@ class GogsAPI:
         try:
             response = self.connectToGogs(url, self.adminUser, None, 'DELETE')
         except HTTPError as e:
-            if e.code == 422: # user still has content, such as repos
+            if e.code == 422:  # user still has content, such as repos
                 if alsoDeleteRepos:
                     if not user.id:
                         self.populateUser(user)
