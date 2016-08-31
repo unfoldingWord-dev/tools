@@ -28,7 +28,7 @@ import urllib2
 
 CatalogJSON='https://api.unfoldingword.org/uw/txt/2/catalog.json'
 
-from usfm_tools import transform
+from usfm_tools.transform import UsfmTransform
 
 def main(langcode, ver, books, format, outfile):
     sys.stdout = codecs.getwriter('utf8')(sys.stdout);
@@ -82,10 +82,10 @@ def main(langcode, ver, books, format, outfile):
             local_file.write(f.read())
 
     if format == 'html':
-        transform.buildSingleHtml(tmpdir+"/sources", tmpdir, "bible")
+        UsfmTransform.buildSingleHtml(tmpdir+"/sources", tmpdir, "bible")
         shutil.copyfile(tmpdir+'/bible.html', outfile);
     if format == 'tex':
-        transform.buildConTeXt(tmpdir+"/sources", tmpdir, "bible")
+        UsfmTransform.buildConTeXt(tmpdir+"/sources", tmpdir, "bible")
         shutil.copyfile(tmpdir+'/working/tex/bible.tex', outfile);
 
 if __name__ == '__main__':
