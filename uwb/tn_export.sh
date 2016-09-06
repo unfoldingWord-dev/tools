@@ -96,7 +96,7 @@ done
 : ${TQ_DIR:=$LANGUAGE/bible/questions/comprehension}
 : ${TW_DIR:=$LANGUAGE/obe}
 : ${TA_DIR:=$LANGUAGE/ta}
-: ${VERSION:=2}
+: ${VERSION:=3}
 : ${REGENERATE_HTML_FILES:=true}
 : ${REDOWNLOAD_FILES:=false}
 
@@ -524,7 +524,7 @@ book_export () {
                 -V subtitle="$SUBTITLE" \
                 $LOGO_FILE \
                 -V date="$DATE" \
-                -V version="$VERSION.0" \
+                -V version="$VERSION" \
                 -V mainfont="Noto Serif" \
                 -V sansfont="Noto Sans" \
                 -V fontsize="13pt" \

@@ -66,7 +66,7 @@ done
 : ${TOOLS_DIR:=$(cd $(dirname "$0")/../ && pwd)} # Tools dir relative to this script
 : ${OUTPUT_DIR:=$(pwd)}
 : ${TEMPLATE:=$TOOLS_DIR/uwb/tex/tn_tw_tq_template.tex}
-: ${VERSION:=2}
+: ${VERSION:=3}
 : ${REGENERATE_HTML_FILES:=true}
 : ${REDOWNLOAD_FILES:=false}
 : ${COMBINED_LISTS:=false}
@@ -264,7 +264,7 @@ do
             -V title="$TITLE" \
             $LOGO_FILE \
             -V date="$DATE" \
-            -V version="$VERSION.0" \
+            -V version="$VERSION" \
             -V mainfont="Noto Serif" \
             -V sansfont="Noto Sans" \
             -V linkcolor="ForestGreen" \
