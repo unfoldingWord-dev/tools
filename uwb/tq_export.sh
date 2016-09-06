@@ -92,7 +92,7 @@ done
 : ${D43_BASE_URL:=https://door43.org/_export/xhtmlbody}
 
 : ${TQ_DIR:=$LANGUAGE/bible/questions/comprehension}
-: ${VERSION:=2}
+: ${VERSION:=3}
 : ${REGENERATE_HTML_FILES:=true}
 : ${REDOWNLOAD_FILES:=false}
 
@@ -260,7 +260,7 @@ book_export () {
                 -V subtitle="$SUBTITLE" \
                 $LOGO_FILE \
                 -V date="$DATE" \
-                -V version="$VERSION.0" \
+                -V version="$VERSION" \
                 -V mainfont="Noto Serif" \
                 -V sansfont="Noto Sans" \
                 -V linkcolor="Magenta" \
