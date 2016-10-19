@@ -12,8 +12,6 @@
 This class allows one to connect to a Gogs server and gather information through the API
 """
 
-import os
-import re
 import sys
 import json
 import codecs
@@ -21,13 +19,15 @@ import urllib2
 import base64
 import config
 
-from urllib2 import Request, urlopen, URLError, HTTPError
+from urllib2 import URLError, HTTPError
+
 
 class GogsToken:
     def __init__(self, owner, name, sha1 = None):
         self.name = name
         self.sha1 = sha1
         self.owner = owner
+
 
 class GogsUser:
     def __init__(self, username, password = None, full_name = None, token = None):
@@ -49,6 +49,7 @@ class GogsUser:
         self.avatar_url = None
         self.tokens = []
         self.repos = []
+
 
 class GogsRepo:
     def __init__(self, name, owner):
