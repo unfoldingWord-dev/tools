@@ -13,7 +13,6 @@
 This script queries the UW Catalog
 """
 
-import os
 import sys
 import argparse
 from catalog import UWCatalog
