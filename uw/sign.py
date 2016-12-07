@@ -34,6 +34,7 @@ sign_com = '/usr/local/bin/openssl dgst -sha384 -sign /etc/pki/uw/uW-sk.pem'
 api = u'http://api.unfoldingword.org:9098/'
 working_dir = '/dev/shm/check_sig'
 pki_base = 'https://pki.unfoldingword.org'
+verbose = False
 
 
 def getURL(url):
@@ -44,8 +45,14 @@ def getURL(url):
         return False
 
 def getContent(cat):
+    global verbose
+
     content = []
     for x in cat:
+
+        if verbose:
+            print u'Retrieving {0}'.format(x['lang_catalog'])
+
         lang_cat = json.loads(getURL(x['lang_catalog']))
         for y in lang_cat:
             res_cat = json.loads(getURL(y['res_catalog']))
@@ -53,11 +60,16 @@ def getContent(cat):
                 for i in res_cat:
                     if key in i:
                         if i[key] not in content:
+
+                            if verbose:
+                                print u'Found {0}'.format(i[key])
+
                             content.append(i[key])
-                            if '/obs-' in i[key]:
-                                pdf = u'{0}-v{1}.pdf'.format(i[key].split(
-                      '.json')[0], i['status']['version'].replace(u'.', u'_'))
-                                #content.append(pdf)
+                            # if '/obs-' in i[key]:
+                            #     pdf = u'{0}-v{1}.pdf'.format(i[key]
+                            #                                  .split('.json')[0], i['status']['version']
+                            #                                  .replace(u'.', u'_'))
+                            #     #content.append(pdf)
     return content
 
 def sign(content):
@@ -130,25 +142,57 @@ def checkSig(content, sig, slug):
 
 
 def main(test):
+    global verbose
+
+    if verbose:
+        print u'Getting the catalog...'
+
     cat = json.loads(getURL(catalog_url))
+
+    if verbose:
+        print u'Getting the list of files to sign...'
+
     content_list = getContent(cat)
+
     if test:
         print u'Testing'
     else:
         print u'Signing...'
+
     for x in content_list:
+        if verbose:
+            print u'Retrieving {0}'.format(x)
         content = getURL(x)
         if not content:
             continue
+
+        if verbose:
+            print u'Retrieving .sig file'
         existing_sig = getURL('{0}.sig'.format(x.rsplit('.', 1)[0]))
         if existing_sig:
+
+            if verbose:
+                print u'Found .sig file'
+
             if checkSig(content, json.loads(existing_sig), 'uW'):
-                sys.stdout.write('.')
-                sys.stdout.flush()
+                if verbose:
+                    print u'Valid .sig file'
+                else:
+                    sys.stdout.write('.')
+                    sys.stdout.flush()
                 continue
+            else:
+                if verbose:
+                    print u'Invalid .sig file'
+
+        else:
+            if verbose:
+                print u'Did not find .sig file'
+
         if test:
             print "!! SIG FAILURE: {0}".format(x)
             continue
+
         sig = sign(content)
         upload(sig, x, 'uW')
         print "Signed: {0}".format(x)
@@ -159,8 +203,11 @@ if __name__ == '__main__':
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-t', '--test', dest="test", default=False,
         action='store_true', help="Test signatures only.")
+    parser.add_argument('-v', '--verbose', dest="verbose", default=False,
+                        action='store_true', help="More verbose output for debugging.")
 
     args = parser.parse_args(sys.argv[1:])
+    verbose = args.verbose
 
     # init working dir
     if not os.path.exists(working_dir):
