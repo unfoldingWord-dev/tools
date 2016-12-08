@@ -46,15 +46,15 @@ taManualUrls = {
 
 
 class TwTerm(object):
-    def __init__(self, term, title, text):
+    def __init__(self, term, title, content):
         self.term = term
         self.title = title
-        self.text = text
+        self.content = content
 
 
 def populateWords():
     for category in twOrder:
-        words[category] = {}
+        terms[category] = {}
         dir = os.path.join(twRoot, 'content', category)
         files = glob(os.path.join(dir, '*.md'))
         ta_links = re.compile(
@@ -77,14 +77,14 @@ def populateWords():
                 for h in soup.select('h{0}'.format(i)):
                     h.name = 'h{0}'.format(i+1)
             content = str(soup.div)
-            word = Word(term, title, content)
-            words[category][term] = word
+            word = TwTerm(term, title, content)
+            terms[category][term] = word
 
 
 def fix_content(content):
     for category in twOrder:
-        for term in words[category]:
-            word = words[category][term]
+        for term in terms[category]:
+            word = terms[category][term]
             content = re.sub(ur'#{0}-{1}">{1}<'.format(category, term), ur'#{0}-{1}">{2}<'.format(category, term, word.title),
                              content)
     return content
@@ -141,7 +141,7 @@ def main(inpath, outpath, version):
 <div id="category-{0}" class="category">
     <h1>{1}</h1>
             '''.format(category, 'Key Terms' if category == 'kt' else 'Other')
-        for word in sorted(words[category].values(), key=lambda w: w.title.lower()):
+        for word in sorted(terms[category].values(), key=lambda w: w.title.lower()):
             content += word.content
         content += u'''
 </div>

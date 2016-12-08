@@ -20,7 +20,7 @@ set -e # die if errors
 : ${OUTPUT_DIR:=$(pwd)}
 : ${TEMPLATE:="$MY_DIR/toc_template.xsl"}
 : ${TEMPLATE_ALL:="$MY_DIR/toc_template_all.xsl"}
-: ${VERSION:=4}
+: ${VERSION:=5}
 
 if [[ -z $WORKING_DIR ]]; then
     WORKING_DIR=$(mktemp -d -t "export_md_to_pdf.XXXXXX")
