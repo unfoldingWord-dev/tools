@@ -96,7 +96,7 @@ done
 : ${TQ_DIR:=$LANGUAGE/bible/questions/comprehension}
 : ${TW_DIR:=$LANGUAGE/obe}
 : ${TA_DIR:=$LANGUAGE/ta}
-: ${VERSION:=3}
+: ${VERSION:=5}
 : ${REGENERATE_HTML_FILES:=true}
 : ${REDOWNLOAD_FILES:=false}
 
