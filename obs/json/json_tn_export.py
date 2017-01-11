@@ -198,7 +198,7 @@ def gettWList(frid, page):
     entry = { 'id': fr,
               'items': [{ 'id': x } for x in tw_list]
             }
-    entry['items'].sort(key=lambda x: x['id'])
+    #entry['items'].sort(key=lambda x: x['id'])
     twdict[chp].append(entry)
 
 def getCQ(f):
