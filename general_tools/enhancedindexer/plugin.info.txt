@@ -1,0 +1,7 @@
+base   enhancedindexer
+author David Stone
+email  david@nnucomputerwhiz.com
+date   2015-06-10
+name   enhancedindexer plugin
+desc   Adds extra options to the cli indexer
+url    https://github.com
