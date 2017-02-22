@@ -71,7 +71,7 @@ def main(langcode, ver, books, format, outfile):
         print "No sources were found for langage {0} of version {1} in {2}. Exiting...".format(langcode, ver, CatalogJSON)
         sys.exit(1)
 
-    tmpdir = '/tmp/uwb-{0}-{1}'.format(ver, langcode)
+    tmpdir = tmpfile.mkdtemp(prefix='uwb-{0}-{1}-'.format(ver, langcode))
 
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
