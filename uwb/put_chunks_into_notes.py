@@ -9,12 +9,12 @@
 #  Jesse Griffin <jesse@distantshores.org>
 #  Richard Mahn <richard_mahn@wycliffeassociates.org>
 
-"""
+'''
 This script takes grabs the ULB text from the local git repo and splits it based on
 custom \s5 markers.  Then it pulls in the UDB and TFT text for the same
 range and ouputs DokuWiki files for the Notes team.  If the notes page
 exists then it only updates the Bible texts and does not alter other content.
-"""
+'''
 
 import os
 import re
@@ -35,73 +35,73 @@ sectionre = re.compile(ur'\\s.*', re.UNICODE)
 tftp = re.compile(ur'(TFT: =====.*?<usfm>).*?(</usfm>)', re.DOTALL | re.UNICODE)
 udbp = re.compile(ur'(UDB: =====.*?<usfm>).*?(</usfm>)', re.DOTALL | re.UNICODE)
 ulbp = re.compile(ur'(ULB: =====.*?<usfm>).*?(</usfm>)', re.DOTALL | re.UNICODE)
-books = {u'GEN': [u'Genesis', '01'],
-         u'EXO': [u'Exodus', '02'],
-         u'LEV': [u'Leviticus', '03'],
-         u'NUM': [u'Numbers', '04'],
-         u'DEU': [u'Deuteronomy', '05'],
-         u'JOS': [u'Joshua', '06'],
-         u'JDG': [u'Judges', '07'],
-         u'RUT': [u'Ruth', '08'],
-         u'1SA': [u'1 Samuel', '09'],
-         u'2SA': [u'2 Samuel', '10'],
-         u'1KI': [u'1 Kings', '11'],
-         u'2KI': [u'2 Kings', '12'],
-         u'1CH': [u'1 Chronicles', '13'],
-         u'2CH': [u'2 Chronicles', '14'],
-         u'EZR': [u'Ezra', '15'],
-         u'NEH': [u'Nehemiah', '16'],
-         u'EST': [u'Esther', '17'],
-         u'JOB': [u'Job', '18'],
-         u'PSA': [u'Psalms', '19'],
-         u'PRO': [u'Proverbs', '20'],
-         u'ECC': [u'Ecclesiastes', '21'],
-         u'SNG': [u'Song of Solomon', '22'],
-         u'ISA': [u'Isaiah', '23'],
-         u'JER': [u'Jeremiah', '24'],
-         u'LAM': [u'Lamentations', '25'],
-         u'EZK': [u'Ezekiel', '26'],
-         u'DAN': [u'Daniel', '27'],
-         u'HOS': [u'Hosea', '28'],
-         u'JOL': [u'Joel', '29'],
-         u'AMO': [u'Amos', '30'],
-         u'OBA': [u'Obadiah', '31'],
-         u'JON': [u'Jonah', '32'],
-         u'MIC': [u'Micah', '33'],
-         u'NAM': [u'Nahum', '34'],
-         u'HAB': [u'Habakkuk', '35'],
-         u'ZEP': [u'Zephaniah', '36'],
-         u'HAG': [u'Haggai', '37'],
-         u'ZEC': [u'Zechariah', '38'],
-         u'MAL': [u'Malachi', '39'],
-         u'MAT': [u'Matthew', '41'],
-         u'MRK': [u'Mark', '42'],
-         u'LUK': [u'Luke', '43'],
-         u'JHN': [u'John', '44'],
-         u'ACT': [u'Acts', '45'],
-         u'ROM': [u'Romans', '46'],
-         u'1CO': [u'1 Corinthians', '47'],
-         u'2CO': [u'2 Corinthians', '48'],
-         u'GAL': [u'Galatians', '49'],
-         u'EPH': [u'Ephesians', '50'],
-         u'PHP': [u'Philippians', '51'],
-         u'COL': [u'Colossians', '52'],
-         u'1TH': [u'1 Thessalonians', '53'],
-         u'2TH': [u'2 Thessalonians', '54'],
-         u'1TI': [u'1 Timothy', '55'],
-         u'2TI': [u'2 Timothy', '56'],
-         u'TIT': [u'Titus', '57'],
-         u'PHM': [u'Philemon', '58'],
-         u'HEB': [u'Hebrews', '59'],
-         u'JAS': [u'James', '60'],
-         u'1PE': [u'1 Peter', '61'],
-         u'2PE': [u'2 Peter', '62'],
-         u'1JN': [u'1 John', '63'],
-         u'2JN': [u'2 John', '64'],
-         u'3JN': [u'3 John', '65'],
-         u'JUD': [u'Jude', '66'],
-         u'REV': [u'Revelation', '67'],
-         }
+books = { u'GEN': [ u'Genesis', '01' ],
+          u'EXO': [ u'Exodus', '02' ],
+          u'LEV': [ u'Leviticus', '03' ],
+          u'NUM': [ u'Numbers', '04' ],
+          u'DEU': [ u'Deuteronomy', '05' ],
+          u'JOS': [ u'Joshua', '06' ],
+          u'JDG': [ u'Judges', '07' ],
+          u'RUT': [ u'Ruth', '08' ],
+          u'1SA': [ u'1 Samuel', '09' ],
+          u'2SA': [ u'2 Samuel', '10' ],
+          u'1KI': [ u'1 Kings', '11' ],
+          u'2KI': [ u'2 Kings', '12' ],
+          u'1CH': [ u'1 Chronicles', '13' ],
+          u'2CH': [ u'2 Chronicles', '14' ],
+          u'EZR': [ u'Ezra', '15' ],
+          u'NEH': [ u'Nehemiah', '16' ],
+          u'EST': [ u'Esther', '17' ],
+          u'JOB': [ u'Job', '18' ],
+          u'PSA': [ u'Psalms', '19' ],
+          u'PRO': [ u'Proverbs', '20' ],
+          u'ECC': [ u'Ecclesiastes', '21' ],
+          u'SNG': [ u'Song of Solomon', '22' ],
+          u'ISA': [ u'Isaiah', '23' ],
+          u'JER': [ u'Jeremiah', '24' ],
+          u'LAM': [ u'Lamentations', '25' ],
+          u'EZK': [ u'Ezekiel', '26' ],
+          u'DAN': [ u'Daniel', '27' ],
+          u'HOS': [ u'Hosea', '28' ],
+          u'JOL': [ u'Joel', '29' ],
+          u'AMO': [ u'Amos', '30' ],
+          u'OBA': [ u'Obadiah', '31' ],
+          u'JON': [ u'Jonah', '32' ],
+          u'MIC': [ u'Micah', '33' ],
+          u'NAM': [ u'Nahum', '34' ],
+          u'HAB': [ u'Habakkuk', '35' ],
+          u'ZEP': [ u'Zephaniah', '36' ],
+          u'HAG': [ u'Haggai', '37' ],
+          u'ZEC': [ u'Zechariah', '38' ],
+          u'MAL': [ u'Malachi', '39' ],
+          u'MAT': [ u'Matthew', '41' ],
+          u'MRK': [ u'Mark', '42' ],
+          u'LUK': [ u'Luke', '43' ],
+          u'JHN': [ u'John', '44' ],
+          u'ACT': [ u'Acts', '45' ],
+          u'ROM': [ u'Romans', '46' ],
+          u'1CO': [ u'1 Corinthians', '47' ],
+          u'2CO': [ u'2 Corinthians', '48' ],
+          u'GAL': [ u'Galatians', '49' ],
+          u'EPH': [ u'Ephesians', '50' ],
+          u'PHP': [ u'Philippians', '51' ],
+          u'COL': [ u'Colossians', '52' ],
+          u'1TH': [ u'1 Thessalonians', '53' ],
+          u'2TH': [ u'2 Thessalonians', '54' ],
+          u'1TI': [ u'1 Timothy', '55' ],
+          u'2TI': [ u'2 Timothy', '56' ],
+          u'TIT': [ u'Titus', '57' ],
+          u'PHM': [ u'Philemon', '58' ],
+          u'HEB': [ u'Hebrews', '59' ],
+          u'JAS': [ u'James', '60' ],
+          u'1PE': [ u'1 Peter', '61' ],
+          u'2PE': [ u'2 Peter', '62' ],
+          u'1JN': [ u'1 John', '63' ],
+          u'2JN': [ u'2 John', '64' ],
+          u'3JN': [ u'3 John', '65' ],
+          u'JUD': [ u'Jude', '66' ],
+          u'REV': [ u'Revelation', '67' ],
+}
 
 TMPL = u'''====== {book} {chp}:{refrng} ======
 
@@ -133,7 +133,7 @@ TMPL = u'''====== {book} {chp}:{refrng} ======
   * example
   * example
   * example
-
+ 
 
 ===== Translation Notes: =====
 
@@ -144,12 +144,12 @@ TMPL = u'''====== {book} {chp}:{refrng} ======
     * **bold words**  - explanation
     * **bold words**  - explanation
     * **bold words**  - explanation
-
+  
 ===== Links: =====
 
   * **[[en/bible/notes:{bk}/questions/comprehension/{chp}|{book} Chapter {chp} Comprehension Questions]]**
 
-
+ 
 
 **[[en/bible/notes/{bk}/{prvchp}/{prv}|<<]] | [[en/bible/notes/{bk}/{nxtchp}/{nxt}|>>]]**
 
@@ -159,54 +159,45 @@ TMPL = u'''====== {book} {chp}:{refrng} ======
 {{{{tag>draft}}}}
 '''
 
+def getText(resource, lang, bk, chp):
+    return fix_text(codecs.open(CHAPTERFILE.format(resource, lang, books[bk.upper()][1], bk.upper(), chp), "r", "utf-8").read())
 
-def getText(resource, lang_code, book_id, chp_num):
-    file_name = CHAPTERFILE.format(resource, lang_code, books[book_id.upper()][1], book_id.upper(), chp_num)
-    with codecs.open(file_name, 'r', 'utf-8') as in_file:
-        file_text = in_file.red()
-
-    return fix_text(file_text)
-
-
-def splice(ulb_text, udb_text, tft_text, book_id, chp_num):
+def splice(ulb, udb, tft, bk, chp):
     chunks = {}
-    book = books[book_id.upper()][0]
-    for i in ulb_text.split('\n\\s5'):
-        if i.startswith('https') and len(i) < 50:
-            continue
+    book = books[bk.upper()][0]
+    for i in ulb.split('\n\\s5'):
+        if i.startswith('https') and len(i) < 50: continue
         ref_list = refre.findall(i)
         if not ref_list:
             continue
         ref = ref_list[0]
-        ref_rng = '{0}-{1}'.format(ref_list[0], ref_list[-1])
+        refrng = '{0}-{1}'.format(ref_list[0], ref_list[-1])
         if ref_list[0] == ref_list[-1]:
-            ref_rng = ref_list[0]
-        chunks[ref] = {'bk': book_id,
-                       'chp': chp_num,
-                       'book': book,
-                       'ref_list': ref_list,
-                       'refrng': ref_rng,
-                       'filepath': getPath(book_id, chp_num, ref),
-                       }
+            refrng = ref_list[0]
+        chunks[ref] = { 'bk': bk,
+                        'chp': chp,
+                        'book': book,
+                        'ref_list': ref_list,
+                        'refrng': refrng,
+                        'filepath': getPath(bk, chp, ref),
+                      }
         i = httpsre.sub(u'', i)
         i = sectionre.sub(u'', i)
         chunks[ref]['ulb'] = i.strip()
-        chunks[ref]['udb'] = getTXT(ref_list, udb_text)
-        chunks[ref]['tft'] = getTXT(ref_list, tft_text)
+        chunks[ref]['udb'] = getTXT(ref_list, udb)
+        chunks[ref]['tft'] = getTXT(ref_list, tft)
     return chunks
-
 
 def getTXT(refs, txt):
     chunks = []
     for r in refs:
-        ver_sep = ur'\\v.?{0}[- ].*?\\v'.format(r)
-        ver_sep_end = ur'\\v.?{0}[- ].*?$'.format(r)
+        versep = ur'\\v.?{0}[- ].*?\\v'.format(r)
+        versepend = ur'\\v.?{0}[- ].*?$'.format(r)
         try:
-            verse = re.search(ver_sep, txt, re.DOTALL).group(0)
+            verse = re.search(versep, txt, re.DOTALL).group(0)
         except AttributeError:
-            # noinspection PyBroadException
             try:
-                verse = re.search(ver_sep_end, txt, re.DOTALL).group(0)
+                verse = re.search(versepend, txt, re.DOTALL).group(0)
             except:
                 print 'Warning: reference not found: {0}'.format(r)
                 continue
@@ -215,19 +206,16 @@ def getTXT(refs, txt):
         chunks.append(verse.rstrip('\\v').strip())
     return '\n'.join(chunks)
 
+def getPath(bk, chp, ref):
+    fill = getFill(bk)
+    return os.path.join(NP, bk, chp.zfill(fill),
+                                            '{0}.txt'.format(ref.zfill(fill)))
 
-def getPath(book_id, chp_num, ref):
-    fill = getFill(book_id)
-    return os.path.join(NP, book_id, chp_num.zfill(fill),
-                        '{0}.txt'.format(ref.zfill(fill)))
-
-
-def getFill(book_id):
-    if 'psa' in book_id.lower():
-        return 3
+def getFill(bk):
+    if 'psa' in bk.lower():
+       return 3
     return 2
-
-
+    
 def writeFile(f, content):
     makeDir(f.rpartition('/')[0])
     out = codecs.open(f, encoding='utf-8', mode='w')
@@ -235,76 +223,64 @@ def writeFile(f, content):
     out.close()
     os.chown(f, 48, 48)
 
-
 def makeDir(d):
-    """
+    '''
     Simple wrapper to make a directory if it does not exist.
-    """
+    '''
     if not os.path.exists(d):
         os.makedirs(d, 0755)
 
-
 def writeOrAppend(f, chunk):
-
     if os.path.exists(f):
         content, has_non_ascii_chars, errors = unicode_string_utils.open_file_read_unicode(f)
         content = tftp.sub(ur'\1\n TFTSUB \n\2', content)
         content = udbp.sub(ur'\1\n UDBSUB \n\2', content)
         content = ulbp.sub(ur'\1\n ULBSUB \n\2', content)
-        # noinspection PyTypeChecker
-        content = (content.replace(u' TFTSUB ', chunk['tft'])
-                   .replace(u' UDBSUB ', chunk['udb'])
-                   .replace(u' ULBSUB ', chunk['ulb']))
+        content = ( content.replace(u' TFTSUB ', chunk['tft'])
+                           .replace(u' UDBSUB ', chunk['udb'])
+                           .replace(u' ULBSUB ', chunk['ulb']) )
     else:
-        # do not create new files automatically
-        return
-        # content = TMPL.format(**chunk)
-
+        content = TMPL.format(**chunk)
     writeFile(f, content)
 
-
-def writeChunks(chunked_list):
+def writeChunks(chunked):
     fill = getFill(bk)
-    refs = [k for k in chunked_list.iterkeys()]
+    refs = [k for k in chunked.iterkeys()]
     refs.sort(key=int)
     for k in refs:
         i = refs.index(k)
-        chunked_list[k]['prv'] = getNav(refs, i - 1, chunked_list)
-        chunked_list[k]['nxt'] = getNav(refs, i + 1, chunked_list)
-        chunked_list[k]['prvchp'] = chp
-        chunked_list[k]['nxtchp'] = chp
+        chunked[k]['prv'] = getNav(refs, i-1, chunked)
+        chunked[k]['nxt'] = getNav(refs, i+1, chunked)
+        chunked[k]['prvchp'] = chp
+        chunked[k]['nxtchp'] = chp
         if i == 0:
-            chunked_list[k]['prvchp'] = str(int(chp) - 1).zfill(fill)
-            chunked_list[k]['prv'] = getLastSection(bk, chunked_list[k]['prvchp'])
+            chunked[k]['prvchp'] = str(int(chp) - 1).zfill(fill)
+            chunked[k]['prv'] = getLastSection(bk, chunked[k]['prvchp'])
         if i == (len(refs) - 1):
-            chunked_list[k]['nxtchp'] = str(int(chp) + 1).zfill(fill)
-            chunked_list[k]['nxt'] = '1'.zfill(fill)
-        writeOrAppend(chunked_list[k]['filepath'], chunked_list[k])
+            chunked[k]['nxtchp'] = str(int(chp) + 1).zfill(fill)
+            chunked[k]['nxt'] = '1'.zfill(fill)
+        writeOrAppend(chunked[k]['filepath'], chunked[k])
 
-
-def getLastSection(book_id, chp_num):
-    dirpath = os.path.join(NP, book_id, chp_num)
+def getLastSection(bk, chp):
+    dirpath = os.path.join(NP, bk, chp)
     if not os.path.exists(dirpath):
-        return chp_num
+        return chp
     seclist = glob.glob('{0}/[0-9]*.txt'.format(dirpath))
-    ref = chp_num
+    ref = chp
     if len(seclist):
         seclist.sort()
         ref = seclist[-1].rpartition('/')[-1].rstrip('.txt')
     return ref
 
-
-def getNav(refs, i, chunked_list):
+def getNav(refs, i, chunked):
     fill = getFill(bk)
     if i == -1:
         return ''
     elif i >= len(refs):
         return '1'.zfill(fill)
-    return chunked_list[refs[i]]['ref_list'][0].zfill(fill)
-
+    return chunked[refs[i]]['ref_list'][0].zfill(fill)
 
 def getURL(url):
-    # noinspection PyBroadException
     try:
         request = urllib2.urlopen(url)
         content = request.read()
@@ -319,12 +295,11 @@ def getURL(url):
 def fix_text(source_text):
     """
     Removes and replaces specific characters and sequences
-    :param unicode source_text:
-    :return: unicode
+    :param source_text: string
+    :return: string
     """
 
     fixed_text = hyphenfixre.sub(u'—', source_text)
-    # noinspection PyTypeChecker
     fixed_text = fixed_text.replace(u' — ', u'—')
 
     return fixed_text
@@ -332,13 +307,13 @@ def fix_text(source_text):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+        formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-l', '--language', dest="lang", default="en",
-                        required=False, help="Book to convert")
+        required=False, help="Book to convert")
     parser.add_argument('-b', '--book', dest="book",
-                        required=True, help="Book to convert")
+        required=True, help="Book to convert")
     parser.add_argument('-c', '--chapter', dest="chapter",
-                        required=True, help="Chapter to convert")
+        required=True, help="Chapter to convert")
 
     args = parser.parse_args(sys.argv[1:])
 
