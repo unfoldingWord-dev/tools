@@ -34,19 +34,20 @@ $DEBUG && set -x
 
 curl "https://test-api.door43.org/tx/print?id=Door43/en_ta/41fc5f6386" -o "$OUTPUT_DIR/html/ta_orig.html"
 
-"$MY_DIR/massage_ta_html.py" -i "$OUTPUT_DIR/html/ta_orig.html" -o "$OUTPUT_DIR/html/ta.html"
+"$MY_DIR/massage_ta_html.py" -i "$OUTPUT_DIR/html/ta_orig.html" -o "$OUTPUT_DIR/html/ta.html" -s "$MY_DIR/style.css"
 
 echo '<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8" />
   <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
+  <link href="file://'$MY_DIR'/style.css" rel="stylesheet"/>
 </head>
 <body>
   <div style="text-align:center;padding-top:200px" class="break" id="cover">
     <img src="http://unfoldingword.org/assets/img/icon-ta.png" width="120">
     <span class="h1">translationAcademy</span>
-    <span class="h3">Version ${VERSION}</span>
+    <span class="h3">Version '${VERSION}'</span>
   </div>
 </body>
 </html>
@@ -57,6 +58,7 @@ echo '<!DOCTYPE html>
 <head>
   <meta charset="UTF-8" />
   <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
+  <link href="file://'$MY_DIR'/style.css" rel="stylesheet"/>
 </head>
 <body>
   <div class="break">
@@ -81,8 +83,8 @@ echo '<!DOCTYPE html>
 <p>You do not have to comply with the license for elements of the material in the public domain or where your use is permitted by an applicable exception or limitation.</p>
 <p>No warranties are given. The license may not give you all of the permissions necessary for your intended use. For example, other rights such as publicity, privacy, or moral rights may limit how you use the material.</p>
     <p>
-      <strong>Date:</strong> `date +%Y-%m-%d`<br/>
-      <strong>Version:</strong> ${VERSION}
+      <strong>Date:</strong> '`date +%Y-%m-%d`'<br/>
+      <strong>Version:</strong> '${VERSION}'
     </p>
   </div>
 </body>
@@ -94,6 +96,7 @@ echo '<!DOCTYPE html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
+    <link href="file://'$MY_DIR'/style.css" rel="stylesheet"/>
     <script>
         function subst() {
             var vars = {};
