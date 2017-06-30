@@ -25,6 +25,7 @@ import shutil
 import argparse
 import datetime
 import urllib2
+import tempfile
 
 CatalogJSON='https://api.unfoldingword.org/uw/txt/2/catalog.json'
 
@@ -71,7 +72,7 @@ def main(langcode, ver, books, format, outfile):
         print "No sources were found for langage {0} of version {1} in {2}. Exiting...".format(langcode, ver, CatalogJSON)
         sys.exit(1)
 
-    tmpdir = tmpfile.mkdtemp(prefix='uwb-{0}-{1}-'.format(ver, langcode))
+    tmpdir = tempfile.mkdtemp(prefix='uwb-{0}-{1}-'.format(ver, langcode))
 
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
