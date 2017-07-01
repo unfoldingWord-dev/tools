@@ -52,13 +52,23 @@ li {
     page-break-inside: avoid;
 }
 
+.box ul {
+    padding: 0;
+}
+
+.box li {
+    padding-top: .5em;
+    list-style: none;
+    font-style: italic;
+}
+
 .box p {
-    margin: 0;
+    margin-top: 0;
 }
 
 .top-box {
     float: right;
-    width: 210px;
+    width: 250px;
 }
 
 .bottom-box {

@@ -32,7 +32,7 @@ mkdir -p "$OUTPUT_DIR/pdf"
 # If running in DEBUG mode, output information about every command being run
 $DEBUG && set -x
 
-curl "https://test-api.door43.org/tx/print?id=Door43/en_ta/41fc5f6386" -o "$OUTPUT_DIR/html/ta_orig.html"
+curl "https://test-api.door43.org/tx/print?id=Door43/en_ta/7e2fd99b9f" -o "$OUTPUT_DIR/html/ta_orig.html"
 
 "$MY_DIR/massage_ta_html.py" -i "$OUTPUT_DIR/html/ta_orig.html" -o "$OUTPUT_DIR/html/ta.html" -s "$MY_DIR/style.css"
 
@@ -128,7 +128,7 @@ headerfile="file://$OUTPUT_DIR/html/header.html"
 coverfile="file://$OUTPUT_DIR/html/cover.html"
 licensefile="file://$OUTPUT_DIR/html/license.html"
 tafile="file://$OUTPUT_DIR/html/ta.html"
-outfile="$OUTPUT_DIR/pdf/en-ta-v${VERSION}.pdf"
+outfile="$OUTPUT_DIR/pdf/en_ta_v${VERSION}.pdf"
 echo "GENERATING $outfile"
 echo wkhtmltopdf --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 15  --header-html "$headerfile" --header-spacing 2 --footer-center '[page]' cover "$coverfile" cover "$licensefile" toc --disable-dotted-lines --enable-external-links --xsl-style-sheet "$TEMPLATE" "$tafile" "$outfile"
 wkhtmltopdf --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 15  --header-html "$headerfile" --header-spacing 2 --footer-center '[page]' cover "$coverfile" cover "$licensefile" toc --disable-dotted-lines --enable-external-links --xsl-style-sheet "$TEMPLATE" "$tafile" "$outfile"
