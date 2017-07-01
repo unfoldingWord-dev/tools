@@ -71,7 +71,7 @@ li {
     width: 250px;
 }
 
-.top-box > em:first-child {
+.top-box em:first-child {
     display: block;
     padding-top: 10px;
 }
