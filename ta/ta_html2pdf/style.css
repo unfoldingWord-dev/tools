@@ -71,6 +71,11 @@ li {
     width: 250px;
 }
 
+.top-box > em:first-child {
+    display: block;
+    padding-top: 10px;
+}
+
 .bottom-box {
     margin: 5px 
     10px;clear: both;
