@@ -32,20 +32,36 @@ def write_file(file_name, file_contents):
         out_file.write(file_contents)
 
 
-def main(infile, outfile, stylefile):
+def main(infile, outfile, stylefile, version):
     soup = BeautifulSoup(read_file(infile), 'html.parser')
 
+    # Removes first h1 tag which is English: translationAcademy
     soup.find('h1').extract()
 
-    for h in soup.find_all(['h1', 'h2','h3', 'h4', 'h5', 'h6']):
+    for h in soup.find_all(['h2','h3', 'h4', 'h5', 'h6']):
         prev = h.find_previous_sibling()
-        if prev and re.match('^h[1-6]$', prev.name): 
+        if prev and re.match('^h[2-6]$', prev.name):
             h['class'] = h.get('class', []) + ['no-break'] 
 
     for h in soup.find_all(['h3', 'h4', 'h5', 'h6']):
         if not h.get('class') or 'section-header' not in h['class']:
             h['class'] = h.get('class', []) + [h.name]
             h.name = 'span'
+
+    for h in soup.find_all('h1'):
+        h.name = 'h2'
+        h['class'] = ['h2', 'no-break']
+        img  = soup.new_tag('img', src="https://unfoldingword.org/assets/img/icon-ta.png", width="120")
+        img['class'] = ['break']
+        img.insert_before(h)
+        h1 = soup.new_tag('h1')
+        h1['class'] = ['h1']
+        h1.text = 'translationAcademy'
+        h1.insert_before(h)
+        h3 = soup.new_tag('h3')
+        h3['class'] = ['h3']
+        h3.text = 'Version {0}'.format(version)
+        h3.insert_after(h)
 
     for a in soup.find_all('a'):
         a['href'] = re.sub(r'^[A-Za-z0-9\.-]+#(.*)$', r'#\1', a['href'])
@@ -64,7 +80,9 @@ if __name__ == '__main__':
         help="Filename of the ta.html file to write out to", required=True)
     parser.add_argument('-s', '--styleile', dest="stylefile",
         help="Filename of the style sheet", required=True)
+    parser.add_argument('-v', '--version', dest="version",
+        help="Version of tA", required=True)
 
     args = parser.parse_args(sys.argv[1:])
 
-    main(args.infile, args.outfile, args.stylefile)
+    main(args.infile, args.outfile, args.stylefile, args.version)
