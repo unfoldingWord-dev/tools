@@ -22,7 +22,7 @@ set -e # die if errors
 
 : ${MY_DIR:=$(cd $(dirname "$0") && pwd)} # Tools dir relative to this script
 : ${OUTPUT_DIR:=$(pwd)}
-: ${TEMPLATE_ALL:="$MY_DIR/toc_template.xsl"}
+: ${TEMPLATE:="$MY_DIR/toc_template.xsl"}
 : ${VERSION:=6}
 : ${TAG:=$1}
 
@@ -63,7 +63,6 @@ echo '<!DOCTYPE html>
 <body>
   <div class="break">
     <span class="h1">Copyrights & Licensing</span>
-<h1>License</h1>
 <h2>Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)</h2>
 <p>This is a human-readable summary of (and not a substitute for) the <a href="http://creativecommons.org/licenses/by-sa/4.0/">license</a>.</p>
 <h3>You are free to:</h3>
@@ -121,7 +120,7 @@ echo '<!DOCTYPE html>
 <body style="border:0; margin: 0px;" onload="subst()">
 <div style="font-style:italic;height:1.5em;"><span class="section" style="display;block;float:left;"></span><span class="subsection" style="float:right;display:block;"></span></div>
 </body>
-</html>
+</html>+
 ' > "$OUTPUT_DIR/html/header.html"
 
 headerfile="file://$OUTPUT_DIR/html/header.html"
@@ -130,5 +129,21 @@ licensefile="file://$OUTPUT_DIR/html/license.html"
 tafile="file://$OUTPUT_DIR/html/ta.html"
 outfile="$OUTPUT_DIR/pdf/en_ta_v${VERSION}.pdf"
 echo "GENERATING $outfile"
-echo wkhtmltopdf --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 15  --header-html "$headerfile" --header-spacing 2 --footer-center '[page]' cover "$coverfile" cover "$licensefile" toc --disable-dotted-lines --enable-external-links --xsl-style-sheet "$TEMPLATE" "$tafile" "$outfile"
-wkhtmltopdf --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 15  --header-html "$headerfile" --header-spacing 2 --footer-center '[page]' cover "$coverfile" cover "$licensefile" toc --disable-dotted-lines --enable-external-links --xsl-style-sheet "$TEMPLATE" "$tafile" "$outfile"
+wkhtmltopdf --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 15 \
+    --header-html "$headerfile" --header-spacing 2 \
+    --footer-center '[page]' \
+    cover "$coverfile" cover "$licensefile" \
+    toc --disable-dotted-lines --enable-external-links --xsl-style-sheet "$TEMPLATE" \
+    --toc-l1-font-size 16 \
+    --toc-l2-font-size 14 \
+    --toc-l3-font-size 12 \
+    --toc-l4-font-size 10 \
+    --toc-l5-font-size 8 \
+    --toc-l6-font-size 8 \
+    --toc-l1-indentation 2 \
+    --toc-l1-indentation 4 \
+    --toc-l1-indentation 6 \
+    --toc-l1-indentation 8 \
+    --toc-l1-indentation 10 \
+    --toc-l1-indentation 11 \
+    "$tafile" "$outfile"
