@@ -52,7 +52,7 @@ def main(infile, outfile, stylefile, version):
         parent = h.parent
         h.name = 'h2'
         h['class'] = ['h2', 'no-break']
-        container = soup.new_tag('div', style='text-align:center;padding-top:200px', id=h['id'])
+        container = soup.new_tag('div', style='text-align:center;padding-top:200px')
         container['class'] = ['break']
         del h['id']
         img = soup.new_tag('img', src="https://unfoldingword.org/assets/img/icon-ta.png", width="120")
