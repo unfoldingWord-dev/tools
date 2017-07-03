@@ -129,9 +129,4 @@ licensefile="file://$OUTPUT_DIR/html/license.html"
 tafile="file://$OUTPUT_DIR/html/ta.html"
 outfile="$OUTPUT_DIR/pdf/en_ta_v${VERSION}.pdf"
 echo "GENERATING $outfile"
-wkhtmltopdf --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 15 \
-    --header-html "$headerfile" --header-spacing 2 \
-    --footer-center '[page]' \
-    cover "$coverfile" cover "$licensefile" \
-    toc --disable-dotted-lines --enable-external-links --xsl-style-sheet "$TEMPLATE" \
-    "$tafile" "$outfile"
+wkhtmltopdf --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 15 --header-html "$headerfile" --header-spacing 2 --footer-center '[page]' cover "$coverfile" cover "$licensefile" toc --disable-dotted-lines --enable-external-links --xsl-style-sheet "$TEMPLATE" "$tafile" "$outfile"
