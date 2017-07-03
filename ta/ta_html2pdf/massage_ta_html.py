@@ -56,11 +56,11 @@ def main(infile, outfile, stylefile, version):
         h.insert_before(img)
         h1 = soup.new_tag('h1')
         h1['class'] = ['h1']
-        h1.text = 'translationAcademy'
+        h1.string = 'translationAcademy'
         h.insert_before(h1)
         h3 = soup.new_tag('h3')
         h3['class'] = ['h3']
-        h3.text = 'Version {0}'.format(version)
+        h3.string = 'Version {0}'.format(version)
         h.insert_after(h3)
 
     for a in soup.find_all('a'):
