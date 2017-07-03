@@ -34,7 +34,8 @@ $DEBUG && set -x
 
 curl "https://test-api.door43.org/tx/print?id=Door43/en_ta/7e2fd99b9f" -o "$OUTPUT_DIR/html/ta_orig.html"
 
-"$MY_DIR/massage_ta_html.py" -i "$OUTPUT_DIR/html/ta_orig.html" -o "$OUTPUT_DIR/html/ta.html" -s "$MY_DIR/style.css"
+"$MY_DIR/massage_ta_html.py" -i "$OUTPUT_DIR/html/ta_orig.html" -o "$OUTPUT_DIR/html/ta.html" \
+                             -s "$MY_DIR/style.css" -v $VERSION
 
 echo '<!DOCTYPE html>
 <html>
