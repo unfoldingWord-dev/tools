@@ -49,6 +49,7 @@ def main(infile, outfile, stylefile, version):
             h.name = 'span'
 
     for h in soup.find_all('h1'):
+        parent = h.parent
         h.name = 'h2'
         h['class'] = ['h2', 'no-break']
         container = soup.new_tag('div', style='text-align:center;padding-top:200px', id=h['id'])
@@ -66,6 +67,7 @@ def main(infile, outfile, stylefile, version):
         h3['class'] = ['h3']
         h3.string = 'Version {0}'.format(version)
         container.append(h3)
+        parent.prepend(container)
 
     for a in soup.find_all('a'):
         a['href'] = re.sub(r'^[A-Za-z0-9\.-]+#(.*)$', r'#\1', a['href'])
