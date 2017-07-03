@@ -57,7 +57,7 @@ li {
 }
 
 .box li {
-    padding-top: .5em;
+    padding-bottom: .5em;
     list-style: none;
     font-style: italic;
 }
