@@ -134,16 +134,4 @@ wkhtmltopdf --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 
     --footer-center '[page]' \
     cover "$coverfile" cover "$licensefile" \
     toc --disable-dotted-lines --enable-external-links --xsl-style-sheet "$TEMPLATE" \
-    --toc-l1-font-size 16 \
-    --toc-l2-font-size 14 \
-    --toc-l3-font-size 12 \
-    --toc-l4-font-size 10 \
-    --toc-l5-font-size 8 \
-    --toc-l6-font-size 8 \
-    --toc-l1-indentation 2 \
-    --toc-l1-indentation 4 \
-    --toc-l1-indentation 6 \
-    --toc-l1-indentation 8 \
-    --toc-l1-indentation 10 \
-    --toc-l1-indentation 11 \
     "$tafile" "$outfile"
