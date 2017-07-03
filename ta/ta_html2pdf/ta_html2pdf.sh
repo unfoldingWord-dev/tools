@@ -120,7 +120,7 @@ echo '<!DOCTYPE html>
 <body style="border:0; margin: 0px;" onload="subst()">
 <div style="font-style:italic;height:1.5em;"><span class="section" style="display;block;float:left;"></span><span class="subsection" style="float:right;display:block;"></span></div>
 </body>
-</html>+
+</html>
 ' > "$OUTPUT_DIR/html/header.html"
 
 headerfile="file://$OUTPUT_DIR/html/header.html"
