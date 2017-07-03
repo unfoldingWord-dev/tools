@@ -49,25 +49,22 @@ def main(infile, outfile, stylefile, version):
             h.name = 'span'
 
     for h in soup.find_all('h1'):
-        parent = h.parent
-        h.name = 'h2'
-        h['class'] = ['h2', 'no-break']
         container = soup.new_tag('div', style='text-align:center;padding-top:200px')
         container['class'] = ['break']
-        del h['id']
+        h.insert_before(container)
         img = soup.new_tag('img', src="https://unfoldingword.org/assets/img/icon-ta.png", width="120")
         img['class'] = ['break']
         container.append(img)
-        h1 = soup.new_tag('h1')
+        h1 = soup.new_tag('span')
         h1['class'] = ['h1']
         h1.string = 'translationAcademy'
         container.append(h1)
+        h['class'] = ['h2', 'no-break']
         container.append(h)
-        h3 = soup.new_tag('h3')
+        h3 = soup.new_tag('span')
         h3['class'] = ['h3']
         h3.string = 'Version {0}'.format(version)
         container.append(h3)
-        parent.prepend(container)
 
     for a in soup.find_all('a'):
         a['href'] = re.sub(r'^[A-Za-z0-9\.-]+#(.*)$', r'#\1', a['href'])
