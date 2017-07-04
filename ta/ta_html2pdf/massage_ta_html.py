@@ -38,16 +38,19 @@ def main(infile, outfile, stylefile, version):
     # Removes first h1 tag which is English: translationAcademy
     soup.find('h1').extract()
 
+    # Make all headers that have a header right before them non-break
     for h in soup.find_all(['h2','h3', 'h4', 'h5', 'h6']):
         prev = h.find_previous_sibling()
         if prev and re.match('^h[2-6]$', prev.name):
             h['class'] = h.get('class', []) + ['no-break'] 
 
+    # Make all headers within the page content to just be span tags with h# classes
     for h in soup.find_all(['h3', 'h4', 'h5', 'h6']):
         if not h.get('class') or 'section-header' not in h['class']:
             h['class'] = h.get('class', []) + [h.name]
             h.name = 'span'
 
+    # Make manual page
     for h in soup.find_all('h1'):
         container = soup.new_tag('div', style='text-align:center;padding-top:200px')
         container['class'] = ['break']
