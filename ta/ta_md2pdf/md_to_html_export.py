@@ -78,7 +78,7 @@ def generatePage(myManual, data, header, pageBreak, complete=False):
             ret += ' id="'+id+'"'
         ret += '>'+data['title']+'</h'+str(header)+'>'
     elif id:
-        ren += '<a name="'+id+'"/>'
+        ret += '<a name="'+id+'"/>'
 
     if meta and ('question' in meta or ('dependencies' in meta and meta['dependencies'] and meta['dependencies'])):
         top_box = '<div class="box" style="float:right;width:210px;">'
