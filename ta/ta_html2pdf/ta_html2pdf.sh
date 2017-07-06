@@ -23,7 +23,7 @@ set -e # die if errors
 : ${MY_DIR:=$(cd $(dirname "$0") && pwd)} # Tools dir relative to this script
 : ${OUTPUT_DIR:=$(pwd)}
 : ${TEMPLATE:="$MY_DIR/toc_template.xsl"}
-: ${VERSION:=6}
+: ${VERSION:=7}
 : ${TAG:=$1}
 
 mkdir -p "$OUTPUT_DIR/html"
