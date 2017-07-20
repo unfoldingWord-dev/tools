@@ -20,7 +20,8 @@ set -e # die if errors
 : ${OUTPUT_DIR:=$(pwd)}
 : ${TEMPLATE:="$MY_DIR/toc_template.xsl"}
 : ${TEMPLATE_ALL:="$MY_DIR/toc_template_all.xsl"}
-: ${VERSION:=6}
+: ${LANGUAGE:="en"}
+: ${RESOURCE:="tq"}
 
 if [[ -z $WORKING_DIR ]]; then
     WORKING_DIR=$(mktemp -d -t "export_md_to_pdf.XXXXXX")
@@ -33,41 +34,56 @@ source "$MY_DIR/../general_tools/bible_books.sh"
 
 echo $WORKING_DIR
 
-# Change to own own temp dir but note our current dir so we can get back to it
+# Change to our own temp dir but note our current dir so we can get back to it
 pushd "$WORKING_DIR" > /dev/null
+
+# copy python script files
+cp -R $MY_DIR/../catalog ./catalog/
+cp  -R $MY_DIR/../general_tools ./general_tools/
+cp  $MY_DIR/../general_tools/get_current_resource.py .
+mkdir ./tq
+cp  $MY_DIR/*.py ./tq
+
+ls .
+ls ./tq
+
+URL=$(./get_current_resource.py -l $LANGUAGE -r $RESOURCE);
+VERSION=$(./get_current_resource.py -l $LANGUAGE -r $RESOURCE -v 1);
+
+repo="${LANGUAGE}_${RESOURCE}"
+
+echo "Current '$repo' Resource is at: $URL"
+echo "Current '$repo' Version is at: $VERSION"
 
 # If running in DEBUG mode, output information about every command being run
 $DEBUG && set -x
 
-repo=en-tq
+mkdir files
+
+wget $URL -O ./file.zip
+
+unzip -q ./file.zip -d files
+
+echo "Unzipped files:"
+ls files/$repo
 
 mkdir -p "$OUTPUT_DIR/html"
 cp "$MY_DIR/style.css" "$OUTPUT_DIR/html"
 cp "$MY_DIR/header.html" "$OUTPUT_DIR/html"
 
-echo $repo
-if [ ! -e "$WORKING_DIR/$repo" ]; then
-    cd "$WORKING_DIR"
-    git clone "https://git.door43.org/Door43/$repo.git"
-    cd "$repo"
-else
-    cd "$WORKING_DIR/$repo"
-fi
-git checkout tags/v${VERSION}
-
 book_export () {
     book=$1
 
-    "$MY_DIR/md_to_html_export.py" -i "$WORKING_DIR/$repo" -o "$OUTPUT_DIR/html" -v "$VERSION" -b $book
+    "$WORKING_DIR/tq/md_to_html_export.py" -i "$WORKING_DIR/files/$repo" -o "$OUTPUT_DIR/html" -v "$VERSION" -b $book
 
     headerfile="file://$OUTPUT_DIR/html/header.html"
     coverfile="file://$OUTPUT_DIR/html/cover.html"
     licensefile="file://$OUTPUT_DIR/html/license.html"
     bodyfile="file://$OUTPUT_DIR/html/$book.html"
     if [[ $book != "all" ]]; then
-        outfile="$OUTPUT_DIR/pdf/tq-${BOOK_NUMBERS[$book]}-${book^^}-v${VERSION}.pdf"
+        outfile="$OUTPUT_DIR/pdf/tq_${BOOK_NUMBERS[$book]}-${book^^}_v${VERSION}.pdf"
     else
-        outfile="$OUTPUT_DIR/pdf/tq-v${VERSION}.pdf"
+        outfile="$OUTPUT_DIR/pdf/tq_v${VERSION}.pdf"
     fi
     mkdir -p "$OUTPUT_DIR/pdf"
     echo "GENERATING $outfile"

@@ -32,7 +32,7 @@ fi
 
 echo $WORKING_DIR
 
-# Change to own own temp dir but note our current dir so we can get back to it
+# Change to our own temp dir but note our current dir so we can get back to it
 pushd "$WORKING_DIR" > /dev/null
 
 # copy python script files
@@ -43,8 +43,6 @@ ls .
 
 URL=$(./get_current_resource.py -l $LANGUAGE -r $RESOURCE);
 VERSION=$(./get_current_resource.py -l $LANGUAGE -r $RESOURCE -v 1);
-
-# remove link
 
 repo="${LANGUAGE}_${RESOURCE}"
 
@@ -73,7 +71,7 @@ headerfile="file://$OUTPUT_DIR/html/header.html"
 coverfile="file://$OUTPUT_DIR/html/cover.html"
 licensefile="file://$OUTPUT_DIR/html/license.html"
 bodyfile="file://$OUTPUT_DIR/html/body.html"
-outfile="$OUTPUT_DIR/pdf/${repo}-v${VERSION}.pdf"
+outfile="$OUTPUT_DIR/pdf/${repo}_v${VERSION}.pdf"
 mkdir -p "$OUTPUT_DIR/pdf"
 echo "GENERATING $outfile"
 wkhtmltopdf --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 15  --header-html "$headerfile" --header-spacing 2 --footer-center '[page]' cover "$coverfile" cover "$licensefile" toc --disable-dotted-lines --enable-external-links --xsl-style-sheet "$TEMPLATE" "$bodyfile" "$outfile"
