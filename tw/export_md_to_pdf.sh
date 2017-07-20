@@ -32,24 +32,24 @@ fi
 
 echo $WORKING_DIR
 
-# create link so python script can find libraries
-if [ ! -e "./catalog" ]; then
-    ln -s ../catalog
-fi
+# Change to own own temp dir but note our current dir so we can get back to it
+pushd "$WORKING_DIR" > /dev/null
+
+# copy python script files
+cp -R $MY_DIR/../catalog ./catalog/
+cp  $MY_DIR/../general_tools/get_current_resource.py .
+
+ls .
 
 URL=$(./get_current_resource.py -l $LANGUAGE -r $RESOURCE);
 VERSION=$(./get_current_resource.py -l $LANGUAGE -r $RESOURCE -v 1);
 
 # remove link
-rm catalog
 
 repo="${LANGUAGE}_${RESOURCE}"
 
 echo "Current '$repo' Resource is at: $URL"
 echo "Current '$repo' Version is at: $VERSION"
-
-# Change to own own temp dir but note our current dir so we can get back to it
-pushd "$WORKING_DIR" > /dev/null
 
 # If running in DEBUG mode, output information about every command being run
 $DEBUG && set -x
@@ -58,7 +58,7 @@ mkdir files
 
 wget $URL -O ./file.zip
 
-unzip ./file.zip -d files
+unzip -q ./file.zip -d files
 
 echo "Unzipped files:"
 ls files/$repo
