@@ -21,8 +21,6 @@ import urllib2
 class UWCatalog:
     catalog = None
 
-    # jsonURL = 'https://api.unfoldingword.org/uw/txt/2/catalog.json'
-    # jsonURL = 'file:///var/www/vhosts/api.unfoldingword.org/httpdocs/uw/txt/2/catalog.json'
     jsonURL = 'https://api.door43.org/v3/catalog.json'
 
     def __init__(self, url):

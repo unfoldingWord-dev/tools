@@ -19,7 +19,7 @@ from catalog import UWCatalog
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-l', '--lang', dest='langcode', default=None, required=False, help="Language Code")
     parser.add_argument('-v', '--version', dest='ver', default=None, required=False, help="Bible Version")
     parser.add_argument('-b', '--book', dest='book', default=None, required=False, help="Bible Book")
@@ -29,10 +29,10 @@ if __name__ == '__main__':
 
     uwc = UWCatalog()
 
-    langcode=args.langcode
-    ver=args.ver
-    book=args.book
-    key=args.key
+    langcode = args.langcode
+    ver = args.ver
+    book = args.book
+    key = args.key
 
     if not langcode:
         if key:
