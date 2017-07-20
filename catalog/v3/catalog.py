@@ -1,4 +1,3 @@
-#!/usr/bin/env python2
 # -*- coding: utf8 -*-
 #
 #  Copyright (c) 2015 unfoldingWord
@@ -26,7 +25,7 @@ class UWCatalog:
     def __init__(self, url):
         if not url:
             url = self.jsonURL
-        sys.stdout = codecs.getwriter('utf8')(sys.stdout);
+        sys.stdout = codecs.getwriter('utf8')(sys.stdout)
         # Get the JSON
         self.catalog = json.load(urllib2.urlopen(url))
 
