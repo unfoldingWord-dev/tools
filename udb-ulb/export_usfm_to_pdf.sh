@@ -128,7 +128,7 @@ for BOOK in "${BOOKS[@]}"; do
     then
         BOOK_ARG='-b gen exo lev num deu jos jdg rut 1sa 2sa 1ki 2ki 1ch 2ch ezr neh est job psa pro ecc sng isa jer lam ezk dan hos jol amo oba jon mic nam hab zep hag zec mal'
         SUBTITLE="Old Testament"
-        BASENAME="${VER^^}_ot"
+        BASENAME="${RESOURCE^^}_ot"
     elif [ $BOOK == 'nt' ];
     then
         BOOK_ARG='-b mat mrk luk jhn act rom 1co 2co gal eph php col 1ti 2ti 1th 2th tit phm heb jas 1pe 2pe 1jn 2jn 3jn jud rev'
@@ -144,8 +144,9 @@ for BOOK in "${BOOKS[@]}"; do
             exit 1
         fi
         SUBTITLE=$NAME
-        BASENAME="${SORT}_${BOOK^^}"
+        BASENAME="$(printf "%02d" ${SORT})_${BOOK^^}"
         TOC_DEPTH=2
+Ihave.
     fi
 
     # Run python (helpers/export_usfm_to_html.py) to generate the .html files
