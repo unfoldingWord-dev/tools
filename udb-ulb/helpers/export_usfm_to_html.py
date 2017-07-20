@@ -23,26 +23,26 @@ import shutil
 import argparse
 import urllib
 import tempfile
-from catalog import UWCatalog
+from ...catalog.v3.catalog import UWCatalog
 from usfm_tools.transform import UsfmTransform
 
 CatalogJSON='https://api.door43.org/v3/catalog.json'
 
 
-def main(lang_id, resource_id, books, outfile):
+def main(lang_code, resource_id, books, outfile):
     sys.stdout = codecs.getwriter('utf8')(sys.stdout);
 
     catalog = UWCatalog(CatalogJSON)
 
-    lang = catalog.get_language(lang_id)
-    bible= catalog.get_resource(lang_id, resource_id)
+    lang = catalog.get_language(lang_code)
+    bible = catalog.get_resource(lang_code, resource_id)
 
     if lang is None:
-        print("The language code {0} is not found in the catalog at {1}. Exiting...".format(lang_id, CatalogJSON))
+        print("The language code {0} is not found in the catalog at {1}. Exiting...".format(lang_code, CatalogJSON))
         sys.exit(1)
 
     if bible is None:
-        print("The Bible version {0} for language {1} is not found in the catalog at {2}. Exiting...".format(resource_id, lang_id, CatalogJSON))
+        print("The Bible version {0} for language {1} is not found in the catalog at {2}. Exiting...".format(resource_id, lang_code, CatalogJSON))
         sys.exit(1)
 
     sources = []
@@ -54,10 +54,11 @@ def main(lang_id, resource_id, books, outfile):
                         sources += [f['url']]
 
     if not sources:
-        print("No sources were found for language {0} of version {1} in {2}. Exiting...".format(lang_id, resource_id, CatalogJSON))
+
+        print("No sources were found for language {0} of version {1} in {2}. Exiting...".format(lang_code, resource_id, CatalogJSON))
         sys.exit(1)
 
-    tmpdir = tempfile.mkdtemp(prefix='uwb-{0}-{1}-'.format(resource_id, lang_id))
+    tmpdir = tempfile.mkdtemp(prefix='uwb-{0}-{1}-'.format(resource_id, lang_code))
 
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
@@ -66,18 +67,17 @@ def main(lang_id, resource_id, books, outfile):
         f = urllib.URLopener()
         f.retrieve(source, tmpdir+"/sources/"+os.path.basename(source))
 
-    if format == 'html':
-        UsfmTransform.buildSingleHtml(tmpdir+"/sources", tmpdir, "bible")
-        shutil.copyfile(tmpdir+'/bible.html', outfile)
+    UsfmTransform.buildSingleHtml(tmpdir+"/sources", tmpdir, "bible")
+    shutil.copyfile(tmpdir+'/bible.html', outfile)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-l', '--lang', dest='langcode', default=False, required=True, help="Language Code")
-    parser.add_argument('-v', '--version', dest='ver', default='udb', required=True, help="Bible Version")
+    parser.add_argument('-r', '--resource', dest='resource_id', default=False, required=True, help="Bible Version")
     parser.add_argument('-b', '--book', dest='books', nargs='+', default=None, required=False, help="Bible Book(s)")
     parser.add_argument('-o', '--outfile', dest='outfile', default=False, required=True, help="Output file")
 
     args = parser.parse_args(sys.argv[1:])
 
-    main(args.langcode, args.ver, args.books, args.outfile)
+    main(args.langcode, args.resource_id, args.books, args.outfile)

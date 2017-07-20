@@ -34,11 +34,11 @@ class UWCatalog:
             if lang['identifier'] == lc:
                return lang
 
-    def get_resource(self, lc, id):
+    def get_resource(self, lc, resource_id):
         lang = self.get_language(lc)
         if lang:
             for resource in lang['resources']:
-                if resource['identifier'] == id:
+                if resource['identifier'] == resource_id:
                     return resource
 
     def get_project(self, lc, resource_id, project_id):
