@@ -37,18 +37,13 @@ echo $WORKING_DIR
 # Change to our own temp dir but note our current dir so we can get back to it
 pushd "$WORKING_DIR" > /dev/null
 
-# copy python script files
-cp -R $MY_DIR/../catalog ./catalog/
-cp  -R $MY_DIR/../general_tools ./general_tools/
-cp  $MY_DIR/../general_tools/get_current_resource.py .
-mkdir ./tq
-cp  $MY_DIR/*.py ./tq
+# link tools folder
+ln -s $MY_DIR/.. ./tools
 
 ls .
-ls ./tq
 
-URL=$(./get_current_resource.py -l $LANGUAGE -r $RESOURCE);
-VERSION=$(./get_current_resource.py -l $LANGUAGE -r $RESOURCE -v 1);
+URL=$(python -m tools.general_tools.get_current_resource -l $LANGUAGE -r $RESOURCE);
+VERSION=$(python -m tools.general_tools.get_current_resource -l $LANGUAGE -r $RESOURCE -v 1);
 
 repo="${LANGUAGE}_${RESOURCE}"
 
@@ -74,7 +69,7 @@ cp "$MY_DIR/header.html" "$OUTPUT_DIR/html"
 book_export () {
     book=$1
 
-    "$WORKING_DIR/tq/md_to_html_export.py" -i "$WORKING_DIR/files/$repo" -o "$OUTPUT_DIR/html" -v "$VERSION" -b $book
+    python -m tools.tq.md_to_html_export -i "$WORKING_DIR/files/$repo" -o "$OUTPUT_DIR/html" -v "$VERSION" -b $book
 
     headerfile="file://$OUTPUT_DIR/html/header.html"
     coverfile="file://$OUTPUT_DIR/html/cover.html"

@@ -15,7 +15,7 @@ This script queries the UW Catalog to get the latest resource specified and down
 
 import sys
 import argparse
-from catalog.v3.catalog import UWCatalog
+from ..catalog.v3.catalog import UWCatalog
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__,
