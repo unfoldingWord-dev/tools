@@ -54,7 +54,7 @@ class TwTerm(object):
 def populateWords():
     for category in twOrder:
         terms[category] = {}
-        dir = os.path.join(twRoot, 'content', category)
+        dir = os.path.join(twRoot, 'bible', category)
         files = glob(os.path.join(dir, '*.md'))
         ta_links = re.compile(
             '"https://git.door43.org/Door43/(en-ta-([^\/"]+?)-([^\/"]+?))/src/master/content/([^\/"]+?).md"')
