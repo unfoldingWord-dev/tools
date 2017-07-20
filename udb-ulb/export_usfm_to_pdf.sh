@@ -61,6 +61,7 @@ done
 
 # Note out base location and create a temporary workspace
 MYDIR=$(cd $(dirname "$0") && pwd)
+TOOLSDIR=$(cd $(dirname "$0"/..) && pwd)
 BUILDDIR=$(mktemp -d --tmpdir "uwb_${LANGUAGE}_build_pdf.XXXXXX")
 LOG="$BUILDDIR/shell.log"
 TEMPLATE="$MYDIR/uwb/tex/uwb_template.tex"
@@ -76,16 +77,14 @@ fi
 # Capture all console output if a report-to flag has been set
 [[ -n "$REPORTTO" ]] && exec 2>&1 > $LOG
 
-cd "$MYDIR"
-
 # Output info about every command (and don't clean up on exit) if in debug mode
 $DEBUG && set -x
-$DEBUG || trap 'rm -rf "$BUILDDIR"' EXIT SIGHUP SIGTERM
+$DEBUG || trap 'cd "$MYDIR";rm -rf "$BUILDDIR"' EXIT SIGHUP SIGTERM
 
 
 # Reload fonts in case any were added recently
 export OSFONTDIR="/usr/share/fonts/google-noto;/usr/share/fonts/noto-fonts/hinted;/usr/local/share/fonts;/usr/share/fonts"
-#mtxrun --script fonts --reload
+mtxrun --script fonts --reload
 if ! mtxrun --script fonts --list --all | grep -q noto; then
     mtxrun --script fonts --reload
     context --generate
@@ -96,7 +95,7 @@ if ! mtxrun --script fonts --list --all | grep -q noto; then
 fi
 
 pushd "$BUILDDIR"
-ln -sf "$MYDIR/uwb"
+ln -sf "$TOOLSDIR"
 
 if [ -z "${BOOKS// }" ];
 then
@@ -105,10 +104,10 @@ then
 fi
 
 for BOOK in "${BOOKS[@]}"; do
-    TITLE=$(helpers/catalog_query.py -l $LANGUAGE -v ${VER}-${LANGUAGE} -k name);
-    PUBLISH_DATE=$(date -d $(helpers/catalog_query.py -l $LANGUAGE -v ${VER}-${LANGUAGE} -k publish_date) +"%Y-%m-%d")
-    VERSION=$(helpers/catalog_query.py -l $LANGUAGE -v ${VER}-${LANGUAGE} -k version)
-    CHECKING_LEVEL=$(helpers/catalog_query.py -l $LANGUAGE -v ${VER}-${LANGUAGE} -k checking_level)
+    TITLE=$(tools/catalog/v3/catalog_query.py -l $LANGUAGE -r ${VER} -k name);
+    PUBLISH_DATE=$(date -d $(helpers/catalog_query.py -l $LANGUAGE -r ${VER} -k publish_date) +"%Y-%m-%d")
+    VERSION=$(tools/catalog/v3/catalog_query.py -l $LANGUAGE -r ${VER} -k version)
+    CHECKING_LEVEL=$(tools/catalog/v3/catalog_query.py -l $LANGUAGE -r ${VER} -k checking_level)
     TOC_DEPTH=1
 
     if [ -z "${VER// }" ];

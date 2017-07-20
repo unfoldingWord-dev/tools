@@ -22,7 +22,7 @@ class UWCatalog:
 
     jsonURL = 'https://api.door43.org/v3/catalog.json'
 
-    def __init__(self, url):
+    def __init__(self, url=None):
         if not url:
             url = self.jsonURL
         sys.stdout = codecs.getwriter('utf8')(sys.stdout)
