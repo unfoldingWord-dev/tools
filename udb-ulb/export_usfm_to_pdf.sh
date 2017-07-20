@@ -146,7 +146,6 @@ for BOOK in "${BOOKS[@]}"; do
         SUBTITLE=$NAME
         BASENAME="$(printf "%02d" ${SORT})_${BOOK^^}"
         TOC_DEPTH=2
-Ihave.
     fi
 
     # Run python (helpers/export_usfm_to_html.py) to generate the .html files
