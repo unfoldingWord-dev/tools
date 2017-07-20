@@ -14,7 +14,7 @@
 
 set -e # die if errors
 
-: ${DEBUG:=false}
+: ${DEBUG:=true}
 
 : ${MY_DIR:=$(cd $(dirname "$0") && pwd)} # Tools dir relative to this script
 : ${OUTPUT_DIR:=$(pwd)}
@@ -65,6 +65,8 @@ cp "$MY_DIR/style.css" "$OUTPUT_DIR/html"
 cp "$MY_DIR/header.html" "$OUTPUT_DIR/html"
 
 "$MY_DIR/md_to_html_export.py" -i "$WORKING_DIR/files/$repo" -o "$OUTPUT_DIR/html" -v "$VERSION"
+
+exit
 
 headerfile="file://$OUTPUT_DIR/html/header.html"
 coverfile="file://$OUTPUT_DIR/html/cover.html"
