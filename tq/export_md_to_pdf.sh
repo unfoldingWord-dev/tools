@@ -62,6 +62,7 @@ unzip -q ./file.zip -d files
 echo "Unzipped files:"
 ls files/$repo
 
+# make sure old out files are gone
 rm -f $OUTPUT_DIR/html/*
 rm -f $OUTPUT_DIR/pdf/*
 
@@ -98,7 +99,3 @@ if [[ -z $1 ]]; then
 else
   book_export $1
 fi
-
-cd $OUTPUT_DIR
-zip ${repo}.zip ./pdf/*
-
