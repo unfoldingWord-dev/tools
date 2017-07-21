@@ -62,6 +62,9 @@ unzip -q ./file.zip -d files
 echo "Unzipped files:"
 ls files/$repo
 
+rm -f $OUTPUT_DIR/html/*
+rm -f $OUTPUT_DIR/pdf/*
+
 mkdir -p "$OUTPUT_DIR/html"
 cp "$MY_DIR/style.css" "$OUTPUT_DIR/html"
 cp "$MY_DIR/header.html" "$OUTPUT_DIR/html"
@@ -69,6 +72,7 @@ cp "$MY_DIR/header.html" "$OUTPUT_DIR/html"
 book_export () {
     book=$1
 
+    echo "GENERATING Tempfile: $OUTPUT_DIR/html/${book}.html"
     python -m tools.tq.md_to_html_export -i "$WORKING_DIR/files/$repo" -o "$OUTPUT_DIR/html" -v "$VERSION" -b $book
 
     headerfile="file://$OUTPUT_DIR/html/header.html"
@@ -94,5 +98,7 @@ if [[ -z $1 ]]; then
 else
   book_export $1
 fi
-  
+
+cd $OUTPUT_DIR
+zip ${repo}.zip ./pdf/*
 
