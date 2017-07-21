@@ -54,7 +54,7 @@ class TwTerm(object):
 def populateWords():
     for category in twOrder:
         terms[category] = {}
-        dir = os.path.join(twRoot, 'content', category)
+        dir = os.path.join(twRoot, 'bible', category)
         files = glob(os.path.join(dir, '*.md'))
         ta_links = re.compile(
             '"https://git.door43.org/Door43/(en-ta-([^\/"]+?)-([^\/"]+?))/src/master/content/([^\/"]+?).md"')
@@ -66,7 +66,13 @@ def populateWords():
             if len(parts) == 6 and parts[1] in taManualUrls:
                 content = parts[0] + '"{0}/{1}#{2}_{3}_{4}"'.format(taUrl, taManualUrls[parts[1]], parts[3], parts[2],
                                                                     parts[4]) + parts[5]
+
+            # replace relative links
             content = re.sub(r'href="\.\.\/([^\/"]+)\/([^"]+)\.md"', r'href="#\1-\2"', content)
+
+            #replace rc: links
+            content = re.sub(r'href="rc\:\/\/([^\/"]+)\/([^\/"]+)\/([^\/"]+)\/([^\/"]+)\/([^\/"]+)\/([^\/"]+)"', r'href="https://git.door43.org/Door43/\1_\2/src/master/\4/\5/\6.md"', content)
+
             soup = BeautifulSoup(content)
             if soup.h1:
                 title = soup.h1.text
