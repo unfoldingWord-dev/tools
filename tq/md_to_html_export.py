@@ -23,16 +23,17 @@ import time
 import inspect
 
 from glob import glob
-from bs4 import BeautifulSoup
 
 reload(sys)
 sys.setdefaultencoding('utf8')
 
-# Let's include ../general_tools as a place we can import python files from
-cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0],"../general_tools")))
-if cmd_subfolder not in sys.path:
-    sys.path.insert(0, cmd_subfolder)
-import get_bible_book
+# # Let's include ../general_tools as a place we can import python files from
+# cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0],"../general_tools")))
+# if cmd_subfolder not in sys.path:
+#     sys.path.insert(0, cmd_subfolder)
+# import get_bible_book
+
+from ..general_tools import get_bible_book
 
 tqRoot = ''
 
@@ -55,11 +56,15 @@ def main(inpath, outpath, version, book):
         b = b.lower()
         if book == 'all' or b == book:
             content += u'<div id="{0}" class="book">'.format(b)
-            files = sorted(glob(os.path.join(tqRoot, 'content', b, '*.md')))
+            file_spec = os.path.join(tqRoot, b, '*/*.md')
+            files = sorted(glob(file_spec))
             for f in files:
-                chapter = os.path.splitext(os.path.basename(f))[0]
+                root = os.path.splitext(f)[0]
+                parts = root.split('/')
+                chapter = parts[-2]
+                verse = parts[-1]
                 c = markdown2.markdown_path(f)
-                c = u'<div id="{0}-chapter-{1}" class="chapter">'.format(b, chapter) + c + u'</div>'
+                c = u'<div id="{0}-chapter-{1}-{2}" class="chapter">'.format(b, chapter, verse) + c + u'</div>'
                 c = re.sub('<p><strong><a href="\./">Back to .*?</a></strong></p>', '', c)
                 content += c
             content += u'</div>'
