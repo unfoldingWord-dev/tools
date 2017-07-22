@@ -26,8 +26,8 @@ downloaded_file = ''
 unzipped_dir = ''
 
 # TODO: change these to point to the API when it is available
-vrs_file = 'https://raw.githubusercontent.com/unfoldingWord-dev/uw-api/develop/static/versification/ufw/ufw.vrs'
-book_file = 'https://raw.githubusercontent.com/unfoldingWord-dev/uw-api/develop/static/versification/ufw/books-en.json'
+vrs_file = 'https://raw.githubusercontent.com/unfoldingWord-dev/uw-api/develop/static/bible/ufw/ufw.vrs'
+book_file = 'https://raw.githubusercontent.com/unfoldingWord-dev/uw-api/develop/static/bible/ufw/books-en.json'
 
 chapter_re = re.compile(ur'(\\c [0-9]*\s*\n)', re.UNICODE)
 verse_re = re.compile(ur'(\\v [0-9\-]*\s+)', re.UNICODE)
@@ -73,7 +73,7 @@ class Book(object):
             if not test_num.isdigit():
                 append_error(u'Invalid chapter number, ' + self.name + u' "' + test_num + u'"')
 
-            # compare this chapter number to the numbers from the versification file
+            # compare this chapter number to the numbers from the bible file
             chapter_num = int(test_num)
             found_chapter = next((c for c in self.chapters if c.number == chapter_num), None)  # type: Chapter
             if not found_chapter:
@@ -103,7 +103,7 @@ class Book(object):
         while verse_blocks[current_cv_index][:2] != u'\\v':
             current_cv_index += 1
 
-        # verses should be sequential, starting at 1 and ending at found_chapter.expected_max_verse_number
+        # verses should be sequential, starting at 1 and ending at found_chapter.num_verses
         while current_cv_index < len(verse_blocks):
 
             # parse the verse number
@@ -181,7 +181,7 @@ class Chapter(object):
 
 def get_versification():
     """
-    Get the versification file and parse it into book, chapter and verse information
+    Get the bible file and parse it into book, chapter and verse information
     :return: list<Book>
     """
     global vrs_file
@@ -192,7 +192,7 @@ def get_versification():
     request.close()
     books = json.loads(raw)
 
-    # get the versification file
+    # get the bible file
     request = urllib2.urlopen(vrs_file)
     raw = request.read()
     request.close()

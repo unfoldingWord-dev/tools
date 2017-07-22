@@ -20,10 +20,11 @@ import pprint
 import logging
 import argparse
 import tempfile
+import markdown
 from glob import glob
 from ..catalog.v3.catalog import UWCatalog
-from ..general_tools.bible_books import BOOK_NUMBERS
-from ..general_tools.file_utils import write_file, read_file, unzip, load_yaml_object
+from ..bible.bible_classes import Bible
+from .. general_tools.file_utils import write_file, read_file, unzip, load_yaml_object
 from ..general_tools.url_utils import download_file
 
 
@@ -54,8 +55,8 @@ class TnConverter(object):
         self.logger.addHandler(ch)
         self.pp = pprint.PrettyPrinter(indent=4)
 
-        # self.temp_dir = tempfile.mkdtemp(prefix='tn-')
-        self.temp_dir = '/home/rich/tn'
+        self.temp_dir = tempfile.mkdtemp(prefix='tn-')
+        # self.temp_dir = '/home/rich/tn'
 
         self.logger.debug('TEMP DIR IS {0}'.format(self.temp_dir))
         self.tn_dir = os.path.join(self.temp_dir, '{0}_tn'.format(lang_code))
@@ -73,9 +74,11 @@ class TnConverter(object):
         self.ta_text = ''
         self.rc_links = {}
         self.bad_links = {}
-    
+
+        self.bible = Bible.get_versification('ufw')
+
     def run(self):
-        # self.setup_resource_files()
+        self.setup_resource_files()
         self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
         projects = self.get_book_projects()
         for p in projects:
@@ -87,7 +90,6 @@ class TnConverter(object):
             self.ta_text = ''
             self.rc_links = {}
             self.create_md_files()
-#        self.pp.pprint(self.bad_links)
 
     def get_book_projects(self):
         projects = []
@@ -137,7 +139,9 @@ class TnConverter(object):
 
     @staticmethod
     def increase_headers(text, increase_depth=1):
-        return re.sub(r'^(#+) +(.+?) *#*$', r'\1{0} \2'.format('#'*increase_depth), text, flags=re.MULTILINE)
+        if text:
+            text = re.sub(r'^(#+) +(.+?) *#*$', r'\1{0} \2'.format('#'*increase_depth), text, flags=re.MULTILINE)
+        return text
 
     def create_md_files(self):
         book_dir = os.path.join(self.tn_dir, self.current_book)
@@ -145,6 +149,7 @@ class TnConverter(object):
         if not os.path.isdir(book_dir):
             return
 
+        self.rc_links['tn'] = {}
         title = self.project['title']
         book_name = title.replace(' translationNotes', '')
         tn_text = '<a id="tn-{0}"/>\n# {1}\n\n'.format(self.current_book, title)
@@ -153,7 +158,19 @@ class TnConverter(object):
         book_has_intro = os.path.isfile(intro_file)
         if book_has_intro:
             text = read_file(intro_file)
-            text = '<a id="tn-{0}-intro"/>\n{1}\n\n'.format(self.current_book, self.increase_headers(text))
+            text = self.fix_tn_links(text)
+            text = self.increase_headers(text)
+            text = '<a id="tn-{0}-front-intro"/>\n{1}\n\n'.format(self.current_book, text)
+            rc = 'rc://{0}/tn/help/{1}/front/intro'.format(self.lang_code, self.current_book)
+            id = 'tn-{1}-front-intro'.format(self.lang_code, self.current_book)
+            title = self.get_first_header(text)
+            self.rc_links['tn'][rc] = {
+                'rc': rc,
+                'id': id,
+                'link': '#{0}'.format(id),
+                'title': title,
+                'text': text
+            }
             tn_text += text
 
         for chapter in sorted(os.listdir(book_dir)):
@@ -163,29 +180,55 @@ class TnConverter(object):
                 chapter_has_intro = os.path.isfile(intro_file)
                 if chapter_has_intro:
                     text = read_file(intro_file)
-                    text = '<a id="tn-{0}-{1}-intro"/>\n{2}\n\n'.format(self.current_book, chapter,
-                                                                          self.increase_headers(text))
+                    text = self.fix_tn_links(text)
+                    text = self.increase_headers(text)
+                    title = self.get_first_header(text)
+                    text = '<a id="tn-{0}-{1}-intro"/>\n{2}\n\n'.format(self.current_book, chapter, text)
+                    rc = 'rc://{0}/tn/help/{0}/intro'.format(self.current_book, chapter)
+                    id = 'tn-{0}-{1}-intro'.format(self.current_book, chapter)
+                    self.rc_links['tn'][rc] = {
+                        'rc': rc,
+                        'id': id,
+                        'link': '#{0}'.format(id),
+                        'title': title,
+                        'text': text
+                    }
                     self.get_rc_links(text)
                     tn_text += text
                 chunk_files = sorted(glob(os.path.join(chapter_dir, '[0-9]*.md')))
                 for idx, chunk_file in enumerate(chunk_files):
                     chunk = os.path.splitext(os.path.basename(chunk_file))[0]
                     if len(chunk_files) > idx + 1:
-                        next_chunk = int(os.path.splitext(os.path.basename(chunk_files[idx + 1]))[0])
+                        end_verse = int(os.path.splitext(os.path.basename(chunk_files[idx + 1]))[0])-1
                     else:
-                        next_chunk = 10000
-                    text = self.increase_headers(read_file(chunk_file), 2)
-                    text = text.replace('### translationWords', '## translationWords')
-                    text = '<a id="tn-{0}-{1}-{2}"/>\n# {3} {4}:{5}-{6}\n\n[[UDB:{0}:{4}:{5}-{6}]]\n\n'\
-                           '[[ULB:{0}:{4}:{5}-{6}]]\n\n## translationNotes\n\n{7}\n\n'. \
-                        format(self.current_book, chapter, chunk, book_name, chapter.lstrip('0'), chunk.lstrip('0'),
-                               next_chunk - 1, text)
+                        end_verse = self.bible[self.current_book].get_chapter(int(chapter.lstrip('0'))).num_verses
+                    if self.current_book == 'psa':
+                        end = str(end_verse).zfill(3)
+                    else:
+                        end = str(end_verse).zfill(2)
+                    title = '{0} {1}:{2}-{3}'.format(book_name, chapter.lstrip('0'), chunk.lstrip('0'), end_verse)
+                    text = self.increase_headers(read_file(chunk_file), 3)
+                    text = self.fix_tn_links(text)
+                    text = '<a id="tn-{0}-{1}-{2}"/>\n## {3}\n\n[[udb://{0}/{4}/{5}/{6}]]\n\n'\
+                           '[[ulb://{0}/{4}/{5}/{6}]]\n\n### translationNotes\n\n{7}\n\n'. \
+                        format(self.current_book, chapter, chunk, title, chapter.lstrip('0'), chunk.lstrip('0'),
+                               end, text)
+                    rc = 'rc://{0}/tn/help/{0}/{1}/{2}'.format(self.current_book, chapter, chunk)
+                    id = 'tn-{0}-{1}-{2}'.format(self.current_book, chapter, chunk)
+                    self.rc_links['tn'][rc] = {
+                        'rc': rc,
+                        'id': id,
+                        'link': '#{0}'.format(id),
+                        'title': title,
+                        'text': text
+                    }
+
                     self.get_rc_links(text)
                     tn_text += text
 
-                    links = '## Links:\n\n'
+                    links = '### Links:\n\n'
                     if book_has_intro:
-                        links += '* [Introduction to {0}](#tn-{1}-intro)\n'.format(book_name, self.current_book)
+                        links += '* [Introduction to {0}](#tn-{1}-front-intro)\n'.format(book_name, self.current_book)
                     if chapter_has_intro:
                         links += '* [{0} {1} General Notes](#tn-{2}-{3}-intro)\n'. \
                             format(book_name, chapter.lstrip('0'), self.current_book, chapter)
@@ -193,7 +236,7 @@ class TnConverter(object):
                         format(book_name, chapter.lstrip('0'), self.current_book, chapter)
                     tn_text += links + '\n\n'
 
-        tq_text = '<a id="tq-{0}"/>\n# {1}\n\n'.format(self.current_book, 'translationQuestions')
+        tq_text = '<a id="tq-{0}"/>\n# translationQuestions\n\n'.format(self.current_book)
         tq_book_dir = os.path.join(self.tq_dir, self.current_book)
         for chapter in sorted(os.listdir(tq_book_dir)):
             chapter_dir = os.path.join(tq_book_dir, chapter)
@@ -203,12 +246,26 @@ class TnConverter(object):
                 for chunk in sorted(os.listdir(chapter_dir)):
                     chunk_file = os.path.join(chapter_dir, chunk)
                     if os.path.isfile(chunk_file) and re.match(r'^\d+.md$', chunk):
-                        chunk = os.path.splitext(chunk)[0]
                         text = read_file(chunk_file)
                         text = '{0}\n\n'.format(self.increase_headers(text, 2))
                         self.get_rc_links(text)
                         tq_text += text
-        write_file(os.path.join(self.temp_dir, self.current_book + '.md'), tn_text+'\n\n'+tq_text)
+
+        tw_text = '<a id="tw-{0}"/>\n# translationWords\n\n'.format(self.current_book)
+        items = sorted(self.rc_links['tw'].values(), key=lambda k: k['title'])
+        for item in items:
+            tw_text += '<a id="{0}"/>\n{1}\n\n'.format(item['id'], self.increase_headers(item['text']))
+
+        ta_text = '<a id="ta-{0}"/>\n# translationAcademy\n\n'.format(self.current_book)
+        items = sorted(self.rc_links['ta'].values(), key=lambda k: k['title'])
+        for item in items:
+            ta_text += '<a id="{0}"/>\n{1}\n\n'.format(item['id'], item['text'])
+        md = '\n\n'.join([tn_text, tq_text, tw_text, ta_text])
+        md = self.replace_rc_links(md)
+        md = self.fix_links(md)
+
+        write_file(os.path.join(self.temp_dir, self.current_book + '.md'), md)
+        write_file(os.path.join(self.temp_dir, self.current_book + '.html'), markdown.markdown(md))
 
     def get_rc_links(self, text):
         for rc in re.findall(r'rc://[A-Z0-9/_-]+', text, flags=re.IGNORECASE):
@@ -217,16 +274,26 @@ class TnConverter(object):
             resource = parts[1]
             book = parts[3]
             path = '/'.join(parts[3:])
+
+            # remove these text changes next version!
+            if 'humanqualities' in path:
+                path = path.replace('humanqualities', 'hq')
+            if 'metaphore' in path:
+                path = path.replace('metaphore', 'metaphor')
+            if 'kt/dead' in path:
+                path = path.replace('kt/dead', 'other/death')
+            # text changes end
+
             if resource not in self.rc_links:
                 self.rc_links[resource] = {}
-            if path not in self.rc_links[resource]:
+            if rc not in self.rc_links[resource]:
                 link = None
                 id = None
                 title = None
                 t = None
                 if lang != self.lang_code or resource not in ['tw', 'tq', 'ta'] or \
                         (resource == 'tn' and self.current_book != book):
-                    link = 'https://git.door43.org/Door43/{0}_{1}/src/master/{2}'.format(lang, resource, path)
+                    link = 'https://git.door43.org/Door43/{0}_{1}/src/master/{2}.md'.format(lang, resource, path)
                 else:
                     id = '{0}-{1}'.format(resource, path.replace('/', '-'))
                     link = '#{0}'.format(id)
@@ -249,37 +316,92 @@ class TnConverter(object):
                                                          '{0}.md'.format(path2))
                         if os.path.isfile(file_path):
                             t = read_file(file_path)
-                            title = re.sub(r'^# (.*?) *#*$', r'\1', t.split('\n', 1)[0])
+                            if resource == 'ta':
+                                title_file = os.path.join(os.path.dirname(file_path), 'title.md')
+                                question_file = os.path.join(os.path.dirname(file_path), 'subtitle.md')
+                                if os.path.isfile(title_file):
+                                    title = read_file(title_file)
+                                else:
+                                    title = self.get_first_header(t)
+                                if os.path.isfile(question_file):
+                                    question = read_file(os.path.join(os.path.dirname(file_path), 'subtitle.md'))
+                                    question = 'This page answers the question: *{0}*\n\n'.format(question)
+                                else:
+                                    question = ''
+                                t = '# {0}\n\n{1}{2}'.format(title, question, t)
+                                t = self.fix_ta_links(t, path.split('/')[0])
+                            else:
+                                title = self.get_first_header(t)
+                            if resource == 'tw':
+                                t = self.fix_tw_links(t)
+                        else:
+                            self.logger.error(rc)
+                            self.logger.debug(file_path)
+                            exit(1)
                     except:
                         pass
-                self.rc_links[resource][path] = {
+                self.rc_links[resource][rc] = {
                     'rc': rc,
                     'link': link,
                     'id': id,
                     'title': title,
                     'text': t,
                 }
-                if text:
-                    self.get_rc_links(text)
+                if t:
+                    self.get_rc_links(t)
 
-    def fix_links(self, content):
-        # fix links to other sections within the same manual (only one ../ and a section name)
-        # e.g. [Section 2](../section2/01.md) => [Section 2](#section2)
-        content = re.sub(r'\]\(\.\./([^/\)]+)/01.md\)', r'](#\1)', content)
-        # fix links to other manuals (two ../ and a manual name and a section name)
-        # e.g. [how to translate](../../translate/accurate/01.md) => [how to translate](translate.html#accurate)
-        for idx, project in enumerate(self.rc.projects):
-            pattern = re.compile(r'\]\(\.\./\.\./{0}/([^/\)]+)/01.md\)'.format(project.identifier))
-            replace = r']({0}-{1}.html#\1)'.format(str(idx+1).zfill(2), project.identifier)
-            content = re.sub(pattern, replace, content)
-        # fix links to other sections that just have the section name but no 01.md page (preserve http:// links)
-        # e.g. See [Verbs](figs-verb) => See [Verbs](#figs-verb)
-        content = re.sub(r'\]\(([^# :/\)]+)\)', r'](#\1)', content)
+    @staticmethod
+    def get_first_header(text):
+        lines = text.split('\n')
+        if len(lines):
+            for line in lines:
+                if re.match(r'^ *#+ ', line):
+                    return re.sub(r'^ *#+ (.*?) *#*$', r'\1', line)
+            return lines[0]
+        return "NO TITLE"
+
+    def replace_rc_links(self, text):
+        for resource in self.rc_links:
+            for rc in self.rc_links[resource]:
+                info = self.rc_links[resource][rc]
+                text = text.replace('[[{0}]]'.format(rc), '[{0}]({1})'.format(info['title'], info['link']))
+                text = text.replace(rc, info['link'])
+        return text
+
+    def fix_ta_links(self, text, manual):
+        if 'bita-humanqualities' in text:
+            # Fix bad link in tA
+            text = text.replace('bita-humanqualities', 'bita-hq')
+        text = re.sub(r'\]\(\.\./([^/)]+)/01.md\)', r'](rc://{0}/ta/man/{1}/\1)'.format(self.lang_code, manual), text)
+        text = re.sub(r'\]\(\.\./\.\./([^/)]+)/([^/)]+)/01.md\)', r'](rc://{0}/ta/man/\1/\2)'.format(self.lang_code), text)
+        text = re.sub(r'\]\(([^# :/)]+)\)', r'](rc://{0}/ta/man/{1}/\1)'.format(self.lang_code, manual), text)
+        return text
+
+    def fix_tw_links(self, text):
+        text = re.sub(r'\]\(\.\./([^)]+?)(.md)*\)', r'](rc://{0}/tw/dict/bible/\1)'.format(self.lang_code), text)
+        return text
+
+    def fix_tn_links(self, text):
+        if 'kt/dead' in text:
+            # Fix bad link in tN
+            text = text.replace('kt/dead', 'other/death')
+        text = re.sub(r'\]\(\.\./([^)]+?)(.md)*\)', r'](rc://{0}/tn/help/{0}/\1)'.format(self.lang_code,
+                                                                                         self.current_book), text)
+        return text
+
+    @staticmethod
+    def fix_links(text):
+        # Fix metaphor misspelling
+        if 'etaphore' in text:
+            text = text.replace('etaphore', 'etaphor')
+        # convert RC links, e.g. rc://en/tn/help/1sa/16/02 => https://git.door43.org/Door43/en_tn/1sa/16/02.md
+        text = re.sub(r'rc://([^/]+)/([^/]+)/([^/]+)/([^\s\p\)\]\n$]+)',
+                         r'https://git.door43.org/Door43/\1_\2/src/master/\4.md', text, flags=re.IGNORECASE)
         # convert URLs to links if not already
-        content = re.sub(r'([^"\(])((http|https|ftp)://[A-Z0-9\/\?&_\.:=#-]+[A-Z0-9\/\?&_:=#-])', r'\1[\2](\2)', content, flags=re.IGNORECASE)
+        text = re.sub(r'([^"\(])((http|https|ftp)://[A-Z0-9\/\?&_\.:=#-]+[A-Z0-9\/\?&_:=#-])', r'\1[\2](\2)', text, flags=re.IGNORECASE)
         # URLS wth just www at the start, no http
-        content = re.sub(r'([^A-Z0-9"\(\/])(www\.[A-Z0-9\/\?&_\.:=#-]+[A-Z0-9\/\?&_:=#-])', r'\1[\2](http://\2)', content, flags=re.IGNORECASE)
-        return content
+        text = re.sub(r'([^A-Z0-9"\(\/])(www\.[A-Z0-9\/\?&_\.:=#-]+[A-Z0-9\/\?&_:=#-])', r'\1[\2](http://\2.md)', text, flags=re.IGNORECASE)
+        return text
 
 
 def main(lang_code, books, outfile):
@@ -293,5 +415,4 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--book', dest='books', nargs='+', default=None, required=False, help="Bible Book(s)")
     parser.add_argument('-o', '--outfile', dest='outfile', default=False, required=False, help="Output file")
     args = parser.parse_args(sys.argv[1:])
-    # main(args.lang_code, args.books, args.outfile)
-    main(args.lang_code, None, args.outfile)
+    main(args.lang_code, args.books, args.outfile)

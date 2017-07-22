@@ -41,6 +41,7 @@ def add_contents_to_zip(zip_file, path):
         for root, dirs, files in os.walk(path):
             for file in files:
                 file_path = os.path.join(root, file)
+                print('Adding {0} to {1} as {2}'.format(file_path, zip_file, file_path[len(path)+1:]))
                 zf.write(file_path, file_path[len(path)+1:])
 
 
