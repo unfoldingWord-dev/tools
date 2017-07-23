@@ -98,7 +98,7 @@ class TnConverter(object):
             self.resource_data = {}
             self.resource_rcs = {}
 
-            self.logger.info('Creating tN for {0} ({0}-{1})...'.format(self.book_title, self.book_number,
+            self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number,
                                                                        self.book.upper()))
             self.preprocess_markdown()
             self.convert_md2html()
@@ -178,6 +178,7 @@ class TnConverter(object):
             md = read_file(intro_file)
             md = self.fix_tn_links(md, 'intro')
             md = self.increase_headers(md)
+            md = self.decrease_headers(md, 5)  # bring headers of 5 or more #'s down 1
             md = '<a id="tn-{0}-front-intro"/>\n{1}\n\n'.format(self.book, md)
             rc = 'rc://{0}/tn/help/{1}/front/intro'.format(self.lang_code, self.book)
             anchor_id = 'tn-{1}-front-intro'.format(self.lang_code, self.book)
@@ -206,6 +207,7 @@ class TnConverter(object):
                     md = read_file(intro_file)
                     md = self.fix_tn_links(md, chapter)
                     md = self.increase_headers(md)
+                    md = self.decrease_headers(md, 5, 2)  # bring headers of 5 or more #'s down 2
                     title = self.get_first_header(md)
                     md = '<a id="tn-{0}-{1}-intro"/>\n{2}\n\n'.format(self.book, chapter, md)
                     rc = 'rc://{0}/tn/help/{0}/intro'.format(self.book, chapter)
@@ -237,7 +239,9 @@ class TnConverter(object):
                         end = str(end_verse).zfill(2)
                     title = '{0} {1}:{2}-{3}'.format(self.book_title, chapter.lstrip('0'), chunk.lstrip('0'), end_verse)
                     md = self.increase_headers(read_file(chunk_file), 3)
+                    md = self.decrease_headers(md, 5)  # bring headers of 5 or more #'s down 1
                     md = self.fix_tn_links(md, chapter)
+                    md = md.replace('#### translationWords', '### trnaslationWords')
                     md = '<a id="tn-{0}-{1}-{2}"/>\n## {3}\n\n[[udb://{0}/{4}/{5}/{6}]]\n\n'\
                         '[[ulb://{0}/{4}/{5}/{6}]]\n\n### translationNotes\n\n{7}\n\n'. \
                         format(self.book, chapter, chunk, title, chapter.lstrip('0'), chunk.lstrip('0'),
@@ -269,7 +273,7 @@ class TnConverter(object):
                         format(self.book_title, chapter.lstrip('0'), self.book, chapter)
                     tn_md += links + '\n\n'
         return tn_md
-    
+
     def get_tq_markdown(self):
         tq_md = '<a id="tq-{0}"/>\n# translationQuestions\n\n'.format(self.book)
         tq_book_dir = os.path.join(self.tq_dir, self.book)
@@ -310,7 +314,7 @@ class TnConverter(object):
             item = self.resource_data[item['rc']]
             tw_md += '<a id="{0}"/>\n{1}\n\n'.format(item['id'], self.increase_headers(item['text']))
         return tw_md
-    
+
     def get_ta_markdown(self):
         ta_md = '<a id="ta-{0}"/>\n# translationAcademy\n\n'.format(self.book)
         items = sorted(self.resource_rcs['ta'].values(), key=lambda k: k['title'])
@@ -415,6 +419,13 @@ class TnConverter(object):
         return text
 
     @staticmethod
+    def decrease_headers(text, minimum_header=1, decrease=1):
+        if text:
+            text = re.sub(r'^({0}#*){1} +(.+?) *#*$'.format('#'*(minimum_header-decrease), '#'*decrease),
+                          r'\1 \2', text, flags=re.MULTILINE)
+        return text
+
+    @staticmethod
     def get_first_header(text):
         lines = text.split('\n')
         if len(lines):
@@ -425,29 +436,31 @@ class TnConverter(object):
         return "NO TITLE"
 
     def fix_tn_links(self, text, chapter):
-        if 'kt/dead' in text:
-            # Fix bad link in tN
-            text = text.replace('kt/dead', 'other/death')
-        text = re.sub(r'\]\(\.\./\.\./([^)]+?)(.md)*\)', r'](rc://{0}/tn/help/\1)'.format(self.lang_code), text)
-        text = re.sub(r'\]\(\.\./([^)]+?)(.md)*\)', r'](rc://{0}/tn/help/{1}/\1)'.format(self.lang_code,
-                                                                                         self.book), text)
-        text = re.sub(r'\]\(\./([^)]+?)(.md)*\)', r'](rc://{0}/tn/help/{1}/{2}/\1)'.format(self.lang_code,
-                                                                                       self.book, chapter), text)
-
+        rep = {}
+        rep['kt/dead'] = 'other/death' # Fix bad link in tN, REMOVE NEXT VERSION!!!
+        rep[r'\]\(\.\./\.\./([^)]+?)(\.md)*\)'] = r'](rc://{0}/tn/help/\1)'.format(self.lang_code)
+        rep[r'\]\(\.\./([^)]+?)(\.md)*\)'] = r'](rc://{0}/tn/help/{1}/\1)'.format(self.lang_code, self.book)
+        rep[r'\]\(\./([^)]+?)(\.md)*\)'] = r'](rc://{0}/tn/help/{1}/{2}/\1)'.format(self.lang_code, self.book, chapter)
+        for pattern, repl in rep.iteritems():
+            text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
         return text
 
     def fix_tw_links(self, text, dictionary):
-        text = re.sub(r'\]\(\.\./([^/)]+?)(.md)*\)', r'](rc://{0}/tw/dict/bible/{1}/\1)'.format(self.lang_code, dictionary), text)
-        text = re.sub(r'\]\(\.\./([^)]+?)(.md)*\)', r'](rc://{0}/tw/dict/bible/\1)'.format(self.lang_code), text)
+        rep = {}
+        rep[r'\]\(\.\./([^/)]+?)(\.md)*\)'] = r'](rc://{0}/tw/dict/bible/{1}/\1)'.format(self.lang_code, dictionary)
+        rep[r'\]\(\.\./([^)]+?)(\.md)*\)'] = r'](rc://{0}/tw/dict/bible/\1)'.format(self.lang_code)
+        for pattern, repl in rep.iteritems():
+            text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
         return text
 
     def fix_ta_links(self, text, manual):
-        if 'bita-humanqualities' in text:
-            # Fix bad link in tA
-            text = text.replace('bita-humanqualities', 'bita-hq')
-        text = re.sub(r'\]\(\.\./([^/)]+)/01.md\)', r'](rc://{0}/ta/man/{1}/\1)'.format(self.lang_code, manual), text)
-        text = re.sub(r'\]\(\.\./\.\./([^/)]+)/([^/)]+)/01.md\)', r'](rc://{0}/ta/man/\1/\2)'.format(self.lang_code), text)
-        text = re.sub(r'\]\(([^# :/)]+)\)', r'](rc://{0}/ta/man/{1}/\1)'.format(self.lang_code, manual), text)
+        rep = {}
+        rep['bita-humanqualities'] = 'bita-hq' # Fix bad link in tA, REMOVE NEXT VERSION!!
+        rep[r'\]\(\.\./([^/)]+)/01\.md\)'] = r'](rc://{0}/ta/man/{1}/\1)'.format(self.lang_code, manual)
+        rep[r'\]\(\.\./\.\./([^/)]+)/([^/)]+)/01\.md\)'] = r'](rc://{0}/ta/man/\1/\2)'.format(self.lang_code)
+        rep[r'\]\(([^# :/)]+)\)'] = r'](rc://{0}/ta/man/{1}/\1)'.format(self.lang_code, manual)
+        for pattern, repl in rep.iteritems():
+            text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
         return text
 
     def replace_rc_links(self, text):
@@ -472,16 +485,17 @@ class TnConverter(object):
         return text
 
     def fix_links(self, text):
-        # Fix metaphor misspelling
-        if 'etaphore' in text:
-            text = text.replace('etaphore', 'etaphor')
+        rep = {}
+        # Fix metaphor misspelling, REMOVE NEXT VERSION!!
+        rep['etaphore'] = 'etaphor'
         # convert RC links, e.g. rc://en/tn/help/1sa/16/02 => https://git.door43.org/Door43/en_tn/1sa/16/02.md
-        text = re.sub(r'rc://([^/]+)/([^/]+)/([^/]+)/([^\s\)\]\n$]+)',
-                      r'https://git.door43.org/Door43/\1_\2/src/master/\4.md', text, flags=re.IGNORECASE)
+        rep[r'rc://([^/]+)/([^/]+)/([^/]+)/([^\s\)\]\n$]+)'] = r'https://git.door43.org/Door43/\1_\2/src/master/\4.md'
         # convert URLs to links if not already
-        text = re.sub(r'([^"\(])((http|https|ftp)://[A-Z0-9\/\?&_\.:=#-]+[A-Z0-9\/\?&_:=#-])', r'\1[\2](\2)', text, flags=re.IGNORECASE)
+        rep[r'([^"\(])((http|https|ftp)://[A-Za-z0-9\/\?&_\.:=#-]+[A-Za-z0-9\/\?&_:=#-])'] = r'\1[\2](\2)'
         # URLS wth just www at the start, no http
-        text = re.sub(r'([^A-Z0-9"\(\/])(www\.[A-Z0-9\/\?&_\.:=#-]+[A-Z0-9\/\?&_:=#-])', r'\1[\2](http://\2.md)', text, flags=re.IGNORECASE)
+        rep[r'([^A-Za-z0-9"\(\/])(www\.[A-Za-z0-9\/\?&_\.:=#-]+[A-Za-z0-9\/\?&_:=#-])'] = r'\1[\2](http://\2.md)'
+        for pattern, repl in rep.iteritems():
+            text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
         return text
 
     def convert_md2html(self):
