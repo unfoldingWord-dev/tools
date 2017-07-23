@@ -254,7 +254,7 @@ class TnConverter(object):
                     if chapter_has_intro:
                         links += '* [{0} {1} General Notes](#tn-{2}-{3}-intro)\n'. \
                             format(self.book_title, chapter.lstrip('0'), self.book, chapter)
-                    links += '* [{0} {1} translationQuestions](#tq-{1}-{2})\n'. \
+                    links += '* [{0} {1} translationQuestions](#tq-{2}-{3})\n'. \
                         format(self.book_title, chapter.lstrip('0'), self.book, chapter)
                     tn_md += links + '\n\n'
         return tn_md
