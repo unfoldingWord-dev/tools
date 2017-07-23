@@ -95,9 +95,7 @@ class TnConverter(object):
             self.tw_text = ''
             self.tq_text = ''
             self.ta_text = ''
-            self.resource_data = {}
             self.resource_rcs = {}
-
             self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number,
                                                                        self.book.upper()))
             self.preprocess_markdown()
@@ -187,8 +185,6 @@ class TnConverter(object):
                 'id': anchor_id,
                 'link': '#{0}'.format(anchor_id),
                 'title': title,
-                'text': md,
-                'referenced_by': []
             }
             self.get_resource_data_from_rc_links(md, rc)
             tn_md += md
@@ -205,15 +201,13 @@ class TnConverter(object):
                     md = self.decrease_headers(md, 5, 2)  # bring headers of 5 or more #'s down 2
                     title = self.get_first_header(md)
                     md = '<a id="tn-{0}-{1}-intro"/>\n{2}\n\n'.format(self.book, chapter, md)
-                    rc = 'rc://{0}/tn/help/{0}/intro'.format(self.book, chapter)
+                    rc = 'rc://{0}/tn/help/{1}/{2}/intro'.format(self.lang_code, self.book, chapter)
                     anchor_id = 'tn-{0}-{1}-intro'.format(self.book, chapter)
                     self.resource_data[rc] = {
                         'rc': rc,
                         'id': anchor_id,
                         'link': '#{0}'.format(anchor_id),
                         'title': title,
-                        'text': md,
-                        'referenced_by': []
                     }
                     self.get_resource_data_from_rc_links(md, rc)
                     tn_md += md
@@ -237,15 +231,13 @@ class TnConverter(object):
                         '[[ulb://{0}/{4}/{5}/{6}]]\n\n### translationNotes\n\n{7}\n\n'. \
                         format(self.book, chapter, chunk, title, chapter.lstrip('0'), chunk.lstrip('0'),
                                end, md)
-                    rc = 'rc://{0}/tn/help/{0}/{1}/{2}'.format(self.book, chapter, chunk)
+                    rc = 'rc://{0}/tn/help/{1}/{2}/{3}'.format(self.lang_code, self.book, chapter, chunk)
                     anchor_id = 'tn-{0}-{1}-{2}'.format(self.book, chapter, chunk)
                     self.resource_data[rc] = {
                         'rc': rc,
                         'id': anchor_id,
                         'link': '#{0}'.format(anchor_id),
                         'title': title,
-                        'text': md,
-                        'referenced_by': []
                     }
                     self.get_resource_data_from_rc_links(md, rc)
                     tn_md += md
@@ -275,15 +267,13 @@ class TnConverter(object):
                         md = read_file(chunk_file)
                         md = '{0}\n\n'.format(self.increase_headers(md, 2))
                         title = 'Question {0} {1}:{2}'.format(self.book_title, chapter.lstrip('0'), chunk.lstrip('0'))
-                        rc = 'rc://{0}/tq/help/{0}/{1}/{2}'.format(self.book, chapter, chunk)
+                        rc = 'rc://{0}/tq/help/{1}/{2}/{3}'.format(self.lang_code, self.book, chapter, chunk)
                         anchor_id = 'tn-{0}-{1}-{2}'.format(self.book, chapter, chunk)
                         self.resource_data[rc] = {
                             'rc': rc,
                             'id': anchor_id,
                             'link': '#{0}'.format(anchor_id),
                             'title': title,
-                            'text': md,
-                            'referenced_by': []
                         }
                         self.get_resource_data_from_rc_links(md, rc)
                         tq_md += md
@@ -313,84 +303,80 @@ class TnConverter(object):
             book = parts[3]
             path = '/'.join(parts[3:])
 
-            # remove these text changes next version!
+            if resource not in ['ta', 'tw']:
+                continue
+
+            # REMOVE THESE FIXES IN NEXT VERSION OF tN!
             if 'humanqualities' in path:
                 path = path.replace('humanqualities', 'hq')
             if 'metaphore' in path:
                 path = path.replace('metaphore', 'metaphor')
             if 'kt/dead' in path:
                 path = path.replace('kt/dead', 'other/death')
-            # text changes end
+            # TEXT FIXES END
+
+            if resource not in self.resource_rcs:
+                self.resource_rcs[resource] = []
+            if rc not in self.resource_rcs[resource]:
+                self.resource_rcs[resource].append(rc)
 
             if rc not in self.resource_data:
                 title = None
                 t = None
-                if lang != self.lang_code or resource not in ['tw', 'tq', 'ta'] or \
-                        (resource == 'tn' and self.book != book):
-                    continue
-                else:
-                    anchor_id = '{0}-{1}'.format(resource, path.replace('/', '-'))
-                    link = '#{0}'.format(anchor_id)
-                    try:
+                anchor_id = '{0}-{1}'.format(resource, path.replace('/', '-'))
+                link = '#{0}'.format(anchor_id)
+                try:
+                    file_path = os.path.join(self.temp_dir, '{0}_{1}'.format(self.lang_code, resource),
+                                             '{0}.md'.format(path))
+                    if not os.path.isfile(file_path):
                         file_path = os.path.join(self.temp_dir, '{0}_{1}'.format(self.lang_code, resource),
-                                                 '{0}.md'.format(path))
-                        if not os.path.isfile(file_path):
+                                                 '{0}/01.md'.format(path))
+                    if not os.path.isfile(file_path):
+                        if resource == 'tw':
+                            if path.startswith('bible/other/'):
+                                path2 = re.sub(r'^bible/other/', r'bible/kt/', path)
+                            else:
+                                path2 = re.sub(r'^bible/kt/', r'bible/other/', path)
+                            anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
+                            link = '#{0}'.format(anchor_id)
                             file_path = os.path.join(self.temp_dir, '{0}_{1}'.format(self.lang_code, resource),
-                                                     '{0}/01.md'.format(path))
-                        if not os.path.isfile(file_path):
-                            if resource == 'tw':
-                                if path.startswith('bible/other/'):
-                                    path2 = re.sub(r'^bible/other/', r'bible/kt/', path)
-                                else:
-                                    path2 = re.sub(r'^bible/kt/', r'bible/other/', path)
-                                anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
-                                link = '#{0}'.format(anchor_id)
-                                file_path = os.path.join(self.temp_dir, '{0}_{1}'.format(self.lang_code, resource),
-                                                         '{0}.md'.format(path2))
-                        if os.path.isfile(file_path):
-                            t = read_file(file_path)
-                            if resource == 'ta':
-                                title_file = os.path.join(os.path.dirname(file_path), 'title.md')
-                                question_file = os.path.join(os.path.dirname(file_path), 'subtitle.md')
-                                if os.path.isfile(title_file):
-                                    title = read_file(title_file)
-                                else:
-                                    title = self.get_first_header(t)
-                                if os.path.isfile(question_file):
-                                    question = read_file(os.path.join(os.path.dirname(file_path), 'subtitle.md'))
-                                    question = 'This page answers the question: *{0}*\n\n'.format(question)
-                                else:
-                                    question = ''
-                                t = '# {0}\n\n{1}{2}'.format(title, question, t)
-                                t = self.fix_ta_links(t, path.split('/')[0])
+                                                     '{0}.md'.format(path2))
+                    if os.path.isfile(file_path):
+                        t = read_file(file_path)
+                        if resource == 'ta':
+                            title_file = os.path.join(os.path.dirname(file_path), 'title.md')
+                            question_file = os.path.join(os.path.dirname(file_path), 'subtitle.md')
+                            if os.path.isfile(title_file):
+                                title = read_file(title_file)
                             else:
                                 title = self.get_first_header(t)
-                            if resource == 'tw':
-                                t = self.fix_tw_links(t, path.split('/')[1])
-                        else:
-                            if rc not in self.bad_links:
-                                self.bad_links[rc] = []
-                            self.bad_links[rc].append(source_rc)
-                    except:
+                            if os.path.isfile(question_file):
+                                question = read_file(os.path.join(os.path.dirname(file_path), 'subtitle.md'))
+                                question = 'This page answers the question: *{0}*\n\n'.format(question)
+                            else:
+                                question = ''
+                            t = '# {0}\n\n{1}{2}'.format(title, question, t)
+                            t = self.fix_ta_links(t, path.split('/')[0])
+                        elif resource == 'tw':
+                            title = self.get_first_header(t)
+                            t = self.fix_tw_links(t, path.split('/')[1])
+                    else:
                         if rc not in self.bad_links:
                             self.bad_links[rc] = []
                         self.bad_links[rc].append(source_rc)
+                except:
+                    if rc not in self.bad_links:
+                        self.bad_links[rc] = []
+                    self.bad_links[rc].append(source_rc)
                 self.resource_data[rc] = {
                     'rc': rc,
                     'link': link,
                     'id': anchor_id,
                     'title': title,
                     'text': t,
-                    'referenced_by': [source_rc]
                 }
                 if t:
                     self.get_resource_data_from_rc_links(t, rc)
-            else:
-                self.resource_data[rc]['referenced_by'].append(source_rc)
-            if resource not in self.resource_rcs:
-                self.resource_rcs[resource] = []
-            if rc not in self.resource_rcs[resource]:
-                self.resource_rcs[resource].append(rc)
 
     @staticmethod
     def increase_headers(text, increase_depth=1):
