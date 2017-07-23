@@ -11,9 +11,9 @@ class Book(object):
 
     # TODO: change these to point to the API when it is available
     api_root = 'https://raw.githubusercontent.com/unfoldingWord-dev/uw-api/develop/static'
-    vrs_file = api_root + '/bible/ufw/ufw.vrs'
-    book_file = api_root + '/bible/ufw/books.json'
-    chunk_url = api_root + '/bible/ufw/chunks/{0}.json'
+    vrs_file = api_root + '/versification/ufw/ufw.vrs'
+    book_file = api_root + '/versification/ufw/books.json'
+    chunk_url = api_root + '/versification/ufw/chunks/{0}.json'
 
     verse_re = re.compile(r'(\\v[\u00A0 ][0-9-\u2013\u2014]*\s+)', re.UNICODE)
     chapter_re = re.compile(r'(\\c[\u00A0 ][0-9]+\s*\n)', re.UNICODE)
