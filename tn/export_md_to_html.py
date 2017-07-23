@@ -168,7 +168,7 @@ class TnConverter(object):
         book_has_intro = os.path.isfile(intro_file)
         if book_has_intro:
             md = read_file(intro_file)
-            md = self.fix_tn_links(md)
+            md = self.fix_tn_links(md, 'intro')
             md = self.increase_headers(md)
             md = '<a id="tn-{0}-front-intro"/>\n{1}\n\n'.format(self.book, md)
             rc = 'rc://{0}/tn/help/{1}/front/intro'.format(self.lang_code, self.book)
@@ -179,7 +179,8 @@ class TnConverter(object):
                 'id': anchor_id,
                 'link': '#{0}'.format(anchor_id),
                 'title': title,
-                'text': md
+                'text': md,
+                'referenced_by': []
             }
             self.resource_rcs['tn'][rc] = {
                 'title': title,
@@ -195,7 +196,7 @@ class TnConverter(object):
                 chapter_has_intro = os.path.isfile(intro_file)
                 if chapter_has_intro:
                     md = read_file(intro_file)
-                    md = self.fix_tn_links(md)
+                    md = self.fix_tn_links(md, chapter)
                     md = self.increase_headers(md)
                     title = self.get_first_header(md)
                     md = '<a id="tn-{0}-{1}-intro"/>\n{2}\n\n'.format(self.book, chapter, md)
@@ -206,7 +207,8 @@ class TnConverter(object):
                         'id': anchor_id,
                         'link': '#{0}'.format(anchor_id),
                         'title': title,
-                        'text': md
+                        'text': md,
+                        'referenced_by': []
                     }
                     self.resource_rcs['tn'] = {
                         'title': title,
@@ -227,7 +229,7 @@ class TnConverter(object):
                         end = str(end_verse).zfill(2)
                     title = '{0} {1}:{2}-{3}'.format(self.book_title, chapter.lstrip('0'), chunk.lstrip('0'), end_verse)
                     md = self.increase_headers(read_file(chunk_file), 3)
-                    md = self.fix_tn_links(md)
+                    md = self.fix_tn_links(md, chapter)
                     md = '<a id="tn-{0}-{1}-{2}"/>\n## {3}\n\n[[udb://{0}/{4}/{5}/{6}]]\n\n'\
                         '[[ulb://{0}/{4}/{5}/{6}]]\n\n### translationNotes\n\n{7}\n\n'. \
                         format(self.book, chapter, chunk, title, chapter.lstrip('0'), chunk.lstrip('0'),
@@ -239,7 +241,8 @@ class TnConverter(object):
                         'id': anchor_id,
                         'link': '#{0}'.format(anchor_id),
                         'title': title,
-                        'text': md
+                        'text': md,
+                        'referenced_by': []
                     }
                     self.resource_rcs['tn'][rc] = {
                         'title': title,
@@ -281,7 +284,8 @@ class TnConverter(object):
                             'id': anchor_id,
                             'link': '#{0}'.format(anchor_id),
                             'title': title,
-                            'text': md
+                            'text': md,
+                            'referenced_by': []
                         }
                         self.resource_rcs['tq'][rc] = {
                             'title': title,
@@ -412,13 +416,16 @@ class TnConverter(object):
             return lines[0]
         return "NO TITLE"
 
-    def fix_tn_links(self, text):
+    def fix_tn_links(self, text, chapter):
         if 'kt/dead' in text:
             # Fix bad link in tN
             text = text.replace('kt/dead', 'other/death')
         text = re.sub(r'\]\(\.\./\.\./([^)]+?)(.md)*\)', r'](rc://{0}/tn/help/\1)'.format(self.lang_code), text)
-        text = re.sub(r'\]\(\.\./([^)]+?)(.md)*\)', r'](rc://{0}/tn/help/{0}/\1)'.format(self.lang_code,
+        text = re.sub(r'\]\(\.\./([^)]+?)(.md)*\)', r'](rc://{0}/tn/help/{1}/\1)'.format(self.lang_code,
                                                                                          self.book), text)
+        text = re.sub(r'\]\(\./([^)]+?)(.md)*\)', r'](rc://{0}/tn/help/{1}/{2}/\1)'.format(self.lang_code,
+                                                                                       self.book, chapter), text)
+
         return text
 
     def fix_tw_links(self, text, dictionary):
