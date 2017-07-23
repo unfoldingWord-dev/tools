@@ -436,20 +436,23 @@ class TnConverter(object):
         return text
 
     def replace_rc_links(self, text):
-        rep = {}
-        rep2 = {}
-        for rc in self.resource_data:
-            info = self.resource_data[rc]
-            rep['[[{0}]]'.format(rc)] = '[{0}]({1})'.format(info['title'], info['link'])
-            rep2[rc] = info['link']
-
-        rep = dict((re.escape(k), v) for k, v in rep.iteritems())
+        # Change [[rc://...]] rc links, e.g. [[rc://en/tw/help/bible/kt/word]] => [God's Word](#tw-kt-word)
+        rep = dict((re.escape('[[{0}]]'.format(rc)), '[{0}]({1})'.format(info['title'], info['link']))
+                   for rc, info in self.resource_data.iteritems())
         pattern = re.compile("|".join(rep.keys()))
         text = pattern.sub(lambda m: rep[re.escape(m.group(0))], text)
 
-        rep2 = dict((re.escape(k), v) for k, v in rep2.iteritems())
-        pattern = re.compile("|".join(rep2.keys()))
-        text = pattern.sub(lambda m: rep2[re.escape(m.group(0))], text)
+        # Change ].(rc://...) rc links, e.g. [Click here](rc://en/tw/help/bible/kt/word) => [Click here](#tw-kt-word)
+        rep = dict((re.escape(']({0})'.format(rc)), ']({0})'.format(info['link']))
+                   for rc, info in self.resource_data.iteritems())
+        pattern = re.compile("|".join(rep.keys()))
+        text = pattern.sub(lambda m: rep[re.escape(m.group(0))], text)
+
+        # Change rc://... rc links, e.g. rc://en/tw/help/bible/kt/word => [God's](#tw-kt-word)
+        rep = dict((re.escape(rc), '[{0}]({1})'.format(info['title'], info['link']))
+                   for rc, info in self.resource_data.iteritems())
+        pattern = re.compile("|".join(rep.keys()))
+        text = pattern.sub(lambda m: rep[re.escape(m.group(0))], text)
 
         return text
 
@@ -458,8 +461,8 @@ class TnConverter(object):
         if 'etaphore' in text:
             text = text.replace('etaphore', 'etaphor')
         # convert RC links, e.g. rc://en/tn/help/1sa/16/02 => https://git.door43.org/Door43/en_tn/1sa/16/02.md
-        text = re.sub(r'rc://([^/]+)/([^/]+)/([^/]+)/([^\s\p\)\]\n$]+)',
-                         r'https://git.door43.org/Door43/\1_\2/src/master/\4.md', text, flags=re.IGNORECASE)
+        text = re.sub(r'rc://([^/]+)/([^/]+)/([^/]+)/([^\s\)\]\n$]+)',
+                      r'https://git.door43.org/Door43/\1_\2/src/master/\4.md', text, flags=re.IGNORECASE)
         # convert URLs to links if not already
         text = re.sub(r'([^"\(])((http|https|ftp)://[A-Z0-9\/\?&_\.:=#-]+[A-Z0-9\/\?&_:=#-])', r'\1[\2](\2)', text, flags=re.IGNORECASE)
         # URLS wth just www at the start, no http
