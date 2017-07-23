@@ -169,7 +169,6 @@ class TnConverter(object):
         if not os.path.isdir(book_dir):
             return
 
-        self.resource_rcs['tn'] = {}
         tn_md = '<a id="tn-{0}"/>\n# {1}\n\n'.format(self.book, self.project['title'])
 
         intro_file = os.path.join(book_dir, 'front', 'intro.md')
@@ -190,10 +189,6 @@ class TnConverter(object):
                 'title': title,
                 'text': md,
                 'referenced_by': []
-            }
-            self.resource_rcs['tn'][rc] = {
-                'title': title,
-                'rc': rc
             }
             self.get_resource_data_from_rc_links(md, rc)
             tn_md += md
@@ -219,10 +214,6 @@ class TnConverter(object):
                         'title': title,
                         'text': md,
                         'referenced_by': []
-                    }
-                    self.resource_rcs['tn'] = {
-                        'title': title,
-                        'rc': rc
                     }
                     self.get_resource_data_from_rc_links(md, rc)
                     tn_md += md
@@ -256,10 +247,6 @@ class TnConverter(object):
                         'text': md,
                         'referenced_by': []
                     }
-                    self.resource_rcs['tn'][rc] = {
-                        'title': title,
-                        'rc': rc
-                    }
                     self.get_resource_data_from_rc_links(md, rc)
                     tn_md += md
 
@@ -277,7 +264,6 @@ class TnConverter(object):
     def get_tq_markdown(self):
         tq_md = '<a id="tq-{0}"/>\n# translationQuestions\n\n'.format(self.book)
         tq_book_dir = os.path.join(self.tq_dir, self.book)
-        self.resource_rcs['tq'] = {}
         for chapter in sorted(os.listdir(tq_book_dir)):
             chapter_dir = os.path.join(tq_book_dir, chapter)
             if os.path.isdir(chapter_dir) and re.match(r'^\d+$', chapter):
@@ -299,28 +285,24 @@ class TnConverter(object):
                             'text': md,
                             'referenced_by': []
                         }
-                        self.resource_rcs['tq'][rc] = {
-                            'title': title,
-                            'rc': rc
-                        }
                         self.get_resource_data_from_rc_links(md, rc)
                         tq_md += md
         return tq_md
 
     def get_tw_markdown(self):
         tw_md = '<a id="tw-{0}"/>\n# translationWords\n\n'.format(self.book)
-        items = sorted(self.resource_rcs['tw'].values(), key=lambda k: k['title'])
-        for item in items:
-            item = self.resource_data[item['rc']]
-            tw_md += '<a id="{0}"/>\n{1}\n\n'.format(item['id'], self.increase_headers(item['text']))
+        sorted_rcs = sorted(self.resource_rcs['tw'], key=lambda k: self.resource_data[k]['title'])
+        for rc in sorted_rcs:
+            data = self.resource_data[rc]
+            tw_md += '<a id="{0}"/>\n{1}\n\n'.format(data['id'], self.increase_headers(data['text']))
         return tw_md
 
     def get_ta_markdown(self):
         ta_md = '<a id="ta-{0}"/>\n# translationAcademy\n\n'.format(self.book)
-        items = sorted(self.resource_rcs['ta'].values(), key=lambda k: k['title'])
-        for item in items:
-            item = self.resource_data[item['rc']]
-            ta_md += '<a id="{0}"/>\n{1}\n\n'.format(item['id'], item['text'])
+        sorted_rcs = sorted(self.resource_rcs['ta'], key=lambda k: self.resource_data[k]['title'])
+        for rc in sorted_rcs:
+            data = self.resource_data[rc]
+            ta_md += '<a id="{0}"/>\n{1}\n\n'.format(data['id'], data['text'])
         return ta_md
 
     def get_resource_data_from_rc_links(self, text, source_rc):
@@ -406,11 +388,9 @@ class TnConverter(object):
             else:
                 self.resource_data[rc]['referenced_by'].append(source_rc)
             if resource not in self.resource_rcs:
-                self.resource_rcs[resource] = {}
-            self.resource_rcs[resource][rc] = {
-                'title': self.resource_data[rc]['title'],
-                'rc': rc
-            }
+                self.resource_rcs[resource] = []
+            if rc not in self.resource_rcs[resource]:
+                self.resource_rcs[resource].append(rc)
 
     @staticmethod
     def increase_headers(text, increase_depth=1):
