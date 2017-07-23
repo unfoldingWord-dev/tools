@@ -98,7 +98,7 @@ class TnConverter(object):
             self.resource_data = {}
             self.resource_rcs = {}
 
-            self.logger.info('Creating tN for {0} ({0}-{1})...'.format(self.book_title, self.book_number,
+            self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number,
                                                                        self.book.upper()))
             self.preprocess_markdown()
             self.convert_md2html()
@@ -178,6 +178,7 @@ class TnConverter(object):
             md = read_file(intro_file)
             md = self.fix_tn_links(md, 'intro')
             md = self.increase_headers(md)
+            md = self.decrease_headers(md, 5)  # bring headers of 5 or more #'s down 1
             md = '<a id="tn-{0}-front-intro"/>\n{1}\n\n'.format(self.book, md)
             rc = 'rc://{0}/tn/help/{1}/front/intro'.format(self.lang_code, self.book)
             anchor_id = 'tn-{1}-front-intro'.format(self.lang_code, self.book)
@@ -206,6 +207,7 @@ class TnConverter(object):
                     md = read_file(intro_file)
                     md = self.fix_tn_links(md, chapter)
                     md = self.increase_headers(md)
+                    md = self.decrease_headers(md, 5, 2)  # bring headers of 5 or more #'s down 2
                     title = self.get_first_header(md)
                     md = '<a id="tn-{0}-{1}-intro"/>\n{2}\n\n'.format(self.book, chapter, md)
                     rc = 'rc://{0}/tn/help/{0}/intro'.format(self.book, chapter)
@@ -237,7 +239,9 @@ class TnConverter(object):
                         end = str(end_verse).zfill(2)
                     title = '{0} {1}:{2}-{3}'.format(self.book_title, chapter.lstrip('0'), chunk.lstrip('0'), end_verse)
                     md = self.increase_headers(read_file(chunk_file), 3)
+                    md = self.decrease_headers(md, 5)  # bring headers of 5 or more #'s down 1
                     md = self.fix_tn_links(md, chapter)
+                    md = md.replace('#### translationWords', '### trnaslationWords')
                     md = '<a id="tn-{0}-{1}-{2}"/>\n## {3}\n\n[[udb://{0}/{4}/{5}/{6}]]\n\n'\
                         '[[ulb://{0}/{4}/{5}/{6}]]\n\n### translationNotes\n\n{7}\n\n'. \
                         format(self.book, chapter, chunk, title, chapter.lstrip('0'), chunk.lstrip('0'),
@@ -412,6 +416,13 @@ class TnConverter(object):
     def increase_headers(text, increase_depth=1):
         if text:
             text = re.sub(r'^(#+) +(.+?) *#*$', r'\1{0} \2'.format('#'*increase_depth), text, flags=re.MULTILINE)
+        return text
+
+    @staticmethod
+    def decrease_headers(text, minimum_header=1, decrease=1):
+        if text:
+            text = re.sub(r'^({0}#*){1} +(.+?) *#*$'.format('#'*(minimum_header-decrease), '#'*decrease),
+                          r'\1 \2', text, flags=re.MULTILINE)
         return text
 
     @staticmethod
