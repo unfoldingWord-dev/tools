@@ -98,7 +98,8 @@ class TnConverter(object):
             self.resource_data = {}
             self.resource_rcs = {}
 
-            self.logger.info('Creating tN for {0}-{1}...'.format(self.book_number, self.book.upper()))
+            self.logger.info('Creating tN for {0} ({0}-{1})...'.format(self.book_title, self.book_number,
+                                                                       self.book.upper()))
             self.preprocess_markdown()
             self.convert_md2html()
         self.pp.pprint(self.bad_links)
