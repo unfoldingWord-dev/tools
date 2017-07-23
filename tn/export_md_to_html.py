@@ -26,6 +26,7 @@ from ..catalog.v3.catalog import UWCatalog
 from ..bible.bible_classes import Bible
 from .. general_tools.file_utils import write_file, read_file, unzip, load_yaml_object
 from ..general_tools.url_utils import download_file
+from ..general_tools.bible_books import BOOK_NUMBERS
 
 
 class TnConverter(object):
@@ -37,8 +38,7 @@ class TnConverter(object):
         self.output_dir = output_dir
         self.lang_code = lang_code
         self.books = books
-        if not self.output_dir:
-            self.output_dir = '.'
+
         catalog = UWCatalog()
         self.tn = catalog.get_resource(lang_code, 'tn')
         self.tw = catalog.get_resource(lang_code, 'tw')
@@ -57,6 +57,8 @@ class TnConverter(object):
 
         # self.temp_dir = tempfile.mkdtemp(prefix='tn-')
         self.temp_dir = '/home/rich/tn'
+        if not self.output_dir:
+            self.output_dir = self.temp_dir
 
         self.logger.debug('TEMP DIR IS {0}'.format(self.temp_dir))
         self.tn_dir = os.path.join(self.temp_dir, '{0}_tn'.format(lang_code))
@@ -68,6 +70,7 @@ class TnConverter(object):
 
         self.book = None
         self.book_title = None
+        self.book_number = None
         self.project = None
         self.tn_text = ''
         self.tw_text = ''
@@ -87,6 +90,7 @@ class TnConverter(object):
             self.project = p
             self.book = p['identifier']
             self.book_title = p['title'].replace(' translationNotes', '')
+            self.book_number = BOOK_NUMBERS[self.book]
             self.tn_text = ''
             self.tw_text = ''
             self.tq_text = ''
@@ -94,7 +98,7 @@ class TnConverter(object):
             self.resource_data = {}
             self.resource_rcs = {}
 
-            self.logger.info('Creating tN for {0}...'.format(self.book))
+            self.logger.info('Creating tN for {0}-{1}...'.format(self.book_number, self.book.upper()))
             self.preprocess_markdown()
             self.convert_md2html()
         self.pp.pprint(self.bad_links)
@@ -105,8 +109,10 @@ class TnConverter(object):
             return
         for p in self.manifest['projects']:
             if not self.books or p['identifier'] in self.books:
+                if not p['sort']:
+                    p['sort'] = BOOK_NUMBERS[p['identifier']]
                 projects.append(p)
-        return projects
+        return sorted(projects, key=lambda k: k['sort'])
 
     @staticmethod
     def get_resource_url(resource):
@@ -153,7 +159,8 @@ class TnConverter(object):
         md = '\n\n'.join([tn_md, tq_md, tw_md, ta_md])
         md = self.replace_rc_links(md)
         md = self.fix_links(md)
-        write_file(os.path.join(self.temp_dir, self.book + '.md'), md)
+        write_file(os.path.join(self.temp_dir, '{0}-{1}.md'.format(str(self.book_number).zfill(2),
+                                                                       self.book.upper())), md)
 
     def get_tn_markdown(self):
         book_dir = os.path.join(self.tn_dir, self.book)
@@ -477,8 +484,10 @@ class TnConverter(object):
         return text
 
     def convert_md2html(self):
-        html = markdown.markdown(read_file(os.path.join(self.temp_dir, self.book + '.md')))
-        write_file(os.path.join(self.output_dir, self.book + '.html'), html)
+        html = markdown.markdown(read_file(os.path.join(self.output_dir, '{0}-{1}.md'.format(
+            str(self.book_number).zfill(2), self.book.upper()))))
+        write_file(os.path.join(self.output_dir, '{0}-{1}.html'.format(str(self.book_number).zfill(2),
+                                                                       self.book.upper())), html)
 
 
 def main(lang_code, books, outfile):
