@@ -34,10 +34,11 @@ from ..general_tools.bible_books import BOOK_NUMBERS
 
 class TnConverter(object):
 
-    def __init__(self, output_dir=None, lang_code='en', books=None):
+    def __init__(self, working_dir=None, output_dir=None, lang_code='en', books=None):
         """
         :param string output_dir:
         """
+        self.working_dir = working_dir
         self.output_dir = output_dir
         self.lang_code = lang_code
         self.books = books
@@ -58,16 +59,16 @@ class TnConverter(object):
         self.logger.addHandler(ch)
         self.pp = pprint.PrettyPrinter(indent=4)
 
-        # self.temp_dir = tempfile.mkdtemp(prefix='tn-')
-        self.temp_dir = '/home/rmahn/working/tn'
+        if not self.working_dir:
+            self.working_dir = tempfile.mkdtemp(prefix='tn-')
         if not self.output_dir:
-            self.output_dir = self.temp_dir
+            self.output_dir = self.working_dir
 
-        self.logger.debug('TEMP DIR IS {0}'.format(self.temp_dir))
-        self.tn_dir = os.path.join(self.temp_dir, '{0}_tn'.format(lang_code))
-        self.tw_dir = os.path.join(self.temp_dir, '{0}_tw'.format(lang_code))
-        self.tq_dir = os.path.join(self.temp_dir, '{0}_tq'.format(lang_code))
-        self.ta_dir = os.path.join(self.temp_dir, '{0}_ta'.format(lang_code))
+        self.logger.debug('TEMP DIR IS {0}'.format(self.working_dir))
+        self.tn_dir = os.path.join(self.working_dir, '{0}_tn'.format(lang_code))
+        self.tw_dir = os.path.join(self.working_dir, '{0}_tw'.format(lang_code))
+        self.tq_dir = os.path.join(self.working_dir, '{0}_tq'.format(lang_code))
+        self.ta_dir = os.path.join(self.working_dir, '{0}_ta'.format(lang_code))
 
         self.manifest = None
 
@@ -85,7 +86,7 @@ class TnConverter(object):
         self.usfm_chunks = {}
 
     def run(self):
-        # self.setup_resource_files()
+        self.setup_resource_files()
         self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
         projects = self.get_book_projects()
         for p in projects:
@@ -97,10 +98,13 @@ class TnConverter(object):
             self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number,
                                                                        self.book_id.upper()))
 
-            #self.usfm_chunks = self.get_usfm_chunks()
-            #self.preprocess_markdown()
-            #self.convert_md2html()
-            self.convert_html2pdf()
+            if not os.path.isfile(os.path.join(self.output_dir, '{0}-{1}.html'.format(self.book_number, self.book_id.upper()))):
+                self.usfm_chunks = self.get_usfm_chunks()
+                self.preprocess_markdown()
+                self.convert_md2html()
+            if not os.path.isfile(os.path.join(self.output_dir, '{0}-{1}.pdf'.format(self.book_number, self.book_id.upper()))):
+                print("Generating PDF...")
+                #self.convert_html2pdf()
         self.pp.pprint(self.bad_links)
 
     def get_book_projects(self):
@@ -129,17 +133,21 @@ class TnConverter(object):
                     return f['url']
 
     def setup_resource_files(self):
-        tn_url = self.get_resource_url(self.tn)
-        self.extract_files_from_url(tn_url)
-        tw_url = self.get_resource_url(self.tw)
-        self.extract_files_from_url(tw_url)
-        tq_url = self.get_resource_url(self.tq)
-        self.extract_files_from_url(tq_url)
-        ta_url = self.get_resource_url(self.ta)
-        self.extract_files_from_url(ta_url)
+        if not os.path.isdir(os.path.join(self.working_dir, 'en_tn')):
+            tn_url = self.get_resource_url(self.tn)
+            self.extract_files_from_url(tn_url)
+        if not os.path.isdir(os.path.join(self.working_dir, 'en_tw')):
+            tw_url = self.get_resource_url(self.tw)
+            self.extract_files_from_url(tw_url)
+        if not os.path.isdir(os.path.join(self.working_dir, 'en_tq')):
+            tq_url = self.get_resource_url(self.tq)
+            self.extract_files_from_url(tq_url)
+        if not os.path.isdir(os.path.join(self.working_dir, 'en_ta')):
+            ta_url = self.get_resource_url(self.ta)
+            self.extract_files_from_url(ta_url)
 
     def extract_files_from_url(self, url):
-        zip_file = os.path.join(self.temp_dir, url.rpartition(os.path.sep)[2])
+        zip_file = os.path.join(self.working_dir, url.rpartition(os.path.sep)[2])
         try:
             self.logger.debug('Downloading {0}...'.format(url))
             download_file(url, zip_file)
@@ -147,7 +155,7 @@ class TnConverter(object):
             self.logger.debug('finished.')
         try:
             self.logger.debug('Unzipping {0}...'.format(zip_file))
-            unzip(zip_file, self.temp_dir)
+            unzip(zip_file, self.working_dir)
         finally:
             self.logger.debug('finished.')
 
@@ -167,10 +175,14 @@ class TnConverter(object):
             header = chunks[0]
             book_chunks[resource]['header'] = header
             for chunk in chunks[1:]:
+                if not chunk.strip(): 
+                    continue
                 c_search = re.search(r'\\c[\u00A0\s](\d+)', chunk)
                 if c_search:
                     chapter = int(c_search.group(1))
                 verses = re.findall(r'\\v[\u00A0\s](\d+)', chunk)
+                if not verses:
+                    continue
                 first_verse = int(verses[0])
                 last_verse = int(verses[-1])
                 if chapter not in book_chunks[resource]:
@@ -180,7 +192,7 @@ class TnConverter(object):
                     'first_verse': first_verse,
                     'last_verse': last_verse,
                 }
-                print('chunk: {0}-{1}-{2}-{3}'.format(resource, chapter, first_verse, last_verse))
+                print('chunk: {0}-{4}-{1}-{2}-{3}'.format(resource, chapter, first_verse, last_verse, self.book_id))
                 book_chunks[resource][chapter][first_verse] = data
                 book_chunks[resource][chapter]['chunks'].append(data)
         return book_chunks
@@ -193,7 +205,7 @@ class TnConverter(object):
         md = '\n\n'.join([tn_md, tq_md, tw_md, ta_md])
         md = self.replace_rc_links(md)
         md = self.fix_links(md)
-        write_file(os.path.join(self.temp_dir, '{0}-{1}.md'.format(str(self.book_number).zfill(2),
+        write_file(os.path.join(self.working_dir, '{0}-{1}.md'.format(str(self.book_number).zfill(2),
                                                                    self.book_id.upper())), md)
 
     def get_tn_markdown(self):
@@ -363,10 +375,10 @@ class TnConverter(object):
                 anchor_id = '{0}-{1}'.format(resource, path.replace('/', '-'))
                 link = '#{0}'.format(anchor_id)
                 try:
-                    file_path = os.path.join(self.temp_dir, '{0}_{1}'.format(self.lang_code, resource),
+                    file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
                                              '{0}.md'.format(path))
                     if not os.path.isfile(file_path):
-                        file_path = os.path.join(self.temp_dir, '{0}_{1}'.format(self.lang_code, resource),
+                        file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
                                                  '{0}/01.md'.format(path))
                     if not os.path.isfile(file_path):
                         if resource == 'tw':
@@ -376,7 +388,7 @@ class TnConverter(object):
                                 path2 = re.sub(r'^bible/kt/', r'bible/other/', path)
                             anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
                             link = '#{0}'.format(anchor_id)
-                            file_path = os.path.join(self.temp_dir, '{0}_{1}'.format(self.lang_code, resource),
+                            file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
                                                      '{0}.md'.format(path2))
                     if os.path.isfile(file_path):
                         t = read_file(file_path)
@@ -503,7 +515,7 @@ class TnConverter(object):
         return text
 
     def convert_md2html(self):
-        html = markdown.markdown(read_file(os.path.join(self.temp_dir, '{0}-{1}.md'.format(
+        html = markdown.markdown(read_file(os.path.join(self.working_dir, '{0}-{1}.md'.format(
             str(self.book_number).zfill(2), self.book_id.upper()))))
         html = self.replace_bible_links(html)
         write_file(os.path.join(self.output_dir, '{0}-{1}.html'.format(str(self.book_number).zfill(2),
@@ -526,12 +538,12 @@ class TnConverter(object):
         return text
 
     def get_chunk_html(self, resource, chapter, verse):
-        path = tempfile.mkdtemp(dir=self.temp_dir, prefix='usfm-{0}-{1}-{2}-{3}-{4}_'.
+        path = tempfile.mkdtemp(dir=self.working_dir, prefix='usfm-{0}-{1}-{2}-{3}-{4}_'.
                                 format(self.lang_code, resource, self.book_id, chapter, verse))
         filename_base = '{0}-{1}-{2}-{3}'.format(resource, self.book_id, chapter, verse)
         usfm = self.usfm_chunks[resource]['header']
         usfm += '\n\n'
-        print("{0}-{1}-{2}".format(resource,chapter,verse))
+        print("html: {0}-{3}-{1}-{2}".format(resource,chapter,verse,self.book_id))
         usfm += self.usfm_chunks[resource][chapter][verse]['usfm']
         write_file(os.path.join(path, filename_base+'.usfm'), usfm)
         UsfmTransform.buildSingleHtml(path, path, filename_base)
@@ -556,8 +568,8 @@ class TnConverter(object):
 
 
 
-def main(lang_code, books, outfile):
-    tn_converter = TnConverter(outfile, lang_code, books)
+def main(lang_code, books, working_dir, output_dir):
+    tn_converter = TnConverter(working_dir, output_dir, lang_code, books)
     tn_converter.run()
 
 if __name__ == '__main__':
@@ -565,6 +577,7 @@ if __name__ == '__main__':
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-l', '--lang', dest='lang_code', default='en', required=False, help="Language Code")
     parser.add_argument('-b', '--book_id', dest='books', nargs='+', default=None, required=False, help="Bible Book(s)")
-    parser.add_argument('-o', '--outfile', dest='outfile', default=False, required=False, help="Output file")
+    parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help="Working Directory")
+    parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False, help="Output Directory")
     args = parser.parse_args(sys.argv[1:])
-    main(args.lang_code, args.books, args.outfile)
+    main(args.lang_code, args.books, args.working_dir, args.output_dir)
