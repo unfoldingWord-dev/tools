@@ -43,7 +43,14 @@ class UWCatalog:
 
     def get_project(self, lc, resource_id, project_id):
         resource = self.get_resource(lc, resource_id)
-        if resource:
+        if resource and 'projects' in resource:
             for project in resource['projects']:
                 if project['identifier'] == project_id:
                     return project
+
+    def get_format(self, lc, resource_id, project_id, format_type):
+        project = self.get_project(lc, resource_id, project_id)
+        if project and 'formats' in project:
+            for format in project['formats']:
+                if 'format' in format and format_type in format['format']:
+                    return format

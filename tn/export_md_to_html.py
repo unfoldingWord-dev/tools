@@ -22,10 +22,11 @@ import argparse
 import tempfile
 import markdown
 from glob import glob
+from bs4 import BeautifulSoup
 from ..catalog.v3.catalog import UWCatalog
-from ..bible.bible_classes import Bible
+from usfm_tools.transform import UsfmTransform
 from .. general_tools.file_utils import write_file, read_file, unzip, load_yaml_object
-from ..general_tools.url_utils import download_file
+from ..general_tools.url_utils import download_file, get_url
 from ..general_tools.bible_books import BOOK_NUMBERS
 
 
@@ -39,11 +40,11 @@ class TnConverter(object):
         self.lang_code = lang_code
         self.books = books
 
-        catalog = UWCatalog()
-        self.tn = catalog.get_resource(lang_code, 'tn')
-        self.tw = catalog.get_resource(lang_code, 'tw')
-        self.tq = catalog.get_resource(lang_code, 'tq')
-        self.ta = catalog.get_resource(lang_code, 'ta')
+        self.catalog = UWCatalog()
+        self.tn = self.catalog.get_resource(lang_code, 'tn')
+        self.tw = self.catalog.get_resource(lang_code, 'tw')
+        self.tq = self.catalog.get_resource(lang_code, 'tq')
+        self.ta = self.catalog.get_resource(lang_code, 'ta')
 
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.DEBUG)
@@ -68,7 +69,7 @@ class TnConverter(object):
 
         self.manifest = None
 
-        self.book = None
+        self.book_id = None
         self.book_title = None
         self.book_number = None
         self.project = None
@@ -79,8 +80,7 @@ class TnConverter(object):
         self.resource_rcs = {}
         self.resource_data = {}
         self.bad_links = {}
-
-        self.bible = Bible.get_versification('ufw')
+        self.usfm_chunks = {}
 
     def run(self):
         # self.setup_resource_files()
@@ -88,16 +88,14 @@ class TnConverter(object):
         projects = self.get_book_projects()
         for p in projects:
             self.project = p
-            self.book = p['identifier']
+            self.book_id = p['identifier']
             self.book_title = p['title'].replace(' translationNotes', '')
-            self.book_number = BOOK_NUMBERS[self.book]
-            self.tn_text = ''
-            self.tw_text = ''
-            self.tq_text = ''
-            self.ta_text = ''
+            self.book_number = BOOK_NUMBERS[self.book_id]
             self.resource_rcs = {}
             self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number,
-                                                                       self.book.upper()))
+                                                                       self.book_id.upper()))
+
+            self.usfm_chunks = self.get_usfm_chunks()
             self.preprocess_markdown()
             self.convert_md2html()
         self.pp.pprint(self.bad_links)
@@ -150,6 +148,39 @@ class TnConverter(object):
         finally:
             self.logger.debug('finished.')
 
+    def get_usfm_chunks(self):
+        book_chunks = {}
+        for resource in ['udb', 'ulb']:
+            book_chunks[resource] = {}
+            url = self.catalog.get_format(self.lang_code, resource, self.book_id, 'text/usfm')['url']
+
+            # Quick fix for ULB Numbers having many marking errors. REMOVE IN NEXT VERSION OF tN
+            if resource == 'ulb' and self.book_id == 'num':
+                url = 'https://git.door43.org/Door43/en_ulb/raw/master/04-NUM.usfm'
+            # END QUICK FIX
+
+            usfm = get_url(url)
+            chunks = usfm.split('\s5\n')
+            header = chunks[0]
+            book_chunks[resource]['header'] = header
+            for chunk in chunks[1:]:
+                c_search = re.search(r'\\c[\u00A0\s](\d+)', chunk)
+                if c_search:
+                    chapter = int(c_search.group(1))
+                verses = re.findall(r'\\v[\u00A0\s](\d+)', chunk)
+                first_verse = int(verses[0])
+                last_verse = int(verses[-1])
+                if chapter not in book_chunks[resource]:
+                    book_chunks[resource][chapter] = {'chunks': []}
+                data = {
+                    'usfm': chunk,
+                    'first_verse': first_verse,
+                    'last_verse': last_verse,
+                }
+                book_chunks[resource][chapter][first_verse] = data
+                book_chunks[resource][chapter]['chunks'].append(data)
+        return book_chunks
+
     def preprocess_markdown(self):
         tn_md = self.get_tn_markdown()
         tq_md = self.get_tq_markdown()
@@ -159,15 +190,15 @@ class TnConverter(object):
         md = self.replace_rc_links(md)
         md = self.fix_links(md)
         write_file(os.path.join(self.temp_dir, '{0}-{1}.md'.format(str(self.book_number).zfill(2),
-                                                                       self.book.upper())), md)
+                                                                   self.book_id.upper())), md)
 
     def get_tn_markdown(self):
-        book_dir = os.path.join(self.tn_dir, self.book)
+        book_dir = os.path.join(self.tn_dir, self.book_id)
 
         if not os.path.isdir(book_dir):
             return
 
-        tn_md = '<a id="tn-{0}"/>\n# {1}\n\n'.format(self.book, self.project['title'])
+        tn_md = '<a id="tn-{0}"/>\n# {1}\n\n'.format(self.book_id, self.project['title'])
 
         intro_file = os.path.join(book_dir, 'front', 'intro.md')
         book_has_intro = os.path.isfile(intro_file)
@@ -176,9 +207,9 @@ class TnConverter(object):
             md = self.fix_tn_links(md, 'intro')
             md = self.increase_headers(md)
             md = self.decrease_headers(md, 5)  # bring headers of 5 or more #'s down 1
-            md = '<a id="tn-{0}-front-intro"/>\n{1}\n\n'.format(self.book, md)
-            rc = 'rc://{0}/tn/help/{1}/front/intro'.format(self.lang_code, self.book)
-            anchor_id = 'tn-{1}-front-intro'.format(self.lang_code, self.book)
+            md = '<a id="tn-{0}-front-intro"/>\n{1}\n\n'.format(self.book_id, md)
+            rc = 'rc://{0}/tn/help/{1}/front/intro'.format(self.lang_code, self.book_id)
+            anchor_id = 'tn-{1}-front-intro'.format(self.lang_code, self.book_id)
             title = self.get_first_header(md)
             self.resource_data[rc] = {
                 'rc': rc,
@@ -200,9 +231,9 @@ class TnConverter(object):
                     md = self.increase_headers(md)
                     md = self.decrease_headers(md, 5, 2)  # bring headers of 5 or more #'s down 2
                     title = self.get_first_header(md)
-                    md = '<a id="tn-{0}-{1}-intro"/>\n{2}\n\n'.format(self.book, chapter, md)
-                    rc = 'rc://{0}/tn/help/{1}/{2}/intro'.format(self.lang_code, self.book, chapter)
-                    anchor_id = 'tn-{0}-{1}-intro'.format(self.book, chapter)
+                    md = '<a id="tn-{0}-{1}-intro"/>\n{2}\n\n'.format(self.book_id, chapter, md)
+                    rc = 'rc://{0}/tn/help/{1}/{2}/intro'.format(self.lang_code, self.book_id, chapter)
+                    anchor_id = 'tn-{0}-{1}-intro'.format(self.book_id, chapter)
                     self.resource_data[rc] = {
                         'rc': rc,
                         'id': anchor_id,
@@ -217,22 +248,22 @@ class TnConverter(object):
                     if len(chunk_files) > idx + 1:
                         end_verse = int(os.path.splitext(os.path.basename(chunk_files[idx + 1]))[0])-1
                     else:
-                        end_verse = self.bible[self.book].get_chapter(int(chapter.lstrip('0'))).num_verses
-                    if self.book == 'psa':
+                        end_verse = self.usfm_chunks['udb'][int(chapter)]['chunks'][-1]['last_verse']
+                    if self.book_id == 'psa':
                         end = str(end_verse).zfill(3)
                     else:
                         end = str(end_verse).zfill(2)
-                    title = '{0} {1}:{2}-{3}'.format(self.book_title, chapter.lstrip('0'), chunk.lstrip('0'), end_verse)
+                    title = '{0} {1}:{2}-{3}'.format(self.book_title, int(chapter), int(chunk), end_verse)
                     md = self.increase_headers(read_file(chunk_file), 3)
                     md = self.decrease_headers(md, 5)  # bring headers of 5 or more #'s down 1
                     md = self.fix_tn_links(md, chapter)
                     md = md.replace('#### translationWords', '### trnaslationWords')
                     md = '<a id="tn-{0}-{1}-{2}"/>\n## {3}\n\n[[udb://{0}/{4}/{5}/{6}]]\n\n'\
                         '[[ulb://{0}/{4}/{5}/{6}]]\n\n### translationNotes\n\n{7}\n\n'. \
-                        format(self.book, chapter, chunk, title, chapter.lstrip('0'), chunk.lstrip('0'),
+                        format(self.book_id, chapter, chunk, title, int(chapter), int(chunk),
                                end, md)
-                    rc = 'rc://{0}/tn/help/{1}/{2}/{3}'.format(self.lang_code, self.book, chapter, chunk)
-                    anchor_id = 'tn-{0}-{1}-{2}'.format(self.book, chapter, chunk)
+                    rc = 'rc://{0}/tn/help/{1}/{2}/{3}'.format(self.lang_code, self.book_id, chapter, chunk)
+                    anchor_id = 'tn-{0}-{1}-{2}'.format(self.book_id, chapter, chunk)
                     self.resource_data[rc] = {
                         'rc': rc,
                         'id': anchor_id,
@@ -244,31 +275,32 @@ class TnConverter(object):
 
                     links = '### Links:\n\n'
                     if book_has_intro:
-                        links += '* [Introduction to {0}](#tn-{1}-front-intro)\n'.format(self.book_title, self.book)
+                        links += '* [Introduction to {0}](#tn-{1}-front-intro)\n'.format(self.book_title, self.book_id)
                     if chapter_has_intro:
                         links += '* [{0} {1} General Notes](#tn-{2}-{3}-intro)\n'. \
-                            format(self.book_title, chapter.lstrip('0'), self.book, chapter)
+                            format(self.book_title, int(chapter), self.book_id, chapter)
                     links += '* [{0} {1} translationQuestions](#tq-{2}-{3})\n'. \
-                        format(self.book_title, chapter.lstrip('0'), self.book, chapter)
+                        format(self.book_title, int(chapter), self.book_id, chapter)
                     tn_md += links + '\n\n'
         return tn_md
 
     def get_tq_markdown(self):
-        tq_md = '<a id="tq-{0}"/>\n# translationQuestions\n\n'.format(self.book)
-        tq_book_dir = os.path.join(self.tq_dir, self.book)
+        tq_md = '<a id="tq-{0}"/>\n# translationQuestions\n\n'.format(self.book_id)
+        tq_book_dir = os.path.join(self.tq_dir, self.book_id)
         for chapter in sorted(os.listdir(tq_book_dir)):
             chapter_dir = os.path.join(tq_book_dir, chapter)
             if os.path.isdir(chapter_dir) and re.match(r'^\d+$', chapter):
-                tq_md += '<a id="tq-{0}-{1}"/>\n## {2} {3}\n\n'.format(self.book, chapter, self.book_title,
-                                                                         chapter.lstrip('0'))
+                tq_md += '<a id="tq-{0}-{1}"/>\n## {2} {3}\n\n'.format(self.book_id, chapter, self.book_title,
+                                                                       int(chapter))
                 for chunk in sorted(os.listdir(chapter_dir)):
                     chunk_file = os.path.join(chapter_dir, chunk)
+                    chunk = os.path.splitext(chunk)[0]
                     if os.path.isfile(chunk_file) and re.match(r'^\d+.md$', chunk):
                         md = read_file(chunk_file)
                         md = '{0}\n\n'.format(self.increase_headers(md, 2))
-                        title = 'Question {0} {1}:{2}'.format(self.book_title, chapter.lstrip('0'), chunk.lstrip('0'))
-                        rc = 'rc://{0}/tq/help/{1}/{2}/{3}'.format(self.lang_code, self.book, chapter, chunk)
-                        anchor_id = 'tn-{0}-{1}-{2}'.format(self.book, chapter, chunk)
+                        title = 'Question {0} {1}:{2}'.format(self.book_title, int(chapter), int(chunk))
+                        rc = 'rc://{0}/tq/help/{1}/{2}/{3}'.format(self.lang_code, self.book_id, chapter, chunk)
+                        anchor_id = 'tn-{0}-{1}-{2}'.format(self.book_id, chapter, chunk)
                         self.resource_data[rc] = {
                             'rc': rc,
                             'id': anchor_id,
@@ -280,7 +312,7 @@ class TnConverter(object):
         return tq_md
 
     def get_tw_markdown(self):
-        tw_md = '<a id="tw-{0}"/>\n# translationWords\n\n'.format(self.book)
+        tw_md = '<a id="tw-{0}"/>\n# translationWords\n\n'.format(self.book_id)
         sorted_rcs = sorted(self.resource_rcs['tw'], key=lambda k: self.resource_data[k]['title'])
         for rc in sorted_rcs:
             data = self.resource_data[rc]
@@ -288,7 +320,7 @@ class TnConverter(object):
         return tw_md
 
     def get_ta_markdown(self):
-        ta_md = '<a id="ta-{0}"/>\n# translationAcademy\n\n'.format(self.book)
+        ta_md = '<a id="ta-{0}"/>\n# translationAcademy\n\n'.format(self.book_id)
         sorted_rcs = sorted(self.resource_rcs['ta'], key=lambda k: self.resource_data[k]['title'])
         for rc in sorted_rcs:
             data = self.resource_data[rc]
@@ -405,10 +437,11 @@ class TnConverter(object):
         rep = {}
         rep['kt/dead'] = 'other/death' # Fix bad link in tN, REMOVE NEXT VERSION!!!
         rep[r'\]\(\.\./\.\./([^)]+?)(\.md)*\)'] = r'](rc://{0}/tn/help/\1)'.format(self.lang_code)
-        rep[r'\]\(\.\./([^)]+?)(\.md)*\)'] = r'](rc://{0}/tn/help/{1}/\1)'.format(self.lang_code, self.book)
-        rep[r'\]\(\./([^)]+?)(\.md)*\)'] = r'](rc://{0}/tn/help/{1}/{2}/\1)'.format(self.lang_code, self.book, chapter)
+        rep[r'\]\(\.\./([^)]+?)(\.md)*\)'] = r'](rc://{0}/tn/help/{1}/\1)'.format(self.lang_code, self.book_id)
+        rep[r'\]\(\./([^)]+?)(\.md)*\)'] = r'](rc://{0}/tn/help/{1}/{2}/\1)'.format(self.lang_code, self.book_id, chapter)
+        rep[r'\n__.*\|.*'] = r''
         for pattern, repl in rep.iteritems():
-            text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
+            text = re.sub(pattern, repl, text, flags=re.IGNORECASE | re.MULTILINE)
         return text
 
     def fix_tw_links(self, text, dictionary):
@@ -466,9 +499,47 @@ class TnConverter(object):
 
     def convert_md2html(self):
         html = markdown.markdown(read_file(os.path.join(self.output_dir, '{0}-{1}.md'.format(
-            str(self.book_number).zfill(2), self.book.upper()))))
+            str(self.book_number).zfill(2), self.book_id.upper()))))
+        html = self.replace_bible_links(html)
         write_file(os.path.join(self.output_dir, '{0}-{1}.html'.format(str(self.book_number).zfill(2),
-                                                                       self.book.upper())), html)
+                                                                       self.book_id.upper())), html)
+
+    def replace_bible_links(self, text):
+        bible_links = re.findall(r'(?:udb|ulb)://{0}/[A-Z0-9/]+'.format(self.book_id), text,
+                                 flags=re.IGNORECASE | re.MULTILINE)
+        bible_links = list(set(bible_links))
+        rep = {}
+        for link in bible_links:
+            parts = link.split('/')
+            resource = parts[0][0:3]
+            chapter = int(parts[3])
+            chunk = int(parts[4])
+            rep[link] = '<div>{0}</div>'.format(self.get_chunk_html(resource, chapter, chunk))
+        rep = dict((re.escape('[[{0}]]'.format(link)), html) for link, html in rep.iteritems())
+        pattern = re.compile("|".join(rep.keys()))
+        text = pattern.sub(lambda m: rep[re.escape(m.group(0))], text)
+        return text
+
+    def get_chunk_html(self, resource, chapter, verse):
+        path = tempfile.mkdtemp(dir=self.temp_dir, prefix='usfm-{0}-{1}-{2}-{3}-{4}_'.
+                                format(self.lang_code, resource, self.book_id, chapter, verse))
+        filename_base = '{0}-{1}-{2}-{3}'.format(resource, self.book_id, chapter, verse)
+        usfm = self.usfm_chunks[resource]['header']
+        usfm += '\n\n'
+        usfm += self.usfm_chunks[resource][chapter][verse]['usfm']
+        write_file(os.path.join(path, filename_base+'.usfm'), usfm)
+        UsfmTransform.buildSingleHtml(path, path, filename_base)
+        html = read_file(os.path.join(path, filename_base+'.html'))
+        soup = BeautifulSoup(html, 'html.parser')
+        header = soup.find('h1')
+        if header:
+            header.name = 'h3'
+            header.string = '{0}:'.format(resource.upper())
+        chapter = soup.find('h2')
+        if chapter:
+            chapter.decompose()
+        html = ''.join(['%s' % x for x in soup.body.contents])
+        return html
 
 
 def main(lang_code, books, outfile):
@@ -479,7 +550,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-l', '--lang', dest='lang_code', default='en', required=False, help="Language Code")
-    parser.add_argument('-b', '--book', dest='books', nargs='+', default=None, required=False, help="Bible Book(s)")
+    parser.add_argument('-b', '--book_id', dest='books', nargs='+', default=None, required=False, help="Bible Book(s)")
     parser.add_argument('-o', '--outfile', dest='outfile', default=False, required=False, help="Output file")
     args = parser.parse_args(sys.argv[1:])
     main(args.lang_code, args.books, args.outfile)
