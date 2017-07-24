@@ -21,6 +21,8 @@ import logging
 import argparse
 import tempfile
 import markdown
+import shutil
+import subprocess
 from glob import glob
 from bs4 import BeautifulSoup
 from ..catalog.v3.catalog import UWCatalog
@@ -57,7 +59,7 @@ class TnConverter(object):
         self.pp = pprint.PrettyPrinter(indent=4)
 
         # self.temp_dir = tempfile.mkdtemp(prefix='tn-')
-        self.temp_dir = '/home/rich/tn'
+        self.temp_dir = '/home/rmahn/working/tn'
         if not self.output_dir:
             self.output_dir = self.temp_dir
 
@@ -95,9 +97,10 @@ class TnConverter(object):
             self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number,
                                                                        self.book_id.upper()))
 
-            self.usfm_chunks = self.get_usfm_chunks()
-            self.preprocess_markdown()
-            self.convert_md2html()
+            #self.usfm_chunks = self.get_usfm_chunks()
+            #self.preprocess_markdown()
+            #self.convert_md2html()
+            self.convert_html2pdf()
         self.pp.pprint(self.bad_links)
 
     def get_book_projects(self):
@@ -160,7 +163,7 @@ class TnConverter(object):
             # END QUICK FIX
 
             usfm = get_url(url)
-            chunks = usfm.split('\s5\n')
+            chunks = re.compile(r'\\s5\s*\n*').split(usfm)
             header = chunks[0]
             book_chunks[resource]['header'] = header
             for chunk in chunks[1:]:
@@ -177,6 +180,7 @@ class TnConverter(object):
                     'first_verse': first_verse,
                     'last_verse': last_verse,
                 }
+                print('chunk: {0}-{1}-{2}-{3}'.format(resource, chapter, first_verse, last_verse))
                 book_chunks[resource][chapter][first_verse] = data
                 book_chunks[resource][chapter]['chunks'].append(data)
         return book_chunks
@@ -324,7 +328,8 @@ class TnConverter(object):
         sorted_rcs = sorted(self.resource_rcs['ta'], key=lambda k: self.resource_data[k]['title'])
         for rc in sorted_rcs:
             data = self.resource_data[rc]
-            ta_md += '<a id="{0}"/>\n{1}\n\n'.format(data['id'], data['text'])
+            text = self.increase_headers(data['text'])
+            ta_md += '<a id="{0}"/>\n{1}\n\n'.format(data['id'], text)
         return ta_md
 
     def get_resource_data_from_rc_links(self, text, source_rc):
@@ -498,7 +503,7 @@ class TnConverter(object):
         return text
 
     def convert_md2html(self):
-        html = markdown.markdown(read_file(os.path.join(self.output_dir, '{0}-{1}.md'.format(
+        html = markdown.markdown(read_file(os.path.join(self.temp_dir, '{0}-{1}.md'.format(
             str(self.book_number).zfill(2), self.book_id.upper()))))
         html = self.replace_bible_links(html)
         write_file(os.path.join(self.output_dir, '{0}-{1}.html'.format(str(self.book_number).zfill(2),
@@ -509,7 +514,7 @@ class TnConverter(object):
                                  flags=re.IGNORECASE | re.MULTILINE)
         bible_links = list(set(bible_links))
         rep = {}
-        for link in bible_links:
+        for link in sorted(bible_links):
             parts = link.split('/')
             resource = parts[0][0:3]
             chapter = int(parts[3])
@@ -526,10 +531,12 @@ class TnConverter(object):
         filename_base = '{0}-{1}-{2}-{3}'.format(resource, self.book_id, chapter, verse)
         usfm = self.usfm_chunks[resource]['header']
         usfm += '\n\n'
+        print("{0}-{1}-{2}".format(resource,chapter,verse))
         usfm += self.usfm_chunks[resource][chapter][verse]['usfm']
         write_file(os.path.join(path, filename_base+'.usfm'), usfm)
         UsfmTransform.buildSingleHtml(path, path, filename_base)
         html = read_file(os.path.join(path, filename_base+'.html'))
+        shutil.rmtree(path, ignore_errors=True)
         soup = BeautifulSoup(html, 'html.parser')
         header = soup.find('h1')
         if header:
@@ -540,6 +547,13 @@ class TnConverter(object):
             chapter.decompose()
         html = ''.join(['%s' % x for x in soup.body.contents])
         return html
+
+    def convert_html2pdf(self):
+        subprocess.check_call(['pwd', 'ls'])
+        command = '/usr/local/bin/pandoc --latex-engine="xelatex" --template="tools/tn/tex/template.tex" -V logo="{5}icon-tn.png" --toc --toc-depth=2 -V documentclass="scrartcl" -V classoption="oneside" -V geometry="hmargin=2cm" -V geometry="vmargin=3cm" -V title="translationWords" -V subtitle="{2}" -V date="{3}" -V version="{4}" -V mainfont="Noto Serif" -V sansfont="Noto Sans" -o "{5}{0}-{1}.pdf" "{5}{0}-{1}.html"'.format(BOOK_NUMBERS[self.book_id], self.book_id.upper(), self.book_title, '2017-07-24', '2', self.output_dir)
+        print(command)
+        subprocess.check_call([command])
+
 
 
 def main(lang_code, books, outfile):
