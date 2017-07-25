@@ -666,29 +666,29 @@ class TnConverter(object):
         version = self.tn['version']
         date = self.tn['issued']
         command = """pandoc \
-                --latex-engine="xelatex" \
-                --template="tools/tn/tex/template.tex" \
-                --toc \
-                --toc-depth=2 \
-                -V documentclass="scrartcl" \
-                -V classoption="oneside" \
-                -V geometry='hmargin=2cm' \
-                -V geometry='vmargin=3cm' \
-                -V title="translationNotes" \
-                -V subtitle="{2}" \
-                -V logo="{6}/icon-tn.png" \
-                -V date="{3}" \
-                -V version="{4}" \
-                -V mainfont="Noto Serif" \
-                -V sansfont="Noto Sans" \
-                -V fontsize="13pt" \
-                -V urlcolor="Bittersweet" \
-                -V linkcolor="Bittersweet" \
-                -H "tools/tn/tex/format.tex" \
-                -o "{5}/{0}-{1}.pdf" \
-                "{6}/{0}-{1}.html"
-                """.format(BOOK_NUMBERS[self.book_id], self.book_id.upper(), self.book_title, date, version,
-                           self.output_dir, self.working_dir)
+--latex-engine="xelatex" \
+--template="tools/tn/tex/template.tex" \
+--toc \
+--toc-depth=2 \
+-V documentclass="scrartcl" \
+-V classoption="oneside" \
+-V geometry='hmargin=2cm' \
+-V geometry='vmargin=3cm' \
+-V title="translationNotes" \
+-V subtitle="{2}" \
+-V logo="{6}/icon-tn.png" \
+-V date="{3}" \
+-V version="{4}" \
+-V mainfont="Noto Serif" \
+-V sansfont="Noto Sans" \
+-V fontsize="13pt" \
+-V urlcolor="Bittersweet" \
+-V linkcolor="Bittersweet" \
+-H "tools/tn/tex/format.tex" \
+-o "{5}/{0}-{1}.pdf" \
+"{6}/{0}-{1}.html"
+""".format(BOOK_NUMBERS[self.book_id], self.book_id.upper(), self.book_title, date, version,
+                        self.output_dir, self.working_dir)
         print(command)
         subprocess.call(command, shell=True)
 
