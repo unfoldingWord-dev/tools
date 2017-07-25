@@ -660,22 +660,33 @@ class TnConverter(object):
         return html
 
     def convert_html2pdf(self):
-        command = """pandoc 
-                  --latex-engine="xelatex" 
-                  --template="tools/tn/tex/template.tex" 
-                  -V logo="{5}/icon-tn.png" 
-                  --toc 
-                  --toc-depth=2 
-                  -V documentclass="scrartcl" 
-                  -V classoption="oneside" 
-                  -V geometry="hmargin=2cm" 
-                  -V geometry="vmargin=3cm" 
-                  -V title="translationWords" 
-                  -V subtitle="{2}" -V date="{3}" -V version="{4}" 
-                  -V mainfont="Noto Serif" 
-                  -V sansfont="Noto Sans" 
-                  -o "{5}/{0}-{1}.pdf" "{5}/{0}-{1}.html"
-                  """.format(BOOK_NUMBERS[self.book_id], self.book_id.upper(), self.book_title, '2017-07-24', '2', self.output_dir)
+        command = 'curl -o {0}/icon-tn.png https://unfoldingword.org/assets/img/icon-tn.png'.format(self.working_dir)
+        print(command)
+        subprocess.call(command, shell=True)
+        command = """pandoc \
+                --latex-engine="xelatex" \
+                --template="/var/www/tools/tn/tex/template.tex" \
+                --toc \
+                --toc-depth=2 \
+                -V documentclass="scrartcl" \
+                -V classoption="oneside" \
+                -V geometry='hmargin=2cm' \
+                -V geometry='vmargin=3cm' \
+                -V title="translationNotes" \
+                -V subtitle="{2}" \
+                -V logo="{6}/icon-tn.png" \
+                -V date="{3}" \
+                -V version="{4}" \
+                -V mainfont="Noto Serif" \
+                -V sansfont="Noto Sans" \
+                -V fontsize="13pt" \
+                -V urlcolor="Bittersweet" \
+                -V linkcolor="Bittersweet" \
+                -H "/var/www/tools/tn/tex/format.tex" \
+                -o "{5}/{0}-{1}.pdf" \
+                "{6}/{0}-{1}.html"
+                """.format(BOOK_NUMBERS[self.book_id], self.book_id.upper(), self.book_title, '2017-07-24', '7',
+                           self.output_dir, self.working_dir)
         print(command)
         subprocess.call(command, shell=True)
 
