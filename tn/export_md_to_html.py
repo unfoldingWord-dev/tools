@@ -156,7 +156,7 @@ class TnConverter(object):
         if not os.path.isdir(os.path.join(self.working_dir, 'en_ta')):
             ta_url = self.get_resource_url(self.ta)
             self.extract_files_from_url(ta_url)
-        if not os.path.isfile(os.path.join(self.working_dir, 'tn-icon.png')):
+        if not os.path.isfile(os.path.join(self.working_dir, 'icon-tn.png')):
             command = 'curl -o {0}/icon-tn.png https://unfoldingword.org/assets/img/icon-tn.png'.format(self.working_dir)
             subprocess.call(command, shell=True)
 
@@ -243,7 +243,7 @@ class TnConverter(object):
         if not os.path.isdir(book_dir):
             return
 
-        tn_md = '# {1}\n<a id="tn-{0}"/>\n\n'.format(self.book_id, self.project['title'])
+        tn_md = '# translationNotes\n<a id="tn-{0}"/>\n\n'.format(self.book_id)
 
         intro_file = os.path.join(book_dir, 'front', 'intro.md')
         book_has_intro = os.path.isfile(intro_file)
@@ -298,7 +298,10 @@ class TnConverter(object):
                 for idx, chunk_file in enumerate(chunk_files):
                     first_verse = os.path.splitext(os.path.basename(chunk_file))[0].lstrip('0')
                     last_verse = self.usfm_chunks['udb'][chapter][first_verse]['last_verse']
-                    title = '{0} {1}:{2}-{3}'.format(self.book_title, chapter, first_verse, last_verse)
+                    if first_verse != last_verse:
+                        title = '{0} {1}:{2}-{3}'.format(self.book_title, chapter, first_verse, last_verse)
+                    else:
+                        title = '{0} {1}:{2}'.format(self.book_title, chapter, first_verse)
                     md = self.increase_headers(read_file(chunk_file), 3)
                     md = self.decrease_headers(md, 5)  # bring headers of 5 or more #'s down 1
                     md = self.fix_tn_links(md, chapter)
@@ -400,7 +403,7 @@ class TnConverter(object):
 
     def get_tw_markdown(self):
         tw_md = '<a id="tw-{0}"/>\n# translationWords\n\n'.format(self.book_id)
-        sorted_rcs = sorted(self.my_rcs, key=lambda k: self.resource_data[k]['title'])
+        sorted_rcs = sorted(self.my_rcs, key=lambda k: self.resource_data[k]['title'].lower())
         for rc in sorted_rcs:
             if '/tw/' not in rc:
                 continue
@@ -418,7 +421,7 @@ class TnConverter(object):
 
     def get_ta_markdown(self):
         ta_md = '<a id="ta-{0}"/>\n# translationAcademy\n\n'.format(self.book_id)
-        sorted_rcs = sorted(self.my_rcs, key=lambda k: self.resource_data[k]['title'])
+        sorted_rcs = sorted(self.my_rcs, key=lambda k: self.resource_data[k]['title'].lower())
         for rc in sorted_rcs:
             if '/ta/' not in rc:
                 continue
@@ -496,13 +499,13 @@ class TnConverter(object):
                         t = read_file(file_path)
                         if resource == 'ta':
                             title_file = os.path.join(os.path.dirname(file_path), 'title.md')
-                            question_file = os.path.join(os.path.dirname(file_path), 'subtitle.md')
+                            question_file = os.path.join(os.path.dirname(file_path), 'sub-title.md')
                             if os.path.isfile(title_file):
                                 title = read_file(title_file)
                             else:
                                 title = self.get_first_header(t)
                             if os.path.isfile(question_file):
-                                question = read_file(os.path.join(os.path.dirname(file_path), 'subtitle.md'))
+                                question = read_file(question_file)
                                 question = 'This page answers the question: *{0}*\n\n'.format(question)
                             else:
                                 question = ''
@@ -679,8 +682,8 @@ class TnConverter(object):
 -V classoption="oneside" \
 -V geometry='hmargin=2cm' \
 -V geometry='vmargin=3cm' \
--V title="translationNotes" \
--V subtitle="{2}" \
+-V title="{2}" \
+-V subtitle="translationNotes" \
 -V logo="{6}/icon-tn.png" \
 -V date="{3}" \
 -V version="{4}" \
