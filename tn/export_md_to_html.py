@@ -108,7 +108,7 @@ class TnConverter(object):
             if not os.path.isfile(os.path.join(self.output_dir, '{0}.html'.format(self.filename_base))):
                 print("Getting USFM chunks...")
                 self.usfm_chunks = self.get_usfm_chunks()
-                if not os.path.isfile(os.path.join(self.working_dir, '{0}.md'.format(self.filename_base))):
+                if not os.path.isfile(os.path.join(self.output_dir, '{0}.md'.format(self.filename_base))):
                     print("Processing Markdown...")
                     self.preprocess_markdown()
                 print("Converting MD to HTML...")
@@ -226,7 +226,7 @@ class TnConverter(object):
         md = '\n\n'.join([tn_md, tq_md, tw_md, ta_md])
         md = self.replace_rc_links(md)
         md = self.fix_links(md)
-        write_file(os.path.join(self.working_dir, '{0}.md'.format(self.filename_base)), md)
+        write_file(os.path.join(self.output_dir, '{0}.md'.format(self.filename_base)), md)
 
     def pad(self, num):
         if self.book_id == 'psa':
@@ -622,10 +622,9 @@ class TnConverter(object):
         return text
 
     def convert_md2html(self):
-        html = markdown.markdown(read_file(os.path.join(self.working_dir, '{0}-{1}.md'.format(
-            str(self.book_number).zfill(2), self.book_id.upper()))))
+        html = markdown.markdown(read_file(os.path.join(self.output_dir, '{0}.md'.format(self.filename_base))))
         html = self.replace_bible_links(html)
-        write_file(os.path.join(self.working_dir, '{0}.html'.format(self.filename_base)), html)
+        write_file(os.path.join(self.output_dir, '{0}.html'.format(self.filename_base)), html)
 
     def replace_bible_links(self, text):
         bible_links = re.findall(r'(?:udb|ulb)://[A-Z0-9/]+', text,
