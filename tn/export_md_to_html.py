@@ -85,6 +85,9 @@ class TnConverter(object):
         self.resource_data = {}
         self.bad_links = {}
         self.usfm_chunks = {}
+        self.version = self.tn['version']
+        self.issued = self.tn['issued']
+        self.filename_base = None
 
     def run(self):
         self.setup_resource_files()
@@ -95,6 +98,8 @@ class TnConverter(object):
             self.book_id = p['identifier']
             self.book_title = p['title'].replace(' translationNotes', '')
             self.book_number = BOOK_NUMBERS[self.book_id]
+            self.filename_base = '{0}_tn_{1}-{2}_v{3}'.format(self.lang_code, self.book_number.zfill(2),
+                                                              self.book_id.upper(), self.version)
             self.rc_references = {}
             self.my_rcs = []
             self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number,
@@ -221,8 +226,7 @@ class TnConverter(object):
         md = '\n\n'.join([tn_md, tq_md, tw_md, ta_md])
         md = self.replace_rc_links(md)
         md = self.fix_links(md)
-        write_file(os.path.join(self.working_dir, '{0}-{1}.md'.format(str(self.book_number).zfill(2),
-                                                                      self.book_id.upper())), md)
+        write_file(os.path.join(self.working_dir, '{0}.md'.format(self.filename_base)), md)
 
     def pad(self, num):
         if self.book_id == 'psa':
@@ -621,8 +625,7 @@ class TnConverter(object):
         html = markdown.markdown(read_file(os.path.join(self.working_dir, '{0}-{1}.md'.format(
             str(self.book_number).zfill(2), self.book_id.upper()))))
         html = self.replace_bible_links(html)
-        write_file(os.path.join(self.output_dir, '{0}-{1}.html'.format(str(self.book_number).zfill(2),
-                                                                       self.book_id.upper())), html)
+        write_file(os.path.join(self.working_dir, '{1}.html'.format(self.filename_base)), html)
 
     def replace_bible_links(self, text):
         bible_links = re.findall(r'(?:udb|ulb)://[A-Z0-9/]+', text,
@@ -668,8 +671,6 @@ class TnConverter(object):
         command = 'curl -o {0}/icon-tn.png https://unfoldingword.org/assets/img/icon-tn.png'.format(self.working_dir)
         print(command)
         subprocess.call(command, shell=True)
-        version = self.tn['version']
-        date = self.tn['issued']
         command = """pandoc \
 --latex-engine="xelatex" \
 --template="tools/tn/tex/template.tex" \
@@ -690,10 +691,10 @@ class TnConverter(object):
 -V urlcolor="Bittersweet" \
 -V linkcolor="Bittersweet" \
 -H "tools/tn/tex/format.tex" \
--o "{5}/{0}-{1}.pdf" \
-"{5}/{0}-{1}.html"
-""".format(BOOK_NUMBERS[self.book_id], self.book_id.upper(), self.book_title, date, version, self.output_dir,
-           self.working_dir)
+-o "{5}/{7}.pdf" \
+"{5}/{7}.html"
+""".format(BOOK_NUMBERS[self.book_id], self.book_id.upper(), self.book_title, self.issued, self.version, self.output_dir,
+           self.working_dir, self.filename_base)
         print(command)
         subprocess.call(command, shell=True)
 
