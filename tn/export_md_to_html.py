@@ -691,7 +691,7 @@ class TnConverter(object):
 -V linkcolor="Bittersweet" \
 -H "tools/tn/tex/format.tex" \
 -o "{5}/{0}-{1}.pdf" \
-"{6}/{0}-{1}.html"
+"{5}/{0}-{1}.html"
 """.format(BOOK_NUMBERS[self.book_id], self.book_id.upper(), self.book_title, date, version, self.output_dir,
            self.working_dir)
         print(command)
