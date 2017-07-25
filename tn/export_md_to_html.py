@@ -100,7 +100,8 @@ class TnConverter(object):
 
             if not os.path.isfile(os.path.join(self.output_dir, '{0}-{1}.html'.format(self.book_number, self.book_id.upper()))):
                 self.usfm_chunks = self.get_usfm_chunks()
-                self.preprocess_markdown()
+                if not os.path.isfile(os.path.join(self.working_dir, '{0}-{1}.md'.format(self.book_number, self.book_id.upper()))):
+                    self.preprocess_markdown()
                 self.convert_md2html()
             if not os.path.isfile(os.path.join(self.output_dir, '{0}-{1}.pdf'.format(self.book_number, self.book_id.upper()))):
                 print("Generating PDF...")
@@ -166,8 +167,7 @@ class TnConverter(object):
             url = self.catalog.get_format(self.lang_code, resource, self.book_id, 'text/usfm')['url']
 
             # Quick fix for ULB Numbers having many marking errors. REMOVE IN NEXT VERSION OF tN
-            if resource == 'ulb' and self.book_id == 'num':
-                url = 'https://git.door43.org/Door43/en_ulb/raw/master/04-NUM.usfm'
+            url = 'https://git.door43.org/Door43/en_{0}/raw/master/{1}-{2}.usfm'.format(resource, self.book_number, self.book_id.upper())
             # END QUICK FIX
 
             usfm = get_url(url)
@@ -273,11 +273,12 @@ class TnConverter(object):
                     md = self.increase_headers(read_file(chunk_file), 3)
                     md = self.decrease_headers(md, 5)  # bring headers of 5 or more #'s down 1
                     md = self.fix_tn_links(md, chapter)
-                    md = md.replace('#### translationWords', '### trnaslationWords')
-                    md = '<a id="tn-{0}-{1}-{2}"/>\n## {3}\n\n[[udb://{0}/{4}/{5}/{6}]]\n\n'\
-                        '[[ulb://{0}/{4}/{5}/{6}]]\n\n### translationNotes\n\n{7}\n\n'. \
-                        format(self.book_id, chapter, chunk, title, int(chapter), int(chunk),
-                               end, md)
+                    md = md.replace('#### translationWords', '### translationWords')
+                    md = '## {0}\n\n'\
+                         '### UDB:\n\n[[udb://{1}/{2}/{3}/{4}/{5}]]\n\n'\
+                         '### ULB:\n\n[[ulb://{1}/{2}/{3}/{4}/{5}]]\n\n'\
+                         '### translationNotes\n\n'\
+                         '{6}\n\n'.format(title, self.lang_code, self.book_id, chapter, chunk, end, md)
                     rc = 'rc://{0}/tn/help/{1}/{2}/{3}'.format(self.lang_code, self.book_id, chapter, chunk)
                     anchor_id = 'tn-{0}-{1}-{2}'.format(self.book_id, chapter, chunk)
                     self.resource_data[rc] = {
@@ -522,15 +523,15 @@ class TnConverter(object):
                                                                        self.book_id.upper())), html)
 
     def replace_bible_links(self, text):
-        bible_links = re.findall(r'(?:udb|ulb)://{0}/[A-Z0-9/]+'.format(self.book_id), text,
+        bible_links = re.findall(r'(?:udb|ulb)://[A-Z0-9/]+', text,
                                  flags=re.IGNORECASE | re.MULTILINE)
         bible_links = list(set(bible_links))
         rep = {}
         for link in sorted(bible_links):
             parts = link.split('/')
             resource = parts[0][0:3]
-            chapter = int(parts[3])
-            chunk = int(parts[4])
+            chapter = int(parts[4])
+            chunk = int(parts[5])
             rep[link] = '<div>{0}</div>'.format(self.get_chunk_html(resource, chapter, chunk))
         rep = dict((re.escape('[[{0}]]'.format(link)), html) for link, html in rep.iteritems())
         pattern = re.compile("|".join(rep.keys()))
@@ -552,8 +553,7 @@ class TnConverter(object):
         soup = BeautifulSoup(html, 'html.parser')
         header = soup.find('h1')
         if header:
-            header.name = 'h3'
-            header.string = '{0}:'.format(resource.upper())
+            header.decompose()
         chapter = soup.find('h2')
         if chapter:
             chapter.decompose()
