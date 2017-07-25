@@ -105,15 +105,15 @@ class TnConverter(object):
             self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number,
                                                                        self.book_id.upper()))
 
-            if not os.path.isfile(os.path.join(self.output_dir, '{0}-{1}.html'.format(self.book_number, self.book_id.upper()))):
+            if not os.path.isfile(os.path.join(self.output_dir, '{0}.html'.format(self.filename_base))):
                 print("Getting USFM chunks...")
                 self.usfm_chunks = self.get_usfm_chunks()
-                if not os.path.isfile(os.path.join(self.working_dir, '{0}-{1}.md'.format(self.book_number, self.book_id.upper()))):
+                if not os.path.isfile(os.path.join(self.working_dir, '{0}.md'.format(self.filename_base))):
                     print("Processing Markdown...")
                     self.preprocess_markdown()
                 print("Converting MD to HTML...")
                 self.convert_md2html()
-            if not os.path.isfile(os.path.join(self.output_dir, '{0}-{1}.pdf'.format(self.book_number, self.book_id.upper()))):
+            if not os.path.isfile(os.path.join(self.output_dir, '{0}.pdf'.format(self.filename_base))):
                 print("Generating PDF...")
                 self.convert_html2pdf()
         self.pp.pprint(self.bad_links)
