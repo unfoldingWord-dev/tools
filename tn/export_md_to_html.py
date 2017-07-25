@@ -273,7 +273,7 @@ class TnConverter(object):
                     md = self.fix_tn_links(md, chapter)
                     md = self.increase_headers(md)
                     md = self.decrease_headers(md, 5, 2)  # bring headers of 5 or more #'s down 2
-                    id_tag = '<a id="tn-{0}-{1}-intro"/>\n{2}'.format(self.book_id, self.pad(chapter))
+                    id_tag = '<a id="tn-{0}-{1}-intro"/>'.format(self.book_id, self.pad(chapter))
                     md = re.compile(r'# ([^\n]+)\n').sub(r'# \1\n{0}\n'.format(id_tag), md, 1)
                     rc = 'rc://{0}/tn/help/{1}/{2}/intro'.format(self.lang_code, self.book_id, self.pad(chapter))
                     anchor_id = 'tn-{0}-{1}-intro'.format(self.book_id, self.pad(chapter))
