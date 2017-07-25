@@ -625,7 +625,7 @@ class TnConverter(object):
         html = markdown.markdown(read_file(os.path.join(self.working_dir, '{0}-{1}.md'.format(
             str(self.book_number).zfill(2), self.book_id.upper()))))
         html = self.replace_bible_links(html)
-        write_file(os.path.join(self.working_dir, '{1}.html'.format(self.filename_base)), html)
+        write_file(os.path.join(self.working_dir, '{0}.html'.format(self.filename_base)), html)
 
     def replace_bible_links(self, text):
         bible_links = re.findall(r'(?:udb|ulb)://[A-Z0-9/]+', text,
