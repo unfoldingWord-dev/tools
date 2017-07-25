@@ -392,7 +392,7 @@ class TnConverter(object):
         tw_md = '<a id="tw-{0}"/>\n# translationWords\n\n'.format(self.book_id)
         sorted_rcs = sorted(self.my_rcs, key=lambda k: self.resource_data[k]['title'])
         for rc in sorted_rcs:
-            if '/ta/' not in rc:
+            if '/tw/' not in rc:
                 continue
             if self.resource_data[rc]['text']:
                 md = self.resource_data[rc]['text']
@@ -663,9 +663,11 @@ class TnConverter(object):
         command = 'curl -o {0}/icon-tn.png https://unfoldingword.org/assets/img/icon-tn.png'.format(self.working_dir)
         print(command)
         subprocess.call(command, shell=True)
+        version = self.tn['version']
+        date = self.tn['issued']
         command = """pandoc \
                 --latex-engine="xelatex" \
-                --template="/var/www/tools/tn/tex/template.tex" \
+                --template="tools/tn/tex/template.tex" \
                 --toc \
                 --toc-depth=2 \
                 -V documentclass="scrartcl" \
@@ -682,10 +684,10 @@ class TnConverter(object):
                 -V fontsize="13pt" \
                 -V urlcolor="Bittersweet" \
                 -V linkcolor="Bittersweet" \
-                -H "/var/www/tools/tn/tex/format.tex" \
+                -H "tools/tn/tex/format.tex" \
                 -o "{5}/{0}-{1}.pdf" \
                 "{6}/{0}-{1}.html"
-                """.format(BOOK_NUMBERS[self.book_id], self.book_id.upper(), self.book_title, '2017-07-24', '7',
+                """.format(BOOK_NUMBERS[self.book_id], self.book_id.upper(), self.book_title, date, version,
                            self.output_dir, self.working_dir)
         print(command)
         subprocess.call(command, shell=True)
