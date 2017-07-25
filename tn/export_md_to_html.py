@@ -156,6 +156,9 @@ class TnConverter(object):
         if not os.path.isdir(os.path.join(self.working_dir, 'en_ta')):
             ta_url = self.get_resource_url(self.ta)
             self.extract_files_from_url(ta_url)
+        if not os.path.isfile(os.path.join(self.working_dir, 'tn-icon.png')):
+            command = 'curl -o {0}/icon-tn.png https://unfoldingword.org/assets/img/icon-tn.png'.format(self.working_dir)
+            subprocess.call(command, shell=True)
 
         # QUICK FIX TO USE CHANGES TO V10 OF UDB AND ULB...REMOVE OR UPDATE NEXT tN VERSION
         if not os.path.isdir(os.path.join(self.working_dir, 'en_udb')):
@@ -667,9 +670,6 @@ class TnConverter(object):
         return html
 
     def convert_html2pdf(self):
-        command = 'curl -o {0}/icon-tn.png https://unfoldingword.org/assets/img/icon-tn.png'.format(self.working_dir)
-        print(command)
-        subprocess.call(command, shell=True)
         command = """pandoc \
 --latex-engine="xelatex" \
 --template="tools/tn/tex/template.tex" \
