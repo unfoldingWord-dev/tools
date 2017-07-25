@@ -236,7 +236,7 @@ class TnConverter(object):
         if not os.path.isdir(book_dir):
             return
 
-        tn_md = '<a id="tn-{0}"/>\n# {1}\n\n'.format(self.book_id, self.project['title'])
+        tn_md = '# {1}\n<a id="tn-{0}"/>\n\n'.format(self.book_id, self.project['title'])
 
         intro_file = os.path.join(book_dir, 'front', 'intro.md')
         book_has_intro = os.path.isfile(intro_file)
@@ -246,7 +246,8 @@ class TnConverter(object):
             md = self.fix_tn_links(md, 'intro')
             md = self.increase_headers(md)
             md = self.decrease_headers(md, 5)  # bring headers of 5 or more #'s down 1
-            md = '<a id="tn-{0}-front-intro"/>\n{1}'.format(self.book_id, md)
+            id_tag = '<a id="tn-{0}-front-intro"/>'.format(self.book_id)
+            md = re.compile(r'# ([^\n]+)\n').sub(r'# \1\n{0}\n'.format(id_tag), md, 1)
             rc = 'rc://{0}/tn/help/{1}/front/intro'.format(self.lang_code, self.book_id)
             anchor_id = 'tn-{1}-front-intro'.format(self.lang_code, self.book_id)
             self.resource_data[rc] = {
@@ -272,7 +273,8 @@ class TnConverter(object):
                     md = self.fix_tn_links(md, chapter)
                     md = self.increase_headers(md)
                     md = self.decrease_headers(md, 5, 2)  # bring headers of 5 or more #'s down 2
-                    md = '<a id="tn-{0}-{1}-intro"/>\n{2}'.format(self.book_id, self.pad(chapter), md)
+                    id_tag = '<a id="tn-{0}-{1}-intro"/>\n{2}'.format(self.book_id, self.pad(chapter))
+                    md = re.compile(r'# ([^\n]+)\n').sub(r'# \1\n{0}\n'.format(id_tag), md, 1)
                     rc = 'rc://{0}/tn/help/{1}/{2}/intro'.format(self.lang_code, self.book_id, self.pad(chapter))
                     anchor_id = 'tn-{0}-{1}-intro'.format(self.book_id, self.pad(chapter))
                     self.resource_data[rc] = {
@@ -297,7 +299,7 @@ class TnConverter(object):
                     anchors = ''
                     for verse in self.usfm_chunks['udb'][chapter][first_verse]['verses']:
                         anchors += '<a id="tn-{0}-{1}-{2}"/>'.format(self.book_id, self.pad(chapter), self.pad(verse))
-                    pre_md = '\n{0}\n## {1}\n\n'.format(anchors, title)
+                    pre_md = '\n## {0}\n{1}\n\n'.format(title, anchors)
                     pre_md += '### UDB:\n\n[[udb://{0}/{1}/{2}/{3}/{4}]]\n\n'\
                         .format(self.lang_code, self.book_id, self.pad(chapter), self.pad(first_verse),
                                 self.pad(last_verse))
@@ -332,7 +334,7 @@ class TnConverter(object):
         return tn_md
 
     def get_tq_markdown(self):
-        tq_md = '<a id="tq-{0}"/>\n# translationQuestions\n\n'.format(self.book_id)
+        tq_md = '# translationQuestions\n<a id="tq-{0}"/>\n\n'.format(self.book_id)
         title = '{0} translationQuestions'.format(self.book_title)
         rc = 'rc://{0}/tq/help/{1}' \
             .format(self.lang_code, self.book_id)
@@ -349,7 +351,8 @@ class TnConverter(object):
             chapter_dir = os.path.join(tq_book_dir, chapter)
             chapter = chapter.lstrip('0')
             if os.path.isdir(chapter_dir) and re.match(r'^\d+$', chapter):
-                tq_md += '<a id="tq-{0}-{1}"/>\n## {2} {1}\n\n'.format(self.book_id, self.pad(chapter), self.book_title)
+                id_tag = '<a id="tq-{0}-{1}"/>'.format(self.book_id, self.pad(chapter))
+                tq_md += '## {0} {1}\n{2}\n\n'.format(self.book_title, chapter, id_tag)
                 title = '{0} {1} translationQuestions'.format(self.book_title, chapter)
                 rc = 'rc://{0}/tq/help/{1}/{2}' \
                     .format(self.lang_code, self.book_id, self.pad(chapter))
@@ -372,7 +375,7 @@ class TnConverter(object):
                                                                                self.pad(first_verse), chapter,
                                                                                first_verse),
                                                                         md)
-                        title = 'Question {0} {1}:{2}'.format(self.book_title, chapter, first_verse)
+                        title = '{0} {1}:{2} translationQuestions'.format(self.book_title, chapter, first_verse)
                         rc = 'rc://{0}/tq/help/{1}/{2}/{3}'\
                             .format(self.lang_code, self.book_id, self.pad(chapter), self.pad(first_verse))
                         anchor_id = 'tq-{0}-{1}-{2}'.format(self.book_id, self.pad(chapter), self.pad(first_verse))
@@ -398,7 +401,8 @@ class TnConverter(object):
                 md = self.resource_data[rc]['text']
             else:
                 md = ''
-            md = '<a id="{0}"/>\n{1}'.format(self.resource_data[rc]['id'], md)
+            id_tag = '<a id="{0}"/>'.format(self.resource_data[rc]['id'])
+            md = re.compile(r'# ([^\n]+)\n').sub(r'# \1\n{0}\n'.format(id_tag), md, 1)
             md = self.increase_headers(md)
             md += self.get_uses(rc)
             md += '\n\n'
@@ -415,8 +419,9 @@ class TnConverter(object):
                 md = self.resource_data[rc]['text']
             else:
                 md = ''
+            id_tag = '<a id="{0}"/>'.format(self.resource_data[rc]['id'])
+            md = re.compile(r'# ([^\n]+)\n').sub(r'# \1\n{0}\n'.format(id_tag), md, 1)
             md = self.increase_headers(md)
-            md = '<a id="{0}"/>\n{1}'.format(self.resource_data[rc]['id'], md)
             md += self.get_uses(rc)
             md += '\n\n'
             ta_md += md
@@ -687,8 +692,8 @@ class TnConverter(object):
 -H "tools/tn/tex/format.tex" \
 -o "{5}/{0}-{1}.pdf" \
 "{6}/{0}-{1}.html"
-""".format(BOOK_NUMBERS[self.book_id], self.book_id.upper(), self.book_title, date, version,
-                        self.output_dir, self.working_dir)
+""".format(BOOK_NUMBERS[self.book_id], self.book_id.upper(), self.book_title, date, version, self.output_dir,
+           self.working_dir)
         print(command)
         subprocess.call(command, shell=True)
 
