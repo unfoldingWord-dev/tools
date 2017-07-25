@@ -523,8 +523,8 @@ class TnConverter(object):
                     'title': title,
                     'text': t,
                 }
-                # if t:
-                #     self.get_resource_data_from_rc_links(t, rc)
+                if t:
+                    self.get_resource_data_from_rc_links(t, rc)
 
     @staticmethod
     def increase_headers(text, increase_depth=1):
