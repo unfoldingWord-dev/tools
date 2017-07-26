@@ -307,4 +307,3 @@ if __name__ == '__main__':
 
         if os.path.isdir(unzipped_dir):
             shutil.rmtree(unzipped_dir, ignore_errors=True)
-
