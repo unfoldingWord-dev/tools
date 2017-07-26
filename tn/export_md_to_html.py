@@ -475,8 +475,8 @@ class TnConverter(object):
             self.rc_references[rc].append(source_rc)
 
             if rc not in self.resource_data:
-                title = None
-                t = None
+                title = ''
+                t = ''
                 anchor_id = '{0}-{1}'.format(resource, path.replace('/', '-'))
                 link = '#{0}'.format(anchor_id)
                 try:
