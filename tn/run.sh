@@ -9,7 +9,7 @@
 #  Richard Mahn <richard_mahn@wyciffeassociates.org>
 
 cd $(dirname "$0")/../..
-python -m tools.tn.export_md_to_html $@
+python -m tools.tn.export_md_to_pdf $@
 
 
 
