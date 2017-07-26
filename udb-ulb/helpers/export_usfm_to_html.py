@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf8 -*-
 #
-#  Copyright (c) 2015 unfoldingWord
+#  Copyright (c) 2017 unfoldingWord
 #  http://creativecommons.org/licenses/MIT/
 #  See LICENSE file for details.
 #
@@ -11,9 +11,6 @@
 
 """
 This script exports a Bible into the given format from the API.
-
-Requires that https://github.com/Door43/USFM-Tools be checked out to
-/var/www/vhosts/door43.org/USFM-Tools or be on the path
 """
 
 import os
@@ -33,13 +30,7 @@ def main(lang_code, resource_id, books, outfile):
     sys.stdout = codecs.getwriter('utf8')(sys.stdout);
 
     catalog = UWCatalog(CatalogJSON)
-
-    lang = catalog.get_language(lang_code)
     bible = catalog.get_resource(lang_code, resource_id)
-
-    if lang is None:
-        print("The language code {0} is not found in the catalog at {1}. Exiting...".format(lang_code, CatalogJSON))
-        sys.exit(1)
 
     if bible is None:
         print("The Bible version {0} for language {1} is not found in the catalog at {2}. Exiting...".format(resource_id, lang_code, CatalogJSON))
