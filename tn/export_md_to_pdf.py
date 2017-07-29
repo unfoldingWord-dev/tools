@@ -619,9 +619,9 @@ class TnConverter(object):
         rep['etaphore'] = 'etaphor'
 
         def replace_with_door43_link(match):
-            book = match.group(3)
-            chapter = match.group(4)
-            verse = match.group(5)
+            book = match.group(1)
+            chapter = match.group(2)
+            verse = match.group(3)
             book_num = BOOK_NUMBERS[book]
             if int(book_num) > 40:
                 anchor_book_num = str(int(book_num) - 1)
@@ -633,7 +633,7 @@ class TnConverter(object):
 
         # convert tN links (NT books use USFM numbering in HTML file name, but standard book numbering in the anchor)
         # rc://en/tn/help/rev/15/07 => https://live.door43.org/u/Door43/en_ulb/c0bd11bad0/67-REV.html#066-ch-015-v-007
-        rep[r'rc://en/tn/([^/]+)/([^/]+)/([^/]+)/([^/]+)'] = replace_with_door43_link
+        rep[r'rc://en/tn/[^/]+/([^/]+)/([^/]+)/([^/]+)'] = replace_with_door43_link
 
         # convert RC links, e.g. rc://en/tn/help/1sa/16/02 => https://git.door43.org/Door43/en_tn/1sa/16/02.md
         rep[r'rc://([^/]+)/(?!tn)([^/]+)/([^/]+)/([^\s\)\]\n$]+)'] = r'https://git.door43.org/Door43/\1_\2/src/master/\4.md'
