@@ -638,11 +638,11 @@ class TnConverter(object):
 
         # convert OBS links
         # rc://en/tn/help/obs/15/07 => https://live.door43.org/u/Door43/en_obs/b9c4f076ff/15.html
-        rep[r'rc://en/tn/[^/]+/obs/([^/]+)/([^\/\s\)\]\n$]+)'] = replace_obs_with_door43_link
+        rep[r'rc://[^/]+/tn/help/obs/(\d+)/(\d+)'] = replace_obs_with_door43_link
 
         # convert tN links (NT books use USFM numbering in HTML file name, but standard book numbering in the anchor)
         # rc://en/tn/help/rev/15/07 => https://live.door43.org/u/Door43/en_ulb/c0bd11bad0/67-REV.html#066-ch-015-v-007
-        rep[r'rc://en/tn/[^/]+/(?!obs)([^/]+)/([^/]+)/([^\/\s\)\]\n$]+)'] = replace_tn_with_door43_link
+        rep[r'rc://[^/]+/tn/help/(?!obs)([^/]+)/(\d+)/(\d+)'] = replace_tn_with_door43_link
 
         # convert RC links, e.g. rc://en/tn/help/1sa/16/02 => https://git.door43.org/Door43/en_tn/1sa/16/02.md
         rep[r'rc://([^/]+)/(?!tn)([^/]+)/([^/]+)/([^\s\)\]\n$]+)'] = r'https://git.door43.org/Door43/\1_\2/src/master/\4.md'
