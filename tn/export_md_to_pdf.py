@@ -631,14 +631,19 @@ class TnConverter(object):
                 book_num.zfill(2), book.upper(), anchor_book_num.zfill(3), chapter.zfill(3), verse.zfill(3))
             return url
 
-        # convert tN links, e.g. rc://en/tn/help/rev/15/07 => https://live.door43.org/u/Door43/en_ulb/c0bd11bad0/67-REV.html#066-ch-015-v-007
+        # convert tN links (NT books use USFM numbering in HTML file name, but standard book numbering in the anchor)
+        # rc://en/tn/help/rev/15/07 => https://live.door43.org/u/Door43/en_ulb/c0bd11bad0/67-REV.html#066-ch-015-v-007
         rep[r'rc://en/tn/([^/]+)/([^/]+)/([^/]+)/([^/]+)'] = replace_with_door43_link
+
         # convert RC links, e.g. rc://en/tn/help/1sa/16/02 => https://git.door43.org/Door43/en_tn/1sa/16/02.md
-        rep[r'rc://([^/]+)/([^/]+)/([^/]+)/([^\s\)\]\n$]+)'] = r'https://git.door43.org/Door43/\1_\2/src/master/\4.md'
+        rep[r'rc://([^/]+)/(?!tn)([^/]+)/([^/]+)/([^\s\)\]\n$]+)'] = r'https://git.door43.org/Door43/\1_\2/src/master/\4.md'
+
         # convert URLs to links if not already
         rep[r'([^"\(])((http|https|ftp)://[A-Za-z0-9\/\?&_\.:=#-]+[A-Za-z0-9\/\?&_:=#-])'] = r'\1[\2](\2)'
+
         # URLS wth just www at the start, no http
         rep[r'([^A-Za-z0-9"\(\/])(www\.[A-Za-z0-9\/\?&_\.:=#-]+[A-Za-z0-9\/\?&_:=#-])'] = r'\1[\2](http://\2.md)'
+
         for pattern, repl in rep.iteritems():
             text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
         return text
