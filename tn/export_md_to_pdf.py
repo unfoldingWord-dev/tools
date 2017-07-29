@@ -585,7 +585,7 @@ class TnConverter(object):
             '<u>even when<u>': '<u>even when</u>',  # Fix bad underline in tA, REMOVE NEXT VERSION!
             r'\]\(\.\./([^/)]+)/01\.md\)': r'](rc://{0}/ta/man/{1}/\1)'.format(self.lang_code, manual),
             r'\]\(\.\./\.\./([^/)]+)/([^/)]+)/01\.md\)': r'](rc://{0}/ta/man/\1/\2)'.format(self.lang_code),
-            r'\]\(([^# :/)]+)\)': r'](rc://{0}/ta/man/{1}/\1)'.format(self.lang_code, manual)
+            r'\]\(([^# :/)]+)\)': r'](rc://{0}/ta/man/{1}/\1)'.format(self.lang_code, manual),
         }
         for pattern, repl in rep.iteritems():
             text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
@@ -632,7 +632,7 @@ class TnConverter(object):
             return url
 
         def replace_obs_with_door43_link(match):
-            url = 'https://live.door43.org/u/Door43/en_obs/b9c4f076ff/{0}.html'.format(match.group(1))
+            url = 'https://live.door43.org/u/Door43/en_obs/4ae9b1c6ed/{0}.html'.format(match.group(1))
             return url
 
         # convert OBS links
