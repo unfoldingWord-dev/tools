@@ -619,7 +619,7 @@ class TnConverter(object):
         # Fix metaphor misspelling, REMOVE NEXT VERSION!!
         rep['etaphore'] = 'etaphor'
 
-        def replace_with_door43_link(match):
+        def replace_tn_with_door43_link(match):
             book = match.group(1)
             chapter = match.group(2)
             verse = match.group(3)
@@ -632,9 +632,17 @@ class TnConverter(object):
                 book_num.zfill(2), book.upper(), anchor_book_num.zfill(3), chapter.zfill(3), verse.zfill(3))
             return url
 
+        def replace_obs_with_door43_link(match):
+            url = 'https://live.door43.org/u/Door43/en_obs/b9c4f076ff/{0}.html#{2}-ch-{3}-v-{4}'.format(match.group(1))
+            return url
+
+        # convert OBS links
+        # rc://en/tn/help/obs/15/07 => https://live.door43.org/u/Door43/en_obs/b9c4f076ff/15.html
+        rep[r'rc://en/tn/[^/]+/obs/([^/]+)/([^\/\s\)\]\n$]+)'] = replace_obs_with_door43_link
+
         # convert tN links (NT books use USFM numbering in HTML file name, but standard book numbering in the anchor)
         # rc://en/tn/help/rev/15/07 => https://live.door43.org/u/Door43/en_ulb/c0bd11bad0/67-REV.html#066-ch-015-v-007
-        rep[r'rc://en/tn/[^/]+/([^/]+)/([^/]+)/([^\/\s\)\]\n$]+)'] = replace_with_door43_link
+        rep[r'rc://en/tn/[^/]+/([^/]+)/{?!obs)([^/]+)/([^\/\s\)\]\n$]+)'] = replace_tn_with_door43_link
 
         # convert RC links, e.g. rc://en/tn/help/1sa/16/02 => https://git.door43.org/Door43/en_tn/1sa/16/02.md
         rep[r'rc://([^/]+)/(?!tn)([^/]+)/([^/]+)/([^\s\)\]\n$]+)'] = r'https://git.door43.org/Door43/\1_\2/src/master/\4.md'
