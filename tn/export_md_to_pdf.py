@@ -632,7 +632,7 @@ class TnConverter(object):
             return url
 
         def replace_obs_with_door43_link(match):
-            url = 'https://live.door43.org/u/Door43/en_obs/4ae9b1c6ed/{0}.html'.format(match.group(1))
+            url = 'https://live.door43.org/u/Door43/en_obs/b9c4f076ff/{0}.html'.format(match.group(1))
             return url
 
         # convert OBS links: rc://en/tn/help/obs/15/07 => https://live.door43.org/u/Door43/en_obs/b9c4f076ff/15.html
