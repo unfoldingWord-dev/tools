@@ -20,20 +20,11 @@ import codecs
 import argparse
 import markdown2
 import time
-import inspect
-
 from glob import glob
+from ..general_tools import get_bible_book
 
 reload(sys)
 sys.setdefaultencoding('utf8')
-
-# # Let's include ../general_tools as a place we can import python files from
-# cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0],"../general_tools")))
-# if cmd_subfolder not in sys.path:
-#     sys.path.insert(0, cmd_subfolder)
-# import get_bible_book
-
-from ..general_tools import get_bible_book
 
 tqRoot = ''
 

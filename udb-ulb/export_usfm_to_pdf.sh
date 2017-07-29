@@ -18,6 +18,10 @@ set -e
 help() {
     echo "Usage: $0 [options]"
     echo "Options:"
+    echo "    -r       Resourc ID of the Bible (e.g. ulb or udb) (required)"
+    echo "    -l       Language code (e.g. en) (required)"
+    echo "    -b       Book of the Bible (e.g. rev), 'ot': compiled Old Testament, 'nt': compiled New Testament, "
+    echo "             none: PDF for each book of the Bible, 'full': compiled full Bible"
     echo "    -d       Show debug messages while running script"
     echo "    -o DIR   Add output location(s) for final PDF"
 	echo "    -c COL#  Number of Columns (defaults to 2)"
@@ -103,7 +107,7 @@ for BOOK in "${BOOKS[@]}"; do
 
     if [ -z "${RESOURCE// }" ];
     then
-        print "Cannot get the version for the Bible '$RESOURCE'"
+        print "Cannot get the resource id for the Bible '$RESOURCE'"
         exit 1
     elif [ -z "${TITLE// }" ];
     then
@@ -123,17 +127,17 @@ for BOOK in "${BOOKS[@]}"; do
     then
         SUBTITLE="Old \\& New Testaments"
         BOOK_ARG=""
-        BASENAME="${RESOURCE^^}"
+        BASENAME="${LANGUAGE}_${RESOURCE}_v${VERSION}"
     elif [ $BOOK == 'ot' ];
     then
         BOOK_ARG='-b gen exo lev num deu jos jdg rut 1sa 2sa 1ki 2ki 1ch 2ch ezr neh est job psa pro ecc sng isa jer lam ezk dan hos jol amo oba jon mic nam hab zep hag zec mal'
         SUBTITLE="Old Testament"
-        BASENAME="${RESOURCE^^}-OT"
+        BASENAME="${LANGUAGE}_${RESOURCE}_v${VERSION}_ot"
     elif [ $BOOK == 'nt' ];
     then
         BOOK_ARG='-b mat mrk luk jhn act rom 1co 2co gal eph php col 1ti 2ti 1th 2th tit phm heb jas 1pe 2pe 1jn 2jn 3jn jud rev'
         SUBTITLE='New Testament'
-        BASENAME="${RESOURCE^^}-NT"
+        BASENAME="${LANGUAGE}_${RESOURCE}_v${VERSION}_nt"
     else
         BOOK_ARG="-b $BOOK"
         NAME=$(tools/catalog/v3/catalog_query.py -l $LANGUAGE -r $RESOURCE -p $BOOK -k title);
@@ -144,7 +148,7 @@ for BOOK in "${BOOKS[@]}"; do
             exit 1
         fi
         SUBTITLE=$NAME
-        BASENAME="$(printf "%02d" ${SORT})-${BOOK^^}"
+        BASENAME="${LANGUAGE}_$(printf "%02d" ${SORT})_${BOOK^^}_v${VERSION}"
         TOC_DEPTH=2
     fi
 
