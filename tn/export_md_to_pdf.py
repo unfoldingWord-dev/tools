@@ -573,7 +573,8 @@ class TnConverter(object):
         rep = {
             '../tax.md': '../other/tax.md',  # Fix for bad link in tW, REMOVE NEXT VERSION OF tN!
             r'\]\(\.\./([^/)]+?)(\.md)*\)': r'](rc://{0}/tw/dict/bible/{1}/\1)'.format(self.lang_code, dictionary),
-            r'\]\(\.\./([^)]+?)(\.md)*\)': r'](rc://{0}/tw/dict/bible/\1)'.format(self.lang_code)
+            r'\]\(\.\./([^)]+?)(\.md)*\)': r'](rc://{0}/tw/dict/bible/\1)'.format(self.lang_code),
+            r'rc://({0})/tn/help/obs/'.format(self.lang_code): r'rc://\1/obs-tn/help/content/'
         }
         for pattern, repl in rep.iteritems():
             text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
