@@ -27,7 +27,7 @@ from glob import glob
 from bs4 import BeautifulSoup
 from ..catalog.v3.catalog import UWCatalog
 from usfm_tools.transform import UsfmTransform
-from .. general_tools.file_utils import write_file, read_file, unzip, load_yaml_object
+from ..general_tools.file_utils import write_file, read_file, unzip, load_yaml_object
 from ..general_tools.url_utils import download_file, get_url
 from ..general_tools.bible_books import BOOK_NUMBERS
 
