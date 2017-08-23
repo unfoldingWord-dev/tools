@@ -24,7 +24,7 @@ import re
 
 # Global variables
 en_rc_dir = r'C:\Users\Larry\AppData\Local\translationstudio\library\resource_containers'
-target_dir = r'C:\Users\Larry\Documents\GitHub\Bengali\BENGALI-ULB-OT.BCS\Stage3'
+target_dir = r'C:\Users\Larry\Documents\GitHub\Gujarati\ul_ulb'
 verseCounts = {}
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
@@ -87,7 +87,7 @@ class State:
         State.reference = id
         State.title = getDefaultName(id)
         # Open output USFM file for writing.
-        usfmPath = makeUsfmPath(id)
+        usfmPath = os.path.join(target_dir, makeUsfmFilename(id))
         State.usfmFile = io.open(usfmPath, "tw", buffering=1, encoding='utf-8', newline='\n')
        
     def addChapter(self, c):
@@ -110,7 +110,7 @@ class State:
         if vv.find('-') > 0:
             vv_range = vv_re.search(vv)
             self.addVerse(vv_range.group(1))
-            sys.stderr.write("Range of verses encountered at " + State.reference + "\n")
+            # sys.stderr.write("Range of verses encountered at " + State.reference + "\n")
             self.addVerse(vv_range.group(2))
         else:
             self.addVerse(vv)
@@ -175,12 +175,15 @@ def loadVerseCounts():
             sys.exit(-1)
 
 # Returns path name for usfm file
-def makeUsfmPath(id):
+def makeUsfmFilename(id):
     loadVerseCounts()
     num = verseCounts[id]['usfm_number']
-    path = os.path.join(target_dir, num + '-' + id + '.usfm')
-    return path
-           
+    return str(num) + "-" + id + ".usfm"
+    
+# Returns path of temporary manifest file block listing projects converted
+def makeManifestPath():
+    return os.path.join(target_dir, "manifest.txt")
+    
 # Looks up the English book name, for use when book name is not defined in the file
 def getDefaultName(id):
     loadVerseCounts()
@@ -231,6 +234,7 @@ def addSection(v):
         state.advanceChunk()
     if state.needPp:
         state.usfmFile.write(u"\n\\p")
+        state.addP()
     
 def takeV(v):
     state = State()
@@ -346,6 +350,22 @@ def convertFile(folder, fname):
         take(token)
     state.usfmFile.close()
 
+def appendToManifest():
+    state = State()
+    path = makeManifestPath()
+    manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
+    manifest.write(u"  -\n")
+    manifest.write(u"    title: '" + state.title + u" '\n")
+    manifest.write(u"    versification: 'ufw'\n")
+    manifest.write(u"    identifier: '" + state.ID.lower() + u"'\n")
+    manifest.write(u"    sort: " + str(verseCounts[state.ID]['sort']) + u"\n")
+    manifest.write(u"    path: './" + makeUsfmFilename(state.ID) + u"'\n")
+    testament = u'nt'
+    if verseCounts[state.ID]['sort'] < 40:
+        testament = u'ot'
+    manifest.write(u"    categories: [ 'bible-" + testament + u"' ]\n")
+    manifest.close()
+
 
 # Converts the book or books contained in the specified folder
 def convertFolder(folder):
@@ -354,9 +374,12 @@ def convertFolder(folder):
         return
     if not os.path.isdir(target_dir):
         os.mkdir(target_dir)
+    if os.path.isfile( makeManifestPath() ):
+        os.remove( makeManifestPath() )
     for fname in os.listdir(folder):
         if fname[-3:].lower() == 'sfm':
             convertFile(folder, fname)
+            appendToManifest()
 
 def detect_by_bom(path, default):
     with open(path, 'rb') as f:
@@ -377,7 +400,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: python txt2USFM <folder>\n  Use . for current folder.\n")
     elif sys.argv[1] == 'hard-coded-path':
-        convertFolder(r'C:\Users\Larry\Documents\GitHub\Bengali\BENGALI-ULB-OT.BCS\STAGE 3')
+        convertFolder(r'C:\Users\Larry\Documents\GitHub\Gujarati\Gujarati-ULB-NT.BCS\Stage3')
     else:       # the first command line argument is presumed to be the folder containing usfm files to be converted
         convertFolder(sys.argv[1])
 

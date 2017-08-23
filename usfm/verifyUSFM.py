@@ -26,6 +26,7 @@ vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 class State:
     IDs = []
     ID = u""
+    titles = []
     chapter = 0
     nParagraphs = 0
     verse = 0
@@ -40,6 +41,7 @@ class State:
     def addID(self, id):
         State.IDs.append(id)
         State.ID = id
+        State.titles = []
         State.chapter = 0
         State.lastVerse = 0
         State.verse = 0
@@ -50,6 +52,9 @@ class State:
         
     def getIDs(self):
         return State.IDs
+        
+    def addTitle(self, bookTitle):
+        State.titles.append(bookTitle)
         
     def addChapter(self, c):
         State.lastChapter = State.chapter
@@ -139,12 +144,35 @@ class State:
             self.loadVerseCounts()
         chaps = State.verseCounts[id]['verses']
         n = chaps[chap-1]
-        return n     
+        return n  
         
+    # Returns the English title for the specified book
+    def bookTitleEnglish(self, id):
+        if len(State.verseCounts) == 0:
+            self.loadVerseCounts()
+        return State.verseCounts[id]['en_name']    
+
+# Verifies that at least one book title is specified, other than the Engligh book title.
+# This method is called just before chapter 1 begins, so there has been every
+# opportunity for the book title to be specified.
+def verifyBookTitle():
+    title_ok = False
+    state = State()
+    en_name = state.bookTitleEnglish(state.ID)
+    for title in state.titles:
+        if title and title != en_name:
+            title_ok = True
+    if not title_ok:
+        sys.stderr.write("No non-English book title for " + state.ID + "\n")
+
+# Verifies correct number of verses for the current chapter.
+# This method is called just before the next chapter begins.
 def verifyVerseCount():
     state = State()
     if state.chapter > 0 and state.verse != state.nVerses(state.ID, state.chapter):
-        if state.reference != 'REV 12:18':  # Revelation 12 may have 17 or 18 verses
+        # Revelation 12 may have 17 or 18 verses
+        # 3 John may have 14 or 15 verses
+        if state.reference != 'REV 12:18' and state.reference != '3JN 1:15':
             sys.stderr.write("Chapter should have " + str(state.nVerses(state.ID, state.chapter)) + " verses: "  + state.reference + '\n')
 
 def verifyNotEmpty(filename):
@@ -214,6 +242,10 @@ def takeV(v):
             exception = 'MAT 17:21'
         elif state.lastRef == 'MAT 18:10' and state.reference == 'MAT 18:12':
             exception = 'MAT 18:11'
+        elif state.lastRef == 'MAT 23:13' and state.reference == 'MAT 23:15':
+            exception = 'MAT 23:14'
+        elif state.lastRef == 'LUK 17:35' and state.reference == 'LUK 17:37':
+            exception = 'LUK 17:36'
         else:
             sys.stderr.write("Missing verse(s) between: " + state.lastRef + " and " + state.reference + '\n')
  
@@ -233,7 +265,15 @@ def takeText(t):
             sys.stderr.write("  no preceding Token\n")
     state.addText()
 
-# Returns True if token is the start of a footnote for a verse that does not appear in some manuscripts.
+# Returns true if token is part of a footnote
+def isFootnote(token):
+    return token.isFS() or token.isFE() or token.isFR() or token.isFRE() or token.isFT()
+
+# Returns true if token is part of a cross reference
+def isCrossReference(token):
+    return token.isXS() or token.isXE() or token.isXO() or token.isXT()
+
+# Returns True if token is the start of a footnote which contains a verse that does not appear in some manuscripts.
 def isFootnoted(token):
     state = State()
     footnoted = token.isFS() and state.reference in { 'MAT 17:21', 'MAT 18:11', 'MAT 23:14', 'MRK 7:16', 'MRK 9:44', 'MRK 9:46', 'MRK 11:26', 'MRK 15:28', 'MRK 16:9', 'MRK 16:12', 'MRK 16:14', 'MRK 16:17', 'MRK 16:19', 'LUK 17:36', 'LUK 23:17', 'JHN 5:4', 'JHN 7:53', 'JHN 8:1', 'JHN 8:4', 'JHN 8:7', 'JHN 8:9', 'ACT 8:37', 'ACT 15:34', 'ACT 24:7', 'ACT 28:29', 'ROM 16:24' }
@@ -242,13 +282,20 @@ def isFootnoted(token):
     return footnoted
     
 def take(token):
+    global lastToken
     state = State()
-    if state.needText() and not token.isTEXT() and not isFootnoted(token):
+    if isFootnoted(token):
+        state.addText()        # footnote counts as text for our purposes
+    elif state.needText() and not token.isTEXT() and not token.isB() and not token.isM() and not isFootnote(token) and not isCrossReference(token):
         sys.stderr.write("Empty verse: " + state.reference + '\n')
+        sys.stderr.write("  preceding Token.type was " + lastToken.getType() + '\n')
+        sys.stderr.write("  current Token.type is " + token.getType() + '\n')
     if token.isID():
         takeID(token.value)
     elif token.isC():
-        verifyVerseCount()
+        verifyVerseCount()  # for the preceding chapter
+        if token.value == "1":
+            verifyBookTitle()
         takeC(token.value)
     elif token.isP() or token.isPI():
         takeP()
@@ -258,7 +305,8 @@ def take(token):
         takeText(token.value)
     elif token.isQ() or token.isQ1() or token.isQ2() or token.isQ3():
         state.addQuote()
-    global lastToken
+    elif token.isH() or token.isTOC1() or token.isTOC2() or token.isMT() or token.isIMT():
+        state.addTitle(token.value)
     lastToken = token
      
 def verifyFile(filename):
@@ -274,6 +322,7 @@ def verifyFile(filename):
     for token in parseUsfm.parseString(str):
         take(token)
     verifyNotEmpty(filename)
+    verifyVerseCount()      # for the last chapter
     verifyChapterCount()
     state = State()
     state.addID(u"")
@@ -304,7 +353,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         source = raw_input("Enter path to .usfm file or directory containing .usfm files: ")
     elif sys.argv[1] == 'hard-coded-path':
-        source = r'C:\Users\Larry\Documents\GitHub\Bengali\BENGALI-ULB-OT.BCS\STAGE3'
+        source = r'C:\Users\Larry\Documents\GitHub\Gujarati\gu_ulb'
     else:
         source = sys.argv[1]
         
