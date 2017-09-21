@@ -1,13 +1,15 @@
 # coding: latin-1
-# This script converts a repository of text files from tStudio to a single
-# file in USFM format, in the same folder.
+# This script converts a repository of text files from tStudio to USFM format.
 # It is an improved version of txt2USFM.py in these ways:
 #    Parses manifest.json to get the book ID.
 #    Finds and parses title.txt to get the book title 
 #    Populates the USFM header without the need for a bookId.usfm required by the previous script.
 #    Standardizes the names of .usfm files. For example 41-MAT.usfm and 42-MRK.usfm.
+#    Specify output folder.
+#    Converts multiple books at once.
 
 # Global variables
+target_dir = r'C:\Users\Larry\Documents\GitHub\French\fr_ulb'
 verseCounts = {}
 
 import re
@@ -54,7 +56,7 @@ def lacksMarkers(input, wantChapter, wantVerse):
     line = input.readline()
     while line and not foundV and not foundText:
         s = line.lstrip()
-        match = markerExpr.match(s)
+        match = markerExpr.search(s)
         while match and not foundV:
             # Peel off and output leading USF markers
             marker = s[match.start():match.end()]
@@ -244,6 +246,7 @@ def fixVerseMarkers(section):
         section = section[:match.end()-1] + ' ' + section[match.end()-1:]
         pos = match.end()
         match = jammed.search(section, pos)
+    # print "A. section length is " + str(len(section))
 
     # Take care of repeated verse numbers
     tokenlist = re.split('(\\\\v [0-9]+ [0-9]+)', section)
@@ -256,6 +259,8 @@ def fixVerseMarkers(section):
             if parts[2] == parts[1]:
                 token = "\\v " + parts[1]
         section = section + token
+    # print "B. section length is " + str(len(section))
+
 
     # Ensure space after each verse number
     jammed = re.compile(u'\\\\v [0-9]+[^ \n0123456789]')
@@ -263,6 +268,7 @@ def fixVerseMarkers(section):
     while match:
         section = section[:match.end()-1] + ' ' + section[match.end()-1:]
         match = jammed.search(section)
+    # print "C. section length is " + str(len(section))
 
     # Eliminate duplicate verse markers
     vm = re.compile(u'(\\\\v [0-9]+)')
@@ -275,10 +281,11 @@ def fixVerseMarkers(section):
                 lastVerseMarker = token
                 section = section + token
             else:
-                print "REMOVED DUPLICATE VERSE MARKER: " + token
+                sys.stdout.write("\nREMOVED DUPLICATE VERSE MARKER: " + token + '\n')
         else:
             section = section + token
     
+    # print "D. section length is " + str(len(section))
     return section
     
 import io
@@ -287,8 +294,8 @@ import os
 # Accepts a directory, and single file name which contains one chunk.
 # Reads all the lines from that file and converts the text to a single
 # USFM section.
-def convertFile(directory, filename):
-    input = io.open(directory + "/" + filename, "tr", 1, encoding='utf-8')
+def convertFile(txtPath):
+    input = io.open(txtPath, "tr", 1, encoding='utf-8')
     lines = input.readlines()
     input.close()
     section = u"\n" + combineLines(lines)
@@ -312,7 +319,7 @@ def isChapter(dirname):
 # the file contains text to be converted.
 def isChunk(filename):
     isSect = False
-    if re.match('\d\d\.txt', filename) and filename != '00.txt':
+    if re.match('\d\d\.txt$', filename) and filename != '00.txt':
         isSect = True;
     return isSect
 
@@ -353,8 +360,22 @@ def getBookTitle():
         f.close()
     else:
         sys.stderr.write("   Can't open " + path + "!\n")
-
     return bookTitle 
+
+def appendToManifest(bookId, bookTitle):
+    path = makeManifestPath()
+    manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
+    manifest.write(u"  -\n")
+    manifest.write(u"    title: '" + bookTitle + u" '\n")
+    manifest.write(u"    versification: 'ufw'\n")
+    manifest.write(u"    identifier: '" + bookId.lower() + u"'\n")
+    manifest.write(u"    sort: " + str(verseCounts[bookId]['sort']) + u"\n")
+    manifest.write(u"    path: './" + makeUsfmFilename(bookId) + u"'\n")
+    testament = u'nt'
+    if verseCounts[bookId]['sort'] < 40:
+        testament = u'ot'
+    manifest.write(u"    categories: [ 'bible-" + testament + u"' ]\n")
+    manifest.close()
 
 def convertFolder(folder):
     if not folder:
@@ -368,10 +389,15 @@ def convertFolder(folder):
         sys.stderr.write("Invalid folder: " + folder + "\n")
         return
     else:
+        sys.stdout.write("Converting: " + folder + "\n")
+        sys.stdout.flush()
         bookId = getBookId()
         bookTitle = getBookTitle()
         if bookId and bookTitle:
             convertBook(bookId, bookTitle)   # converts the pieces in the current folder
+            appendToManifest(bookId, bookTitle)
+            sys.stdout.write("\n")
+            sys.stdout.flush()
  
 # Opens the verses.json file, which must reside in the same path as this .py script.
 def loadVerseCounts():
@@ -396,6 +422,10 @@ def makeUsfmFilename(bookId):
         filename = pathComponents[-1] + ".usfm"
     return filename
            
+# Returns path of temporary manifest file block listing projects converted
+def makeManifestPath():
+    return os.path.join(target_dir, "manifest.txt")
+    
 def writeHeader(usfmfile, bookId, bookTitle):
     usfmfile.write(u"\\id " + bookId + u"\n\\ide UTF-8")
     usfmfile.write(u"\n\\h " + bookTitle)
@@ -407,19 +437,18 @@ def writeHeader(usfmfile, bookId, bookTitle):
 # This method is called to convert the pieces in the *current folder* to USFM
 def convertBook(bookId, bookTitle):
     # Open output USFM file for writing.
-    usfmPath = os.path.join("..", makeUsfmFilename(bookId))
-    # print "CREATING: " + usfmPath
+    usfmPath = os.path.join(target_dir, makeUsfmFilename(bookId))
     usfmFile = io.open(usfmPath, "tw", buffering=1, encoding='utf-8', newline='\n')
     writeHeader(usfmFile, bookId, bookTitle)
 
     for directory in os.listdir(os.getcwd()):
         if isChapter(directory):
             sys.stdout.write(directory + " ")
-            sys.stdout.flush
             for filename in os.listdir(directory):
                 if isChunk(filename):
+                    txtPath = os.path.join(directory, filename)
                     cleanupChunk(directory, filename)
-                    section = convertFile(directory, filename) + u'\n'
+                    section = convertFile(txtPath) + u'\n'
                     usfmFile.write(section)
                     restoreOrigFile(directory, filename)
             # Process misnamed 00.txt file last, if it exists
@@ -428,19 +457,20 @@ def convertBook(bookId, bookTitle):
             #     usfmFile.write(section)
     # Wrap up
     usfmFile.close()
-    print "\nFINISHED: " + usfmPath
+    # print "\nFINISHED: " + usfmPath
 
 # Converts the book or books contained in the specified folder
 def convert(dir):
+    if not os.path.isdir(target_dir):
+        os.mkdir(target_dir)
+    if os.path.isfile( makeManifestPath() ):
+        os.remove( makeManifestPath() )
     if isBookFolder(dir):
-        print "\nConverting: " + dir
         convertFolder(dir)
     else:       # presumed to be a folder containing multiple books
         for directory in os.listdir(dir):
             folder = os.path.join(dir, directory)
             if isBookFolder(folder):
-                print "\nConverting: " + folder
-                sys.stdout.flush()
                 convertFolder(folder)
 
 
@@ -449,7 +479,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: python txt2USFM <folder>\n  Use . for current folder.\n")
     elif sys.argv[1] == 'hard-coded-path':
-        convert(r'C:\Users\Larry\Documents\GitHub\Tagalog')
+        convert(r'C:\Users\Larry\Documents\GitHub\French')
     else:       # the first command line argument presumed to be a folder
         convert(sys.argv[1])
 

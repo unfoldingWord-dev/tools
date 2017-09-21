@@ -273,19 +273,15 @@ def isFootnote(token):
 def isCrossReference(token):
     return token.isXS() or token.isXE() or token.isXO() or token.isXT()
 
-# Returns True if token is the start of a footnote which contains a verse that does not appear in some manuscripts.
-def isFootnoted(token):
-    state = State()
-    footnoted = token.isFS() and state.reference in { 'MAT 17:21', 'MAT 18:11', 'MAT 23:14', 'MRK 7:16', 'MRK 9:44', 'MRK 9:46', 'MRK 11:26', 'MRK 15:28', 'MRK 16:9', 'MRK 16:12', 'MRK 16:14', 'MRK 16:17', 'MRK 16:19', 'LUK 17:36', 'LUK 23:17', 'JHN 5:4', 'JHN 7:53', 'JHN 8:1', 'JHN 8:4', 'JHN 8:7', 'JHN 8:9', 'ACT 8:37', 'ACT 15:34', 'ACT 24:7', 'ACT 28:29', 'ROM 16:24' }
-    if footnoted:
-        state.addText()     # footnote counts as text for our purposes
-    return footnoted
+# Returns True if the current reference is a verse that does not appear in some manuscripts.
+def isOptional(ref):
+    return ref in { 'MAT 17:21', 'MAT 18:11', 'MAT 23:14', 'MRK 7:16', 'MRK 9:44', 'MRK 9:46', 'MRK 11:26', 'MRK 15:28', 'MRK 16:9', 'MRK 16:12', 'MRK 16:14', 'MRK 16:17', 'MRK 16:19', 'LUK 17:36', 'LUK 23:17', 'JHN 5:4', 'JHN 7:53', 'JHN 8:1', 'JHN 8:4', 'JHN 8:7', 'JHN 8:9', 'ACT 8:37', 'ACT 15:34', 'ACT 24:7', 'ACT 28:29', 'ROM 16:24' }
     
 def take(token):
     global lastToken
     state = State()
-    if isFootnoted(token):
-        state.addText()        # footnote counts as text for our purposes
+    if isOptional(state.reference):
+        state.addText()        # counts as text for our purposes
     elif state.needText() and not token.isTEXT() and not token.isB() and not token.isM() and not isFootnote(token) and not isCrossReference(token):
         sys.stderr.write("Empty verse: " + state.reference + '\n')
         sys.stderr.write("  preceding Token.type was " + lastToken.getType() + '\n')
@@ -353,7 +349,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         source = raw_input("Enter path to .usfm file or directory containing .usfm files: ")
     elif sys.argv[1] == 'hard-coded-path':
-        source = r'C:\Users\Larry\Documents\GitHub\Gujarati\gu_ulb'
+        source = r'C:\Users\Larry\Documents\GitHub\Tagalog\tl_NT_ULB_L3'
     else:
         source = sys.argv[1]
         
