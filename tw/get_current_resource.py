@@ -1,0 +1,1 @@
+../general_tools/get_current_resource.py

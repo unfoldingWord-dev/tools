@@ -20,7 +20,8 @@ set -e # die if errors
 : ${OUTPUT_DIR:=$(pwd)}
 : ${TEMPLATE:="$MY_DIR/toc_template.xsl"}
 : ${TEMPLATE_ALL:="$MY_DIR/toc_template_all.xsl"}
-: ${VERSION:=6}
+: ${LANGUAGE:="en"}
+: ${RESOURCE:="tw"}
 
 if [[ -z $WORKING_DIR ]]; then
     WORKING_DIR=$(mktemp -d -t "export_md_to_pdf.XXXXXX")
@@ -31,35 +32,45 @@ fi
 
 echo $WORKING_DIR
 
-# Change to own own temp dir but note our current dir so we can get back to it
+# Change to our own temp dir but note our current dir so we can get back to it
 pushd "$WORKING_DIR" > /dev/null
+
+# link tools folder
+ln -s $MY_DIR/.. ./tools
+
+ls .
+
+URL=$(python -m tools.general_tools.get_current_resource -l $LANGUAGE -r $RESOURCE);
+VERSION=$(python -m tools.general_tools.get_current_resource -l $LANGUAGE -r $RESOURCE -v 1);
+
+repo="${LANGUAGE}_${RESOURCE}"
+
+echo "Current '$repo' Resource is at: $URL"
+echo "Current '$repo' Version is at: $VERSION"
 
 # If running in DEBUG mode, output information about every command being run
 $DEBUG && set -x
 
-repo=en-tw
+mkdir files
+
+wget $URL -O ./file.zip
+
+unzip -q ./file.zip -d files
+
+echo "Unzipped files:"
+ls files/$repo
 
 mkdir -p "$OUTPUT_DIR/html"
 cp "$MY_DIR/style.css" "$OUTPUT_DIR/html"
 cp "$MY_DIR/header.html" "$OUTPUT_DIR/html"
 
-echo $repo
-if [ ! -e "$WORKING_DIR/$repo" ]; then
-    cd "$WORKING_DIR"
-    git clone "https://git.door43.org/Door43/$repo.git"
-    cd "$repo"
-else
-    cd "$WORKING_DIR/$repo"
-fi
-git checkout tags/v${VERSION}
-
-"$MY_DIR/md_to_html_export.py" -i "$WORKING_DIR/$repo" -o "$OUTPUT_DIR/html" -v "$VERSION"
+"$MY_DIR/md_to_html_export.py" -i "$WORKING_DIR/files/$repo" -o "$OUTPUT_DIR/html" -v "$VERSION"
 
 headerfile="file://$OUTPUT_DIR/html/header.html"
 coverfile="file://$OUTPUT_DIR/html/cover.html"
 licensefile="file://$OUTPUT_DIR/html/license.html"
 bodyfile="file://$OUTPUT_DIR/html/body.html"
-outfile="$OUTPUT_DIR/pdf/${repo}-v${VERSION}.pdf"
+outfile="$OUTPUT_DIR/pdf/${LANGUAGE}_${repo}_v${VERSION}.pdf"
 mkdir -p "$OUTPUT_DIR/pdf"
 echo "GENERATING $outfile"
 wkhtmltopdf --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 15  --header-html "$headerfile" --header-spacing 2 --footer-center '[page]' cover "$coverfile" cover "$licensefile" toc --disable-dotted-lines --enable-external-links --xsl-style-sheet "$TEMPLATE" "$bodyfile" "$outfile"

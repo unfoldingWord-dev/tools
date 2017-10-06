@@ -11,13 +11,11 @@
 """
 This class parses information in the Bible Status JSON
 """
-
-import os
-import re
 import sys
 import json
 import codecs
 import urllib2
+
 
 class BibleStatus:
     status = None
