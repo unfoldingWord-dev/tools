@@ -23,13 +23,7 @@ set -e # die if errors
 : ${LANGUAGE:="en"}
 : ${RESOURCE:="tq"}
 : ${VERSION:=8}
-
-if [ -z $1 ]; then
-    echo "Please specify the TAG for the ${LANGUAGE}_${RESOURCE} release of v${VERSION}."
-    exit 1
-fi
-
-: ${TAG:=$1}
+: ${TAG:="v8-"}
 
 if [[ -z $WORKING_DIR ]]; then
     WORKING_DIR=$(mktemp -d -t "export_md_to_pdf.XXXXXX")
