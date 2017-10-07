@@ -22,6 +22,14 @@ set -e # die if errors
 : ${TEMPLATE_ALL:="$MY_DIR/toc_template_all.xsl"}
 : ${LANGUAGE:="en"}
 : ${RESOURCE:="tq"}
+: ${VERSION:=8}
+
+if [ -z $1 ]; then
+    echo "Please specify the TAG for the ${LANGUAGE}_${RESOURCE} release of v${VERSION}."
+    exit 1
+fi
+
+: ${TAG:=$1}
 
 if [[ -z $WORKING_DIR ]]; then
     WORKING_DIR=$(mktemp -d -t "export_md_to_pdf.XXXXXX")
@@ -42,25 +50,21 @@ ln -s $MY_DIR/.. ./tools
 
 ls .
 
-URL=$(python -m tools.general_tools.get_current_resource -l $LANGUAGE -r $RESOURCE);
-VERSION=$(python -m tools.general_tools.get_current_resource -l $LANGUAGE -r $RESOURCE -v 1);
 
 repo="${LANGUAGE}_${RESOURCE}"
+url="https://git.door43.org/Door43/en_tq/archive/${TAG}.zip"
 
-echo "Current '$repo' Resource is at: $URL"
-echo "Current '$repo' Version is at: $VERSION"
+echo "Current '$repo' Resource is at: ${url}"
+echo "Current '$repo' Version is at: ${VERSION}"
 
 # If running in DEBUG mode, output information about every command being run
 $DEBUG && set -x
 
-mkdir files
+wget $url -O "./${repo}.zip"
+unzip -q "./${repo}.zip"
 
-wget $URL -O ./file.zip
-
-unzip -q ./file.zip -d files
-
-echo "Unzipped files:"
-ls files/$repo
+echo "Checked out repo files:"
+ls "${repo}"
 
 # make sure old out files are gone
 rm -f $OUTPUT_DIR/html/*
@@ -74,7 +78,7 @@ book_export () {
     book=$1
 
     echo "GENERATING Tempfile: $OUTPUT_DIR/html/${book}.html"
-    python -m tools.tq.md_to_html_export -i "$WORKING_DIR/files/$repo" -o "$OUTPUT_DIR/html" -v "$VERSION" -b $book
+    python -m tools.tq.md_to_html_export -i "$WORKING_DIR/$repo" -o "$OUTPUT_DIR/html" -v "$VERSION" -b $book
 
     headerfile="file://$OUTPUT_DIR/html/header.html"
     coverfile="file://$OUTPUT_DIR/html/cover.html"
