@@ -136,7 +136,7 @@ BOOK_NUMBERS = {
     'rev': '67'
 }
 
-ordered_book_list = [
+ORDERED_BOOK_LIST = [
     'gen',
     'exo',
     'lev',

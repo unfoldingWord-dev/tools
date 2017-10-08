@@ -40,7 +40,7 @@ echo $WORKING_DIR
 pushd "$WORKING_DIR" > /dev/null
 
 # link tools folder
-ln -s $MY_DIR/.. ./tools
+ln -sf $MY_DIR/.. ./tools
 
 ls .
 
@@ -55,7 +55,7 @@ echo "Current '$repo' Version is at: ${VERSION}"
 $DEBUG && set -x
 
 wget $url -O "./${repo}.zip"
-unzip -q "./${repo}.zip"
+unzip -qo "./${repo}.zip"
 
 echo "Checked out repo files:"
 ls "${repo}"
@@ -89,7 +89,7 @@ book_export () {
 }
 
 if [[ -z $1 ]]; then
-  for book in "${ORDERED_BOOK_LIST[@]}"
+  for book in "${ORDERED_BOOKS_LIST[@]}"
   do
       book_export $book
   done
