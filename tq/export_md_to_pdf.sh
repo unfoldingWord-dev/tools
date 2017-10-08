@@ -89,7 +89,10 @@ book_export () {
 }
 
 if [[ -z $1 ]]; then
-  for book in "${!BOOK_NAMES[@]}"
+  names=(${!BOOK_NAMES[@]})
+  IFS=$'\n' sorted_names=($(sort <<<"${names[*]}"))
+  unset IFS
+  for book in "${sorted_names[@]}"
   do
       book_export $book
   done
