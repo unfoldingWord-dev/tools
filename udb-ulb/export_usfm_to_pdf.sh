@@ -61,11 +61,6 @@ done
 
 $DEBUG && set -x
 
-VERSION=`yaml2json manifest.yaml | jq -r '.dublin_core.version'`
-PUBLISH_DATE=`yaml2json manifest.yaml | jq -r '.dublin_core.issued'`
-TITLE=`yaml2json manifest.yaml | jq -r '.dublin_core.title'`
-CHECKING_LEVEL=`yaml2json manifest.yaml | jq -r '.checking.checking_level'`
-
 # Note out base location and create a temporary workspace
 MY_DIR=$(cd $(dirname "$0") && pwd)
 TOOLS_DIR=$(cd $(dirname "$0")/.. && pwd)
@@ -100,6 +95,11 @@ unzip -qo "./${repo}.zip"
 
 echo "Checked out repo files:"
 ls "${repo}"
+
+VERSION=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.version'`
+PUBLISH_DATE=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.issued'`
+TITLE=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.title'`
+CHECKING_LEVEL=`yaml2json "${repo}/manifest.yaml" | jq -r '.checking.checking_level'`
 
 if [ "$NUM_COLS" == "2" ];
 then
