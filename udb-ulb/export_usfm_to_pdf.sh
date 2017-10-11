@@ -177,7 +177,7 @@ for book in "${BOOKS[@]}"; do
             exit 1
         fi
         subtitle=$book_title
-        basename="${LANGUAGE}_${usfm_num}-${book^^}_v${version}"
+        basename="${LANGUAGE}_${RESOURCE}_${usfm_num}-${book^^}_v${version}"
         TOC_DEPTH=2
     fi
 
