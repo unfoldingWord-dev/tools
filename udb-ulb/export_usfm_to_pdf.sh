@@ -149,7 +149,7 @@ for book in "${BOOKS[@]}"; do
         exit 1
     fi
 
-    if [ "${book}" == "full" ];
+    if [ $book == "full" ];
     then
         subtitle="Old \\& New Testaments"
         book_arg=""
