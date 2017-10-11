@@ -166,7 +166,7 @@ for book in "${BOOKS[@]}"; do
         basename="${LANGUAGE}_${RESOURCE}_v${version}_nt"
     else
         usfm_num=${BOOK_NUMBERS[$book]}
-        book_title=`yaml2json "${WORKING_DIR}/${repo}/manifest.yaml" | jq '.projects[]|select(.identifier=="'${book}'").title'`
+        book_title=`yaml2json "${WORKING_DIR}/${repo}/manifest.yaml" | jq -r '.projects[]|select(.identifier=="'${book}'").title'`
         book_arg="-b $book"
         if [ -z "${book_title// }" ];
         then
@@ -174,7 +174,7 @@ for book in "${BOOKS[@]}"; do
             exit 1
         fi
         subtitle=$book_title
-        basename="${LANGUAGE}_${usfm_num}_${book^^}_v${version}"
+        basename="${LANGUAGE}_${usfm_num}-${book^^}_v${version}"
         TOC_DEPTH=2
     fi
 
