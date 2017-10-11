@@ -19,7 +19,6 @@ import sys
 import codecs
 import argparse
 import markdown2
-import time
 from glob import glob
 from bs4 import BeautifulSoup
 

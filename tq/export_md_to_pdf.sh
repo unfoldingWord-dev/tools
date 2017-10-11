@@ -80,9 +80,9 @@ book_export () {
     licensefile="file://$OUTPUT_DIR/html/license.html"
     bodyfile="file://$OUTPUT_DIR/html/$book.html"
     if [[ $book != "all" ]]; then
-        outfile="$OUTPUT_DIR/pdf/${LANGUAGE}_tq_${BOOK_NUMBERS[$book]}-${book^^}_v${VERSION}.pdf"
+        outfile="$OUTPUT_DIR/pdf/${repo}_${BOOK_NUMBERS[$book]}-${book^^}_v${VERSION}.pdf"
     else
-        outfile="$OUTPUT_DIR/pdf/${LANGUAGE}_tq_v${version}.pdf"
+        outfile="$OUTPUT_DIR/pdf/${repo}_v${version}.pdf"
     fi
     mkdir -p "$OUTPUT_DIR/pdf"
     echo "GENERATING $outfile"
