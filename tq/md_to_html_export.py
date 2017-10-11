@@ -36,7 +36,7 @@ def fix_content(content):
     return content
 
 
-def main(inpath, outpath, version, book):
+def main(inpath, outpath, version, issued_date, book):
     tqRoot = inpath
 
     license = markdown2.markdown_path(tqRoot+'/'+'LICENSE.md')
@@ -90,7 +90,7 @@ def main(inpath, outpath, version, book):
     <span class="h1">Copyrights & Licensing</span>
 '''+license+'''
     <p>
-      <strong>Date:</strong> '''+time.strftime("%Y-%m-%d")+'''<br/>
+      <strong>Date:</strong> '''+issued_date+'''<br/>
       <strong>Version:</strong> '''+version+'''
     </p>
   </div>
@@ -139,7 +139,8 @@ if __name__ == '__main__':
         required=True, help="Version of translationQuestions")
     parser.add_argument('-b', '--book', dest="book", default='all',
         required=False, help="Bible book")
+    parser.add_argument('-d', '--issued-date', dest='issued_date', required=True, help='Issued date')
 
     args = parser.parse_args(sys.argv[1:])
 
-    main(args.inpath, args.outpath, args.version, args.book)
+    main(args.inpath, args.outpath, args.version, args.issued_date, args.book)

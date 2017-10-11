@@ -22,7 +22,6 @@ set -e # die if errors
 : ${TEMPLATE_ALL:="$MY_DIR/toc_template_all.xsl"}
 : ${LANGUAGE:="en"}
 : ${RESOURCE:="tq"}
-: ${VERSION:=8}
 : ${TAG:="v8-"}
 
 if [[ -z $WORKING_DIR ]]; then
@@ -31,6 +30,9 @@ if [[ -z $WORKING_DIR ]]; then
 elif [[ ! -d $WORKING_DIR ]]; then
     mkdir -p "$WORKING_DIR"
 fi
+
+# If running in DEBUG mode, output information about every command being run
+$DEBUG && set -x
 
 source "$MY_DIR/../general_tools/bible_books.sh"
 
@@ -45,17 +47,19 @@ ln -sf $MY_DIR/.. ./tools
 repo="${LANGUAGE}_${RESOURCE}"
 url="https://git.door43.org/Door43/${repo}/archive/${TAG}.zip"
 
-echo "Current '$repo' Resource is at: ${url}"
-echo "Current '$repo' Version is at: ${VERSION}"
-
-# If running in DEBUG mode, output information about every command being run
-$DEBUG && set -x
-
 wget $url -O "./${repo}.zip"
 unzip -qo "./${repo}.zip"
 
 echo "Checked out repo files:"
 ls "${repo}"
+
+version=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.version'`
+issued_date=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.issued'`
+title=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.title'`
+checking_level=`yaml2json "${repo}/manifest.yaml" | jq -r '.checking.checking_level'`
+
+echo "Current '$repo' Resource is at: ${url}"
+echo "Current '$repo' Version is at: ${version}"
 
 # make sure old out files are gone
 rm -f $OUTPUT_DIR/html/*
@@ -69,7 +73,7 @@ book_export () {
     book=$1
 
     echo "GENERATING Tempfile: $OUTPUT_DIR/html/${book}.html"
-    python -m tools.tq.md_to_html_export -i "$WORKING_DIR/$repo" -o "$OUTPUT_DIR/html" -v "$VERSION" -b $book
+    python -m tools.tq.md_to_html_export -i "$WORKING_DIR/$repo" -o "$OUTPUT_DIR/html" -v "$version" -d "$issued_date" -b "$book"
 
     headerfile="file://$OUTPUT_DIR/html/header.html"
     coverfile="file://$OUTPUT_DIR/html/cover.html"
@@ -78,7 +82,7 @@ book_export () {
     if [[ $book != "all" ]]; then
         outfile="$OUTPUT_DIR/pdf/${LANGUAGE}_tq_${BOOK_NUMBERS[$book]}-${book^^}_v${VERSION}.pdf"
     else
-        outfile="$OUTPUT_DIR/pdf/${LANGUAGE}_tq_v${VERSION}.pdf"
+        outfile="$OUTPUT_DIR/pdf/${LANGUAGE}_tq_v${version}.pdf"
     fi
     mkdir -p "$OUTPUT_DIR/pdf"
     echo "GENERATING $outfile"

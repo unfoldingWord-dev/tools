@@ -22,7 +22,6 @@ set -e # die if errors
 : ${TEMPLATE_ALL:="$MY_DIR/toc_template_all.xsl"}
 : ${LANGUAGE:="en"}
 : ${RESOURCE:="tw"}
-: ${VERSION:=7}
 : ${TAG:="v7"}
 
 if [[ -z $WORKING_DIR ]]; then
@@ -31,6 +30,9 @@ if [[ -z $WORKING_DIR ]]; then
 elif [[ ! -d $WORKING_DIR ]]; then
     mkdir -p "$WORKING_DIR"
 fi
+
+# If running in DEBUG mode, output information about every command being run
+$DEBUG && set -x
 
 source "$MY_DIR/../general_tools/bible_books.sh"
 
@@ -45,29 +47,31 @@ ln -sf $MY_DIR/.. ./tools
 repo="${LANGUAGE}_${RESOURCE}"
 url="https://git.door43.org/Door43/${repo}/archive/${TAG}.zip"
 
-echo "Current '$repo' Resource is at: ${url}"
-echo "Current '$repo' Version is at: ${VERSION}"
-
-# If running in DEBUG mode, output information about every command being run
-$DEBUG && set -x
-
 wget $url -O "./${repo}.zip"
 unzip -qo "./${repo}.zip"
 
 echo "Checked out repo files:"
 ls "${repo}"
 
+version=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.version'`
+issued_date=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.issued'`
+title=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.title'`
+checking_level=`yaml2json "${repo}/manifest.yaml" | jq -r '.checking.checking_level'`
+
+echo "Current '$repo' Resource is at: ${url}"
+echo "Current '$repo' Version is at: ${version}"
+
 mkdir -p "$OUTPUT_DIR/html"
 cp "$MY_DIR/style.css" "$OUTPUT_DIR/html"
 cp "$MY_DIR/header.html" "$OUTPUT_DIR/html"
 
-"$MY_DIR/md_to_html_export.py" -i "$WORKING_DIR/$repo" -o "$OUTPUT_DIR/html" -v "$VERSION"
+"$MY_DIR/md_to_html_export.py" -i "$WORKING_DIR/$repo" -o "$OUTPUT_DIR/html" -v "$version" -d "$issued_date"
 
 headerfile="file://$OUTPUT_DIR/html/header.html"
 coverfile="file://$OUTPUT_DIR/html/cover.html"
 licensefile="file://$OUTPUT_DIR/html/license.html"
 bodyfile="file://$OUTPUT_DIR/html/body.html"
-outfile="$OUTPUT_DIR/pdf/${repo}_v${VERSION}.pdf"
+outfile="$OUTPUT_DIR/pdf/${repo}_v${version}.pdf"
 mkdir -p "$OUTPUT_DIR/pdf"
 echo "GENERATING $outfile"
 wkhtmltopdf --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 15  --header-html "$headerfile" --header-spacing 2 --footer-center '[page]' cover "$coverfile" cover "$licensefile" toc --disable-dotted-lines --enable-external-links --xsl-style-sheet "$TEMPLATE" "$bodyfile" "$outfile"
