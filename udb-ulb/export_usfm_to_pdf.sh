@@ -11,6 +11,9 @@
 #  Richard Mahn <rich.mahn@unfoldingword.org>
 
 ## GET SET UP ##
+OT_BOOKS=(gen exo lev num deu jos jdg rut 1sa 2sa 1ki 2ki 1ch 2ch ezr neh est job psa pro ecc sng isa jer lam ezk dan hos jol amo oba jon mic nam hab zep hag zec mal)
+NT_BOOKS=(mat mrk luk jhn act rom 1co 2co gal eph php col 1ti 2ti 1th 2th tit phm heb jas 1pe 2pe 1jn 2jn 3jn jud rev)
+ALL_BOOKS=(${OT_BOOKS[@]} ${NT_BOOKS[@]})
 
 # Fail if _any_ command goes wrong
 set -e
@@ -35,7 +38,7 @@ while getopts "t:l:r:m:b:o:df:k:h?" opt; do
     case $opt in
         l) LANGUAGE=$OPTARG;;
         r) RESOURCE=$OPTARG;;
-        b) BOOKS+=("$OPTARG");;
+        b) if [ "${OPTARG}" == 'each' ]; then BOOKS+=(${ALL_BOOKS[@]}); else BOOKS+=("${OPTARG}"); fi;;
         o) OUTPUTS+=("$OPTARG");;
         d) DEBUG=true;;
         c) NUM_COLS=$OPTARG;;
@@ -127,7 +130,7 @@ ln -sf "$TOOLS_DIR"
 if [ -z "${BOOKS// }" ];
 then
     # If no -b was used, we want to generate a PDF for EACH BOOK of the Bible
-    BOOKS=(gen exo lev num deu jos jdg rut 1sa 2sa 1ki 2ki 1ch 2ch ezr neh est job psa pro ecc sng isa jer lam ezk dan hos jol amo oba jon mic nam hab zep hag zec mal mat mrk luk jhn act rom 1co 2co gal eph php col 1ti 2ti 1th 2th tit phm heb jas 1pe 2pe 1jn 2jn 3jn jud rev)
+    BOOKS=ALL_BOOKS
 fi
 
 for book in "${BOOKS[@]}"; do
@@ -156,12 +159,12 @@ for book in "${BOOKS[@]}"; do
         basename="${LANGUAGE}_${RESOURCE}_v${version}"
     elif [ "${book}" == 'ot' ];
     then
-        book_arg='-b gen exo lev num deu jos jdg rut 1sa 2sa 1ki 2ki 1ch 2ch ezr neh est job psa pro ecc sng isa jer lam ezk dan hos jol amo oba jon mic nam hab zep hag zec mal'
+        book_arg="-b ${OT_BOOKS[@]}"
         subtitle="Old Testament"
         basename="${LANGUAGE}_${RESOURCE}_v${version}_ot"
     elif [ "${book}" == 'nt' ];
     then
-        book_arg='-b mat mrk luk jhn act rom 1co 2co gal eph php col 1ti 2ti 1th 2th tit phm heb jas 1pe 2pe 1jn 2jn 3jn jud rev'
+        book_arg="-b ${NT_BOOKS[@]}"
         subtitle='New Testament'
         basename="${LANGUAGE}_${RESOURCE}_v${version}_nt"
     else
