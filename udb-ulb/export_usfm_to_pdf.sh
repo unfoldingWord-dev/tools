@@ -166,7 +166,7 @@ for book in "${BOOKS[@]}"; do
         basename="${LANGUAGE}_${RESOURCE}_v${version}_nt"
     else
         usfm_num=${BOOK_NUMBERS[$book]}
-        book_title=`yaml2json "${repo}/manifest.yaml" | jq ".projects[]|select(.identifier=='${book}').title"`
+        book_title=`yaml2json "${repo}/manifest.yaml" | jq '.projects[]|select(.identifier=="'${book}'").title'`
         book_arg="-b $book"
         if [ -z "${book_title// }" ];
         then
