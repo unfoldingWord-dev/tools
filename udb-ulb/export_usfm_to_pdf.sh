@@ -170,7 +170,7 @@ for book in "${BOOKS[@]}"; do
     else
         usfm_num=${BOOK_NUMBERS[$book]}
         book_title=`yaml2json "${WORKING_DIR}/${repo}/manifest.yaml" | jq -r '.projects[]|select(.identifier=="'${book}'").title'`
-        book_arg="-b $book"
+        book_arg="-b ${book}"
         if [ -z "${book_title// }" ];
         then
             print "Cannot get the title of the book for '${book}' in the manifest.yaml file"
