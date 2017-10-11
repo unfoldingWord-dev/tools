@@ -18,7 +18,7 @@ set -e
 help() {
     echo "Usage: $0 [options]"
     echo "Options:"
-    echo "    -r       Resourc ID of the Bible (e.g. ulb or udb) (required)"
+    echo "    -r       Resource ID of the Bible (e.g. ulb or udb) (required)"
     echo "    -l       Language code (e.g. en) (required)"
     echo "    -b       Book of the Bible (e.g. rev), 'ot': compiled Old Testament, 'nt': compiled New Testament, "
     echo "             none: PDF for each book of the Bible, 'full': compiled full Bible"
@@ -56,14 +56,49 @@ done
 : ${CHUNK_DIVIDER=''}
 : ${NUM_COLS=2}
 : ${FONT_SIZE=12}
+: ${TITLE='Unlocked Literal Bible'}
+: ${PUBLISH_DATE='2017-10-10'}
+: ${VERSION='11'}
+: ${CHECKING_LEVEL='3'}
+: ${TOC_DEPTH=1}
+: ${TAG='v11'}
+
+$DEBUG && set -x
 
 # Note out base location and create a temporary workspace
-MYDIR=$(cd $(dirname "$0") && pwd)
-TOOLSDIR=$(cd $(dirname "$0")/.. && pwd)
-BUILDDIR=$(mktemp -d --tmpdir "uwb_${LANGUAGE}_build_pdf.XXXXXX")
-LOG="$BUILDDIR/shell.log"
+MY_DIR=$(cd $(dirname "$0") && pwd)
+TOOLS_DIR=$(cd $(dirname "$0")/.. && pwd)
+BUILD_DIR=$(mktemp -d --tmpdir "uwb_${LANGUAGE}_build_pdf.XXXXXX")
+LOG="$BUILD_DIR/shell.log"
 TEMPLATE="tools/uwb/tex/uwb_template.tex"
 NOTOFILE="tools/udb-ulb/tex/noto-${LANGUAGE}.tex"
+
+if [[ -z $WORKING_DIR ]]; then
+    WORKING_DIR=$(mktemp -d -t "export_md_to_pdf.XXXXXX")
+    $DEBUG || trap 'popd > /dev/null; rm -rf "$WORKING_DIR"' EXIT SIGHUP SIGTERM
+elif [[ ! -d $WORKING_DIR ]]; then
+    mkdir -p "$WORKING_DIR"
+fi
+
+echo $WORKING_DIR
+
+# Change to our own temp dir but note our current dir so we can get back to it
+pushd "$WORKING_DIR" > /dev/null
+
+# link tools folder
+ln -sf "${MY_DIR}/.." ./tools
+
+repo="${LANGUAGE}_${RESOURCE}"
+url="https://git.door43.org/Door43/${repo}/archive/${TAG}.zip"
+
+echo "Current '$repo' Resource is at: ${url}"
+echo "Current '$repo' Version is at: ${VERSION}"
+
+wget $url -O "./${repo}.zip"
+unzip -qo "./${repo}.zip"
+
+echo "Checked out repo files:"
+ls "${repo}"
 
 if [ "$NUM_COLS" == "2" ];
 then
@@ -72,25 +107,20 @@ else
   MULTICOLS=""
 fi
 
-# Output info about every command (and don't clean up on exit) if in debug mode
-$DEBUG && set -x
-$DEBUG || trap 'cd "$MYDIR";rm -rf "$BUILDDIR"' EXIT SIGHUP SIGTERM
-
-
 # Reload fonts in case any were added recently
 export OSFONTDIR="/usr/share/fonts/google-noto;/usr/share/fonts/noto-fonts/hinted;/usr/local/share/fonts;/usr/share/fonts"
 #mtxrun --script fonts --reload
-if ! mtxrun --script fonts --list --all | grep -q noto; then
-    mtxrun --script fonts --reload
-    context --generate
-    if ! mtxrun --script fonts --list --all | grep -q noto; then
-        echo 'Noto fonts not found, bailing...'
-        exit 1
-    fi
-fi
+#if ! mtxrun --script fonts --list --all | grep -q noto; then
+#    mtxrun --script fonts --reload
+#    context --generate
+#    if ! mtxrun --script fonts --list --all | grep -q noto; then
+#        echo 'Noto fonts not found, bailing...'
+#        exit 1
+#    fi
+#fi
 
-pushd "$BUILDDIR"
-ln -sf "$TOOLSDIR"
+pushd "$BUILD_DIR"
+ln -sf "$TOOLS_DIR"
 
 if [ -z "${BOOKS// }" ];
 then
@@ -99,12 +129,6 @@ then
 fi
 
 for BOOK in "${BOOKS[@]}"; do
-    TITLE=$(tools/catalog/v3/catalog_query.py -l ${LANGUAGE} -r ${RESOURCE} -k title);
-    PUBLISH_DATE=$(date -d $(tools/catalog/v3/catalog_query.py -l ${LANGUAGE} -r ${RESOURCE} -k issued) +"%Y-%m-%d")
-    VERSION=$(tools/catalog/v3/catalog_query.py -l ${LANGUAGE} -r ${RESOURCE} -k version)
-    CHECKING_LEVEL=$(tools/catalog/v3/catalog_query.py -l ${LANGUAGE} -r ${RESOURCE} -k checking:checking_level)
-    TOC_DEPTH=1
-
     if [ -z "${RESOURCE// }" ];
     then
         print "Cannot get the resource id for the Bible '$RESOURCE'"
@@ -153,9 +177,9 @@ for BOOK in "${BOOKS[@]}"; do
     fi
 
     # Run python (helpers/export_usfm_to_html.py) to generate the .html files
-    python -m tools.udb-ulb.helpers.export_usfm_to_html -l $LANGUAGE -r ${RESOURCE} $BOOK_ARG -o "$BUILDDIR/$BASENAME.html"
+    python -m tools.udb-ulb.helpers.export_usfm_to_html -s "${WORKING_DIR}/${repo}" -l $LANGUAGE -r ${RESOURCE} $BOOK_ARG -o "$BUILD_DIR/$BASENAME.html"
 
-    sed -i -e "s/<span class=\"chunk-break\"\/>/<span class=\"chunk-break\"\/>$CHUNK_DIVIDER/g" "$BUILDDIR/$BASENAME.html"
+    sed -i -e "s/<span class=\"chunk-break\"\/>/<span class=\"chunk-break\"\/>$CHUNK_DIVIDER/g" "$BUILD_DIR/$BASENAME.html"
 
     # Generate PDF with PANDOC
     LOGO="https://unfoldingword.org/assets/img/icon-${RESOURCE}.png"

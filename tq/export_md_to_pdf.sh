@@ -42,11 +42,8 @@ pushd "$WORKING_DIR" > /dev/null
 # link tools folder
 ln -sf $MY_DIR/.. ./tools
 
-ls .
-
-
 repo="${LANGUAGE}_${RESOURCE}"
-url="https://git.door43.org/Door43/en_tq/archive/${TAG}.zip"
+url="https://git.door43.org/Door43/${repo}/archive/${TAG}.zip"
 
 echo "Current '$repo' Resource is at: ${url}"
 echo "Current '$repo' Version is at: ${VERSION}"
