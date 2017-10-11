@@ -9,7 +9,7 @@
 #  Richard Mahn <richard_mahn@wycliffeassociates.org>
 
 """
-This script exports tN into HTML format from the API and generates a PDF from the HTML
+This script exports tN into HTML format from DCS and generates a PDF from the HTML
 """
 
 from __future__ import unicode_literals, print_function
@@ -160,15 +160,6 @@ class TnConverter(object):
             command = 'curl -o {0}/icon-tn.png https://unfoldingword.org/assets/img/icon-tn.png'.format(self.working_dir)
             subprocess.call(command, shell=True)
 
-        # QUICK FIX TO USE CHANGES TO V10 OF UDB AND ULB...REMOVE OR UPDATE NEXT tN VERSION
-        if not os.path.isdir(os.path.join(self.working_dir, 'en_udb')):
-            udb_url = 'https://git.door43.org/richmahn/en_udb/archive/changes-to-v10.zip'
-            self.extract_files_from_url(udb_url)
-        if not os.path.isdir(os.path.join(self.working_dir, 'en_ulb')):
-            ulb_url = 'https://git.door43.org/richmahn/en_ulb/archive/changes-to-v10.zip'
-            self.extract_files_from_url(ulb_url)
-        # END QUICK FIX
-
     def extract_files_from_url(self, url):
         zip_file = os.path.join(self.working_dir, url.rpartition(os.path.sep)[2])
         try:
@@ -189,10 +180,6 @@ class TnConverter(object):
 
             # url = self.catalog.get_format(self.lang_code, resource, self.book_id, 'text/usfm')['url']
             # usfm = get_url(url)
-
-            # Quick fix for ULB Numbers having many marking errors. REMOVE IN NEXT VERSION OF tN and uncomment above
-            usfm = read_file(os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource), '{0}-{1}.usfm'.format(self.book_number, self.book_id.upper())))
-            # END QUICK FIX
 
             chunks = re.compile(r'\\s5\s*\n*').split(usfm)
             header = chunks[0]
@@ -459,15 +446,6 @@ class TnConverter(object):
             if resource not in ['ta', 'tw']:
                 continue
 
-            # REMOVE THESE FIXES IN NEXT VERSION OF tN!
-            if 'humanqualities' in path:
-                path = path.replace('humanqualities', 'hq')
-            if 'metaphore' in path:
-                path = path.replace('metaphore', 'metaphor')
-            if 'kt/dead' in path:
-                path = path.replace('kt/dead', 'other/death')
-            # TEXT FIXES END
-
             if rc not in self.my_rcs:
                 self.my_rcs.append(rc)
             if rc not in self.rc_references:
@@ -558,7 +536,6 @@ class TnConverter(object):
     def fix_tn_links(self, text, chapter):
         rep = {
             re.escape('**[2 Thessalonians intro](../front/intro.md)'): '**[2 Thessalonians intro](../front/intro.md)**',
-            'kt/dead': 'other/death', # Fix bad link in tN, REMOVE NEXT VERSION!!!
             r'\]\(\.\./\.\./([^)]+?)(\.md)*\)': r'](rc://{0}/tn/help/\1)'.format(self.lang_code),
             r'\]\(\.\./([^)]+?)(\.md)*\)': r'](rc://{0}/tn/help/{1}/\1)'.format(self.lang_code, self.book_id),
             r'\]\(\./([^)]+?)(\.md)*\)': r'](rc://{0}/tn/help/{1}/{2}/\1)'.format(self.lang_code, self.book_id,
@@ -571,7 +548,6 @@ class TnConverter(object):
 
     def fix_tw_links(self, text, dictionary):
         rep = {
-            '../tax.md': '../other/tax.md',  # Fix for bad link in tW, REMOVE NEXT VERSION OF tN!
             r'\]\(\.\./([^/)]+?)(\.md)*\)': r'](rc://{0}/tw/dict/bible/{1}/\1)'.format(self.lang_code, dictionary),
             r'\]\(\.\./([^)]+?)(\.md)*\)': r'](rc://{0}/tw/dict/bible/\1)'.format(self.lang_code),
         }
@@ -581,8 +557,6 @@ class TnConverter(object):
 
     def fix_ta_links(self, text, manual):
         rep = {
-            'bita-humanqualities': 'bita-hq', # Fix bad link in tA, REMOVE NEXT VERSION!!
-            '<u>even when<u>': '<u>even when</u>',  # Fix bad underline in tA, REMOVE NEXT VERSION!
             r'\]\(\.\./([^/)]+)/01\.md\)': r'](rc://{0}/ta/man/{1}/\1)'.format(self.lang_code, manual),
             r'\]\(\.\./\.\./([^/)]+)/([^/)]+)/01\.md\)': r'](rc://{0}/ta/man/\1/\2)'.format(self.lang_code),
             r'\]\(([^# :/)]+)\)': r'](rc://{0}/ta/man/{1}/\1)'.format(self.lang_code, manual),
@@ -615,8 +589,6 @@ class TnConverter(object):
 
     def fix_links(self, text):
         rep = {}
-        # Fix metaphor misspelling, REMOVE NEXT VERSION!!
-        rep['etaphore'] = 'etaphor'
 
         def replace_tn_with_door43_link(match):
             book = match.group(1)
