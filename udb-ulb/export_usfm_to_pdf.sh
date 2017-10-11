@@ -56,14 +56,15 @@ done
 : ${CHUNK_DIVIDER=''}
 : ${NUM_COLS=2}
 : ${FONT_SIZE=12}
-: ${TITLE='Unlocked Literal Bible'}
-: ${PUBLISH_DATE='2017-10-10'}
-: ${VERSION='11'}
-: ${CHECKING_LEVEL='3'}
 : ${TOC_DEPTH=1}
 : ${TAG='v11'}
 
 $DEBUG && set -x
+
+VERSION=`yaml2json manifest.yaml | jq -r '.dublin_core.version'`
+PUBLISH_DATE=`yaml2json manifest.yaml | jq -r '.dublin_core.issued'`
+TITLE=`yaml2json manifest.yaml | jq -r '.dublin_core.title'`
+CHECKING_LEVEL=`yaml2json manifest.yaml | jq -r '.checking.checking_level'`
 
 # Note out base location and create a temporary workspace
 MY_DIR=$(cd $(dirname "$0") && pwd)
