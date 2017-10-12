@@ -11,7 +11,6 @@
 """
 This script exports tN into HTML format from DCS and generates a PDF from the HTML
 """
-
 from __future__ import unicode_literals, print_function
 import os
 import sys
@@ -25,7 +24,6 @@ import shutil
 import subprocess
 from glob import glob
 from bs4 import BeautifulSoup
-from ..catalog.v3.catalog import UWCatalog
 from usfm_tools.transform import UsfmTransform
 from ..general_tools.file_utils import write_file, read_file, unzip, load_yaml_object
 from ..general_tools.url_utils import download_file
@@ -34,7 +32,7 @@ from ..general_tools.bible_books import BOOK_NUMBERS
 
 class TnConverter(object):
 
-    def __init__(self, ta_tag=None, tn_tag, tq_tag, tw_tag, working_dir=None, output_dir=None, lang_code='en', books=None):
+    def __init__(self, ta_tag=None, tn_tag=None, tq_tag=None, tw_tag=None, working_dir=None, output_dir=None, lang_code='en', books=None):
         """
         :param ta_tag:
         :param tn_tag:
@@ -53,12 +51,6 @@ class TnConverter(object):
         self.output_dir = output_dir
         self.lang_code = lang_code
         self.books = books
-
-        self.catalog = UWCatalog()
-        self.tn = self.catalog.get_resource(lang_code, 'tn')
-        self.tw = self.catalog.get_resource(lang_code, 'tw')
-        self.tq = self.catalog.get_resource(lang_code, 'tq')
-        self.ta = self.catalog.get_resource(lang_code, 'ta')
 
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.DEBUG)
@@ -96,13 +88,15 @@ class TnConverter(object):
         self.resource_data = {}
         self.bad_links = {}
         self.usfm_chunks = {}
-        self.version = self.tn['version']
-        self.issued = self.tn['issued']
+        self.version = None
+        self.issued = None
         self.filename_base = None
 
     def run(self):
         self.setup_resource_files()
         self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
+        self.version = self.manifest['dublin_core']['version']
+        self.issued = self.manifest['dublin_core']['issued']
         projects = self.get_book_projects()
         for p in projects:
             self.project = p
@@ -140,32 +134,21 @@ class TnConverter(object):
                 projects.append(p)
         return sorted(projects, key=lambda k: k['sort'])
 
-    @staticmethod
-    def get_resource_url(resource):
-        formats = None
-        if 'formats' in resource:
-            formats = resource['formats']
-        else:
-            if 'projects' in resource:
-                if 'formats' in resource['projects'][0]:
-                    formats = resource['projects'][0]['formats']
-        if formats:
-            for f in formats:
-                if f['url'].endswith('.zip'):
-                    return f['url']
+    def get_resource_url(self, resource, tag):
+        return 'https://git.door43.org/Door43/{0}_{1}/archive/{2}.zip'.format(self.lang_code, resource, tag)
 
     def setup_resource_files(self):
         if not os.path.isdir(os.path.join(self.working_dir, 'en_tn')):
-            tn_url = self.get_resource_url(self.tn)
+            tn_url = self.get_resource_url('tn', self.tn_tag)
             self.extract_files_from_url(tn_url)
         if not os.path.isdir(os.path.join(self.working_dir, 'en_tw')):
-            tw_url = self.get_resource_url(self.tw)
+            tw_url = self.get_resource_url('tw', self.tw_tag)
             self.extract_files_from_url(tw_url)
         if not os.path.isdir(os.path.join(self.working_dir, 'en_tq')):
-            tq_url = self.get_resource_url(self.tq)
+            tq_url = self.get_resource_url('tq', self.tq_tag)
             self.extract_files_from_url(tq_url)
         if not os.path.isdir(os.path.join(self.working_dir, 'en_ta')):
-            ta_url = self.get_resource_url(self.ta)
+            ta_url = self.get_resource_url('ta', self.ta_tag)
             self.extract_files_from_url(ta_url)
         if not os.path.isfile(os.path.join(self.working_dir, 'icon-tn.png')):
             command = 'curl -o {0}/icon-tn.png https://unfoldingword.org/assets/img/icon-tn.png'.format(self.working_dir)
@@ -732,10 +715,10 @@ if __name__ == '__main__':
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-l', '--lang', dest='lang_code', default='en', required=False, help="Language Code")
     parser.add_argument('-b', '--book_id', dest='books', nargs='+', default=None, required=False, help="Bible Book(s)")
-    parser.add_argument('-a', '--ta-tag', dest='ta', default='v', required=False, help="tA Tag")
-    parser.add_argument('-t', '--tn-tag', dest='tn', default=False, required=False, help="tN Tag")
-    parser.add_argument('-q', '--tq-tag', dest='tq', default=False, required=False, help="tQ Tag")
-    parser.add_argument('-w', '--tw-tag', dest='tw', default=False, required=False, help="tW Tag")
+    parser.add_argument('-a', '--ta-tag', dest='ta', default='v8', required=False, help="tA Tag")
+    parser.add_argument('-t', '--tn-tag', dest='tn', default='v10', required=False, help="tN Tag")
+    parser.add_argument('-q', '--tq-tag', dest='tq', default='v8-', required=False, help="tQ Tag")
+    parser.add_argument('-w', '--tw-tag', dest='tw', default='v7', required=False, help="tW Tag")
     parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help="Working Directory")
     parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False, help="Output Directory")
     args = parser.parse_args(sys.argv[1:])
