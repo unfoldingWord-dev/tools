@@ -10,6 +10,3 @@
 
 cd $(dirname "$0")/../..
 python -m tools.tn.export_md_to_pdf $@
-
-
-

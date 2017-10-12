@@ -7,63 +7,44 @@
 #
 #  Contributors:
 #  Richard Mahn <richard_mahn@wycliffeassociates.org>
-
-
 """
-This script exports a Bible into the given format from the API.
+This script exports a Bible into the given format from local USFM files
 """
-
 import os
 import sys
 import codecs
 import shutil
 import argparse
-import urllib
 import tempfile
-from ...catalog.v3.catalog import UWCatalog
+from ...general_tools.bible_books import BOOK_NUMBERS
 from usfm_tools.transform import UsfmTransform
 
-CatalogJSON='https://api.door43.org/v3/catalog.json'
 
-
-def main(lang_code, resource_id, books, outfile):
-    sys.stdout = codecs.getwriter('utf8')(sys.stdout);
-
-    catalog = UWCatalog(CatalogJSON)
-    bible = catalog.get_resource(lang_code, resource_id)
-
-    if bible is None:
-        print("The Bible version {0} for language {1} is not found in the catalog at {2}. Exiting...".format(resource_id, lang_code, CatalogJSON))
-        sys.exit(1)
-
-    sources = []
-    for p in bible['projects']:
-        if books is None or p['identifier'] in books:
-            if 'formats' in p:
-                for f in p['formats']:
-                    if f['format'] == 'text/usfm':
-                        sources += [f['url']]
-
-    if not sources:
-
-        print("No sources were found for language {0} of version {1} in {2}. Exiting...".format(lang_code, resource_id, CatalogJSON))
-        sys.exit(1)
-
+def main(source, lang_code, resource_id, books, outfile):
+    sys.stdout = codecs.getwriter('utf8')(sys.stdout)
     tmpdir = tempfile.mkdtemp(prefix='uwb-{0}-{1}-'.format(resource_id, lang_code))
-
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
-    os.makedirs(tmpdir+"/sources")
-    for source in sources:
-        f = urllib.URLopener()
-        f.retrieve(source, tmpdir+"/sources/"+os.path.basename(source))
 
-    UsfmTransform.buildSingleHtml(tmpdir+"/sources", tmpdir, "bible")
+    usfm_dir = tmpdir + "/usfm"
+
+    if not books:
+        shutil.copytree(source, usfm_dir)
+    else:
+        os.makedirs(usfm_dir)
+        for book in books:
+            source_file = '{0}/{1}-{2}.usfm'.format(source, BOOK_NUMBERS[book.lower()], book.upper())
+            if not os.path.isfile(source_file):
+                raise IOError('File not found: {}'.format(source_file))
+            shutil.copy(source_file, usfm_dir)
+
+    UsfmTransform.buildSingleHtml(usfm_dir, tmpdir, "bible")
     shutil.copyfile(tmpdir+'/bible.html', outfile)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('-s', '--source', dest='source', default=False, required=True, help="USFM Source Directory")
     parser.add_argument('-l', '--lang', dest='langcode', default=False, required=True, help="Language Code")
     parser.add_argument('-r', '--resource', dest='resource_id', default=False, required=True, help="Bible Version")
     parser.add_argument('-b', '--book', dest='books', nargs='+', default=None, required=False, help="Bible Book(s)")
@@ -71,4 +52,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args(sys.argv[1:])
 
-    main(args.langcode, args.resource_id, args.books, args.outfile)
+    main(args.source, args.langcode, args.resource_id, args.books, args.outfile)

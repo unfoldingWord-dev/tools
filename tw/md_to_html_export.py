@@ -19,7 +19,6 @@ import sys
 import codecs
 import argparse
 import markdown2
-import time
 from glob import glob
 from bs4 import BeautifulSoup
 
@@ -96,7 +95,7 @@ def fix_content(content):
     return content
 
 
-def main(inpath, outpath, version):
+def main(inpath, outpath, version, issued_date):
     global twRoot, taUrl, taManualUrls, twOrder, terms
 
     twRoot = inpath
@@ -133,7 +132,7 @@ def main(inpath, outpath, version):
     <span class="h1">Copyrights & Licensing</span>
 ''' + license + '''
     <p>
-      <strong>Date:</strong> ''' + time.strftime("%Y-%m-%d") + '''<br/>
+      <strong>Date:</strong> ''' + issued_date + '''<br/>
       <strong>Version:</strong> ''' + version + '''
     </p>
   </div>
@@ -193,7 +192,9 @@ if __name__ == '__main__':
                         required=False, help="Output path of the html file")
     parser.add_argument('-v', '--version', dest="version",
                         required=True, help="Version of translationWords")
+    parser.add_argument('-d', '--issued_date', dest="issued_date",
+                        required=True, help="Issued Date")
 
     args = parser.parse_args(sys.argv[1:])
 
-    main(args.inpath, args.outpath, args.version)
+    main(args.inpath, args.outpath, args.version, args.issued_date)
