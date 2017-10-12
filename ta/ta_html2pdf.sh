@@ -105,7 +105,7 @@ echo '<!DOCTYPE html>
 <p>You do not have to comply with the license for elements of the material in the public domain or where your use is permitted by an applicable exception or limitation.</p>
 <p>No warranties are given. The license may not give you all of the permissions necessary for your intended use. For example, other rights such as publicity, privacy, or moral rights may limit how you use the material.</p>
     <p>
-      <strong>Date:</strong> '`date +%Y-%m-%d`'<br/>
+      <strong>Date:</strong> '${issued_date}'<br/>
       <strong>Version:</strong> '${version}'
     </p>
   </div>
