@@ -50,6 +50,9 @@ url="https://git.door43.org/Door43/${repo}/archive/${TAG}.zip"
 wget $url -O "./${repo}.zip"
 unzip -qo "./${repo}.zip"
 
+# Fix for v8
+wget "https://git.door43.org/Door43/en_tq/raw/master/LICENSE.md" -O "${repo}/LICENSE.md"
+
 echo "Checked out repo files:"
 ls "${repo}"
 
@@ -80,7 +83,7 @@ book_export () {
     licensefile="file://$OUTPUT_DIR/html/license.html"
     bodyfile="file://$OUTPUT_DIR/html/$book.html"
     if [[ $book != "all" ]]; then
-        outfile="$OUTPUT_DIR/pdf/${repo}_${BOOK_NUMBERS[$book]}-${book^^}_v${VERSION}.pdf"
+        outfile="$OUTPUT_DIR/pdf/${repo}_${BOOK_NUMBERS[$book]}-${book^^}_v${version}.pdf"
     else
         outfile="$OUTPUT_DIR/pdf/${repo}_v${version}.pdf"
     fi
