@@ -32,12 +32,15 @@ from ..general_tools.bible_books import BOOK_NUMBERS
 
 class TnConverter(object):
 
-    def __init__(self, ta_tag=None, tn_tag=None, tq_tag=None, tw_tag=None, working_dir=None, output_dir=None, lang_code='en', books=None):
+    def __init__(self, ta_tag=None, tn_tag=None, tq_tag=None, tw_tag=None, udb_tag=None, ulb_tag=None, working_dir=None, 
+                 output_dir=None, lang_code='en', books=None):
         """
         :param ta_tag:
         :param tn_tag:
         :param tq_tag:
         :param tw_tag:
+        :param udb_tag:
+        :param ulb_tag:
         :param working_dir:
         :param output_dir:
         :param lang_code:
@@ -47,6 +50,8 @@ class TnConverter(object):
         self.tn_tag = tn_tag
         self.tq_tag = tq_tag
         self.tw_tag = tw_tag
+        self.udb_tag = udb_tag
+        self.ulb_tag = ulb_tag
         self.working_dir = working_dir
         self.output_dir = output_dir
         self.lang_code = lang_code
@@ -72,6 +77,8 @@ class TnConverter(object):
         self.tw_dir = os.path.join(self.working_dir, '{0}_tw'.format(lang_code))
         self.tq_dir = os.path.join(self.working_dir, '{0}_tq'.format(lang_code))
         self.ta_dir = os.path.join(self.working_dir, '{0}_ta'.format(lang_code))
+        self.udb_dir = os.path.join(self.working_dir, '{0}_udb'.format(lang_code))
+        self.ulb_dir = os.path.join(self.working_dir, '{0}_ulb'.format(lang_code))
 
         self.manifest = None
 
@@ -150,6 +157,12 @@ class TnConverter(object):
         if not os.path.isdir(os.path.join(self.working_dir, 'en_ta')):
             ta_url = self.get_resource_url('ta', self.ta_tag)
             self.extract_files_from_url(ta_url)
+        if not os.path.isdir(os.path.join(self.working_dir, 'en_udb')):
+            udb_url = self.get_resource_url('udb', self.udb_tag)
+            self.extract_files_from_url(udb_url)
+        if not os.path.isdir(os.path.join(self.working_dir, 'en_ulb')):
+            ulb_url = self.get_resource_url('ulb', self.ulb_tag)
+            self.extract_files_from_url(ulb_url)
         if not os.path.isfile(os.path.join(self.working_dir, 'icon-tn.png')):
             command = 'curl -o {0}/icon-tn.png https://unfoldingword.org/assets/img/icon-tn.png'.format(self.working_dir)
             subprocess.call(command, shell=True)
@@ -172,8 +185,9 @@ class TnConverter(object):
         for resource in ['udb', 'ulb']:
             book_chunks[resource] = {}
 
-            # url = self.catalog.get_format(self.lang_code, resource, self.book_id, 'text/usfm')['url']
-            # usfm = get_url(url)
+            bible_dir = getattr(self, '{0}_dir'.format(resource))
+            usfm = read_file(os.path.join(bible_dir, '{0}-{1}.usfm'.format(BOOK_NUMBERS[self.book_id],
+                                                                           self.book_id.upper())))
 
             chunks = re.compile(r'\\s5\s*\n*').split(usfm)
             header = chunks[0]
@@ -695,19 +709,22 @@ class TnConverter(object):
         subprocess.call(command, shell=True)
 
 
-def main(ta_tag, tn_tag, tq_tag, tw_tag, lang_code, books, working_dir, output_dir):
+def main(ta_tag, tn_tag, tq_tag, tw_tag, udb_tag, ulb_tag, lang_code, books, working_dir, output_dir):
     """
     :param ta_tag:
     :param tn_tag:
     :param tq_tag:
     :param tw_tag:
+    :param udb_tag:
+    :param ulb_tag:
     :param lang_code:
     :param books:
     :param working_dir:
     :param output_dir:
     :return:
     """
-    tn_converter = TnConverter(ta_tag, tn_tag, tq_tag, tw_tag, working_dir, output_dir, lang_code, books)
+    tn_converter = TnConverter(ta_tag, tn_tag, tq_tag, tw_tag, udb_tag, ulb_tag, working_dir, output_dir, 
+                               lang_code, books)
     tn_converter.run()
 
 if __name__ == '__main__':
@@ -719,7 +736,9 @@ if __name__ == '__main__':
     parser.add_argument('-n', '--tn-tag', dest='tn', default='v10', required=False, help="tN Tag")
     parser.add_argument('-q', '--tq-tag', dest='tq', default='v8-', required=False, help="tQ Tag")
     parser.add_argument('-t', '--tw-tag', dest='tw', default='v7', required=False, help="tW Tag")
+    parser.add_argument('-d', '--udb-tag', dest='udb', default='v11', required=False, help="UDB Tag")
+    parser.add_argument('-l', '--ulb-tag', dest='ulb', default='v11', required=False, help="ULB Tag")
     parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help="Working Directory")
     parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False, help="Output Directory")
     args = parser.parse_args(sys.argv[1:])
-    main(args.ta, args.tn, args.tq, args.tw, args.lang_code, args.books, args.working_dir, args.output_dir)
+    main(args.ta, args.tn, args.tq, args.tw, args.udb, arg.ulb, args.lang_code, args.books, args.working_dir, args.output_dir)
