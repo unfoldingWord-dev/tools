@@ -741,4 +741,5 @@ if __name__ == '__main__':
     parser.add_argument('--udb-tag', dest='udb', default='v11', required=False, help="UDB Tag")
     parser.add_argument('--ulb-tag', dest='ulb', default='v11', required=False, help="ULB Tag")
     args = parser.parse_args(sys.argv[1:])
-    main(args.ta, args.tn, args.tq, args.tw, args.udb, arg.ulb, args.lang_code, args.books, args.working_dir, args.output_dir)
+    main(args.ta, args.tn, args.tq, args.tw, args.udb, args.ulb, args.lang_code, args.books, args.working_dir,
+         args.output_dir)
