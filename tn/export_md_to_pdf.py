@@ -34,10 +34,21 @@ from ..general_tools.bible_books import BOOK_NUMBERS
 
 class TnConverter(object):
 
-    def __init__(self, working_dir=None, output_dir=None, lang_code='en', books=None):
+    def __init__(self, ta_tag=None, tn_tag, tq_tag, tw_tag, working_dir=None, output_dir=None, lang_code='en', books=None):
         """
-        :param string output_dir:
+        :param ta_tag:
+        :param tn_tag:
+        :param tq_tag:
+        :param tw_tag:
+        :param working_dir:
+        :param output_dir:
+        :param lang_code:
+        :param books:
         """
+        self.ta_tag = ta_tag
+        self.tn_tag = tn_tag
+        self.tq_tag = tq_tag
+        self.tw_tag = tw_tag
         self.working_dir = working_dir
         self.output_dir = output_dir
         self.lang_code = lang_code
@@ -701,8 +712,19 @@ class TnConverter(object):
         subprocess.call(command, shell=True)
 
 
-def main(lang_code, books, working_dir, output_dir):
-    tn_converter = TnConverter(working_dir, output_dir, lang_code, books)
+def main(ta_tag, tn_tag, tq_tag, tw_tag, lang_code, books, working_dir, output_dir):
+    """
+    :param ta_tag:
+    :param tn_tag:
+    :param tq_tag:
+    :param tw_tag:
+    :param lang_code:
+    :param books:
+    :param working_dir:
+    :param output_dir:
+    :return:
+    """
+    tn_converter = TnConverter(ta_tag, tn_tag, tq_tag, tw_tag, working_dir, output_dir, lang_code, books)
     tn_converter.run()
 
 if __name__ == '__main__':
@@ -710,7 +732,11 @@ if __name__ == '__main__':
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-l', '--lang', dest='lang_code', default='en', required=False, help="Language Code")
     parser.add_argument('-b', '--book_id', dest='books', nargs='+', default=None, required=False, help="Bible Book(s)")
+    parser.add_argument('-a', '--ta-tag', dest='ta', default='v', required=False, help="tA Tag")
+    parser.add_argument('-t', '--tn-tag', dest='tn', default=False, required=False, help="tN Tag")
+    parser.add_argument('-q', '--tq-tag', dest='tq', default=False, required=False, help="tQ Tag")
+    parser.add_argument('-w', '--tw-tag', dest='tw', default=False, required=False, help="tW Tag")
     parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help="Working Directory")
     parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False, help="Output Directory")
     args = parser.parse_args(sys.argv[1:])
-    main(args.lang_code, args.books, args.working_dir, args.output_dir)
+    main(args.ta, args.tn, args.tq, args.tw, args.lang_code, args.books, args.working_dir, args.output_dir)
