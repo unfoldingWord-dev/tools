@@ -51,7 +51,7 @@ wget $url -O "./${repo}.zip"
 unzip -qo "./${repo}.zip"
 
 # Fix for v8
-wget "https://git.door43.org/Door43/en_tq/raw/master/LICENSE.md" -O "${repo}/LICENSE.md"
+wget "https://git.door43.org/Door43/${repo}/raw/master/LICENSE.md" -O "${repo}/LICENSE.md"
 
 echo "Checked out repo files:"
 ls "${repo}"
