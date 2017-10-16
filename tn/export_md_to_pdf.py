@@ -9,9 +9,8 @@
 #  Richard Mahn <richard_mahn@wycliffeassociates.org>
 
 """
-This script exports tN into HTML format from the API and generates a PDF from the HTML
+This script exports tN into HTML format from DCS and generates a PDF from the HTML
 """
-
 from __future__ import unicode_literals, print_function
 import os
 import sys
@@ -25,7 +24,6 @@ import shutil
 import subprocess
 from glob import glob
 from bs4 import BeautifulSoup
-from ..catalog.v3.catalog import UWCatalog
 from usfm_tools.transform import UsfmTransform
 from ..general_tools.file_utils import write_file, read_file, unzip, load_yaml_object
 from ..general_tools.url_utils import download_file
@@ -34,20 +32,30 @@ from ..general_tools.bible_books import BOOK_NUMBERS
 
 class TnConverter(object):
 
-    def __init__(self, working_dir=None, output_dir=None, lang_code='en', books=None):
+    def __init__(self, ta_tag=None, tn_tag=None, tq_tag=None, tw_tag=None, udb_tag=None, ulb_tag=None, working_dir=None, 
+                 output_dir=None, lang_code='en', books=None):
         """
-        :param string output_dir:
+        :param ta_tag:
+        :param tn_tag:
+        :param tq_tag:
+        :param tw_tag:
+        :param udb_tag:
+        :param ulb_tag:
+        :param working_dir:
+        :param output_dir:
+        :param lang_code:
+        :param books:
         """
+        self.ta_tag = ta_tag
+        self.tn_tag = tn_tag
+        self.tq_tag = tq_tag
+        self.tw_tag = tw_tag
+        self.udb_tag = udb_tag
+        self.ulb_tag = ulb_tag
         self.working_dir = working_dir
         self.output_dir = output_dir
         self.lang_code = lang_code
         self.books = books
-
-        self.catalog = UWCatalog()
-        self.tn = self.catalog.get_resource(lang_code, 'tn')
-        self.tw = self.catalog.get_resource(lang_code, 'tw')
-        self.tq = self.catalog.get_resource(lang_code, 'tq')
-        self.ta = self.catalog.get_resource(lang_code, 'ta')
 
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.DEBUG)
@@ -69,6 +77,8 @@ class TnConverter(object):
         self.tw_dir = os.path.join(self.working_dir, '{0}_tw'.format(lang_code))
         self.tq_dir = os.path.join(self.working_dir, '{0}_tq'.format(lang_code))
         self.ta_dir = os.path.join(self.working_dir, '{0}_ta'.format(lang_code))
+        self.udb_dir = os.path.join(self.working_dir, '{0}_udb'.format(lang_code))
+        self.ulb_dir = os.path.join(self.working_dir, '{0}_ulb'.format(lang_code))
 
         self.manifest = None
 
@@ -85,13 +95,15 @@ class TnConverter(object):
         self.resource_data = {}
         self.bad_links = {}
         self.usfm_chunks = {}
-        self.version = self.tn['version']
-        self.issued = self.tn['issued']
+        self.version = None
+        self.issued = None
         self.filename_base = None
 
     def run(self):
         self.setup_resource_files()
         self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
+        self.version = self.manifest['dublin_core']['version']
+        self.issued = self.manifest['dublin_core']['issued']
         projects = self.get_book_projects()
         for p in projects:
             self.project = p
@@ -129,45 +141,31 @@ class TnConverter(object):
                 projects.append(p)
         return sorted(projects, key=lambda k: k['sort'])
 
-    @staticmethod
-    def get_resource_url(resource):
-        formats = None
-        if 'formats' in resource:
-            formats = resource['formats']
-        else:
-            if 'projects' in resource:
-                if 'formats' in resource['projects'][0]:
-                    formats = resource['projects'][0]['formats']
-        if formats:
-            for f in formats:
-                if f['url'].endswith('.zip'):
-                    return f['url']
+    def get_resource_url(self, resource, tag):
+        return 'https://git.door43.org/Door43/{0}_{1}/archive/{2}.zip'.format(self.lang_code, resource, tag)
 
     def setup_resource_files(self):
         if not os.path.isdir(os.path.join(self.working_dir, 'en_tn')):
-            tn_url = self.get_resource_url(self.tn)
+            tn_url = self.get_resource_url('tn', self.tn_tag)
             self.extract_files_from_url(tn_url)
         if not os.path.isdir(os.path.join(self.working_dir, 'en_tw')):
-            tw_url = self.get_resource_url(self.tw)
+            tw_url = self.get_resource_url('tw', self.tw_tag)
             self.extract_files_from_url(tw_url)
         if not os.path.isdir(os.path.join(self.working_dir, 'en_tq')):
-            tq_url = self.get_resource_url(self.tq)
+            tq_url = self.get_resource_url('tq', self.tq_tag)
             self.extract_files_from_url(tq_url)
         if not os.path.isdir(os.path.join(self.working_dir, 'en_ta')):
-            ta_url = self.get_resource_url(self.ta)
+            ta_url = self.get_resource_url('ta', self.ta_tag)
             self.extract_files_from_url(ta_url)
+        if not os.path.isdir(os.path.join(self.working_dir, 'en_udb')):
+            udb_url = self.get_resource_url('udb', self.udb_tag)
+            self.extract_files_from_url(udb_url)
+        if not os.path.isdir(os.path.join(self.working_dir, 'en_ulb')):
+            ulb_url = self.get_resource_url('ulb', self.ulb_tag)
+            self.extract_files_from_url(ulb_url)
         if not os.path.isfile(os.path.join(self.working_dir, 'icon-tn.png')):
             command = 'curl -o {0}/icon-tn.png https://unfoldingword.org/assets/img/icon-tn.png'.format(self.working_dir)
             subprocess.call(command, shell=True)
-
-        # QUICK FIX TO USE CHANGES TO V10 OF UDB AND ULB...REMOVE OR UPDATE NEXT tN VERSION
-        if not os.path.isdir(os.path.join(self.working_dir, 'en_udb')):
-            udb_url = 'https://git.door43.org/richmahn/en_udb/archive/changes-to-v10.zip'
-            self.extract_files_from_url(udb_url)
-        if not os.path.isdir(os.path.join(self.working_dir, 'en_ulb')):
-            ulb_url = 'https://git.door43.org/richmahn/en_ulb/archive/changes-to-v10.zip'
-            self.extract_files_from_url(ulb_url)
-        # END QUICK FIX
 
     def extract_files_from_url(self, url):
         zip_file = os.path.join(self.working_dir, url.rpartition(os.path.sep)[2])
@@ -187,12 +185,9 @@ class TnConverter(object):
         for resource in ['udb', 'ulb']:
             book_chunks[resource] = {}
 
-            # url = self.catalog.get_format(self.lang_code, resource, self.book_id, 'text/usfm')['url']
-            # usfm = get_url(url)
-
-            # Quick fix for ULB Numbers having many marking errors. REMOVE IN NEXT VERSION OF tN and uncomment above
-            usfm = read_file(os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource), '{0}-{1}.usfm'.format(self.book_number, self.book_id.upper())))
-            # END QUICK FIX
+            bible_dir = getattr(self, '{0}_dir'.format(resource))
+            usfm = read_file(os.path.join(bible_dir, '{0}-{1}.usfm'.format(BOOK_NUMBERS[self.book_id],
+                                                                           self.book_id.upper())))
 
             chunks = re.compile(r'\\s5\s*\n*').split(usfm)
             header = chunks[0]
@@ -459,15 +454,6 @@ class TnConverter(object):
             if resource not in ['ta', 'tw']:
                 continue
 
-            # REMOVE THESE FIXES IN NEXT VERSION OF tN!
-            if 'humanqualities' in path:
-                path = path.replace('humanqualities', 'hq')
-            if 'metaphore' in path:
-                path = path.replace('metaphore', 'metaphor')
-            if 'kt/dead' in path:
-                path = path.replace('kt/dead', 'other/death')
-            # TEXT FIXES END
-
             if rc not in self.my_rcs:
                 self.my_rcs.append(rc)
             if rc not in self.rc_references:
@@ -558,7 +544,6 @@ class TnConverter(object):
     def fix_tn_links(self, text, chapter):
         rep = {
             re.escape('**[2 Thessalonians intro](../front/intro.md)'): '**[2 Thessalonians intro](../front/intro.md)**',
-            'kt/dead': 'other/death', # Fix bad link in tN, REMOVE NEXT VERSION!!!
             r'\]\(\.\./\.\./([^)]+?)(\.md)*\)': r'](rc://{0}/tn/help/\1)'.format(self.lang_code),
             r'\]\(\.\./([^)]+?)(\.md)*\)': r'](rc://{0}/tn/help/{1}/\1)'.format(self.lang_code, self.book_id),
             r'\]\(\./([^)]+?)(\.md)*\)': r'](rc://{0}/tn/help/{1}/{2}/\1)'.format(self.lang_code, self.book_id,
@@ -571,7 +556,6 @@ class TnConverter(object):
 
     def fix_tw_links(self, text, dictionary):
         rep = {
-            '../tax.md': '../other/tax.md',  # Fix for bad link in tW, REMOVE NEXT VERSION OF tN!
             r'\]\(\.\./([^/)]+?)(\.md)*\)': r'](rc://{0}/tw/dict/bible/{1}/\1)'.format(self.lang_code, dictionary),
             r'\]\(\.\./([^)]+?)(\.md)*\)': r'](rc://{0}/tw/dict/bible/\1)'.format(self.lang_code),
         }
@@ -581,8 +565,6 @@ class TnConverter(object):
 
     def fix_ta_links(self, text, manual):
         rep = {
-            'bita-humanqualities': 'bita-hq', # Fix bad link in tA, REMOVE NEXT VERSION!!
-            '<u>even when<u>': '<u>even when</u>',  # Fix bad underline in tA, REMOVE NEXT VERSION!
             r'\]\(\.\./([^/)]+)/01\.md\)': r'](rc://{0}/ta/man/{1}/\1)'.format(self.lang_code, manual),
             r'\]\(\.\./\.\./([^/)]+)/([^/)]+)/01\.md\)': r'](rc://{0}/ta/man/\1/\2)'.format(self.lang_code),
             r'\]\(([^# :/)]+)\)': r'](rc://{0}/ta/man/{1}/\1)'.format(self.lang_code, manual),
@@ -615,8 +597,6 @@ class TnConverter(object):
 
     def fix_links(self, text):
         rep = {}
-        # Fix metaphor misspelling, REMOVE NEXT VERSION!!
-        rep['etaphore'] = 'etaphor'
 
         def replace_tn_with_door43_link(match):
             book = match.group(1)
@@ -729,8 +709,22 @@ class TnConverter(object):
         subprocess.call(command, shell=True)
 
 
-def main(lang_code, books, working_dir, output_dir):
-    tn_converter = TnConverter(working_dir, output_dir, lang_code, books)
+def main(ta_tag, tn_tag, tq_tag, tw_tag, udb_tag, ulb_tag, lang_code, books, working_dir, output_dir):
+    """
+    :param ta_tag:
+    :param tn_tag:
+    :param tq_tag:
+    :param tw_tag:
+    :param udb_tag:
+    :param ulb_tag:
+    :param lang_code:
+    :param books:
+    :param working_dir:
+    :param output_dir:
+    :return:
+    """
+    tn_converter = TnConverter(ta_tag, tn_tag, tq_tag, tw_tag, udb_tag, ulb_tag, working_dir, output_dir, 
+                               lang_code, books)
     tn_converter.run()
 
 if __name__ == '__main__':
@@ -740,5 +734,12 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--book_id', dest='books', nargs='+', default=None, required=False, help="Bible Book(s)")
     parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help="Working Directory")
     parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False, help="Output Directory")
+    parser.add_argument('--ta-tag', dest='ta', default='v8', required=False, help="tA Tag")
+    parser.add_argument('--tn-tag', dest='tn', default='v10', required=False, help="tN Tag")
+    parser.add_argument('--tq-tag', dest='tq', default='v8-', required=False, help="tQ Tag")
+    parser.add_argument('--tw-tag', dest='tw', default='v7', required=False, help="tW Tag")
+    parser.add_argument('--udb-tag', dest='udb', default='v11', required=False, help="UDB Tag")
+    parser.add_argument('--ulb-tag', dest='ulb', default='v11', required=False, help="ULB Tag")
     args = parser.parse_args(sys.argv[1:])
-    main(args.lang_code, args.books, args.working_dir, args.output_dir)
+    main(args.ta, args.tn, args.tq, args.tw, args.udb, args.ulb, args.lang_code, args.books, args.working_dir,
+         args.output_dir)

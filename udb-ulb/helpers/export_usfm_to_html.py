@@ -25,15 +25,20 @@ def main(source, lang_code, resource_id, books, outfile):
     tmpdir = tempfile.mkdtemp(prefix='uwb-{0}-{1}-'.format(resource_id, lang_code))
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
-    os.makedirs(tmpdir+"/sources")
 
-    for book in books:
-        source_file = '{0}/{1}-{2}.usfm'.format(source, BOOK_NUMBERS[book.lower()], book.upper())
-        if not os.path.isfile(source_file):
-            raise IOError('File not found: {}'.format(source_file))
-        shutil.copy(source_file, tmpdir+"/sources")
+    usfm_dir = tmpdir + "/usfm"
 
-    UsfmTransform.buildSingleHtml(tmpdir+"/sources", tmpdir, "bible")
+    if not books:
+        shutil.copytree(source, usfm_dir)
+    else:
+        os.makedirs(usfm_dir)
+        for book in books:
+            source_file = '{0}/{1}-{2}.usfm'.format(source, BOOK_NUMBERS[book.lower()], book.upper())
+            if not os.path.isfile(source_file):
+                raise IOError('File not found: {}'.format(source_file))
+            shutil.copy(source_file, usfm_dir)
+
+    UsfmTransform.buildSingleHtml(usfm_dir, tmpdir, "bible")
     shutil.copyfile(tmpdir+'/bible.html', outfile)
 
 if __name__ == '__main__':

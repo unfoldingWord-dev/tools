@@ -22,6 +22,7 @@ set -e # die if errors
 : ${TEMPLATE_ALL:="$MY_DIR/toc_template_all.xsl"}
 : ${LANGUAGE:="en"}
 : ${RESOURCE:="tw"}
+: ${TAG:="v7"}
 
 if [[ -z $WORKING_DIR ]]; then
     WORKING_DIR=$(mktemp -d -t "export_md_to_pdf.XXXXXX")
@@ -30,41 +31,41 @@ elif [[ ! -d $WORKING_DIR ]]; then
     mkdir -p "$WORKING_DIR"
 fi
 
+# If running in DEBUG mode, output information about every command being run
+$DEBUG && set -x
+
+source "$MY_DIR/../general_tools/bible_books.sh"
+
 echo $WORKING_DIR
 
 # Change to our own temp dir but note our current dir so we can get back to it
 pushd "$WORKING_DIR" > /dev/null
 
 # link tools folder
-ln -s $MY_DIR/.. ./tools
-
-ls .
-
-URL=$(python -m tools.general_tools.get_current_resource -l $LANGUAGE -r $RESOURCE);
-VERSION=$(python -m tools.general_tools.get_current_resource -l $LANGUAGE -r $RESOURCE -v 1);
+ln -sf $MY_DIR/.. ./tools
 
 repo="${LANGUAGE}_${RESOURCE}"
+url="https://git.door43.org/Door43/${repo}/archive/${TAG}.zip"
 
-echo "Current '$repo' Resource is at: $URL"
-echo "Current '$repo' Version is at: $VERSION"
+wget $url -O "./${repo}.zip"
+unzip -qo "./${repo}.zip"
 
-# If running in DEBUG mode, output information about every command being run
-$DEBUG && set -x
+echo "Checked out repo files:"
+ls "${repo}"
 
-mkdir files
+version=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.version'`
+issued_date=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.issued'`
+title=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.title'`
+checking_level=`yaml2json "${repo}/manifest.yaml" | jq -r '.checking.checking_level'`
 
-wget $URL -O ./file.zip
-
-unzip -q ./file.zip -d files
-
-echo "Unzipped files:"
-ls files/$repo
+echo "Current '$repo' Resource is at: ${url}"
+echo "Current '$repo' Version is at: ${version}"
 
 mkdir -p "$OUTPUT_DIR/html"
 cp "$MY_DIR/style.css" "$OUTPUT_DIR/html"
 cp "$MY_DIR/header.html" "$OUTPUT_DIR/html"
 
-"$MY_DIR/md_to_html_export.py" -i "$WORKING_DIR/files/$repo" -o "$OUTPUT_DIR/html" -v "$VERSION"
+"$MY_DIR/md_to_html_export.py" -i "$WORKING_DIR/$repo" -o "$OUTPUT_DIR/html" -v "$version" -d "$issued_date"
 
 headerfile="file://$OUTPUT_DIR/html/header.html"
 coverfile="file://$OUTPUT_DIR/html/cover.html"
