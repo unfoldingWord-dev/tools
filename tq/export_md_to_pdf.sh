@@ -22,7 +22,7 @@ set -e # die if errors
 : ${TEMPLATE_ALL:="$MY_DIR/toc_template_all.xsl"}
 : ${LANGUAGE:="en"}
 : ${RESOURCE:="tq"}
-: ${TAG:="v8-"}
+: ${TAG:="v9"}
 
 if [[ -z $WORKING_DIR ]]; then
     WORKING_DIR=$(mktemp -d -t "export_md_to_pdf.XXXXXX")
@@ -50,9 +50,6 @@ url="https://git.door43.org/Door43/${repo}/archive/${TAG}.zip"
 wget $url -O "./${repo}.zip"
 unzip -qo "./${repo}.zip"
 
-# Fix for v8
-wget "https://git.door43.org/Door43/${repo}/raw/master/LICENSE.md" -O "${repo}/LICENSE.md"
-
 echo "Checked out repo files:"
 ls "${repo}"
 
@@ -65,8 +62,8 @@ echo "Current '$repo' Resource is at: ${url}"
 echo "Current '$repo' Version is at: ${version}"
 
 # make sure old out files are gone
-rm -f $OUTPUT_DIR/html/*
-rm -f $OUTPUT_DIR/pdf/*
+# rm -f $OUTPUT_DIR/html/*
+# rm -f $OUTPUT_DIR/pdf/*
 
 mkdir -p "$OUTPUT_DIR/html"
 cp "$MY_DIR/style.css" "$OUTPUT_DIR/html"

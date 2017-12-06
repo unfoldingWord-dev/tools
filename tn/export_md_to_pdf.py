@@ -602,7 +602,10 @@ class TnConverter(object):
             book = match.group(1)
             chapter = match.group(2)
             verse = match.group(3)
-            book_num = BOOK_NUMBERS[book]
+            if book in BOOK_NUMBERS:
+                book_num = BOOK_NUMBERS[book]
+            else:
+                return None
             if int(book_num) > 40:
                 anchor_book_num = str(int(book_num) - 1)
             else:
@@ -734,12 +737,12 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--book_id', dest='books', nargs='+', default=None, required=False, help="Bible Book(s)")
     parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help="Working Directory")
     parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False, help="Output Directory")
-    parser.add_argument('--ta-tag', dest='ta', default='v8', required=False, help="tA Tag")
-    parser.add_argument('--tn-tag', dest='tn', default='v10', required=False, help="tN Tag")
-    parser.add_argument('--tq-tag', dest='tq', default='v8-', required=False, help="tQ Tag")
-    parser.add_argument('--tw-tag', dest='tw', default='v7', required=False, help="tW Tag")
-    parser.add_argument('--udb-tag', dest='udb', default='v11', required=False, help="UDB Tag")
-    parser.add_argument('--ulb-tag', dest='ulb', default='v11', required=False, help="ULB Tag")
+    parser.add_argument('--ta-tag', dest='ta', default='v9', required=False, help="tA Tag")
+    parser.add_argument('--tn-tag', dest='tn', default='v11', required=False, help="tN Tag")
+    parser.add_argument('--tq-tag', dest='tq', default='v9', required=False, help="tQ Tag")
+    parser.add_argument('--tw-tag', dest='tw', default='v8', required=False, help="tW Tag")
+    parser.add_argument('--udb-tag', dest='udb', default='v12', required=False, help="UDB Tag")
+    parser.add_argument('--ulb-tag', dest='ulb', default='v12', required=False, help="ULB Tag")
     args = parser.parse_args(sys.argv[1:])
     main(args.ta, args.tn, args.tq, args.tw, args.udb, args.ulb, args.lang_code, args.books, args.working_dir,
          args.output_dir)

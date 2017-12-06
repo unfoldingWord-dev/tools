@@ -20,7 +20,7 @@ import codecs
 import argparse
 import markdown2
 from glob import glob
-from ..general_tools import get_bible_book
+from ..general_tools import get_bible_book, bible_books
 
 reload(sys)
 sys.setdefaultencoding('utf8')
@@ -43,20 +43,34 @@ def main(inpath, outpath, version, issued_date, book):
     content = ''
     books = get_bible_book.book_order
     for b in books:
+        title = get_bible_book.books[b][0]
         b = b.lower()
-        if book == 'all' or b == book:
+        if book == u'all' or b == book:
             content += u'<div id="{0}" class="book">'.format(b)
-            file_spec = os.path.join(tqRoot, b, '*/*.md')
-            files = sorted(glob(file_spec))
-            for f in files:
-                root = os.path.splitext(f)[0]
-                parts = root.split('/')
-                chapter = parts[-2]
-                verse = parts[-1]
-                c = markdown2.markdown_path(f)
-                c = u'<div id="{0}-chapter-{1}-{2}" class="chapter">'.format(b, chapter, verse) + c + u'</div>'
-                c = re.sub('<p><strong><a href="\./">Back to .*?</a></strong></p>', '', c)
-                content += c
+            content += u'<h1>{0}</h1>'.format(title)
+            chapter_dirs = sorted(glob(os.path.join(tqRoot, b, '*')))
+            for chapter_dir in chapter_dirs:
+                if os.path.isdir(chapter_dir):
+                    chapter = os.path.basename(chapter_dir).lstrip('0')
+                    content += u'<div id="{0}-chapter-{1}" class="chapter">'.format(b, chapter)
+                    content += u'<h2>{0} {1}</h2>'.format(title, chapter)
+                    verse_files = sorted(glob(os.path.join(chapter_dir, u'*.md')))
+                    for verse_idx, verse_file in enumerate(verse_files):
+                        start_verse = os.path.splitext(os.path.basename(verse_file))[0].lstrip(u'0')
+                        if verse_idx < len(verse_files)-1:
+                            end_verse = str(int(os.path.splitext(os.path.basename(verse_files[verse_idx+1]))[0])-1)
+                        else:
+                            end_verse = bible_books.BOOK_CHAPTER_VERSES[b][chapter.lstrip(u'0')]
+                        verses = u'{0}-{1}'.format(start_verse, end_verse)
+                        if start_verse == end_verse:
+                           verses = start_verse
+                        content += u'<h3>{0} {1}:{2}</h3>'.format(title, chapter, verses)
+                        c = markdown2.markdown_path(verse_file)
+                        c = c.replace(u'h1>', u'h4>')
+                        c = re.sub(u'<p><strong><a href="\./">Back to .*?</a></strong></p>', u'', c)
+                        content += c
+                    content += u'</div>'
+                    content += u'<hr class="chapter-divider"/>'
             content += u'</div>'
     content = fix_content(content)
 
