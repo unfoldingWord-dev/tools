@@ -3,7 +3,7 @@ body {
     font-size: 12pt;
 }
 
-.chapter h2 {
+.book h1 {
     page-break-before: always !important;
 }
 

@@ -26,7 +26,12 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 twRoot = ''
-twOrder = ['kt', 'other']
+twOrder = ['kt', 'names', 'other']
+category_titles = {
+    'kt': 'Key Terms',
+    'names': 'Names',
+    'other': 'Other'
+}
 terms = {}
 
 taUrl = u'https://unfoldingword.org/academy'
@@ -145,7 +150,7 @@ def main(inpath, outpath, version, issued_date):
         content += u'''
 <div id="category-{0}" class="category">
     <h1>{1}</h1>
-            '''.format(category, 'Key Terms' if category == 'kt' else 'Other')
+            '''.format(category, category_titles[category])
         for word in sorted(terms[category].values(), key=lambda w: w.title.lower()):
             content += word.content
         content += u'''

@@ -26,10 +26,10 @@ help() {
     echo "    -b BOOK(s)  Book of the Bible (e.g. rev), 'ot': compiled Old Testament, 'nt': compiled New Testament, "
     echo "                'full': compiled full Bible. If not set, a PDF will be made for each book of the Bible"
     echo "    -o DIR      Add output location(s) for final PDF"
-	echo "    -c COL#     Number of Columns (defaults to 2)"
-	echo "    -f SIZE     Font size in pt"
-	echo "    -t TAG      Tag of the repo to be checked out on DCS"
-	echo "    -k HTML     Adds the given HTML between chunks"
+    echo "    -c COL#     Number of Columns (defaults to 2)"
+    echo "    -f SIZE     Font size in pt"
+    echo "    -t TAG      Tag of the repo to be checked out on DCS"
+    echo "    -k HTML     Adds the given HTML between chunks"
     echo "    -d          Show debug messages while running script"
     echo "    -h -?       Show this help"
 }
@@ -59,7 +59,7 @@ done
 : ${NUM_COLS=2}
 : ${FONT_SIZE=12}
 : ${TOC_DEPTH=1}
-: ${TAG='v11'}
+: ${TAG='v12'}
 
 $DEBUG && set -x
 
@@ -86,7 +86,9 @@ echo $WORKING_DIR
 pushd "$WORKING_DIR" > /dev/null
 
 # link tools folder
-ln -sf "${MY_DIR}/.." ./tools
+if [ ! -d ./tools ]; then
+    ln -sf "${MY_DIR}/.." ./tools
+fi
 
 repo="${LANGUAGE}_${RESOURCE}"
 url="https://git.door43.org/Door43/${repo}/archive/${TAG}.zip"
@@ -113,16 +115,16 @@ else
 fi
 
 # Reload fonts in case any were added recently
-export OSFONTDIR="/usr/share/fonts/google-noto;/usr/share/fonts/noto-fonts/hinted;/usr/local/share/fonts;/usr/share/fonts"
-mtxrun --script fonts --reload
-if ! mtxrun --script fonts --list --all | grep -q noto; then
-    mtxrun --script fonts --reload
-    context --generate
-    if ! mtxrun --script fonts --list --all | grep -q noto; then
-        echo 'Noto fonts not found, bailing...'
-        exit 1
-    fi
-fi
+#export OSFONTDIR="/usr/share/fonts/google-noto;/usr/share/fonts/noto-fonts/hinted;/usr/local/share/fonts;/usr/share/fonts"
+#mtxrun --script fonts --reload
+#if ! mtxrun --script fonts --list --all | grep -q noto; then
+#    mtxrun --script fonts --reload
+#    context --generate
+#    if ! mtxrun --script fonts --list --all | grep -q noto; then
+#        echo 'Noto fonts not found, bailing...'
+#        exit 1
+#    fi
+#fi
 
 pushd "$BUILD_DIR"
 ln -sf "$TOOLS_DIR"
@@ -130,25 +132,25 @@ ln -sf "$TOOLS_DIR"
 if [ -z "${BOOKS// }" ];
 then
     # If no -b was used, we want to generate a PDF for EACH BOOK of the Bible
-    BOOKS=ALL_BOOKS
+    BOOKS=(${ALL_BOOKS[@]})
 fi
 
 for book in "${BOOKS[@]}"; do
     if [ -z "${RESOURCE// }" ];
     then
-        print "Cannot get the resource id for the Bible '$RESOURCE'"
+        echo "Cannot get the resource id for the Bible '$RESOURCE'"
         exit 1
     elif [ -z "${title// }" ];
     then
-        print "Cannot get the title for the Bible '$RESOURCE'"
+        echo "Cannot get the title for the Bible '$RESOURCE'"
         exit 1
     elif [ -z "${issued_date// }" ];
     then
-        print "Cannot get the publish date for the Bible '$RESOURCE'"
+        echo "Cannot get the publish date for the Bible '$RESOURCE'"
         exit 1
     elif [ -z "${checking_level// }" ];
     then
-        print "Cannot get the checking level for the Bible '$RESOURCE'"
+        echo "Cannot get the checking level for the Bible '$RESOURCE'"
         exit 1
     fi
 
@@ -173,7 +175,7 @@ for book in "${BOOKS[@]}"; do
         book_arg="-b ${book}"
         if [ -z "${book_title// }" ];
         then
-            print "Cannot get the title of the book for '${book}' in the manifest.yaml file"
+            echo "Cannot get the title of the book for '${book}' in the manifest.yaml file"
             exit 1
         fi
         subtitle=$book_title
