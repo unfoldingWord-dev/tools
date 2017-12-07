@@ -68,7 +68,7 @@ MY_DIR=$(cd $(dirname "$0") && pwd)
 TOOLS_DIR=$(cd $(dirname "$0")/.. && pwd)
 BUILD_DIR=$(mktemp -d --tmpdir "uwb_${LANGUAGE}_build_pdf.XXXXXX")
 LOG="$BUILD_DIR/shell.log"
-TEMPLATE="tools/uwb/tex/uwb_template.tex"
+TEMPLATE="tools/uwb/tex/${RESOURCE}_template.tex"
 NOTOFILE="tools/udb-ulb/tex/noto-${LANGUAGE}.tex"
 
 source "$MY_DIR/../general_tools/bible_books.sh"
