@@ -172,7 +172,7 @@ def verifyVerseCount():
     if state.chapter > 0 and state.verse != state.nVerses(state.ID, state.chapter):
         # Revelation 12 may have 17 or 18 verses
         # 3 John may have 14 or 15 verses
-        if state.reference != 'REV 12:18' and state.reference != '3JN 1:15':
+        if state.reference != 'REV 12:18' and state.reference != '3JN 1:15' and state.reference != '2CO 13:13':
             sys.stderr.write("Chapter should have " + str(state.nVerses(state.ID, state.chapter)) + " verses: "  + state.reference + '\n')
 
 def verifyNotEmpty(filename):
@@ -252,17 +252,17 @@ def takeV(v):
 def takeText(t):
     state = State()
     global lastToken
-    if not state.textOkay() and not lastToken.isM() and not lastToken.isFS() and not lastToken.isFE():
+    if not state.textOkay() and not isTextCarryingToken(lastToken):
         if t[0] == '\\':
             sys.stderr.write("Uncommon or invalid marker around " + state.reference + '\n')
         else:
             # print u"Missing verse marker before text: <" + t.encode('utf-8') + u"> around " + state.reference
             # sys.stderr.write(u"Missing verse marker or extra text around " + state.reference + u": <" + t[0:10] + u'>.\n')
             sys.stderr.write(u"Missing verse marker or extra text around " + state.reference + '\n')
-        if lastToken:
-            sys.stderr.write("  preceding Token.type was " + lastToken.getType() + '\n')
-        else:
-            sys.stderr.write("  no preceding Token\n")
+        # if lastToken:
+        #     sys.stderr.write("  preceding Token.type was " + lastToken.getType() + '\n')
+        # else:
+        #     sys.stderr.write("  no preceding Token\n")
     state.addText()
 
 # Returns true if token is part of a footnote
@@ -276,13 +276,19 @@ def isCrossReference(token):
 # Returns True if the current reference is a verse that does not appear in some manuscripts.
 def isOptional(ref):
     return ref in { 'MAT 17:21', 'MAT 18:11', 'MAT 23:14', 'MRK 7:16', 'MRK 9:44', 'MRK 9:46', 'MRK 11:26', 'MRK 15:28', 'MRK 16:9', 'MRK 16:12', 'MRK 16:14', 'MRK 16:17', 'MRK 16:19', 'LUK 17:36', 'LUK 23:17', 'JHN 5:4', 'JHN 7:53', 'JHN 8:1', 'JHN 8:4', 'JHN 8:7', 'JHN 8:9', 'ACT 8:37', 'ACT 15:34', 'ACT 24:7', 'ACT 28:29', 'ROM 16:24' }
+
+def isPoetry(token):
+    return token.isQ() or token.isQ1()
+    
+def isTextCarryingToken(token):
+    return token.isB() or token.isM() or token.isD() or isFootnote(token) or isCrossReference(token) or isPoetry(token)
     
 def take(token):
     global lastToken
     state = State()
     if isOptional(state.reference):
         state.addText()        # counts as text for our purposes
-    elif state.needText() and not token.isTEXT() and not token.isB() and not token.isM() and not isFootnote(token) and not isCrossReference(token):
+    elif state.needText() and not token.isTEXT() and not isTextCarryingToken(token):
         sys.stderr.write("Empty verse: " + state.reference + '\n')
         sys.stderr.write("  preceding Token.type was " + lastToken.getType() + '\n')
         sys.stderr.write("  current Token.type is " + token.getType() + '\n')
@@ -293,8 +299,11 @@ def take(token):
         if token.value == "1":
             verifyBookTitle()
         takeC(token.value)
-    elif token.isP() or token.isPI():
+    elif token.isP() or token.isPI() or token.isPC():
         takeP()
+        if token.value:     # paragraph markers can be followed by text
+            sys.stderr.write("Unexpected: text returned as part of paragraph token." +  state.reference + '\n')
+            takeText(token.value)
     elif token.isV():
         takeV(token.value)
     elif token.isTEXT():
@@ -303,6 +312,9 @@ def take(token):
         state.addQuote()
     elif token.isH() or token.isTOC1() or token.isTOC2() or token.isMT() or token.isIMT():
         state.addTitle(token.value)
+    elif token.isUnknown():
+        sys.stderr.write("Unknown token at " + state.reference + '\n')
+        
     lastToken = token
      
 def verifyFile(filename):
@@ -349,7 +361,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         source = raw_input("Enter path to .usfm file or directory containing .usfm files: ")
     elif sys.argv[1] == 'hard-coded-path':
-        source = r'C:\Users\Larry\Documents\GitHub\Tagalog\tl_NT_ULB_L3'
+        source = r'C:\Users\Larry\Documents\GitHub\Gujarati\GUJARATI-ULB-OT.BCS\temp'
     else:
         source = sys.argv[1]
         

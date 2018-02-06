@@ -2,14 +2,16 @@
 # This script converts a repository of text files from tStudio to USFM format.
 # It is an improved version of txt2USFM.py in these ways:
 #    Parses manifest.json to get the book ID.
-#    Finds and parses title.txt to get the book title 
-#    Populates the USFM header without the need for a bookId.usfm required by the previous script.
+#    Outputs list of contributors gleaned from all manifest.json files.
+#    Finds and parses title.txt to get the book title.
+#    Populates the USFM headers without the need for a bookId.usfm required by the previous script.
 #    Standardizes the names of .usfm files. For example 41-MAT.usfm and 42-MRK.usfm.
 #    Specify output folder.
 #    Converts multiple books at once.
 
 # Global variables
-target_dir = r'C:\Users\Larry\Documents\GitHub\French\fr_ulb'
+contributors = []
+target_dir = r'C:\Users\Larry\Documents\GitHub\Hausa\ha_ulb'
 verseCounts = {}
 
 import re
@@ -342,9 +344,11 @@ def getBookId():
     except IOError as e:
         sys.stderr.write("   Can't open " + os.getcwd() + "\\manifest.json!\n")
     else:
+        global contributors
         manifest = json.load(f)
         f.close()
         bookId = manifest['project']['id']
+        contributors += manifest['translators']
     return bookId.upper()
 
 # Locates title.txt in either the front folder or 00 folder.
@@ -434,6 +438,17 @@ def writeHeader(usfmfile, bookId, bookTitle):
     usfmfile.write(u"\n\\toc3 " + bookId.lower())
     usfmfile.write(u"\n\\mt " + bookTitle + u"\n")
 
+def dumpContributors():
+    global contributors
+    contribs = list(set(contributors))
+    contribs.sort()
+    path = os.path.join(target_dir, "contributors.txt")
+    f = io.open(path, 'tw', encoding='utf-8', newline='\n')
+    for name in contribs:
+        f.write(name + u'\n')
+    f.close()
+
+
 # This method is called to convert the pieces in the *current folder* to USFM
 def convertBook(bookId, bookTitle):
     # Open output USFM file for writing.
@@ -472,14 +487,14 @@ def convert(dir):
             folder = os.path.join(dir, directory)
             if isBookFolder(folder):
                 convertFolder(folder)
-
+    dumpContributors()    
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stderr.write("Usage: python txt2USFM <folder>\n  Use . for current folder.\n")
+        sys.stderr.write("Usage: python txt2USFM-RC <folder>\n  Use . for current folder.\n")
     elif sys.argv[1] == 'hard-coded-path':
-        convert(r'C:\Users\Larry\Documents\GitHub\French')
+        convert(r'C:\Users\Larry\Documents\GitHub\Hausa\hausa_ulb')
     else:       # the first command line argument presumed to be a folder
         convert(sys.argv[1])
 
