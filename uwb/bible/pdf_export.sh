@@ -159,7 +159,7 @@ for BOOK in "${BOOKS[@]}"; do
     # Run python (export.py) to generate the .tex file from template .tex files
     #uwb/export.py -l $LANGUAGE -v $VER $BOOK_ARG -f tex -o "$BUILDDIR/$BASENAME.tex"
 
-    sed -i -e "s/<span class=\"chunk-break\"\/>/<span class=\"chunk-break\"\/>$CHUNK_DIVIDER/g" "$BUILDDIR/$BASENAME.html"
+    sed -i -e "s/<span class=\"chunk-break\">/<span class=\"chunk-break\">$CHUNK_DIVIDER/g" "$BUILDDIR/$BASENAME.html"
 
     # Generate PDF with PANDOC
     LOGO="https://unfoldingword.org/assets/img/icon-${VER}.png"
