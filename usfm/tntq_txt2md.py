@@ -5,9 +5,10 @@
 #    Standardizes the names of book folders in the target folder.
 #    Converts multiple books at once.
 #    Makes a manifest.txt file to be pasted into manifest.yaml.
+# This script doesn't do anything if the files are .md files already.
 
 # Global variables
-target_dir = r'C:\Users\Larry\Documents\GitHub\Vietnamese\Vietnamese_tQ\vi_tq.temp'
+target_dir = r'C:\Users\Larry\Documents\GitHub\Kannada\kn_tn.temp'
 verseCounts = {}
 
 import re
@@ -24,6 +25,8 @@ def getBookId(folder):
     parts = folder.split('_')
     if len(parts) == 3:
         bookId = parts[1]
+    elif len(parts) == 1 and len(folder) == 3:
+        bookId = folder
     return bookId.upper()
 
 # Returns the English book name from verses.json
@@ -123,10 +126,11 @@ def convertBook(path):
     bookId = getBookId(bookfolder)
     bookTitle = getBookTitle(bookId)
     if bookId and bookTitle:
-        sys.stdout.write("Converting: " + bookfolder + "\n")
+        sys.stdout.write("\nConverting: " + bookfolder)
         sys.stdout.flush()
         for dir in os.listdir(path):
             if isChapter(dir):
+                # sys.stdout.write( " " + dir )
                 convertChapter(bookId, dir, os.path.join(path, dir))
         appendToManifest(bookfolder, bookId, bookTitle)
     return bookTitle
@@ -148,7 +152,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: python txt2md <folder>\n  Use . for current folder.\n")
     elif sys.argv[1] == 'hard-coded-path':
-        convert(r'C:\Users\Larry\Documents\GitHub\Vietnamese\Vietnamese_tQ')
+        convert(r'C:\Users\Larry\Documents\GitHub\Kannada\BCS.kn_tn')
     else:       # the first command line argument presumed to be a folder
         convert(sys.argv[1])
 

@@ -10,6 +10,7 @@
 # The output folder is also hard-coded.
 # The input file(s) should be verified, correct USFM.
 
+
 import sys
 import os
 
@@ -24,7 +25,7 @@ import re
 
 # Global variables
 en_rc_dir = r'C:\Users\Larry\AppData\Local\translationstudio\library\resource_containers'
-target_dir = r'C:\Users\Larry\Documents\GitHub\Gujarati\ul_ulb'
+target_dir = r'C:\Users\Larry\Documents\GitHub\Assamese\as_ulb'
 verseCounts = {}
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
@@ -42,6 +43,7 @@ class State:
     chapter = 0
     verse = 0
     needPp = False
+    s5marked = False
     reference = u""
     usfmFile = 0
     chunks = []
@@ -78,7 +80,10 @@ class State:
             State.sts = sts
             
     def addPostHeader(self, key, value):
-        State.postHeader += u"\n\\" + key + u" " + value
+        if key:
+            State.postHeader += u"\n\\" + key + u" "
+        if value:
+            State.postHeader += value
 
     def addID(self, id):
         State.ID = id
@@ -101,6 +106,7 @@ class State:
         State.reference = State.ID + " " + c
         State.chunks = loadChunks(State.ID, State.chapterPad)
         State.chunkIndex = 0
+        # State.s5marked = False
         
     def addP(self):
         State.needPp = False
@@ -115,6 +121,9 @@ class State:
         else:
             self.addVerse(vv)
 
+    def addS5(self):
+        State.s5marked = True
+
     def addVerse(self, v):
         State.verse = int(v)
         State.reference = State.ID + " " + str(State.chapter) + ":" + v
@@ -127,6 +136,10 @@ class State:
         
     def advanceChunk(self):
         State.chunkIndex += 1
+        State.s5marked = False
+
+    def hasS5(self):
+        return State.s5marked
 
     def reset(self):
         State.ID = u""
@@ -141,6 +154,7 @@ class State:
         State.chapter = 0
         State.verse = 0
         State.needPp = True     # need at least one \p marker after \c 1 in each book
+        State.s5marked = False
         State.reference = u""
 
 chunk_re = re.compile(r'([0-9]{2,3}).usx')
@@ -206,14 +220,16 @@ def takeAsIs(key, value):
     state = State()
     if state.chapter < 1:       # header has not been written, chapter 1 has not started
         state.addPostHeader(key, value)
+        # sys.stdout.write(u"addPostHeader(" + key + u", " + str(len(value)) + u")\n")
     else:
+        # sys.stdout.write(u"takeAsIs(" + key + u"," + str(len(value)) + u"), chapter is " + str(state.chapter) + u"\n")
         state.usfmFile.write(u"\n\\" + key)
         if value:
             state.usfmFile.write(u" " + value)    
 
 # Treats the token as the book title if no \mt has been encountered yet.
 # Calls takeAsIs() otherwise.
-def takeIMT(key, value):
+def takeMTX(key, value):
     state = State()
     if not state.mt:
         state.addMT(value)
@@ -229,13 +245,19 @@ def addSection(v):
     state = State()
     vn = int(v)
     if state.getChunkVerse() == vn:
-        if vn > 1:
+        if vn > 1 and not state.hasS5():
             state.usfmFile.write(u"\n\\s5")
         state.advanceChunk()
     if state.needPp:
         state.usfmFile.write(u"\n\\p")
         state.addP()
-    
+
+def takeS5():
+    state = State()
+    if state.chapter > 0:   # avoid copying \s5 before chapter 1 to simplify writing of header and other chapter 1 handling
+        state.addS5()
+        state.usfmFile.write(u"\n\\s5")
+
 def takeV(v):
     state = State()
     if v.find('-') > 0:
@@ -245,7 +267,7 @@ def takeV(v):
         state.addVerse(v1)
         print "Range of verses encountered at " + State.reference
         addSection(v1)
-        state.addVerse(vv_range.group(2))
+        state.addVerse(v2)
     else:
         state.addVerse(v)
         addSection(v)
@@ -253,7 +275,11 @@ def takeV(v):
     
 def takeText(t):
     state = State()
-    state.usfmFile.write(u" " + t)
+    # sys.stdout.write(u"takeText(" + str(len(t)) + u")\n")
+    if state.chapter < 1:       # header has not been written, add text to post-header
+        state.addPostHeader(u"", t)
+    else:
+        state.usfmFile.write(u" " + t)
         
 # Insert an s5 marker before writing any chapter marker.
 # Before writing chapter 1, we output the USFM header.
@@ -263,7 +289,10 @@ def takeC(c):
     # print "Starting chapter " + c
     if state.chapter == 1:
         writeHeader()
-    state.usfmFile.write(u"\n\n\\s5\n\\c " + c)
+    state.usfmFile.write(u"\n")
+    if not state.hasS5():
+        state.usfmFile.write(u"\n\\s5")
+    state.usfmFile.write(u"\n\\c " + c)
     
 def take(token):
     state = State()
@@ -277,6 +306,8 @@ def take(token):
         takeP()
     elif token.isS():
         takeAsIs(token.type, token.value)
+    elif token.isS5():
+        takeS5()
     elif token.isID():
         state.addID(token.value[0:3])   # use first 3 characters of \id value
         if len(token.value) > 3:
@@ -291,13 +322,15 @@ def take(token):
         state.addTOC3(token.value)
     elif token.isMT():
         state.addMT(token.value)
-    elif token.isIMT():
-        takeIMT(token.type, token.value)
+    elif token.isIMT() or token.isMTE():
+        takeMTX(token.type, token.value)
     elif token.isIDE():
         x = 0       # do nothing
     elif token.isREM() and state.chapter < 1:   # remarks before first chapter go in the header
         state.addREM(token.value)
     else:
+        # sys.stdout.write("Taking other token: ")
+        # print token
         takeAsIs(token.type, token.value)
 
     global lastToken
@@ -317,6 +350,7 @@ def writeHeader():
         toc2 = state.title
     if not mt:
         mt = state.title
+    # sys.stdout.write(u"Starting to write header.\n")
     state.usfmFile.write(u"\\id " + state.ID + u"\n\\ide UTF-8")
     if state.sts and state.sts != state.ID:
         state.usfmFile.write(u"\n\\sts " + state.sts)
@@ -357,9 +391,9 @@ def appendToManifest():
     manifest.write(u"  -\n")
     manifest.write(u"    title: '" + state.title + u" '\n")
     manifest.write(u"    versification: 'ufw'\n")
-    manifest.write(u"    identifier: '" + state.ID.lower() + u"'\n")
-    manifest.write(u"    sort: " + str(verseCounts[state.ID]['sort']) + u"\n")
-    manifest.write(u"    path: './" + makeUsfmFilename(state.ID) + u"'\n")
+    manifest.write(u"    identifier: " + state.ID.lower() + u"\n")
+    manifest.write(u"    sort: " + '{0:02d}'.format(verseCounts[state.ID]['sort']) + u"\n")
+    manifest.write(u"    path: ./" + makeUsfmFilename(state.ID) + u"\n")
     testament = u'nt'
     if verseCounts[state.ID]['sort'] < 40:
         testament = u'ot'
@@ -398,9 +432,9 @@ def printError(text):
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stderr.write("Usage: python txt2USFM <folder>\n  Use . for current folder.\n")
+        sys.stderr.write("Usage: python usfm2rc <folder>\n  Use . for current folder.\n")
     elif sys.argv[1] == 'hard-coded-path':
-        convertFolder(r'C:\Users\Larry\Documents\GitHub\Gujarati\Gujarati-ULB-NT.BCS\Stage3')
+        convertFolder(r'C:\Users\Larry\Documents\GitHub\Assamese\ASSAMESE-ULB-OT.BCS\new')
     else:       # the first command line argument is presumed to be the folder containing usfm files to be converted
         convertFolder(sys.argv[1])
 

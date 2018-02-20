@@ -46,14 +46,15 @@ def main(inpath, outpath, version, issued_date, book):
         title = get_bible_book.books[b][0]
         b = b.lower()
         if book == u'all' or b == book:
-            content += u'<div id="{0}" class="book">'.format(b)
-            content += u'<h1>{0}</h1>'.format(title)
+            content += u'<div id="{0}" class="book">\n\n'.format(b)
             chapter_dirs = sorted(glob(os.path.join(tqRoot, b, '*')))
             for chapter_dir in chapter_dirs:
                 if os.path.isdir(chapter_dir):
                     chapter = os.path.basename(chapter_dir).lstrip('0')
-                    content += u'<div id="{0}-chapter-{1}" class="chapter">'.format(b, chapter)
-                    content += u'<h2>{0} {1}</h2>'.format(title, chapter)
+                    content += u'<div id="{0}-chapter-{1}" class="chapter break">\n\n'.format(b, chapter)
+                    if chapter == u'1':
+                       content += u'<h1>{0}</h1>\n'.format(title)
+                    content += u'<h2>{0} {1}</h2>\n'.format(title, chapter)
                     verse_files = sorted(glob(os.path.join(chapter_dir, u'*.md')))
                     for verse_idx, verse_file in enumerate(verse_files):
                         start_verse = os.path.splitext(os.path.basename(verse_file))[0].lstrip(u'0')
@@ -64,14 +65,17 @@ def main(inpath, outpath, version, issued_date, book):
                         verses = u'{0}-{1}'.format(start_verse, end_verse)
                         if start_verse == end_verse:
                            verses = start_verse
-                        content += u'<h3>{0} {1}:{2}</h3>'.format(title, chapter, verses)
+                        content += u'<div id="{0}-chapter-{1}-verse-{2}" class="verse">\n'.format(b, chapter, start_verse)
+                        content += u'<h3>{0} {1}:{2}</h3>\n'.format(title, chapter, verses)
                         c = markdown2.markdown_path(verse_file)
-                        c = c.replace(u'h1>', u'h4>')
+                        c = c.replace(u'<h1>', u'<div class="question no-break">\n<h4>')
+                        c = c.replace(u'</h1>', u'</h4>')
                         c = re.sub(u'<p><strong><a href="\./">Back to .*?</a></strong></p>', u'', c)
+                        c = c.replace(u'</p>', u'</p>\n</div>\n\n')
                         content += c
-                    content += u'</div>'
-                    content += u'<hr class="chapter-divider"/>'
-            content += u'</div>'
+                        content += u'</div>\n\n';
+                    content += u'</div>\n\n'
+            content += u'</div>\n\n'
     content = fix_content(content)
 
     cover = '''<!DOCTYPE html>
