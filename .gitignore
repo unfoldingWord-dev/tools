@@ -7,3 +7,5 @@ local_settings.py
 /tex
 /status-of-update.lua
 /gogs/config.py
+/tw/config_yaml_generator/node_modules
+
