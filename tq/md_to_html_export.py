@@ -8,7 +8,7 @@
 #  Contributors:
 #  Richard Mahn <richard_mahn@wycliffeassociates.org>
 #
-#  Converts a tA repo into a PDF
+#  Converts a tQ repo into a PDF
 #
 #  Usage: md_to_pdf.py -i <directory of all ta repos> -o <directory where html flies will be placed>
 #
