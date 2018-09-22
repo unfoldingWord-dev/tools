@@ -36,43 +36,51 @@ def main(inpath, outpath):
                 article = os.path.basename(articlePath)
                 outPath = os.path.join(outBibleDir, group, article)
                 if os.path.exists(outPath):
-                    print articlePath + " " + outPath + "\n"
                     print "Reading from " + articlePath
                     f = codecs.open(articlePath, 'r', encoding='utf-8')
                     lines = f.readlines()
                     inRef = False
+                    found = False
                     refs = ''
                     for line in lines:
-                        if '## Bible References: ##' in line:
+                        if 'Bible References' in line:
                             inRef = True
+                            found = True
                         elif '#' in line:
                             inRef = False
                         elif inRef:
                             refs += line
-                    print refs
-                    f.close()
-                    f = codecs.open(outPath, 'r', encoding='utf-8')
-                    lines = f.readlines()
-                    inRef = False
-                    after = False
-                    newContent = ''
-                    for line in lines:
-                        if '## Bible References: ##' in line:
-                            inRef = True
-                            newContent += line
-                            newContent += refs
-                        elif '#' in line:
-                            inRef = False
-                            after = True
-                            newContent += line
-                        elif not inRef:
-                            newContent += line
-                    f.close()
-                    print "Writing to "+outPath
-                    f = codecs.open(outPath, 'w', encoding='utf-8')
-                    f.write(newContent)
                     f.close()
 
+                    if not found:
+                        print "WARNING! No Bible References section found in " + articlePath
+                    else:
+                        found = False
+                        f = codecs.open(outPath, 'r', encoding='utf-8')
+                        lines = f.readlines()
+                        inRef = False
+                        after = False
+                        newContent = ''
+                        for line in lines:
+                            if 'Bible References' in line:
+                                inRef = True
+                                found = True
+                                newContent += line
+                                newContent += refs
+                            elif '#' in line:
+                                inRef = False
+                                after = True
+                                newContent += line
+                            elif not inRef:
+                                newContent += line
+                        f.close()
+                        if not found:
+                            print "WARNING! No Bible References sectionf oudn in " + outPath
+                        else:
+                            print "Writing to "+outPath
+                            f = codecs.open(outPath, 'w', encoding='utf-8')
+                            f.write(newContent)
+                            f.close()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__,
@@ -80,6 +88,6 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--input', dest="inpath",
         help="Directory of the tW with correct Bible references", required=True)
     parser.add_argument('-o', '--output', dest="outpath", default='.',
-        required=False, help="Directory of the repo with files to update")
+        required=True, help="Directory of the repo with files to update")
     args = parser.parse_args(sys.argv[1:])
     main(args.inpath, args.outpath)
