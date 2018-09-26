@@ -698,6 +698,8 @@ class TnConverter(object):
 -V logo="{6}/icon-tn.png" \
 -V date="{3}" \
 -V version="{4}" \
+-V publisher="ADD PUBLISHER" \
+-V contributors="ADD CONTRIBUTORS" \
 -V mainfont="Noto Serif" \
 -V sansfont="Noto Sans" \
 -V fontsize="13pt" \
