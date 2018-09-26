@@ -76,7 +76,7 @@ def populateWords():
             #replace rc: links
             content = re.sub(r'href="rc\:\/\/([^\/"]+)\/([^\/"]+)\/([^\/"]+)\/([^\/"]+)\/([^\/"]+)\/([^\/"]+)"', r'href="https://git.door43.org/Door43/\1_\2/src/master/\4/\5/\6.md"', content)
 
-            soup = BeautifulSoup(content)
+            soup = BeautifulSoup(content, features="html.parser")
             if soup.h1:
                 title = soup.h1.text
             else:
@@ -100,7 +100,7 @@ def fix_content(content):
     return content
 
 
-def main(inpath, outpath, version, issued_date):
+def main(inpath, outpath, version, publisher, contributors, issued_date):
     global twRoot, taUrl, taManualUrls, twOrder, terms
 
     twRoot = inpath
@@ -138,7 +138,11 @@ def main(inpath, outpath, version, issued_date):
 ''' + license + '''
     <p>
       <strong>Date:</strong> ''' + issued_date + '''<br/>
-      <strong>Version:</strong> ''' + version + '''
+      <strong>Version:</strong> ''' + version + '''<br/>
+      <strong>Contributors:</strong> ''' + contributors + '''<br/>
+    </p>
+    <p>
+      <strong>Published by:</strong> ''' + publisher + '''<br/>
     </p>
   </div>
 </body>
@@ -197,9 +201,13 @@ if __name__ == '__main__':
                         required=False, help="Output path of the html file")
     parser.add_argument('-v', '--version', dest="version",
                         required=True, help="Version of translationWords")
+    parser.add_argument('-p', '--publisher', dest="publisher",
+                        required=True, help="Publisher of translationWords")
+    parser.add_argument('-c', '--contributors', dest="contributors",
+                        required=True, help="Contributors of translationWords")
     parser.add_argument('-d', '--issued_date', dest="issued_date",
                         required=True, help="Issued Date")
 
     args = parser.parse_args(sys.argv[1:])
 
-    main(args.inpath, args.outpath, args.version, args.issued_date)
+    main(args.inpath, args.outpath, args.version, args.publisher, args.contributors, args.issued_date)

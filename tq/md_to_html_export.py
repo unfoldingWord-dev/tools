@@ -35,7 +35,7 @@ def fix_content(content):
     return content
 
 
-def main(inpath, outpath, version, issued_date, book):
+def main(inpath, outpath, version, publisher, contributors, issued_date, book):
     tqRoot = inpath
 
     license = markdown2.markdown_path(tqRoot+'/'+'LICENSE.md')
@@ -108,7 +108,11 @@ def main(inpath, outpath, version, issued_date, book):
 '''+license+'''
     <p>
       <strong>Date:</strong> '''+issued_date+'''<br/>
-      <strong>Version:</strong> '''+version+'''
+      <strong>Version:</strong> '''+version+'''<br/>
+      <strong>Contributors:</strong> '''+contributors+'''<br/>
+    </p>
+    <p>
+      <strong>Published by:</strong> '''+publisher+'''<br/>
     </p>
   </div>
 </body>
@@ -154,10 +158,14 @@ if __name__ == '__main__':
         required=False, help="Output path of the html file")
     parser.add_argument('-v', '--version', dest="version",
         required=True, help="Version of translationQuestions")
+    parser.add_argument('-p', '--publisher', dest="publisher",
+        required=True, help="Publisher of translationQuestions")
+    parser.add_argument('-c', '--contributors', dest="contributors",
+        required=True, help="Contributors of translationQuestions")
     parser.add_argument('-b', '--book', dest="book", default='all',
         required=False, help="Bible book")
     parser.add_argument('-d', '--issued-date', dest='issued_date', required=True, help='Issued date')
 
     args = parser.parse_args(sys.argv[1:])
 
-    main(args.inpath, args.outpath, args.version, args.issued_date, args.book)
+    main(args.inpath, args.outpath, args.version, args.publisher, args.contributors, args.issued_date, args.book)

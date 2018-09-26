@@ -52,6 +52,9 @@ def main(inpath, outpath):
                             refs += line
                     f.close()
 
+                    if '=' in refs:
+                        print 'BAD REFS: '+refs
+
                     if not found:
                         print "WARNING! No Bible References section found in " + articlePath
                     else:
