@@ -105,15 +105,13 @@ def main(inpath, outpath, version, publisher, contributors, issued_date, book):
 <body>
   <div class="break">
     <span class="h1">Copyrights & Licensing</span>
-'''+license+'''
     <p>
       <strong>Date:</strong> '''+issued_date+'''<br/>
       <strong>Version:</strong> '''+version+'''<br/>
       <strong>Contributors:</strong> '''+contributors+'''<br/>
-    </p>
-    <p>
       <strong>Published by:</strong> '''+publisher+'''<br/>
     </p>
+'''+license+'''
   </div>
 </body>
 </html>

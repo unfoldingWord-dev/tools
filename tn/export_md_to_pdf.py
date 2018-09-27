@@ -96,6 +96,8 @@ class TnConverter(object):
         self.bad_links = {}
         self.usfm_chunks = {}
         self.version = None
+        self.contributors = ''
+        self.publisher = None
         self.issued = None
         self.filename_base = None
 
@@ -103,6 +105,8 @@ class TnConverter(object):
         self.setup_resource_files()
         self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
         self.version = self.manifest['dublin_core']['version']
+        self.contributors = '; '.join(self.manifest['dublin_core']['contributor'])
+        self.publisher = self.manifest['dublin_core']['publisher']
         self.issued = self.manifest['dublin_core']['issued']
         projects = self.get_book_projects()
         for p in projects:
@@ -698,8 +702,8 @@ class TnConverter(object):
 -V logo="{6}/icon-tn.png" \
 -V date="{3}" \
 -V version="{4}" \
--V publisher="ADD PUBLISHER" \
--V contributors="ADD CONTRIBUTORS" \
+-V publisher="{8} \
+-V contributors="{9}" \
 -V mainfont="Noto Serif" \
 -V sansfont="Noto Sans" \
 -V fontsize="13pt" \
@@ -709,7 +713,7 @@ class TnConverter(object):
 -o "{5}/{7}.pdf" \
 "{5}/{7}.html"
 """.format(BOOK_NUMBERS[self.book_id], self.book_id.upper(), self.book_title, self.issued, self.version, self.output_dir,
-           self.working_dir, self.filename_base)
+            self.working_dir, self.filename_base, self.publisher, self.contributors)
         print(command)
         subprocess.call(command, shell=True)
 
