@@ -60,15 +60,9 @@ publisher=`js-yaml "${repo}/manifest.yaml" | jq -r '.dublin_core.publisher'`
 issued_date=`js-yaml "${repo}/manifest.yaml" | jq -r '.dublin_core.issued'`
 title=`js-yaml "${repo}/manifest.yaml" | jq -r '.dublin_core.title'`
 checking_level=`js-yaml "${repo}/manifest.yaml" | jq -r '.checking.checking_level'`
-
-while read name; do
-  name="${name%\"}"
-  name="${name#\"}"
-  if [[ ! -z $contributors ]]; then
-    contributors+='; '
-  fi
-  contributors+=$name
-done <<< $(js-yaml "${repo}/manifest.yaml" | jq -c '.dublin_core.contributor[]')
+contributors=$(echo `js-yaml "${repo}/manifest.yaml" | jq -c '.dublin_core.contributor[]'`)
+contributors=${contributors//\" \"/; }
+contributors=${contributors//\"/}
 
 echo "Current '$repo' Resource is at: ${url}"
 echo "Current '$repo' Version is at: ${version}"
