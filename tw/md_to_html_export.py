@@ -74,7 +74,7 @@ def populateWords():
             content = re.sub(r'href="\.\.\/([^\/"]+)\/([^"]+)\.md"', r'href="#\1-\2"', content)
 
             #replace rc: links
-            content = re.sub(r'href="rc\:\/\/([^\/"]+)\/([^\/"]+)\/([^\/"]+)\/([^\/"]+)\/([^\/"]+)\/([^\/"]+)"', r'href="https://git.door43.org/Door43/\1_\2/src/master/\4/\5/\6.md"', content)
+            content = re.sub(r'<a href="rc\:[^"]+">([^<]+)</a>', r'\1', content)
 
             soup = BeautifulSoup(content, features="html.parser")
             if soup.h1:
