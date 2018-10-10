@@ -8,4 +8,4 @@ local_settings.py
 /status-of-update.lua
 /gogs/config.py
 /tw/config_yaml_generator/node_modules
-
+.vscode
