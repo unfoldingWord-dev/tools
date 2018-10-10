@@ -100,7 +100,7 @@ def load_yaml_object(file_name, default=None):
     return yaml.load(read_file(file_name))
 
 
-def read_file(file_name, encoding='utf-8-sig'):
+def read_file(file_name, encoding='utf-8'):
     with codecs.open(file_name, 'r', encoding=encoding) as f:
         content = f.read()
     # convert Windows line endings to Linux line endings
