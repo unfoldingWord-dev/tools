@@ -239,7 +239,7 @@ class TnConverter(object):
         ta_html = self.get_ta_html()
         tw_html = self.get_tw_html()
         html = '\n<br/>\n'.join([tn_html, tw_html, ta_html])
-        # html = self.replace_rc_links(html)
+        html = self.replace_rc_links(html)
         html = self.fix_links(html)
         html_file = os.path.join(self.output_dir, '{0}.html'.format(self.filename_base))
         write_file(html_file, html)
@@ -566,9 +566,6 @@ class TnConverter(object):
             resource = parts[1]
             path = '/'.join(parts[3:])
 
-            if not 'servant' in rc:
-                continue
-
             if resource not in ['ta', 'tw']:
                 continue
 
@@ -626,7 +623,6 @@ class TnConverter(object):
                     'title': title,
                     'text': t,
                 }
-                print(self.resource_data[rc])
                 if t:
                     self.get_resource_data_from_rc_links(t, rc)
 
