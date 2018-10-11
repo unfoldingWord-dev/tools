@@ -36,10 +36,12 @@ mkdir -p "./html"
 mkdir -p "./pdf"
 
 repo="${LANGUAGE}_${RESOURCE}"
-print_url="https://api.door43.org/tx/print?id=Door43/${repo}/${TAG}"
-archive_url="https://git.door43.org/Door43/${repo}/archive/${TAG}.zip"
+print_url="https://api.door43.org/tx/print?id=unfoldingWord/${repo}/${TAG}"
+archive_url="https://git.door43.org/unfoldingWord/${repo}/archive/${TAG}.zip"
 
-wget "$print_url" -O "./html/ta_orig.html"
+cdn_url=$(wget -qO- $print_url)
+echo $cdn_url
+wget "$cdn_url" -O "./html/ta_orig.html"
 wget "$archive_url" -O "./${repo}.zip"
 
 unzip -qo "./${repo}.zip"
@@ -47,10 +49,12 @@ unzip -qo "./${repo}.zip"
 echo "Checked out repo files:"
 ls "./${repo}"
 
+license=$(markdown2 "${repo}/LICENSE.md")
 version=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.version'`
 issued_date=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.issued'`
 title=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.title'`
 checking_level=`yaml2json "${repo}/manifest.yaml" | jq -r '.checking.checking_level'`
+publisher=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.publisher'`
 contributors=$(echo `js-yaml "${repo}/manifest.yaml" | jq -c '.dublin_core.contributor[]'`)
 contributors=${contributors//\" \"/; }
 contributors=${contributors//\"/}
@@ -92,11 +96,12 @@ echo '<!DOCTYPE html>
   <div class="break">
     <span class="h1">Copyrights & Licensing</span>
     <p>
-      <strong>Date:</strong> '''+issued_date+'''<br/>
-      <strong>Version:</strong> '''+version+'''<br/>
-      <strong>Contributors:</strong> '''+contributors+'''<br/>
-      <strong>Published by:</strong> '''+publisher+'''<br/>
+      <strong>Date:</strong> '$issued_date'<br/>
+      <strong>Version:</strong> '$version'<br/>
+      <strong>Contributors:</strong> '$contributors'<br/>
+      <strong>Published by:</strong> '$publisher'<br/>
     </p>
+    '$license'
   </div>
 </body>
 </html>

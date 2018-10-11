@@ -134,21 +134,20 @@ class TnConverter(object):
             self.filename_base = '{0}_tn_{1}-{2}_v{3}'.format(self.lang_code, self.book_number.zfill(2), self.book_id, self.version)
             self.rc_references = {}
             self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number, self.book_id))
-            if not os.path.isfile(os.path.join(self.output_dir, '{0}.hhhhhhhhhtml'.format(self.filename_base))):
+            if not os.path.isfile(os.path.join(self.output_dir, '{0}.html'.format(self.filename_base))):
                 print("Getting USFM chunks...")
                 self.usfm_chunks = self.get_usfm_chunks()
-                if not os.path.isfile(os.path.join(self.output_dir, '{0}.mddddddd'.format(self.filename_base))):
-                    print("Processing HTML...")
-                    self.generate_html()
-            # if not os.path.isfile(os.path.join(self.output_dir, '{0}.pdf'.format(self.filename_base))):
-            #     print("Generating PDF...")
-            #     self.convert_html2pdf()
-        _print("BAD LINKS:")
-        for bad in sorted(self.bad_links.keys()):
-            for ref in self.bad_links[bad]:
-                parts = ref[5:].split('/')
-                _print("Bad reference: `{0}` in {1}'s {2}".format(bad, parts[1], '/'.join(parts[3:])))
-        # self.pp.pprint(self.bad_links)
+                print("Processing HTML...")
+                self.generate_html()
+            if not os.path.isfile(os.path.join(self.output_dir, '{0}.pdf'.format(self.filename_base))):
+                print("Generating PDF...")
+                self.convert_html2pdf()
+        if len(self.bad_links.keys()):
+            _print("BAD LINKS:")
+            for bad in sorted(self.bad_links.keys()):
+                for ref in self.bad_links[bad]:
+                    parts = ref[5:].split('/')
+                    _print("Bad reference: `{0}` in {1}'s {2}".format(bad, parts[1], '/'.join(parts[3:])))
 
     def get_book_projects(self):
         projects = []
@@ -337,6 +336,7 @@ class TnConverter(object):
                 self.get_resource_data_from_rc_links(intro, rc)
 
             for idx, first_verse in enumerate(chapter_verses['first_verses']):
+                col1 = ''
                 if idx < len(chapter_verses['first_verses'])-1:
                     last_verse = chapter_verses['first_verses'][idx+1] - 1
                 else:
@@ -356,7 +356,7 @@ class TnConverter(object):
                         'link': '#'+id,
                         'title': title
                     }
-                col1 = '{0}<h2>{1}</h2>\n\n'.format(anchors, title)
+                header = '{0}<h2>{1}</h2>\n\n'.format(anchors, title)
                 col1 += '<p><sup style="color:light-gray">ULT</sup>' + self.get_bible_html('ult', chapter, first_verse, last_verse) + '</p>'
                 col1 += '<p><sup style="color:light-gray">UST</sup>' + self.get_bible_html('ust', chapter, first_verse, last_verse) + '</p>'
 
@@ -371,7 +371,7 @@ class TnConverter(object):
                 if col2 != '':
                     col2 = self.decrease_headers(col2, 5)  # bring headers of 5 or more #'s down 1
                     col2 = self.fix_tn_links(col2, chapter)
-                    chunk_page = '<table style="width:100%">\n<tr>\n<td style="vertical-align:top;width:35%;padding-right:5px">\n\n{0}\n</td>\n<td style="vertical-align:top">\n\n{1}\n</td>\n</tr>\n</table>\n'.format(col1, col2)
+                    chunk_page = '{0}\n<table style="width:100%">\n<tr>\n<td style="vertical-align:top;width:35%;padding-right:5px">\n\n{1}\n</td>\n<td style="vertical-align:top">\n\n{2}\n</td>\n</tr>\n</table>\n'.format(header, col1, col2)
                     tn_html += chunk_page
                     self.get_resource_data_from_rc_links(chunk_page, rc)
         return tn_html
@@ -379,11 +379,21 @@ class TnConverter(object):
     def populate_tw_words_data(self):
         groups = ['kt', 'names', 'other']
         grc_path = 'tools/tn/generate_tn_pdf/grc/translationHelps/translationWords/v0.4'
-        en_path = 'tools/tn/generate_tn_pdf/en/translationhelps/translationWords/v9'
+        en_path = 'tools/tn/generate_tn_pdf/en/translationHelps/translationWords/v9'
+        if not os.path.isdir(grc_path):
+           _print('{0} not found! Please make sure you ran `node getResources ./` in the generate_tn_pdf dir and that the version in the script is correct'.format(grc_path))
+           exit(1)
+        if not os.path.isdir(en_path):
+           _print('{0} not found! Please make sure you ran `node getResources ./` in the generate_tn_pdf dir and that the version in the script is correct'.format(en_path))
+           exit(1)
         words = {}
         articles = {}
         for group in groups:
-            files = glob('{0}/{1}/groups/{2}/*.json'.format(grc_path, group, self.book_id))
+            files_path = '{0}/{1}/groups/{2}/*.json'.format(grc_path, group, self.book_id.lower())
+            files = glob(files_path)
+            if not len(files):
+                _print("Unable to find any files at {0}".format(files_path))
+                exit(1)
             for file in files:
                 base = os.path.splitext(os.path.basename(file))[0]
                 rc = 'rc://*/tw/dict/bible/{0}/{1}'.format(group, base)
@@ -429,7 +439,7 @@ class TnConverter(object):
         return html
 
     def get_all_words_to_match(self, resource, chapter, first_verse, last_verse):
-        path = 'tools/tn/generate_tn_pdf/en/bibles/{0}/v1/{1}/{2}.json'.format(resource, self.book_id, chapter)
+        path = 'tools/tn/generate_tn_pdf/en/bibles/{0}/v1/{1}/{2}.json'.format(resource, self.book_id.lower(), chapter)
         words = []
         data = load_json_object(path)
         for verse in range(first_verse, last_verse + 1):
@@ -741,7 +751,7 @@ class TnConverter(object):
 
     def convert_html2pdf(self):
         command = """pandoc \
---pdf-engine="xelatex" \
+--latex-engine="xelatex" \
 --template="tools/tn/generate_tn_pdf/tex/template.tex" \
 --toc \
 --toc-depth=2 \
@@ -766,7 +776,7 @@ class TnConverter(object):
 "{5}/{7}.html"
 """.format(BOOK_NUMBERS[self.book_id.lower()], self.book_id, self.book_title, self.issued, self.version, self.output_dir,
             self.working_dir, self.filename_base, self.publisher, self.contributors)
-        print(command)
+        _print(command)
         subprocess.call(command, shell=True)
 
 

@@ -11,7 +11,7 @@ const getReources = async (outputPath) => {
   const grcPath = path.join(outputPath, 'grc');
   const SourceContentUpdater = new sourceContentUpdater();
   await SourceContentUpdater.getLatestResources([]);
-  const resources = await SourceContentUpdater.downloadResources(['en', 'grc'], outputPath);
+  const resources = await SourceContentUpdater.downloadResources(['grc', 'en'], outputPath);
   if (! resources.length) {
     console.error('Failed to download resources');
     return false;
