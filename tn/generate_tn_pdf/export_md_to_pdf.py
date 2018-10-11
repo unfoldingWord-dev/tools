@@ -357,17 +357,16 @@ class TnConverter(object):
                         'title': title
                     }
                 header = '{0}<h2>{1}</h2>\n\n'.format(anchors, title)
-                col1 += '<p><sup style="color:light-gray">ULT</sup>' + self.get_bible_html('ult', chapter, first_verse, last_verse) + '</p>'
-                col1 += '<p><sup style="color:light-gray">UST</sup>' + self.get_bible_html('ust', chapter, first_verse, last_verse) + '</p>'
+                col1 += '<sup style="color:light-gray">ULT</sup>' + self.get_bible_html('ult', chapter, first_verse, last_verse)
+                col1 += '<br/><br/><sup style="color:light-gray">UST</sup>' + self.get_bible_html('ust', chapter, first_verse, last_verse)
 
                 col2 = ''
                 for verse in range(first_verse, last_verse+1):
                     if str(verse) in self.tn_book_data[chapter]:
                         for data in self.tn_book_data[chapter][str(verse)]:
                             title = data['GLQuote'].decode('utf8')
-                            col2 += '<p>\n<b>' + title + (' -' if not title.endswith(':') else '') + ' </b>'
+                            col2 += '\n\n<br/><br/>\n<b>' + title + (' -' if not title.endswith(':') else '') + ' </b>'
                             col2 += markdown.markdown(data['OccurrenceNote'].decode('utf8').replace('<br>',"\n")).replace('<p>', '').replace('</p>', '')
-                            col2 += '\n</p>\n\n'
                 if col2 != '':
                     col2 = self.decrease_headers(col2, 5)  # bring headers of 5 or more #'s down 1
                     col2 = self.fix_tn_links(col2, chapter)
