@@ -300,7 +300,7 @@ class TnConverter(object):
             intro = self.increase_headers(intro)
             intro = self.decrease_headers(intro, 4)  # bring headers of 3 or more down 1
             id = 'tn-{0}-front-intro'.format(self.book_id)
-            intro = re.sub(r'<h(\d)>', r'<a name="{0}"/><h\1>'.format(id), intro, 1, flags=re.IGNORECASE | re.MULTILINE)
+            intro = re.sub(r'<h(\d)>', r'<a id="{0}"/><h\1>'.format(id), intro, 1, flags=re.IGNORECASE | re.MULTILINE)
             intro += '<br/><br/>\n\n'
             tn_html += intro
             # HANDLE RC LINKS AND BACK REFERENCE
@@ -322,7 +322,7 @@ class TnConverter(object):
                 intro = self.increase_headers(intro)
                 intro = self.decrease_headers(intro, 5, 2)  # bring headers of 5 or more down 2
                 id = 'tn-{1}-{2}'.format(self.book_id, self.pad(chapter))
-                intro = re.sub(r'<h(\d+)>', r'<a name="{0}"/><h\1>'.format(id), intro, 1, flags=re.IGNORECASE | re.MULTILINE)
+                intro = re.sub(r'<h(\d+)>', r'<a id="{0}"/><h\1>'.format(id), intro, 1, flags=re.IGNORECASE | re.MULTILINE)
                 intro += '<br/><br/>\n\n'
                 tn_html += intro
                 # HANDLE RC LINKS
@@ -348,7 +348,7 @@ class TnConverter(object):
                 anchors = ''
                 for verse in range(first_verse, last_verse+1):
                     id = 'tn-{0}-{1}-{2}'.format(self.book_id, self.pad(chapter), self.pad(verse))
-                    anchors += '<a name="{0}"/>'.format(id)
+                    anchors += '<a id="{0}"/>'.format(id)
                     rc = 'rc://*/tn/help/{0}/{1}/{2}'.format(self.book_id.lower(), self.pad(chapter), self.pad(verse))
                     self.resource_data[rc] = {
                         'rc': rc,
@@ -381,11 +381,11 @@ class TnConverter(object):
         grc_path = 'tools/tn/generate_tn_pdf/grc/translationHelps/translationWords/v0.4'
         en_path = 'tools/tn/generate_tn_pdf/en/translationHelps/translationWords/v9'
         if not os.path.isdir(grc_path):
-           _print('{0} not found! Please make sure you ran `node getResources ./` in the generate_tn_pdf dir and that the version in the script is correct'.format(grc_path))
-           exit(1)
+            _print('{0} not found! Please make sure you ran `node getResources ./` in the generate_tn_pdf dir and that the version in the script is correct'.format(grc_path))
+            exit(1)
         if not os.path.isdir(en_path):
-           _print('{0} not found! Please make sure you ran `node getResources ./` in the generate_tn_pdf dir and that the version in the script is correct'.format(en_path))
-           exit(1)
+            _print('{0} not found! Please make sure you ran `node getResources ./` in the generate_tn_pdf dir and that the version in the script is correct'.format(en_path))
+            exit(1)
         words = {}
         articles = {}
         for group in groups:
@@ -538,14 +538,14 @@ class TnConverter(object):
         print(contextId)
 
     def get_tw_html(self):
-        tw_html = '<a name="tw-{0}"/>\n<h1>translationWords</h1>\n\n'.format(self.book_id)
+        tw_html = '<a id="tw-{0}"/>\n<h1>translationWords</h1>\n\n'.format(self.book_id)
         sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
         for rc in sorted_rcs:
             if '/tw/' not in rc:
                 continue
             html = markdown.markdown(self.resource_data[rc]['text'])
             html = self.increase_headers(html)
-            id_tag = '<a name="{0}"/>'.format(self.resource_data[rc]['id'])
+            id_tag = '<a id="{0}"/>'.format(self.resource_data[rc]['id'])
             html = re.sub(r'<h(\d)>(.*?)</h(\d)>', r'{0}<h\1>\2</h\3>\n{1}'.format(id_tag, self.get_uses(rc)), html, 1, flags=re.IGNORECASE | re.MULTILINE)
             html += '\n\n'
             tw_html += html
