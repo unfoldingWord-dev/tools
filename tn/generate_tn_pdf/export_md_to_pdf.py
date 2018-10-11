@@ -143,7 +143,12 @@ class TnConverter(object):
             # if not os.path.isfile(os.path.join(self.output_dir, '{0}.pdf'.format(self.filename_base))):
             #     print("Generating PDF...")
             #     self.convert_html2pdf()
-        self.pp.pprint(self.bad_links)
+        _print("BAD LINKS:")
+        for bad in sorted(self.bad_links.keys()):
+            for ref in self.bad_links[bad]:
+                parts = ref[5:].split('/')
+                _print("Bad reference: `{0}` in {1}'s {2}".format(bad, parts[1], '/'.join(parts[3:])))
+        # self.pp.pprint(self.bad_links)
 
     def get_book_projects(self):
         projects = []
@@ -296,7 +301,7 @@ class TnConverter(object):
             intro = self.increase_headers(intro)
             intro = self.decrease_headers(intro, 4)  # bring headers of 3 or more down 1
             id = 'tn-{0}-front-intro'.format(self.book_id)
-            intro = re.sub(r'<h(\d)>', r'<h\1 id="{0}">'.format(id), intro, 1)
+            intro = re.sub(r'<h(\d)>', r'<a name="{0}"/><h\1>'.format(id), intro, 1, flags=re.IGNORECASE | re.MULTILINE)
             intro += '<br/><br/>\n\n'
             tn_html += intro
             # HANDLE RC LINKS AND BACK REFERENCE
@@ -318,7 +323,7 @@ class TnConverter(object):
                 intro = self.increase_headers(intro)
                 intro = self.decrease_headers(intro, 5, 2)  # bring headers of 5 or more down 2
                 id = 'tn-{1}-{2}'.format(self.book_id, self.pad(chapter))
-                intro = re.sub(r'<h(\d+)>', r'<h\1 id="{0}">'.format(id), intro, 1)
+                intro = re.sub(r'<h(\d+)>', r'<a name="{0}"/><h\1>'.format(id), intro, 1, flags=re.IGNORECASE | re.MULTILINE)
                 intro += '<br/><br/>\n\n'
                 tn_html += intro
                 # HANDLE RC LINKS
@@ -343,7 +348,7 @@ class TnConverter(object):
                 anchors = ''
                 for verse in range(first_verse, last_verse+1):
                     id = 'tn-{0}-{1}-{2}'.format(self.book_id, self.pad(chapter), self.pad(verse))
-                    anchors += '<a id="{0}"/>'.format(id)
+                    anchors += '<a name="{0}"/>'.format(id)
                     rc = 'rc://*/tn/help/{0}/{1}/{2}'.format(self.book_id.lower(), self.pad(chapter), self.pad(verse))
                     self.resource_data[rc] = {
                         'rc': rc,
@@ -351,7 +356,7 @@ class TnConverter(object):
                         'link': '#'+id,
                         'title': title
                     }
-                col1 = '<h2>{0}</h2>{1}\n\n'.format(title, anchors)
+                col1 = '{0}<h2>{1}</h2>\n\n'.format(anchors, title)
                 col1 += '<p><sup style="color:light-gray">ULT</sup>' + self.get_bible_html('ult', chapter, first_verse, last_verse) + '</p>'
                 col1 += '<p><sup style="color:light-gray">UST</sup>' + self.get_bible_html('ust', chapter, first_verse, last_verse) + '</p>'
 
@@ -387,7 +392,7 @@ class TnConverter(object):
                     continue
                 if rc not in articles:
                     article = read_file(article_path)
-                    title = re.sub('^#+ (.*?) *#*$', r'\1', article.split('\n')[0])
+                    title = re.sub(r'^#+ (.*?) *#*$', r'\1', article.split('\n')[0])
                     articles[rc] = {'title': title, 'text': markdown.markdown(article), 'group': group, 'basename': base, 'references': []}
                 occurrences = load_json_object(file)
                 for occurrence in occurrences:
@@ -407,16 +412,19 @@ class TnConverter(object):
     def get_bible_html  (self, resource, chapter, first_verse, last_verse):
         html = self.get_chunk_html(resource, chapter, first_verse)
         html = html.replace('\n', '').replace('<p>', '').replace('</p>', '').strip()
-        html = re.sub('<span class="v-num"', '<br/><span class="v-num"', html, flags=re.IGNORECASE | re.MULTILINE)
+        html = re.sub(r'<span class="v-num"', '<br/><span class="v-num"', html, flags=re.IGNORECASE | re.MULTILINE)
         if resource != 'ult':
             return html
         words = self.get_all_words_to_match(resource, chapter, first_verse, last_verse)
         verses = html.split('<sup>')
         for word in words:
             parts = word['text'].split(' ... ')
+            highlights = {}
+            idx = word['contextId']['reference']['verse']-first_verse+1
             for part in parts:
-                idx = word['contextId']['reference']['verse']-first_verse+1
-                verses[idx] = re.sub(r'([^>])({0})\b'.format(part), r'\1<a href="{0}">\2</a>'.format(word['contextId']['rc']), verses[idx], 1, flags=re.IGNORECASE | re.MULTILINE)
+                highlights[part] = r'<a href="{0}">{1}</a>'.format(word['contextId']['rc'], part)
+            regex = re.compile(r'(?<![></\\_-])\b(%s)\b(?![></\\_-])' % "|".join(highlights.keys()))
+            verses[idx] = regex.sub(lambda m: highlights[m.group(0)], verses[idx])
         html = '<sup>'.join(verses)
         return html
 
@@ -520,16 +528,16 @@ class TnConverter(object):
         print(contextId)
 
     def get_tw_html(self):
-        tw_html = '<a id="tw-{0}"/>\n<h1>translationWords</h1>\n\n'.format(self.book_id)
+        tw_html = '<a name="tw-{0}"/>\n<h1>translationWords</h1>\n\n'.format(self.book_id)
         sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
         for rc in sorted_rcs:
             if '/tw/' not in rc:
                 continue
             html = markdown.markdown(self.resource_data[rc]['text'])
             html = self.increase_headers(html)
-            id_tag = '<a id="{0}"/>'.format(self.resource_data[rc]['id'])
-            html = re.sub(r'</h(\d)>', r'</h\1>\n{0}{1}'.format(id_tag, self.get_uses(rc)), html, 1)
-            html += '<br/><br/>\n\n'
+            id_tag = '<a name="{0}"/>'.format(self.resource_data[rc]['id'])
+            html = re.sub(r'<h(\d)>(.*?)</h(\d)>', r'{0}<h\1>\2</h\3>\n{1}'.format(id_tag, self.get_uses(rc)), html, 1, flags=re.IGNORECASE | re.MULTILINE)
+            html += '\n\n'
             tw_html += html
         return tw_html
 
@@ -543,8 +551,8 @@ class TnConverter(object):
                 html = markdown.markdown(self.resource_data[rc]['text'])
                 html = self.increase_headers(html)
                 id_tag = '<a id="{0}"/>'.format(self.resource_data[rc]['id'])
-                html = re.sub('</h(\d)>', r'</h\1>{0}{1}<br/>\n'.format(id_tag, self.get_uses(rc)), html, 1)
-                html += '<br/><br/>\n\n'
+                html = re.sub(r'<h(\d)>(.*?)</h(\d)>', r'{0}<h\1>\2</h\3>{1}\n'.format(id_tag, self.get_uses(rc)), html, 1, flags=re.IGNORECASE | re.MULTILINE)
+                html += "\n\n"
                 ta_html += html
                 self.get_resource_data_from_rc_links(html, self.resource_data[rc])
         return ta_html
@@ -555,9 +563,11 @@ class TnConverter(object):
             references = []
             for reference in self.rc_references[rc]:
                 if '/tn/' in reference:
-                    references.append('[[{0}]]'.format(reference))
+                    parts = reference[5:].split('/')
+                    id = 'tn-{0}-{1}-{2}'.format(self.book_id, parts[4], parts[5])
+                    references.append('<a href="#{0}">{1}:{2}</a>'.format(id, parts[4].lstrip('0'), parts[5].lstrip('0')))
             if len(references):
-                uses = '(Referenced by: ' + ', '.join(references) + ')'
+                uses = '(Linked from: ' + ', '.join(references) + ')'
         return uses
 
     def get_resource_data_from_rc_links(self, text, source_rc):
@@ -583,16 +593,16 @@ class TnConverter(object):
                 if not os.path.isfile(file_path):
                     file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
                                                 '{0}/01.md'.format(path))
-                if not os.path.isfile(file_path):
-                    if resource == 'tw':
-                        if path.startswith('bible/other/'):
-                            path2 = re.sub(r'^bible/other/', r'bible/kt/', path)
-                        else:
-                            path2 = re.sub(r'^bible/kt/', r'bible/other/', path)
-                        anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
-                        link = '#{0}'.format(anchor_id)
-                        file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
-                                                    '{0}.md'.format(path2))
+                # if not os.path.isfile(file_path):
+                #     if resource == 'tw':
+                #         if path.startswith('bible/other/'):
+                #             path2 = re.sub(r'^bible/other/', r'bible/kt/', path)
+                #         else:
+                #             path2 = re.sub(r'^bible/kt/', r'bible/other/', path)
+                #         anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
+                #         link = '#{0}'.format(anchor_id)
+                #         file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
+                #                                     '{0}.md'.format(path2))
                 if os.path.isfile(file_path):
                     t = read_file(file_path)
                     if resource == 'ta':
@@ -678,7 +688,7 @@ class TnConverter(object):
             tail = '/'.join(parts[1:])
 
             pattern = r'\[\[rc://[^/]+/{0}\]\]'.format(re.escape(tail))
-            replace = '<a href="{0}">{1}</a>'.format(info['link'], info['title'])
+            replace = r'<a href="{0}">{1}</a>'.format(info['link'], info['title'])
             text = re.sub(pattern, replace, text, flags=re.IGNORECASE | re.MULTILINE)
 
             pattern = r'rc://[^/]+/{0}'.format(re.escape(tail))
