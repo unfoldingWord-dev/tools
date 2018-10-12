@@ -247,11 +247,13 @@ table.tn-notes-table {
 
 .page-header .section {
     text-align: left;
+    height: 1em;
 }
 
 .page-header .subsection {
     overflow: hidden;
+    white-space: nowrap;
     text-overflow: ellipsis;
     text-align: right;
-    max-height: 1.5em;
+    height: 1em;
 }
