@@ -24,7 +24,6 @@ import shutil
 import subprocess
 import csv
 import codecs
-import markdown2
 import json
 from glob import glob
 from bs4 import BeautifulSoup
@@ -560,7 +559,7 @@ class TnConverter(object):
         for idx, rc in enumerate(sorted_rcs):
             if '/tw/' not in rc:
                 continue
-            html = markdown.markdown(self.resource_data[rc]['text'])
+            html = self.resource_data[rc]['text']
             html = self.increase_headers(html)
             header_class = 'section-header' if idx > 0 else ''
             html = re.sub(r'<h(\d)>(.*?)</h(\d)>', r'<h\1 id="{0}" class="{1}">\2</h\3>\n{2}'.format(self.resource_data[rc]['id'], header_class, self.get_reference_text(rc)), html, 1, flags=re.IGNORECASE | re.MULTILINE)
@@ -575,7 +574,7 @@ class TnConverter(object):
             if '/ta/' not in rc:
                 continue
             if self.resource_data[rc]['text']:
-                html = markdown.markdown(self.resource_data[rc]['text'])
+                html = self.resource_data[rc]['text']
                 html = self.increase_headers(html)
                 header_class = 'section-header' if idx > 0 else ''
                 html = re.sub(r'<h(\d)>(.*?)</h(\d)>', r'<h\1 id="{0}" class="{1}">\2</h\3>{2}\n'.format(self.resource_data[rc]['id'], header_class, self.get_reference_text(rc)), html, 1, flags=re.IGNORECASE | re.MULTILINE)
@@ -636,7 +635,7 @@ class TnConverter(object):
                 #         file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
                 #                                     '{0}.md'.format(path2))
                 if os.path.isfile(file_path):
-                    t = read_file(file_path)
+                    t = markdown.markdown(read_file(file_path))
                     if resource == 'ta':
                         title_file = os.path.join(os.path.dirname(file_path), 'title.md')
                         question_file = os.path.join(os.path.dirname(file_path), 'sub-title.md')
@@ -646,14 +645,14 @@ class TnConverter(object):
                             title = self.get_first_header(t)
                         if os.path.isfile(question_file):
                             question = read_file(question_file)
-                            question = 'This page answers the question: *{0}*\n\n'.format(question)
+                            question = 'This page answers the question: <i>{0}</i>\n<br><br>\n'.format(question)
                         else:
                             question = ''
-                        t = '# {0}\n\n{1}{2}'.format(title, question, t)
+                        t = '<h1>{0}</h1>\n\n{1}{2}'.format(title, question, t)
                         t = self.fix_ta_links(t, path.split('/')[0])
                     elif resource == 'tw':
                         title = self.get_first_header(t)
-                        t = re.sub(r'\n*\s*\(See [^\n]*\)\s*\n*', '\n\n', t, flags=re.IGNORECASE | re.MULTILINE)
+                        t = re.sub(r'\n*\s*\(See [^\n]*\)\s*\n*', '\n\n', t, flags=re.IGNORECASE | re.MULTILINE) # removes the See also line
                         t = self.fix_tw_links(t, path.split('/')[1])
                 else:
                     if rc not in self.bad_links:
