@@ -568,7 +568,7 @@ class TnConverter(object):
             header_class += ' hidden' if alt_title else ''
             if alt_title:
                 alt_title = '<br>\n<span class="h2">{0}</span>\n'.format(alt_title)
-            html = '<h2 id="{0}" class="{1}">{2}</h2>\n{3}{4}'.format(self.resource_data[rc]['id'], header_class, title, alt_title, html)
+            html = '<h2 id="{0}" class="{1}">{2}</h2>\n{3}{4}{5}'.format(self.resource_data[rc]['id'], header_class, title, alt_title, , self.get_reference_text(rc), html)
             tw_html += html
         return tw_html
 
