@@ -269,6 +269,7 @@ class TnConverter(object):
                 h.name = 'span'
 
         soup.head.append(soup.new_tag('link', href="style.css", rel="stylesheet"))
+        soup.head.append(soup.new_tag('link', href="http://fonts.googleapis.com/css?family=Noto+Serif", rel="stylesheet", type="text/css"))
 
         html_file = os.path.join(self.output_dir, '{0}.html'.format(self.filename_base))
         write_file(html_file, unicode(soup))
