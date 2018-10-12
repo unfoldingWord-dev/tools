@@ -100,23 +100,23 @@ table td {
 a {
     display: inline-block;
     text-decoration: none;
-    color: blue;
+    color: #f47142;
 }
 a:link {
-    color: blue;
+    color: #f47142;
 }
 a:visited {
-    color: blue;
+    color: #f47142;
 }
 a.internal {
-    color: #15c !important;
+    color: #f47142 !important;
 }
 a.external {
-    color: #15F !important;
+    color: #f47142 !important;
 }
 
 .docs-bubble-link, .docs-bubble a {
-    color: #15c!important;
+    color: #f47142!important;
     cursor: pointer;
     text-decoration: none!important;
 }
@@ -231,4 +231,28 @@ ul ul ul ul ul {
 
 hr {
   display: none;
+}
+
+table.tn-notes-table {
+    border-top: solid black;
+    border-bottom: solid black;
+}
+
+.page-header {
+    border-bottom: solid grey 1px;
+    font-style: italic;
+    height: 1.5em;
+}
+
+.page-header .section {
+    display: block;
+    float: left;
+}
+
+.page-header .subsection {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 1.5em;
+    float: right;
+    display: block;
 }

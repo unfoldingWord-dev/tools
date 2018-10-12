@@ -99,38 +99,7 @@ echo '<!DOCTYPE html>
 </html>
 ' > "./tn_html/license.html"
 
-    echo '<!DOCTYPE html>
-<html>
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
-    <link href="style.css" rel="stylesheet"/>
-    <script>
-        function subst() {
-            var vars = {};
-
-            var valuePairs = document.location.search.substring(1).split("&");
-            for (var i in valuePairs) {
-                var valuePair = valuePairs[i].split("=", 2);
-                vars[valuePair[0]] = decodeURIComponent(valuePair[1]);
-            }
-            var replaceClasses = ["frompage","topage","page","webpage","section","subsection","subsubsection"];
-
-            for (var i in replaceClasses) {
-                var hits = document.getElementsByClassName(replaceClasses[i]);
-
-                for (var j = 0; j < hits.length; j++) {
-                    hits[j].textContent = vars[replaceClasses[i]];
-                }
-            }
-        }
-    </script>
-</head>
-<body style="border:0; margin: 0px;" onload="subst()">
-<div style="font-style:italic;height:1.5em;"><span class="section" style="display;block;float:left;"></span><span class="subsection" style="float:right;display:block;"></span></div>
-</body>
-</html>
-' > "./tn_html/header.html"
+cp "$MY_DIR/header.html" "./tn_html/header.html"
 
 cp "$MY_DIR/style.css" "./tn_html"
 

@@ -401,7 +401,7 @@ class TnConverter(object):
                 if col2 != '':
                     col2 = self.decrease_headers(col2, 5)  # bring headers of 5 or more #'s down 1
                     col2 = self.fix_tn_links(col2, chapter)
-                    chunk_page = '{0}\n<table style="width:100%">\n<tr>\n<td style="vertical-align:top;width:35%;padding-right:5px">\n\n<p>{1}</p>\n</td>\n<td style="vertical-align:top">\n\n<p>{2}</p>\n</td>\n</tr>\n</table>\n'.format(header, col1, col2)
+                    chunk_page = '{0}\n<table class="tn-notes-table" style="width:100%">\n<tr>\n<td style="vertical-align:top;width:35%;padding-right:5px">\n\n<p>{1}</p>\n</td>\n<td style="vertical-align:top">\n\n<p>{2}</p>\n</td>\n</tr>\n</table>\n'.format(header, col1, col2)
 #                    chunk_page = '{0}\n<table style="width:100%;border:none"><tr><td style="width:50%">{1}</td><td>{2}</td></tr></table>'.format(header, col1, col2) # REMOVE
                     tn_html += chunk_page
                     self.get_resource_data_from_rc_links(chunk_page, rc)
