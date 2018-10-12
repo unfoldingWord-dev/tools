@@ -562,9 +562,12 @@ class TnConverter(object):
                 continue
             html = self.resource_data[rc]['text']
             html = self.increase_headers(html)
-            header_class = 'section-header' if idx > 0 else ''
-            html = re.sub(r'<h(\d)>(.*?)</h(\d)>', r'<h\1 id="{0}" class="{1}">\2</h\3>\n{2}'.format(self.resource_data[rc]['id'], header_class, self.get_reference_text(rc)), html, 1, flags=re.IGNORECASE | re.MULTILINE)
-            html += '\n\n'
+            title = self.resource_data[rc]['title']
+            alt_title = self.resource_data[rc]['alt_title']
+            header_class += ' hidden' if alt_title else ''
+            if alt_title:
+                alt_title = '<br>\n<span class="h2">{0}</span>\n'.format(alt_title)
+            html = '<h2 id="{0}" class="{1}">{2}</h2>\n{3}{4}'.format(self.resource_data[rc]['id'], header_class, title, alt_title, html)
             tw_html += html
         return tw_html
 
@@ -578,12 +581,7 @@ class TnConverter(object):
                 html = self.resource_data[rc]['text']
                 html = self.increase_headers(html)
                 header_class = 'section-header' if idx > 0 else ''
-                title = self.resource_data[rc]['title']
-                alt_title = self.resource_data[rc]['alt_title']
-                header_class += ' hidden' if alt_title else ''
-                if alt_title:
-                    alt_title = '<br>\n<span class="h2">{0}</span>\n'.format(alt_title)
-                html = '<h2 id="{0}" class="{1}">{2}</h2>\n{3}{4}'.format(self.resource_data[rc]['id'], header_class, title, alt_title, html)
+                html = re.sub(r'<h(\d)>(.*?)</h(\d)>', r'<h\1 id="{0}" class="{1}">\2</h\3>{2}\n'.format(self.resource_data[rc]['id'], header_class, self.get_reference_text(rc)), html, 1, flags=re.IGNORECASE | re.MULTILINE)
                 html += "\n\n"
                 ta_html += html
         return ta_html
