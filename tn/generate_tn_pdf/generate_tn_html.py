@@ -596,7 +596,7 @@ class TnConverter(object):
                         text = '{0} {1}:{2}'.format(self.book_title, parts[4].lstrip('0'), parts[5].lstrip('0'))
                     references.append('<a href="#{0}">{1}</a>'.format(id, text))
             if len(references):
-                uses = '(<b>Go back to:</b> ' + ', '.join(references) + ')'
+                uses = '(<b>Go back to:</b> ' + '; '.join(references) + ')'
         return uses
 
     def get_resource_data_from_rc_links(self, text, source_rc):
