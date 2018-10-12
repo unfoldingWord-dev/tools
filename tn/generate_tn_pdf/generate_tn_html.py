@@ -564,6 +564,7 @@ class TnConverter(object):
             html = self.increase_headers(html)
             title = self.resource_data[rc]['title']
             alt_title = self.resource_data[rc]['alt_title']
+            header_class = 'section-header' if idx > 0 else ''
             header_class += ' hidden' if alt_title else ''
             if alt_title:
                 alt_title = '<br>\n<span class="h2">{0}</span>\n'.format(alt_title)
