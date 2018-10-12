@@ -698,22 +698,22 @@ class TnConverter(object):
         return "NO TITLE"
 
     def fix_tn_links(self, text, chapter):
-        text = re.sub(r'<a href="\.\./\.\./([^"]+)">([^<]+)</a>', r'\2'.format(self.lang_code), text, flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'href="\.\./([^"]+?)/([^"]+?)(\.md)*"', r'href="#{0}-tn-{1}-\1-\2"'.format(self.lang_code, self.book_id), text, flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'href="\.\./([^"]+?)(\.md)*"', r'href="#{0}-tn-{1}-\1"'.format(self.lang_code, self.book_id), text, flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'href="\./([^"]+?)(\.md)*"', r'href="#{0}-tn-{1}-{2}-\1"'.format(self.lang_code, self.book_id, self.pad(chapter)), text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'<a href="\.\./\.\./([^"]+)">([^<]+)</a>', r'\2', text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="\.\./([^"]+?)/([^"]+?)(\.md)*"', r'href="#tn-{0}-\1-\2"'.format(self.book_id), text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="\.\./([^"]+?)(\.md)*"', r'href="#tn-{0}-\1"'.format(self.book_id), text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="\./([^"]+?)(\.md)*"', r'href="#tn-{0}-{1}-\1"'.format(self.book_id, self.pad(chapter)), text, flags=re.IGNORECASE | re.MULTILINE)
         text = re.sub(r'\n__.*\|.*', r'', text, flags=re.IGNORECASE | re.MULTILINE)
         return text
 
-    def fix_tw_links(self, text, dictionary):
-        text = re.sub(r'\]\(\.\./([^/)]+?)(\.md)*\)', r'](rc://{0}/tw/dict/bible/{1}/\1)'.format(self.lang_code, dictionary), text, flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'\]\(\.\./([^)]+?)(\.md)*\)', r'](rc://{0}/tw/dict/bible/\1)'.format(self.lang_code), text, flags=re.IGNORECASE | re.MULTILINE)
+    def fix_tw_links(self, text, group):
+        text = re.sub(r'\]\(\.\./([^/)]+?)(\.md)*\)', r'](rc://*/tw/dict/bible/{0}/\1)'.format(group), text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'\]\(\.\./([^)]+?)(\.md)*\)', r'](rc://*/tw/dict/bible/\1)', text, flags=re.IGNORECASE | re.MULTILINE)
         return text
 
     def fix_ta_links(self, text, manual):
-        text = re.sub(r'\]\(\.\./([^/)]+)/01\.md\)', r'](rc://{0}/ta/man/{1}/\1)'.format(self.lang_code, manual), text, flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'\]\(\.\./\.\./([^/)]+)/([^/)]+)/01\.md\)', r'](rc://{0}/ta/man/\1/\2)'.format(self.lang_code), text, flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'\]\(([^# :/)]+)\)', r'](rc://{0}/ta/man/{1}/\1)'.format(self.lang_code, manual), text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'\]\(\.\./([^/)]+)/01\.md\)', r'](rc://*/ta/man/{0}/\1)'.format(manual), text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'\]\(\.\./\.\./([^/)]+)/([^/)]+)/01\.md\)', r'](rc://*/ta/man/\1/\2)', text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'\]\(([^# :/)]+)\)', r'](rc://*/ta/man/{0}/\1)'.format(manual), text, flags=re.IGNORECASE | re.MULTILINE)
         return text
 
     def replace_rc_links(self, text):
