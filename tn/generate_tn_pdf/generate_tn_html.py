@@ -555,7 +555,7 @@ class TnConverter(object):
         print(contextId)
 
     def get_tw_html(self):
-        tw_html = '<h1 id="tw-{0}" class="sectino-header"></a>translationWords</h1>\n\n'.format(self.book_id)
+        tw_html = '<h1 id="tw-{0}" class="section-header">translationWords</h1>\n\n'.format(self.book_id)
         sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
         for idx, rc in enumerate(sorted_rcs):
             if '/tw/' not in rc:
@@ -569,7 +569,7 @@ class TnConverter(object):
         return tw_html
 
     def get_ta_html(self):
-        ta_html = '<h1 id="{0}-ta-{1}" class="section-header"></a>translationAcademy</h1>\n\n'.format(self.lang_code, self.book_id)
+        ta_html = '<h1 id="{0}-ta-{1}" class="section-header">translationAcademy</h1>\n\n'.format(self.lang_code, self.book_id)
         sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
         for idx, rc in enumerate(sorted_rcs):
             if '/ta/' not in rc:
