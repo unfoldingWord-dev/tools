@@ -347,7 +347,7 @@ class TnConverter(object):
                 intro = self.fix_tn_links(intro, chapter)
                 intro = self.increase_headers(intro)
                 intro = self.decrease_headers(intro, 5, 2)  # bring headers of 5 or more down 2
-                id = 'tn-{0}-{1}'.format(self.book_id, self.pad(chapter))
+                id = 'tn-{0}-{1}-intro'.format(self.book_id, self.pad(chapter))
                 header_class = 'section-header' if len(tn_html) else ''
                 intro = re.sub(r'<h(\d+)>', r'<h\1 id="{0}" class="{1}">'.format(id, header_class), intro, 1, flags=re.IGNORECASE | re.MULTILINE)
                 intro += '<br><br>\n\n'
@@ -590,12 +590,14 @@ class TnConverter(object):
                 if '/tn/' in reference:
                     parts = reference[5:].split('/')
                     id = 'tn-{0}-{1}-{2}'.format(self.book_id, parts[4], parts[5])
+                    book_title = '{0} '.format(self.book_title)
                     if parts[4] == 'front':
                         text = 'Intro to {0}'.format(self.book_title)
                     elif parts[5] == 'intro':
-                        text = '{0} {1} Notes'.format(self.book_title, parts[5].lstrip('0'))
+                        text = '{0} {1} Notes'.format(self.book_title, parts[4].lstrip('0'))
                     else:
-                        text = '{0} {1}:{2}'.format(self.book_title, parts[4].lstrip('0'), parts[5].lstrip('0'))
+                        text = '{0}{1}:{2}'.format(book_title, parts[4].lstrip('0'), parts[5].lstrip('0'))
+                        book_title = ''
                     references.append('<a href="#{0}">{1}</a>'.format(id, text))
             if len(references):
                 uses = '(<b>Go back to:</b> {0})\n<br><br>\n'.format('; '.join(references))
