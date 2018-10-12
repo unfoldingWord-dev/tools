@@ -588,8 +588,9 @@ class TnConverter(object):
         if len(self.rc_references[rc]):
             references = []
             book_title = '{0} '.format(self.book_title)
+            done = {}
             for reference in self.rc_references[rc]:
-                if '/tn/' in reference:
+                if '/tn/' in reference and reference not in done:
                     parts = reference[5:].split('/')
                     id = 'tn-{0}-{1}-{2}'.format(self.book_id, parts[4], parts[5])
                     if parts[4] == 'front':
@@ -600,6 +601,7 @@ class TnConverter(object):
                         text = '{0}{1}:{2}'.format(book_title, parts[4].lstrip('0'), parts[5].lstrip('0'))
                         book_title = ''
                     references.append('<a href="#{0}">{1}</a>'.format(id, text))
+                    done[reference] = True
             if len(references):
                 uses = '(<b>Go back to:</b> {0})\n<br><br>\n'.format('; '.join(references))
         return uses
