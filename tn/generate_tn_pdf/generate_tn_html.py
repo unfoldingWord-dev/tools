@@ -42,7 +42,7 @@ def print(obj):
 class TnConverter(object):
 
     def __init__(self, ta_tag=None, tn_tag=None, tw_tag=None, ust_tag=None, ult_tag=None, ugnt_tag=None, working_dir=None, 
-                    output_dir=None, lang_code='en', books=None, stylefile=None):
+                    output_dir=None, lang_code='en', books=None):
         """
         :param ta_tag:
         :param tn_tag:
@@ -65,7 +65,6 @@ class TnConverter(object):
         self.output_dir = output_dir
         self.lang_code = lang_code
         self.books = books
-        self.stylefile = stylefile
 
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.DEBUG)
@@ -270,7 +269,7 @@ class TnConverter(object):
                 h['class'] = h.get('class', []) + [h.name]
                 h.name = 'span'
 
-        soup.head.append(soup.new_tag('link', href="file://"+self.stylefile, rel="stylesheet"))
+        soup.head.append(soup.new_tag('link', href="style.css", rel="stylesheet"))
 
         html_file = os.path.join(self.output_dir, '{0}.html'.format(self.filename_base))
         write_file(html_file, unicode(soup))
@@ -776,7 +775,7 @@ class TnConverter(object):
         write_file(html_file, html)
         return html
 
-def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_code, books, working_dir, output_dir, stylefile):
+def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_code, books, working_dir, output_dir):
     """
     :param ta_tag:
     :param tn_tag:
@@ -791,7 +790,7 @@ def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_code, books, w
     :return:
     """
     tn_converter = TnConverter(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, working_dir, output_dir, 
-                                lang_code, books, stylefile)
+                                lang_code, books)
     tn_converter.run()
 
 if __name__ == '__main__':
@@ -807,7 +806,6 @@ if __name__ == '__main__':
     parser.add_argument('--ust-tag', dest='ust', default='master', required=False, help="UST Tag")
     parser.add_argument('--ult-tag', dest='ult', default='master', required=False, help="ULT Tag")
     parser.add_argument('--ugnt-tag', dest='ugnt', default='v0.4', required=False, help="UGNT Tag")
-    parser.add_argument('-s', '--stylefile', dest="stylefile", help="Filename of the style sheet", required=True)
 
     args = parser.parse_args(sys.argv[1:])
-    main(args.ta, args.tn, args.tw, args.ust, args.ult, args.ugnt, args.lang_code, args.books, args.working_dir, args.output_dir, args.stylefile)
+    main(args.ta, args.tn, args.tw, args.ust, args.ult, args.ugnt, args.lang_code, args.books, args.working_dir, args.output_dir)

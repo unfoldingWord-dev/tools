@@ -38,7 +38,7 @@ mkdir -p "$OUTPUT_DIR/tn_pdf"
 
 cd ../../..
 pwd
-python -m tools.tn.generate_tn_pdf.generate_tn_html -w "$WORKING_DIR" -o "$OUTPUT_DIR/tn_html" -s "$MY_DIR/style.css"
+python -m tools.tn.generate_tn_pdf.generate_tn_html -w "$WORKING_DIR" -o "$OUTPUT_DIR/tn_html"
 
 cd "$WORKING_DIR"
 echo "Have out repo files:"
@@ -65,7 +65,7 @@ echo '<!DOCTYPE html>
 <head>
   <meta charset="UTF-8" />
   <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
-  <link href="file://'$MY_DIR'/style.css" rel="stylesheet"/>
+  <link href="style.css" rel="stylesheet"/>
 </head>
 <body>
   <div style="text-align:center;padding-top:200px" class="break" id="cover">
@@ -82,7 +82,7 @@ echo '<!DOCTYPE html>
 <head>
   <meta charset="UTF-8" />
   <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
-  <link href="file://'$MY_DIR'/style.css" rel="stylesheet"/>
+  <link href="style.css" rel="stylesheet"/>
 </head>
 <body>
   <div class="break">
@@ -104,7 +104,7 @@ echo '<!DOCTYPE html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
-    <link href="file://'$MY_DIR'/style.css" rel="stylesheet"/>
+    <link href="style.css" rel="stylesheet"/>
     <script>
         function subst() {
             var vars = {};
@@ -131,6 +131,8 @@ echo '<!DOCTYPE html>
 </body>
 </html>
 ' > "./tn_html/header.html"
+
+cp "$MY_DIR/style.css" "./tn_html"
 
 headerfile="file://$OUTPUT_DIR/tn_html/header.html"
 coverfile="file://$OUTPUT_DIR/tn_html/cover.html"
