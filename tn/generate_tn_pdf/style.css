@@ -41,45 +41,6 @@ li {
     page-break-before: avoid !important;
 }
 
-.box {
-    display: block;
-    font-size: 10pt;
-    border-style: solid;
-    border-width: 1px;
-    border-color: #999999;
-    padding: 5px;
-    margin: 5px;
-    page-break-inside: avoid;
-}
-
-.box ul {
-    padding: 0;
-}
-
-.box li {
-    list-style: none;
-    font-style: italic;
-}
-
-.box p {
-    margin-top: 0;
-}
-
-.top-box {
-    float: right;
-    width: 250px;
-}
-
-.top-box em:first-child {
-    display: block;
-    padding-top: 10px;
-}
-
-.bottom-box {
-    margin: 5px 
-    10px;clear: both;
-}
-
 dl {
     padding: 0;
 }
@@ -127,38 +88,6 @@ table th {
 table th,
 table td {
     padding: 6px 13px !important;
-    border: 1px solid #ddd !important;
-}
-table tr {
-    background-color: #fff;
-    border-top: 1px solid #ccc;
-}
-table tr:nth-child(2n) {
-    background-color: #f8f8f8;
-}
-table td, table th {
-    -webkit-transition: background .1s ease,color .1s ease;
-    transition: background .1s ease,color .1s ease;
-}
-
-thead th {
-    cursor: auto;
-    background: #f9fafb;
-    text-align: inherit;
-    color: rgba(0,0,0,.87);
-    padding: .92857143em .71428571em;
-    vertical-align: inherit;
-    font-style: none;
-    font-weight: 700;
-    text-transform: none;
-    border-bottom: 1px solid rgba(34,36,38,.1);
-    border-left: none;
-}
-thead tr>th:first-child {
-    border-left: none;
-}
-thead tr:first-child>th:first-child {
-    border-radius: .28571429rem 0 0;
 }
 
 a {
