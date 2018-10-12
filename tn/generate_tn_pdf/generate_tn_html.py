@@ -586,11 +586,11 @@ class TnConverter(object):
         uses = ''
         if len(self.rc_references[rc]):
             references = []
+            book_title = '{0} '.format(self.book_title)
             for reference in self.rc_references[rc]:
                 if '/tn/' in reference:
                     parts = reference[5:].split('/')
                     id = 'tn-{0}-{1}-{2}'.format(self.book_id, parts[4], parts[5])
-                    book_title = '{0} '.format(self.book_title)
                     if parts[4] == 'front':
                         text = 'Intro to {0}'.format(self.book_title)
                     elif parts[5] == 'intro':
