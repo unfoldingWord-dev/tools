@@ -578,7 +578,12 @@ class TnConverter(object):
                 html = self.resource_data[rc]['text']
                 html = self.increase_headers(html)
                 header_class = 'section-header' if idx > 0 else ''
-                html = re.sub(r'<h(\d)>(.*?)</h(\d)>', r'<h\1 id="{0}" class="{1}">\2</h\3>{2}\n'.format(self.resource_data[rc]['id'], header_class, self.get_reference_text(rc)), html, 1, flags=re.IGNORECASE | re.MULTILINE)
+                title = self.resource_data[rc]['title']
+                alt_title = self.resource_data[rc]['alt_title']
+                header_class += ' hidden' if alt_title else ''
+                if alt_title:
+                    alt_title = '<br>\n<span class="h2">{0}</span>\n'.format(alt_title)
+                html = '<h2 id="{0}" class="{1}">{2}</h2>\n{3}{4}'.format(self.resource_data[rc]['id'], header_class, title, alt_title, html)
                 html += "\n\n"
                 ta_html += html
         return ta_html
@@ -641,6 +646,7 @@ class TnConverter(object):
                 #                                     '{0}.md'.format(path2))
                 if os.path.isfile(file_path):
                     t = markdown.markdown(read_file(file_path))
+                    alt_title = ''
                     if resource == 'ta':
                         title_file = os.path.join(os.path.dirname(file_path), 'title.md')
                         question_file = os.path.join(os.path.dirname(file_path), 'sub-title.md')
@@ -657,6 +663,10 @@ class TnConverter(object):
                         t = self.fix_ta_links(t, path.split('/')[0])
                     elif resource == 'tw':
                         title = self.get_first_header(t)
+                        t = re.sub(r'\s*\n*\s*<h\d>[^<]+</h\d>\s*\n*', r'', t, flags=re.IGNORECASE | re.MULTILINE) # removes the header
+                        alt_title = title
+                        if len(title) > 70:
+                            title = ','.join(title[:70].split(',')[:-1]) + ', ...'
                         t = re.sub(r'\n*\s*\(See [^\n]*\)\s*\n*', '\n\n', t, flags=re.IGNORECASE | re.MULTILINE) # removes the See also line
                         t = self.fix_tw_links(t, path.split('/')[1])
                 else:
@@ -668,6 +678,7 @@ class TnConverter(object):
                     'link': link,
                     'id': anchor_id,
                     'title': title,
+                    'alt_title': alt_title,
                     'text': t,
                 }
                 if t:
