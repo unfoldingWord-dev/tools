@@ -255,3 +255,9 @@ table.tn-notes-table {
     text-align: right;
     max-height: 1.5em;
 }
+
+h2.hidden {
+    color: white;
+    display: none;
+    height: 0;
+}
