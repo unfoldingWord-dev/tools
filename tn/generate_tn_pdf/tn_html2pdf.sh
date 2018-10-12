@@ -8,11 +8,11 @@
 #  Contributors:
 #  Richard Mahn <richard_mahn@wyciffeassociates.org>
 #
-#  Execute ta_html2pdf.sh to run
+#  Execute tn_html2pdf.sh to run
 #  Set OUTPUT_DIR, otherwise will be the current dir
 
 if [ -z $1 ]; then
-    echo "Please specify the TAG or COMMIT ID for the en_ta repo."
+    echo "Please specify the TAG or COMMIT ID for the en_tn repo."
     exit 1
 fi
 
@@ -21,32 +21,27 @@ set -e # die if errors
 : ${DEBUG:=false}
 
 : ${MY_DIR:=$(cd $(dirname "$0") && pwd)} # Tools dir relative to this script
-: ${RESOURCE:='ta'}
+: ${RESOURCE:='tn'}
 : ${LANGUAGE:='en'}
+: ${WORKING_DIR:=$(pwd)}
 : ${OUTPUT_DIR:=$(pwd)}
 : ${TEMPLATE:="$MY_DIR/toc_template.xsl"}
 : ${TAG:=$1}
 
-pushd "$OUTPUT_DIR"
-
 # If running in DEBUG mode, output information about every command being run
 $DEBUG && set -x
 
-mkdir -p "./html"
-mkdir -p "./pdf"
-
 repo="${LANGUAGE}_${RESOURCE}"
-print_url="https://api.door43.org/tx/print?id=unfoldingWord/${repo}/${TAG}"
-archive_url="https://git.door43.org/unfoldingWord/${repo}/archive/${TAG}.zip"
 
-cdn_url=$(wget -qO- $print_url)
-echo $cdn_url
-wget "$cdn_url" -O "./html/ta_orig.html"
-wget "$archive_url" -O "./${repo}.zip"
+mkdir -p "$OUTPUT_DIR/tn_html"
+mkdir -p "$OUTPUT_DIR/tn_pdf"
 
-unzip -qo "./${repo}.zip"
+cd ../../..
+pwd
+python -m tools.tn.generate_tn_pdf.generate_tn_html -w "$WORKING_DIR" -o "$OUTPUT_DIR/tn_html" -s "$MY_DIR/style.css"
 
-echo "Checked out repo files:"
+cd "$WORKING_DIR"
+echo "Have out repo files:"
 ls "./${repo}"
 
 license=$(markdown2 "${repo}/LICENSE.md")
@@ -59,14 +54,11 @@ contributors=$(echo `js-yaml "${repo}/manifest.yaml" | jq -c '.dublin_core.contr
 contributors=${contributors//\" \"/; }
 contributors=${contributors//\"/}
 
-echo "Current '$repo' print page is at: ${print_url}"
-echo "Current '$repo' archive file is at: ${archive_url}"
 echo "Current '$repo' Version is at: ${version}"
 echo "Current '$repo' Publisher is: ${publisher}"
 echo "Current '$repo' Contributors are: ${contributors}"
 
-"$MY_DIR/massage_ta_html.py" -i "./html/ta_orig.html" -o "./html/ta.html" \
-                             -s "$MY_DIR/style.css" -v $version
+cd "$OUTPUT_DIR"
 
 echo '<!DOCTYPE html>
 <html>
@@ -77,13 +69,13 @@ echo '<!DOCTYPE html>
 </head>
 <body>
   <div style="text-align:center;padding-top:200px" class="break" id="cover">
-    <img src="http://unfoldingword.org/assets/img/icon-ta.png" width="120">
-    <span class="h1">translationAcademy</span>
+    <img src="https://unfoldingword.org/assets/img/icon-tn.png" width="120">
+    <span class="h1">translationNotes</span>
     <span class="h3">Version '${version}'</span>
   </div>
 </body>
 </html>
-' > "./html/cover.html"
+' > "./tn_html/cover.html"
 
 echo '<!DOCTYPE html>
 <html>
@@ -105,7 +97,7 @@ echo '<!DOCTYPE html>
   </div>
 </body>
 </html>
-' > "./html/license.html"
+' > "./tn_html/license.html"
 
     echo '<!DOCTYPE html>
 <html>
@@ -138,14 +130,12 @@ echo '<!DOCTYPE html>
 <div style="font-style:italic;height:1.5em;"><span class="section" style="display;block;float:left;"></span><span class="subsection" style="float:right;display:block;"></span></div>
 </body>
 </html>
-' > "./html/header.html"
+' > "./tn_html/header.html"
 
-headerfile="file://$OUTPUT_DIR/html/header.html"
-coverfile="file://$OUTPUT_DIR/html/cover.html"
-licensefile="file://$OUTPUT_DIR/html/license.html"
-tafile="file://$OUTPUT_DIR/html/ta.html"
-outfile="./pdf/en_ta_v${version}.pdf"
+headerfile="file://$OUTPUT_DIR/tn_html/header.html"
+coverfile="file://$OUTPUT_DIR/tn_html/cover.html"
+licensefile="file://$OUTPUT_DIR/tn_html/license.html"
+tafile="file://$OUTPUT_DIR/tn_html/en_tn_65-3JN_v13.html"
+outfile="./tn_pdf/en_tn_65_3JN_v13.pdf"
 echo "GENERATING $outfile"
 wkhtmltopdf --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 15 --header-html "$headerfile" --header-spacing 2 --footer-center '[page]' cover "$coverfile" cover "$licensefile" toc --disable-dotted-lines --enable-external-links --xsl-style-sheet "$TEMPLATE" "$tafile" "$outfile"
-
-popd

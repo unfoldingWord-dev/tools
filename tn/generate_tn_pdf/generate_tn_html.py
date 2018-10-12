@@ -42,7 +42,7 @@ def print(obj):
 class TnConverter(object):
 
     def __init__(self, ta_tag=None, tn_tag=None, tw_tag=None, ust_tag=None, ult_tag=None, ugnt_tag=None, working_dir=None, 
-                    output_dir=None, lang_code='en', books=None):
+                    output_dir=None, lang_code='en', books=None, stylefile=None):
         """
         :param ta_tag:
         :param tn_tag:
@@ -65,6 +65,7 @@ class TnConverter(object):
         self.output_dir = output_dir
         self.lang_code = lang_code
         self.books = books
+        self.stylefile = stylefile
 
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.DEBUG)
@@ -138,9 +139,6 @@ class TnConverter(object):
             if not os.path.isfile(os.path.join(self.output_dir, '{0}.hhhhtml'.format(self.filename_base))):
                 print("Processing HTML...")
                 self.generate_html()
-            if not os.path.isfile(os.path.join(self.output_dir, '{0}.pdf'.format(self.filename_base))):
-                print("Generating PDF...")
-                self.convert_html2pdf()
         if len(self.bad_links.keys()):
             _print("BAD LINKS:")
             for bad in sorted(self.bad_links.keys()):
@@ -255,8 +253,27 @@ class TnConverter(object):
         html = '\n<br>\n'.join([tn_html, tw_html, ta_html])
         html = self.replace_rc_links(html)
         html = self.fix_links(html)
+
+        html = '<head><title>tN</title></head>\n' + html
+
+        soup = BeautifulSoup(html, 'html.parser')
+
+        # Make all headers that have a header right before them non-break
+        for h in soup.find_all(['h2','h3', 'h4', 'h5', 'h6']):
+            prev = h.find_previous_sibling()
+            if prev and re.match('^h[2-6]$', prev.name):
+                h['class'] = h.get('class', []) + ['no-break'] 
+
+        # Make all headers within the page content to just be span tags with h# classes
+        for h in soup.find_all(['h3', 'h4', 'h5', 'h6']):
+            if not h.get('class') or 'section-header' not in h['class']:
+                h['class'] = h.get('class', []) + [h.name]
+                h.name = 'span'
+
+        soup.head.append(soup.new_tag('link', href="file://"+self.stylefile, rel="stylesheet"))
+
         html_file = os.path.join(self.output_dir, '{0}.html'.format(self.filename_base))
-        write_file(html_file, html)
+        write_file(html_file, unicode(soup))
         print('Wrote HTML to {0}'.format(html_file))
 
     def pad(self, num):
@@ -759,38 +776,7 @@ class TnConverter(object):
         write_file(html_file, html)
         return html
 
-    def convert_html2pdf(self):
-        command = """pandoc \
---pdf-engine="wkhtmltopdf" \
---template="tools/tn/generate_tn_pdf/tex/template.tex" \
---toc \
---toc-depth=2 \
--V documentclass="scrartcl" \
--V classoption="oneside" \
--V geometry='hmargin=2cm' \
--V geometry='vmargin=3cm' \
--V title="{2}" \
--V subtitle="translationNotes" \
--V logo="{6}/icon-tn.png" \
--V date="{3}" \
--V version="{4}" \
--V publisher="{8}" \
--V contributors="{9}" \
--V mainfont="Noto Serif" \
--V sansfont="Noto Sans" \
--V fontsize="13pt" \
--V urlcolor="Bittersweet" \
--V linkcolor="Bittersweet" \
--H "tools/tn/generate_tn_pdf/tex/format.tex" \
--o "{5}/{7}.pdf" \
-"{5}/{7}.html"
-""".format(BOOK_NUMBERS[self.book_id.lower()], self.book_id, self.book_title, self.issued, self.version, self.output_dir,
-            self.working_dir, self.filename_base, self.publisher, self.contributors)
-        _print(command)
-        subprocess.call(command, shell=True)
-
-
-def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_code, books, working_dir, output_dir):
+def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_code, books, working_dir, output_dir, stylefile):
     """
     :param ta_tag:
     :param tn_tag:
@@ -805,7 +791,7 @@ def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_code, books, w
     :return:
     """
     tn_converter = TnConverter(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, working_dir, output_dir, 
-                                lang_code, books)
+                                lang_code, books, stylefile)
     tn_converter.run()
 
 if __name__ == '__main__':
@@ -821,5 +807,7 @@ if __name__ == '__main__':
     parser.add_argument('--ust-tag', dest='ust', default='master', required=False, help="UST Tag")
     parser.add_argument('--ult-tag', dest='ult', default='master', required=False, help="ULT Tag")
     parser.add_argument('--ugnt-tag', dest='ugnt', default='v0.4', required=False, help="UGNT Tag")
+    parser.add_argument('-s', '--stylefile', dest="stylefile", help="Filename of the style sheet", required=True)
+
     args = parser.parse_args(sys.argv[1:])
-    main(args.ta, args.tn, args.tw, args.ust, args.ult, args.ugnt, args.lang_code, args.books, args.working_dir, args.output_dir)
+    main(args.ta, args.tn, args.tw, args.ust, args.ult, args.ugnt, args.lang_code, args.books, args.working_dir, args.output_dir, args.stylefile)

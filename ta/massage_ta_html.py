@@ -84,7 +84,7 @@ if __name__ == '__main__':
         help="Filename of the ta.html file to read", required=True)
     parser.add_argument('-o', '--outfile', dest="outfile",
         help="Filename of the ta.html file to write out to", required=True)
-    parser.add_argument('-s', '--styleile', dest="stylefile",
+    parser.add_argument('-s', '--stylefile', dest="stylefile",
         help="Filename of the style sheet", required=True)
     parser.add_argument('-v', '--version', dest="version",
         help="Version of tA", required=True)
