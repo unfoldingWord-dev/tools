@@ -589,14 +589,14 @@ class TnConverter(object):
                     parts = reference[5:].split('/')
                     id = 'tn-{0}-{1}-{2}'.format(self.book_id, parts[4], parts[5])
                     if parts[4] == 'front':
-                        text = 'Intro'.format(self.book_title)
+                        text = 'Intro to {0}'.format(self.book_title)
                     elif parts[5] == 'intro':
-                        text = 'Ch. {0} Notes'.format(parts[5].lstrip('0'))
+                        text = '{0} {1} Notes'.format(self.book_title, parts[5].lstrip('0'))
                     else:
-                        text = '{1}:{2}'.format(id, parts[4].lstrip('0'), parts[5].lstrip('0'))
+                        text = '{0} {1}:{2}'.format(self.book_title, parts[4].lstrip('0'), parts[5].lstrip('0'))
                     references.append('<a href="#{0}">{1}</a>'.format(id, text))
             if len(references):
-                uses = '(Linked from: ' + ', '.join(references) + ')'
+                uses = '(<b>Go back to:</b> ' + ', '.join(references) + ')'
         return uses
 
     def get_resource_data_from_rc_links(self, text, source_rc):
