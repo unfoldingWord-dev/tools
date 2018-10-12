@@ -563,7 +563,7 @@ class TnConverter(object):
             html = markdown.markdown(self.resource_data[rc]['text'])
             html = self.increase_headers(html)
             header_class = 'section-header' if idx > 0 else ''
-            html = re.sub(r'<h(\d)>(.*?)</h(\d)>', r'<h\1 id="{0}" class="{1}">\2</h\3>\n{2}'.format(self.resource_data[rc]['id'], section_header, self.get_reference_text(rc)), html, 1, flags=re.IGNORECASE | re.MULTILINE)
+            html = re.sub(r'<h(\d)>(.*?)</h(\d)>', r'<h\1 id="{0}" class="{1}">\2</h\3>\n{2}'.format(self.resource_data[rc]['id'], header_class, self.get_reference_text(rc)), html, 1, flags=re.IGNORECASE | re.MULTILINE)
             html += '\n\n'
             tw_html += html
         return tw_html
@@ -578,7 +578,7 @@ class TnConverter(object):
                 html = markdown.markdown(self.resource_data[rc]['text'])
                 html = self.increase_headers(html)
                 header_class = 'section-header' if idx > 0 else ''
-                html = re.sub(r'<h(\d)>(.*?)</h(\d)>', r'<h\1 id="{0}" class="{1}">\2</h\3>{2}\n'.format(self.resource_data[rc]['id'], section_header, self.get_reference_text(rc)), html, 1, flags=re.IGNORECASE | re.MULTILINE)
+                html = re.sub(r'<h(\d)>(.*?)</h(\d)>', r'<h\1 id="{0}" class="{1}">\2</h\3>{2}\n'.format(self.resource_data[rc]['id'], header_class, self.get_reference_text(rc)), html, 1, flags=re.IGNORECASE | re.MULTILINE)
                 html += "\n\n"
                 ta_html += html
         return ta_html
