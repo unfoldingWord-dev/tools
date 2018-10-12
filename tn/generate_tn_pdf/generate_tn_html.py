@@ -125,7 +125,7 @@ class TnConverter(object):
             self.book_id = p['identifier'].upper()
             self.book_title = p['title'].replace(' translationNotes', '')
             self.book_number = BOOK_NUMBERS[self.book_id.lower()]
-            if int(self.book_number) != 65:
+            if int(self.book_number) != 41:
                 continue
             self.populate_tn_book_data()
             self.populate_tw_words_data()
@@ -350,7 +350,7 @@ class TnConverter(object):
                 intro = self.decrease_headers(intro, 5, 2)  # bring headers of 5 or more down 2
                 id = 'tn-{0}-{1}'.format(self.book_id, self.pad(chapter))
                 header_class = 'section-header' if len(tn_html) else ''
-                intro = re.sub(r'<h(\d+)>', r'<h\1 id="{0}" class="{0}">'.format(id, header_class), intro, 1, flags=re.IGNORECASE | re.MULTILINE)
+                intro = re.sub(r'<h(\d+)>', r'<h\1 id="{0}" class="{1}">'.format(id, header_class), intro, 1, flags=re.IGNORECASE | re.MULTILINE)
                 intro += '<br><br>\n\n'
                 tn_html += '\n<br>\n'+intro
                 # HANDLE RC LINKS
