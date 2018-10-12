@@ -245,14 +245,12 @@ table.tn-notes-table {
 }
 
 .page-header .section {
-    display: block;
-    float: left;
+    text-align: left;
 }
 
 .page-header .subsection {
     overflow: hidden;
     text-overflow: ellipsis;
+    text-align: right;
     max-height: 1.5em;
-    float: right;
-    display: block;
 }
