@@ -10,11 +10,8 @@ h1, h2, h3, h4, h5, h6,
     break-after: avoid-page !important;
 }
 
-h1, h2 {
-    page-break-before: always !important;
-}
-
 .section-header {
+    page-break-before: always !important;
     display: block;
     font-size: 1.5em;
     -webkit-margin-before: 0.83em;

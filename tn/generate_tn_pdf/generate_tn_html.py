@@ -318,7 +318,7 @@ class TnConverter(object):
         self.tn_book_data = book_data
 
     def get_tn_html(self):
-        tn_html = '<h1><a id="tn-{0}"></a>translationNotes</h1>\n\n'.format(self.book_id)
+        tn_html = ''
         if 'front' in self.tn_book_data and 'intro' in self.tn_book_data['front']:
             intro = markdown.markdown(self.tn_book_data['front']['intro'][0]['OccurrenceNote'].decode('utf8').replace('<br>', '\n'))
             title = self.get_first_header(intro)
@@ -326,7 +326,7 @@ class TnConverter(object):
             intro = self.increase_headers(intro)
             intro = self.decrease_headers(intro, 4)  # bring headers of 3 or more down 1
             id = 'tn-{0}-front-intro'.format(self.book_id)
-            intro = re.sub(r'<h(\d)>', r'<h\1><a id="{0}"></a>'.format(id), intro, 1, flags=re.IGNORECASE | re.MULTILINE)
+            intro = re.sub(r'<h(\d)>', r'<h\1 id="{0}">'.format(id), intro, 1, flags=re.IGNORECASE | re.MULTILINE)
             intro += '<br><br>\n\n'
             tn_html += '\n<br>\n'+intro
             # HANDLE RC LINKS AND BACK REFERENCE
@@ -349,7 +349,8 @@ class TnConverter(object):
                 intro = self.increase_headers(intro)
                 intro = self.decrease_headers(intro, 5, 2)  # bring headers of 5 or more down 2
                 id = 'tn-{0}-{1}'.format(self.book_id, self.pad(chapter))
-                intro = re.sub(r'<h(\d+)>', r'<h\1><a id="{0}"></a>'.format(id), intro, 1, flags=re.IGNORECASE | re.MULTILINE)
+                header_class = 'section-header' if len(tn_html) else ''
+                intro = re.sub(r'<h(\d+)>', r'<h\1 id="{0}" class="{0}">'.format(id, header_class), intro, 1, flags=re.IGNORECASE | re.MULTILINE)
                 intro += '<br><br>\n\n'
                 tn_html += '\n<br>\n'+intro
                 # HANDLE RC LINKS
@@ -383,7 +384,8 @@ class TnConverter(object):
                         'link': '#'+id,
                         'title': title
                     }
-                header = '\n<br>\n<h2>{0}{1}</h2>\n\n'.format(anchors, title)
+                header_class = 'section-header' if len(tn_html) else ''
+                header = '\n<br>\n<h2 class="{0}">{1}{2}</h2>\n\n'.format(header_class, anchors, title)
                 col1 += '<sup style="color:light-gray">ULT</sup>' + self.get_bible_html('ult', int(chapter), first_verse, last_verse)
                 col1 += '\n<br><br>\n'
                 col1 += '<sup style="color:light-gray">UST</sup>' + self.get_bible_html('ust', int(chapter), first_verse, last_verse)
@@ -403,6 +405,7 @@ class TnConverter(object):
 #                    chunk_page = '{0}\n<table style="width:100%;border:none"><tr><td style="width:50%">{1}</td><td>{2}</td></tr></table>'.format(header, col1, col2) # REMOVE
                     tn_html += chunk_page
                     self.get_resource_data_from_rc_links(chunk_page, rc)
+        tn_html = '<h1 id="tn-{0}" class="section-header">translationNotes</h1>\n\n'.format(self.book_id) + tn_html
         return tn_html
 
     def populate_tw_words_data(self):
