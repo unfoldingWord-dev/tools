@@ -242,6 +242,7 @@ table.tn-notes-table {
     border-bottom: solid grey 1px;
     font-style: italic;
     height: 1.5em;
+    width: 100%;
 }
 
 .page-header .section {
