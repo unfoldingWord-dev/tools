@@ -234,8 +234,8 @@ hr {
 }
 
 table.tn-notes-table {
-    border-top: solid black;
-    border-bottom: solid black;
+    border-top: solid black 1px;
+    border-bottom: solid black 1px;
 }
 
 .page-header {
