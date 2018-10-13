@@ -324,7 +324,7 @@ class TnConverter(object):
         self.tn_book_data = book_data
 
     def get_tn_html(self):
-        tn_html = '<div id="tn-{0}" class="resource-header">\n<h1 class="section-header">translationNotes</h1>\n</div>'.format(self.book_id)
+        tn_html = '<div id="tn-{0}" class="resource-title-page">\n<h1 class="section-header">translationNotes</h1>\n</div>'.format(self.book_id)
         if 'front' in self.tn_book_data and 'intro' in self.tn_book_data['front']:
             intro = markdown.markdown(self.tn_book_data['front']['intro'][0]['OccurrenceNote'].decode('utf8').replace('<br>', '\n'))
             title = self.get_first_header(intro)
