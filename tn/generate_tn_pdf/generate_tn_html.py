@@ -666,7 +666,7 @@ class TnConverter(object):
                         t = self.fix_ta_links(t, path.split('/')[0])
                     elif resource == 'tw':
                         title = self.get_first_header(t)
-                        t = re.sub(r'\s*\n*\s*<h\d>[^<]+</h\d>\s*\n*', r'', t, flags=re.IGNORECASE | re.MULTILINE) # removes the header
+                        t = re.sub(r'\s*\n*\s*<h\d>[^<]+</h\d>\s*\n*', r'', t, 1, flags=re.IGNORECASE | re.MULTILINE) # removes the header
                         alt_title = title
                         if len(title) > 70:
                             title = ','.join(title[:70].split(',')[:-1]) + ', ...'
