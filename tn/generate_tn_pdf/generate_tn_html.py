@@ -130,7 +130,7 @@ class TnConverter(object):
 
             self.populate_chapters_and_verses()
             self.populate_usfm_chunks()
-            self.filename_base = '{0}_tn_{1}-{2}_v{3}'.format(self.lang_code, self.book_number.zfill(2), self.book_id, self.version)
+            self.filename_base = '{0}_tn_{1}-{2}_v{3}'.format(self.lang_code, self.book_number.zfill(2), self.book_id.upper(), self.version)
             self.rc_references = {}
             self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number, self.book_id))
             if not os.path.isfile(os.path.join(self.output_dir, '{0}.hhhhtml'.format(self.filename_base))):
