@@ -258,7 +258,8 @@ h2.hidden {
 }
 
 .resource-header {
+    display: block;
     text-align: center;
     width: 100%;
-    padding-top: 200px;
+    margin-top: 200px;
 }
