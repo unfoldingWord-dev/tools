@@ -444,7 +444,7 @@ class TnConverter(object):
         verses = html.split('<sup>')
         for word in words:
             parts = word['text'].split(' ... ')
-            idx = word['contextId']['reference']['verse'] - first_verse + 1
+            verseIdx = word['contextId']['reference']['verse'] - first_verse + 1
             pattern = ''
             replace = ''
             for idx, part in enumerate(parts):
@@ -453,11 +453,7 @@ class TnConverter(object):
                 if idx + 1 < len(parts):
                     pattern += r'(.*?)'
                     replace += r'\{0}'.format(idx + 1)
-            _print(verses[idx])
-            _print(pattern)
-            _print(replace)
-            verses[idx] = re.sub(pattern, replace, verses[idx], 1, flags=re.MULTILINE | re.IGNORECASE)
-            _print(verses[idx])
+            verses[verseIdx] = re.sub(pattern, replace, verses[verseIdx], 1, flags=re.MULTILINE | re.IGNORECASE)
         html = '<sup>'.join(verses)
         return html
 
