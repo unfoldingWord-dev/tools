@@ -328,7 +328,7 @@ class TnConverter(object):
             id = 'tn-{0}-front-intro'.format(self.book_id)
             intro = re.sub(r'<h(\d)>', r'<h\1 id="{0}">'.format(id), intro, 1, flags=re.IGNORECASE | re.MULTILINE)
             intro += '<br><br>\n\n'
-            tn_html += '\n<br>\n'+intro
+            tn_html += '\n<div class="article tn-article tn-front-article">\n{0}\n</div>\n\n'.format(intro)
             # HANDLE RC LINKS AND BACK REFERENCE
             rc = 'rc://*/tn/help/{0}/front/intro'.format(self.book_id.lower())
             self.resource_data[rc] = {
@@ -351,8 +351,7 @@ class TnConverter(object):
                 id = 'tn-{0}-{1}-intro'.format(self.book_id, self.pad(chapter))
                 header_class = 'section-header' if len(tn_html) else ''
                 intro = re.sub(r'<h(\d+)>', r'<h\1 id="{0}" class="{1}">'.format(id, header_class), intro, 1, flags=re.IGNORECASE | re.MULTILINE)
-                intro += '<br><br>\n\n'
-                tn_html += '\n<br>\n'+intro
+                tn_html += '\n<div class="article tn-article tn-chapter-intro-article">\n{0}\n</div>\n\n'.format(intro)
                 # HANDLE RC LINKS
                 rc = 'rc://*/tn/help/{0}/{1}/intro'.format(self.book_id.lower(), self.pad(chapter))
                 self.resource_data[rc] = {
@@ -401,10 +400,9 @@ class TnConverter(object):
                 if col2 != '':
                     col2 = self.decrease_headers(col2, 5)  # bring headers of 5 or more #'s down 1
                     col2 = self.fix_tn_links(col2, chapter)
-                    chunk_page = '{0}\n<table class="tn-notes-table" style="width:100%">\n<tr>\n<td style="vertical-align:top;width:35%;padding-right:5px">\n\n<p>{1}</p>\n</td>\n<td style="vertical-align:top">\n\n<p>{2}</p>\n</td>\n</tr>\n</table>\n'.format(header, col1, col2)
-#                    chunk_page = '{0}\n<table style="width:100%;border:none"><tr><td style="width:50%">{1}</td><td>{2}</td></tr></table>'.format(header, col1, col2) # REMOVE
-                    tn_html += chunk_page
-                    self.get_resource_data_from_rc_links(chunk_page, rc)
+                    chunk_article = '{0}\n<table class="tn-notes-table" style="width:100%">\n<tr>\n<td style="vertical-align:top;width:35%;padding-right:5px">\n\n<p>{1}</p>\n</td>\n<td style="vertical-align:top">\n\n<p>{2}</p>\n</td>\n</tr>\n</table>\n'.format(header, col1, col2)
+                    tn_html += '\n<div class="article tn-article tn-chunk-article">\n{0}\n</div>\n\n'.format(chunk_article)
+                    self.get_resource_data_from_rc_links(chunk_article, rc)
         tn_html = '<h1 id="tn-{0}" class="section-header">translationNotes</h1>\n\n'.format(self.book_id) + tn_html
         return tn_html
 
@@ -573,7 +571,7 @@ class TnConverter(object):
             if alt_title:
                 alt_title = '<br>\n<span class="h2">{0}</span>\n'.format(alt_title)
             html = '<h2 id="{0}" class="{1}">{2}</h2>\n{3}{4}{5}'.format(self.resource_data[rc]['id'], header_class, title, alt_title, self.get_reference_text(rc), html)
-            tw_html += html
+            tw_html += '\n<div class="article tw-article">\n{0}\n</div>\n\n'.format(html)
         return tw_html
 
     def get_ta_html(self):
@@ -587,8 +585,7 @@ class TnConverter(object):
                 html = self.increase_headers(html)
                 header_class = 'section-header' if idx > 0 else ''
                 html = re.sub(r'<h(\d)>(.*?)</h(\d)>', r'<h\1 id="{0}" class="{1}">\2</h\3>{2}\n'.format(self.resource_data[rc]['id'], header_class, self.get_reference_text(rc)), html, 1, flags=re.IGNORECASE | re.MULTILINE)
-                html += "\n\n"
-                ta_html += html
+                ta_html += '\n<div class="article ta-article">\n{0}\n</div>\n\n'.format(html)
         return ta_html
 
     def get_reference_text(self, rc):
