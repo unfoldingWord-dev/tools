@@ -41,7 +41,7 @@ def print(obj):
 class TnConverter(object):
 
     def __init__(self, ta_tag=None, tn_tag=None, tw_tag=None, ust_tag=None, ult_tag=None, ugnt_tag=None, working_dir=None, 
-                    output_dir=None, lang_code='en', books=None):
+                    output_dir=None, lang_code='en', books=None, contributors=''):
         """
         :param ta_tag:
         :param tn_tag:
@@ -64,6 +64,7 @@ class TnConverter(object):
         self.output_dir = output_dir
         self.lang_code = lang_code
         self.books = books
+        self.contributors = contributors
 
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.DEBUG)
@@ -244,11 +245,18 @@ class TnConverter(object):
             write_file(save_file, book_chunks[resource])
         self.usfm_chunks = book_chunks
 
+    def get_contributors_html(self):
+        if self.contributors and len(self.contributors):
+            return '<div class="article contributors">\n<h1>Contributors</h1>\n<p>{0}</p></div>'.format(self.contributors)
+        else:
+            return ''
+
     def generate_html(self):
         tn_html = self.get_tn_html()
         ta_html = self.get_ta_html()
         tw_html = self.get_tw_html()
-        html = '\n<br>\n'.join([tn_html, tw_html, ta_html])
+        contributors_html = self.get_contributors_html()
+        html = '\n'.join([tn_html, tw_html, ta_html, contributors_html])
         html = self.replace_rc_links(html)
         html = self.fix_links(html)
 
@@ -793,7 +801,7 @@ class TnConverter(object):
         write_file(html_file, html)
         return html
 
-def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_code, books, working_dir, output_dir):
+def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_code, books, working_dir, output_dir, contributors):
     """
     :param ta_tag:
     :param tn_tag:
@@ -808,7 +816,7 @@ def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_code, books, w
     :return:
     """
     tn_converter = TnConverter(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, working_dir, output_dir, 
-                                lang_code, books)
+                                lang_code, books, contributors)
     tn_converter.run()
 
 if __name__ == '__main__':
@@ -824,6 +832,7 @@ if __name__ == '__main__':
     parser.add_argument('--ust-tag', dest='ust', default='master', required=False, help="UST Tag")
     parser.add_argument('--ult-tag', dest='ult', default='master', required=False, help="ULT Tag")
     parser.add_argument('--ugnt-tag', dest='ugnt', default='v0.4', required=False, help="UGNT Tag")
+    parser.add_argument('-c', '--contributors', dest='contributors', default='', required=False, help="Contributors")
 
     args = parser.parse_args(sys.argv[1:])
-    main(args.ta, args.tn, args.tw, args.ust, args.ult, args.ugnt, args.lang_code, args.books, args.working_dir, args.output_dir)
+    main(args.ta, args.tn, args.tw, args.ust, args.ult, args.ugnt, args.lang_code, args.books, args.working_dir, args.output_dir, args.contributors)
