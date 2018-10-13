@@ -444,12 +444,20 @@ class TnConverter(object):
         verses = html.split('<sup>')
         for word in words:
             parts = word['text'].split(' ... ')
-            highlights = {}
-            idx = word['contextId']['reference']['verse']-first_verse+1
-            for part in parts:
-                highlights[part] = r'<a href="{0}">{1}</a>'.format(word['contextId']['rc'], part)
-            regex = re.compile(r'(?<![></\\_-])\b(%s)\b(?![></\\_-])' % "|".join(highlights.keys()))
-            verses[idx] = regex.sub(lambda m: highlights[m.group(0)], verses[idx])
+            idx = word['contextId']['reference']['verse'] - first_verse + 1
+            pattern = ''
+            replace = ''
+            for idx, part in enumerate(parts):
+                pattern += r'(?<![></\\_-])\b{0}\b(?![></\\_-])'.format(part)
+                replace += r'<a href="{0}">{1}</a>'.format(word['contextId']['rc'], part)
+                if idx + 1 < len(parts):
+                    pattern += r'(.*?)'
+                    replace += r'\{0}'.format(idx + 1)
+            _print(verses[idx])
+            _print(pattern)
+            _print(replace)
+            verses[idx] = re.sub(pattern, replace, verses[idx], 1, flags=re.MULTILINE | re.IGNORECASE)
+            _print(verses[idx])
         html = '<sup>'.join(verses)
         return html
 
