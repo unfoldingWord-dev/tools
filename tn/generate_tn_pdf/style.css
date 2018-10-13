@@ -17,7 +17,6 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .section-header {
-    page-break-before: always !important;
     display: block;
     font-size: 1.5em;
     -webkit-margin-before: 0.83em;
@@ -27,19 +26,12 @@ h1, h2, h3, h4, h5, h6,
     font-weight: bold;
 }
 
-h1 + *, h2 + *, h3 + *, h4 + *, h5 + *, h6 + *,
-.h1 + *, .h2 + *, .h3 + *, .h4 + *, .h5 + *, .h6 + *,
-.section-header > p:first-child {
-    page-break-before: avoid;
-    page-break-after: auto;
-}
-
 li {
     page-break-before: avoid;
     page-break-after: auto;
 }
 
-.break, .section-header:not(.no-break) {
+.page-break, .break, .article {
     page-break-before: always !important;
     clear: both;
 }
@@ -263,4 +255,10 @@ h2.hidden {
     margin: 0;
     overflow: hidden;
     width: 0;
+}
+
+.resource-header {
+    text-align: center;
+    width: 100%;
+    padding-top: 200px;
 }
