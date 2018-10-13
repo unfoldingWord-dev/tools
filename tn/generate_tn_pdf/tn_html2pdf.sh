@@ -90,7 +90,6 @@ echo '<!DOCTYPE html>
     <p>
       <strong>Date:</strong> '$issued_date'<br/>
       <strong>Version:</strong> '$version'<br/>
-      <strong>Contributors:</strong> <i><a href="#contributors">See Contributors page</a></i><br/>
       <strong>Published by:</strong> '$publisher'<br/>
     </p>
     '$license'
