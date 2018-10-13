@@ -38,7 +38,7 @@ mkdir -p "$OUTPUT_DIR/tn_pdf"
 
 cd ../../..
 pwd
-python -m tools.tn.generate_tn_pdf.generate_tn_html -w "$WORKING_DIR" -o "$OUTPUT_DIR/tn_html" --contributors "$contributors"
+python -m tools.tn.generate_tn_pdf.generate_tn_html -w "$WORKING_DIR" -o "$OUTPUT_DIR/tn_html"
 
 cd "$WORKING_DIR"
 echo "Have out repo files:"
@@ -90,6 +90,7 @@ echo '<!DOCTYPE html>
     <p>
       <strong>Date:</strong> '$issued_date'<br/>
       <strong>Version:</strong> '$version'<br/>
+      <strong>Contributors:</strong> <i><a href="#contributors">See Contributors page</a></i><br/>
       <strong>Published by:</strong> '$publisher'<br/>
     </p>
     '$license'
