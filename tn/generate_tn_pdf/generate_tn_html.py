@@ -573,12 +573,8 @@ class TnConverter(object):
             html = self.resource_data[rc]['text']
             html = self.increase_headers(html)
             title = self.resource_data[rc]['title']
-            alt_title = self.resource_data[rc]['alt_title']
             header_class = 'section-header' if idx > 0 else ''
-            header_class += ' hidden' if alt_title else ''
-            if alt_title:
-                alt_title = '<br>\n<span class="h2">{0}</span>\n'.format(alt_title)
-            html = '<h2 id="{0}" class="{1}">{2}</h2>\n{3}{4}{5}'.format(self.resource_data[rc]['id'], header_class, title, alt_title, self.get_reference_text(rc), html)
+            html = '<h2 id="{0}" class="{1}">{2}</h2>\n{3}{4}'.format(self.resource_data[rc]['id'], header_class, title self.get_reference_text(rc), html)
             tw_html += '\n<div class="article tw-article">\n{0}\n</div>\n\n'.format(html)
         return tw_html
 
@@ -672,9 +668,8 @@ class TnConverter(object):
                     elif resource == 'tw':
                         title = self.get_first_header(t)
                         t = re.sub(r'\s*\n*\s*<h\d>[^<]+</h\d>\s*\n*', r'', t, 1, flags=re.IGNORECASE | re.MULTILINE) # removes the header
-                        alt_title = title
                         if len(title) > 70:
-                            title = ','.join(title[:70].split(',')[:-1]) + ', ...'
+                            alt_title = ','.join(title[:70].split(',')[:-1]) + ', ...'
                         t = re.sub(r'\n*\s*\(See [^\n]*\)\s*\n*', '\n\n', t, flags=re.IGNORECASE | re.MULTILINE) # removes the See also line
                         t = self.fix_tw_links(t, path.split('/')[1])
                 else:
