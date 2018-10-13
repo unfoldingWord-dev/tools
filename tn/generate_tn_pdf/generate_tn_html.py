@@ -245,7 +245,7 @@ class TnConverter(object):
 
     def get_contributors_html(self):
         if self.contributors and len(self.contributors):
-            return '<div id="contributors" class="section-header article contributors">\n<h1>Contributors</h1>\n<p>{0}</p></div>'.format(self.contributors)
+            return '<div id="contributors" class="article contributors">\n<h1 class="section-header">Contributors</h1>\n<p>{0}</p></div>'.format(self.contributors)
         else:
             return ''
 
