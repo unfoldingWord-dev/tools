@@ -123,7 +123,7 @@ class TnConverter(object):
             self.book_id = p['identifier'].lower()
             self.book_title = p['title'].replace(' translationNotes', '')
             self.book_number = BOOK_NUMBERS[self.book_id]
-            if int(self.book_number) != 66:
+            if int(self.book_number) != 57:
                 continue
             self.populate_tn_book_data()
             self.populate_tw_words_data()
