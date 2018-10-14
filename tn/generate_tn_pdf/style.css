@@ -31,7 +31,7 @@ li {
     page-break-after: auto;
 }
 
-.page-break, .break, .article {
+.page-break, .break, .article, .resource-title-page {
     page-break-before: always !important;
     clear: both;
 }
