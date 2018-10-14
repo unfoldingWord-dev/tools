@@ -33,6 +33,9 @@ $DEBUG && set -x
 
 repo="${LANGUAGE}_${RESOURCE}"
 
+bookTitle="Matthew"
+book="41-MAT"
+
 mkdir -p "$OUTPUT_DIR/tn_html"
 mkdir -p "$OUTPUT_DIR/tn_pdf"
 
@@ -71,6 +74,7 @@ echo '<!DOCTYPE html>
   <div style="text-align:center;padding-top:200px" class="break" id="cover">
     <img src="https://unfoldingword.org/assets/img/icon-tn.png" width="120">
     <span class="h1">translationNotes</span>
+    <span class="h2">'${bookTitle}'</span>
     <span class="h3">Version '${version}'</span>
   </div>
 </body>
@@ -105,8 +109,8 @@ cp "$MY_DIR/style.css" "./tn_html"
 headerfile="$OUTPUT_DIR/tn_html/header.html"
 coverfile="$OUTPUT_DIR/tn_html/cover.html"
 licensefile="$OUTPUT_DIR/tn_html/license.html"
-bodyfile="$OUTPUT_DIR/tn_html/en_tn_57-TIT_v13.html"
-outfile="./tn_pdf/en_tn_57-TIT_v13.pdf"
+bodyfile="$OUTPUT_DIR/tn_html/en_tn_${book}_v13.html"
+outfile="./tn_pdf/en_tn_${book}_v13.pdf"
 
 echo "GENERATING $outfile"
 wkhtmltopdf --javascript-delay 2000 --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 15  --header-html "$headerfile" --header-spacing 2 --footer-center '[page]' cover "$coverfile" cover "$licensefile" toc --disable-dotted-lines --enable-external-links --xsl-style-sheet "$TEMPLATE" "$bodyfile" "$outfile"
