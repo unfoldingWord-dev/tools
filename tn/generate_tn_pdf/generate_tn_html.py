@@ -440,7 +440,7 @@ class TnConverter(object):
     def get_bible_html(self, resource, chapter, first_verse, last_verse):
         html = self.get_chunk_html(resource, chapter, first_verse)
         html = html.replace('\n', '').replace('<p>', '').replace('</p>', '').strip()
-        # html = re.sub(r'<span class="v-num"', '<br><span class="v-num"', html, flags=re.IGNORECASE | re.MULTILINE)
+        html = re.sub(r'<span class="v-num"', '<br><span class="v-num"', html, flags=re.IGNORECASE | re.MULTILINE)
         if resource != 'ult':
             return html
         regex = re.compile(' <div')
