@@ -248,7 +248,7 @@ table.tn-notes-table {
     max-height: 1.5em;
 }
 
-h2.hidden.section-header {
+.hidden {
     color: white;
     padding: 0;
     margin: 0;
