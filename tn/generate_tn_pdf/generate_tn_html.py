@@ -440,43 +440,52 @@ class TnConverter(object):
     def get_bible_html(self, resource, chapter, first_verse, last_verse):
         html = self.get_chunk_html(resource, chapter, first_verse)
         html = html.replace('\n', '').replace('<p>', '').replace('</p>', '').strip()
-        html = re.sub(r'<span class="v-num"', '<br><span class="v-num"', html, flags=re.IGNORECASE | re.MULTILINE)
+        # html = re.sub(r'<span class="v-num"', '<br><span class="v-num"', html, flags=re.IGNORECASE | re.MULTILINE)
         if resource != 'ult':
             return html
-        words = self.get_all_words_to_match(resource, chapter, first_verse, last_verse)
-        verses = html.split('<sup>')
-        for word in words:
-            parts = word['text'].split(' ... ')
-            verseIdx = word['contextId']['reference']['verse'] - first_verse + 1
-            pattern = ''
-            replace = ''
-            for idx, part in enumerate(parts):
-                pattern += r'(?<![></\\_-])\b{0}\b(?![></\\_-])'.format(part)
-                replace += r'<a href="{0}">{1}</a>'.format(word['contextId']['rc'], part)
-                if idx + 1 < len(parts):
-                    pattern += r'(.*?)'
-                    replace += r'\{0}'.format(idx + 1)
-            verses[verseIdx] = re.sub(pattern, replace, verses[verseIdx], 1, flags=re.MULTILINE | re.IGNORECASE)
-        for verse in range(first_verse, last_verse +1):
-            verseIdx = verse - first_verse + 1
-            rc = 'rc://*/tn/help/{0}/{1}/{2}'.format(self.book_id, self.pad(chapter), self.pad(verse))
-            self.get_resource_data_from_rc_links(verses[verseIdx], rc)
-        html = '<sup>'.join(verses)
-        return html
+        regex = re.compile(' <div')
+        versesAndFooter = regex.split(html)
+        versesHtml = versesAndFooter[0]
+        footerHtml = ''
+        if len(versesAndFooter) > 1:
+            footerHtml = ' <div {0}'.format(versesAndFooter[1])
+        regex = re.compile(r'\s*<span class="v-num" id="\d+-ch-\d+-v-\d+"><sup><b>(\d+)</b></sup></span> ')
+        versesSplit = regex.split(versesHtml)
+        verses = {}
+        for i in range(1, len(versesSplit), 2):
+            verses[int(versesSplit[i])] = versesSplit[i+1]
+        newHtml = versesSplit[0]
+        for verseNum in range(first_verse, last_verse +1):
+            words = self.get_all_words_to_match(resource, chapter, verseNum)
+            for word in words:
+                parts = word['text'].split(' ... ')
+                pattern = ''
+                replace = ''
+                for idx, part in enumerate(parts):
+                    pattern += r'(?<![></\\_-])\b{0}\b(?![></\\_-])'.format(part)
+                    replace += r'<a href="{0}">{1}</a>'.format(word['contextId']['rc'], part)
+                    if idx + 1 < len(parts):
+                        pattern += r'(.*?)'
+                        replace += r'\{0}'.format(idx + 1)
+                verses[verseNum] = re.sub(pattern, replace, verses[verseNum], 1, flags=re.MULTILINE | re.IGNORECASE)
+            rc = 'rc://*/tn/help/{0}/{1}/{2}'.format(self.book_id, self.pad(chapter), self.pad(str(verseNum)))
+            self.get_resource_data_from_rc_links(verses[verseNum], rc)
+            newHtml += '<span class="v-num" id="{0}-ch-{1}-v-{2}"><sup><b>{3}</b></sup></span> {4} '.format(str(self.book_number).zfill(3), str(chapter).zfill(3), str(verseNum).zfill(3), verseNum, verses[verseNum])
+        newHtml += footerHtml
+        return newHtml
 
-    def get_all_words_to_match(self, resource, chapter, first_verse, last_verse):
+    def get_all_words_to_match(self, resource, chapter, verse):
         path = 'tools/tn/generate_tn_pdf/en/bibles/{0}/v1/{1}/{2}.json'.format(resource, self.book_id, chapter)
         words = []
         data = load_json_object(path)
         chapter = int(chapter)
-        for verse in range(first_verse, last_verse + 1):
-            if chapter in self.tw_words_data and verse in self.tw_words_data[chapter]:
-                contextIds = self.tw_words_data[int(chapter)][int(verse)]
-                verseObjects = data[str(verse)]['verseObjects']
-                for contextId in contextIds:
-                    aligned_text = self.get_aligned_text(verseObjects, contextId, False)
-                    if aligned_text:
-                        words.append({'text': aligned_text, 'contextId': contextId})
+        if chapter in self.tw_words_data and verse in self.tw_words_data[chapter]:
+            contextIds = self.tw_words_data[int(chapter)][int(verse)]
+            verseObjects = data[str(verse)]['verseObjects']
+            for contextId in contextIds:
+                aligned_text = self.get_aligned_text(verseObjects, contextId, False)
+                if aligned_text:
+                    words.append({'text': aligned_text, 'contextId': contextId})
         return words
 
     def find_english_from_combination(self, verseObjects, quote, occurrence):
@@ -576,9 +585,10 @@ class TnConverter(object):
             html = self.increase_headers(html)
             title = self.resource_data[rc]['title']
             alt_title = self.resource_data[rc]['alt_title']
-            if not alt_title:
-                alt_title = title
-            html = '<h2 class="hidden">{0}</h2><span class="h2 section-header">{1}</span>\n{2}{3}'.format(alt_title, title, self.get_reference_text(rc), html)
+            if alt_title:
+                html = '<h2 class="hidden">{0}</h2><span class="h2 section-header">{1}</span>\n{2}{3}'.format(alt_title, title, self.get_reference_text(rc), html)
+            else:
+                html = '<span class="hidden"><h2 class="section-header">{0}</h2>\n{1}{2}'.format(title, self.get_reference_text(rc), html)
             tw_html += '<div id="{0}" class="article">\n{1}\n</div>\n\n'.format(self.resource_data[rc]['id'], html)
         return tw_html
 
