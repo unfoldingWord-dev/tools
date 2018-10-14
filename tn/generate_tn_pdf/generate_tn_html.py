@@ -612,7 +612,7 @@ class TnConverter(object):
                     references.append('<a href="#{0}">{1}</a>'.format(id, text))
                     done[reference] = True
             if len(references):
-                uses = '(<b>Go back to:</b> {0})\n<br><br>\n'.format('; '.join(references))
+                uses = '<p>\n(<b>Go back to:</b> {0})\n</p>\n'.format('; '.join(references))
         return uses
 
     def get_resource_data_from_rc_links(self, text, source_rc):
