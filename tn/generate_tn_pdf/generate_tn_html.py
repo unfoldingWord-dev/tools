@@ -618,7 +618,7 @@ class TnConverter(object):
     def get_resource_data_from_rc_links(self, text, source_rc):
         for rc in re.findall(r'rc://[A-Z0-9/_\*-]+', text, flags=re.IGNORECASE | re.MULTILINE):
             parts = rc[5:].split('/')
-            rc = 'rc://*/'.format('/'.join(parts[1:]))
+            rc = 'rc://*/{0}'.format('/'.join(parts[1:]))
             resource = parts[1]
             path = '/'.join(parts[3:])
 
