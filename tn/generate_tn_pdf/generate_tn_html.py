@@ -395,17 +395,20 @@ class TnConverter(object):
                 col2 = ''
                 for verse in range(first_verse, last_verse+1):
                     if str(verse) in self.tn_book_data[chapter]:
+                        verseNotes = ''
                         for data in self.tn_book_data[chapter][str(verse)]:
                             title = data['GLQuote'].decode('utf8')
-                            col2 += '<b>' + title + (' -' if not title.endswith(':') else '') + ' </b>'
-                            col2 += markdown.markdown(data['OccurrenceNote'].decode('utf8').replace('<br>',"\n")).replace('<p>', '').replace('</p>', '')
-                            col2 += '\n<br><br>\n'
+                            verseNotes += '<b>' + title + (' -' if not title.endswith(':') else '') + ' </b>'
+                            verseNotes += markdown.markdown(data['OccurrenceNote'].decode('utf8').replace('<br>',"\n")).replace('<p>', '').replace('</p>', '')
+                            verseNotes += '\n<br><br>\n'
+                        rc = 'rc://*/tn/help/{0}/{1}/{2}'.format(self.book_id, self.pad(chapter), self.pad(verse))
+                        self.get_resource_data_from_rc_links(verseNotes, rc)
+                        col2 += verseNotes
                 if col2 != '':
                     col2 = self.decrease_headers(col2, 5)  # bring headers of 5 or more #'s down 1
                     col2 = self.fix_tn_links(col2, chapter)
                     chunk_article = '{0}\n<table class="tn-notes-table" style="width:100%">\n<tr>\n<td style="vertical-align:top;width:35%;padding-right:5px">\n\n<p>{1}</p>\n</td>\n<td style="vertical-align:top">\n\n<p>{2}</p>\n</td>\n</tr>\n</table>\n'.format(header, col1, col2)
                     tn_html += '<div id="{0}" class="article">\n{1}\n{2}\n</div>\n\n'.format(ids[0], ''.join(map(lambda x: '<a id="{0}"></a>'.format(x), ids)) if len(ids) > 1 else '', chunk_article)
-                    self.get_resource_data_from_rc_links(chunk_article, rc)
         return tn_html
 
     def populate_tw_words_data(self):
@@ -454,6 +457,10 @@ class TnConverter(object):
                     pattern += r'(.*?)'
                     replace += r'\{0}'.format(idx + 1)
             verses[verseIdx] = re.sub(pattern, replace, verses[verseIdx], 1, flags=re.MULTILINE | re.IGNORECASE)
+        for verse in range(first_verse, last_verse +1):
+            verseIdx = verse - first_verse + 1
+            rc = 'rc://*/tn/help/{0}/{1}/{2}'.format(self.book_id, self.pad(chapter), self.pad(verse))
+            self.get_resource_data_from_rc_links(verses[verseIdx], rc)
         html = '<sup>'.join(verses)
         return html
 
