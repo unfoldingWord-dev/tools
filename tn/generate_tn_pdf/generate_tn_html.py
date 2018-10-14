@@ -462,6 +462,8 @@ class TnConverter(object):
                 pattern = ''
                 replace = ''
                 for idx, part in enumerate(parts):
+                    if part.lower() in ['a', 'an', 'as', 'at', 'by', 'for', 'from', 'in', 'into', 'may', 'of', 'on', 'onto', 'the', 'with']:
+                        continue
                     pattern += r'(?<![></\\_-])\b{0}\b(?![></\\_-])'.format(part)
                     replace += r'<a href="{0}">{1}</a>'.format(word['contextId']['rc'], part)
                     if idx + 1 < len(parts):
