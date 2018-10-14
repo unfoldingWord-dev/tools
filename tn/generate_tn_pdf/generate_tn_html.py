@@ -663,7 +663,7 @@ class TnConverter(object):
                             alt_title = ','.join(title[:70].split(',')[:-1]) + ', ...'
                         t = re.sub(r'\n*\s*\(See [^\n]*\)\s*\n*', '\n\n', t, flags=re.IGNORECASE | re.MULTILINE) # removes the See also line
                         t = self.fix_tw_links(t, path.split('/')[1])
-                                        self.resource_data[rc] = {
+                    self.resource_data[rc] = {
                         'rc': rc,
                         'link': link,
                         'id': anchor_id,
