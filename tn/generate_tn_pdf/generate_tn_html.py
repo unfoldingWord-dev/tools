@@ -561,6 +561,7 @@ class TnConverter(object):
     def get_tw_html(self):
         tw_html = '<div id="tw-{0}" class="resource-title-page">\n<h1 class="section-header">translationWords</h1>\n</div>\n\n'.format(self.book_id)
         sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
+        print(sorted_rcs)
         for rc in sorted_rcs:
             if '/tw/' not in rc:
                 continue
@@ -662,20 +663,19 @@ class TnConverter(object):
                             alt_title = ','.join(title[:70].split(',')[:-1]) + ', ...'
                         t = re.sub(r'\n*\s*\(See [^\n]*\)\s*\n*', '\n\n', t, flags=re.IGNORECASE | re.MULTILINE) # removes the See also line
                         t = self.fix_tw_links(t, path.split('/')[1])
+                                        self.resource_data[rc] = {
+                        'rc': rc,
+                        'link': link,
+                        'id': anchor_id,
+                        'title': title,
+                        'alt_title': alt_title,
+                        'text': t,
+                    }
+                    self.get_resource_data_from_rc_links(t, rc)
                 else:
                     if rc not in self.bad_links:
                         self.bad_links[rc] = []
                     self.bad_links[rc].append(source_rc)
-                self.resource_data[rc] = {
-                    'rc': rc,
-                    'link': link,
-                    'id': anchor_id,
-                    'title': title,
-                    'alt_title': alt_title,
-                    'text': t,
-                }
-                if t:
-                    self.get_resource_data_from_rc_links(t, rc)
 
     @staticmethod
     def increase_headers(text, increase_depth=1):
