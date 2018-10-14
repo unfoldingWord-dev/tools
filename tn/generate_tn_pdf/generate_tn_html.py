@@ -123,7 +123,7 @@ class TnConverter(object):
             self.book_id = p['identifier'].lower()
             self.book_title = p['title'].replace(' translationNotes', '')
             self.book_number = BOOK_NUMBERS[self.book_id]
-            if int(self.book_number) != 57:
+            if int(self.book_number) != 41:
                 continue
             self.populate_tn_book_data()
             self.populate_tw_words_data()
@@ -449,7 +449,7 @@ class TnConverter(object):
         footerHtml = ''
         if len(versesAndFooter) > 1:
             footerHtml = ' <div {0}'.format(versesAndFooter[1])
-        regex = re.compile(r'\s*<span class="v-num" id="\d+-ch-\d+-v-\d+"><sup><b>(\d+)</b></sup></span> ')
+        regex = re.compile(r'<span class="v-num" id="\d+-ch-\d+-v-\d+"><sup><b>(\d+)</b></sup></span>')
         versesSplit = regex.split(versesHtml)
         verses = {}
         for i in range(1, len(versesSplit), 2):
@@ -462,8 +462,10 @@ class TnConverter(object):
                 pattern = ''
                 replace = ''
                 for idx, part in enumerate(parts):
-                    if part.lower() in ['a', 'an', 'as', 'at', 'by', 'for', 'from', 'in', 'into', 'may', 'of', 'on', 'onto', 'the', 'with']:
+                    if not part or len(part) == 0 or part.lower() in ['a', 'an', 'and', 'and a', 'and an', 'as', 'at', 'at the', 'by', 'by the', 'for', 'from', 'in', 'into', 'may', 'of', 'of the', 'of a', 'on', 'onto', 'the', 'with'] or (idx < len(parts)-1 and (part.endswith(' a') or part.endswith(' at') or part.endswith(' the'))):
                         continue
+                    if len(part) < 2 or part.endswith(' a') or part.endswith(' an') or part.endswith(' the'):
+                        print(part)
                     pattern += r'(?<![></\\_-])\b{0}\b(?![></\\_-])'.format(part)
                     replace += r'<a href="{0}">{1}</a>'.format(word['contextId']['rc'], part)
                     if idx + 1 < len(parts):
@@ -472,7 +474,7 @@ class TnConverter(object):
                 verses[verseNum] = re.sub(pattern, replace, verses[verseNum], 1, flags=re.MULTILINE | re.IGNORECASE)
             rc = 'rc://*/tn/help/{0}/{1}/{2}'.format(self.book_id, self.pad(chapter), self.pad(str(verseNum)))
             self.get_resource_data_from_rc_links(verses[verseNum], rc)
-            newHtml += '<span class="v-num" id="{0}-ch-{1}-v-{2}"><sup><b>{3}</b></sup></span> {4} '.format(str(self.book_number).zfill(3), str(chapter).zfill(3), str(verseNum).zfill(3), verseNum, verses[verseNum])
+            newHtml += '<span class="v-num" id="{0}-ch-{1}-v-{2}"><sup><b>{3}</b></sup></span>{4}'.format(str(self.book_number).zfill(3), str(chapter).zfill(3), str(verseNum).zfill(3), verseNum, verses[verseNum])
         newHtml += footerHtml
         return newHtml
 
@@ -573,8 +575,8 @@ class TnConverter(object):
         text = self.find_english_from_split(verseObjects, contextId['quote'], contextId['occurrence'])
         if text:
             return text
-        _print('English not found!')
-        print(contextId)
+        # _print('English not found!')
+        # print(contextId)
 
     def get_tw_html(self):
         tw_html = '<div id="tw-{0}" class="resource-title-page">\n<h1 class="section-header">translationWords</h1>\n</div>\n\n'.format(self.book_id)
