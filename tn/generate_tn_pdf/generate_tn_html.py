@@ -404,7 +404,7 @@ class TnConverter(object):
                     col2 = self.decrease_headers(col2, 5)  # bring headers of 5 or more #'s down 1
                     col2 = self.fix_tn_links(col2, chapter)
                     chunk_article = '{0}\n<table class="tn-notes-table" style="width:100%">\n<tr>\n<td style="vertical-align:top;width:35%;padding-right:5px">\n\n<p>{1}</p>\n</td>\n<td style="vertical-align:top">\n\n<p>{2}</p>\n</td>\n</tr>\n</table>\n'.format(header, col1, col2)
-                    tn_html += '<div id="{0}" class="article">\n{1}\n{2}\n</div>\n\n'.format(id[0], ''.join(map(lambda x: '<a id="{0}"></a>'.format(x), ids)) if len(ids) > 1 else '', chunk_article)
+                    tn_html += '<div id="{0}" class="article">\n{1}\n{2}\n</div>\n\n'.format(ids[0], ''.join(map(lambda x: '<a id="{0}"></a>'.format(x), ids)) if len(ids) > 1 else '', chunk_article)
                     self.get_resource_data_from_rc_links(chunk_article, rc)
         return tn_html
 
@@ -559,9 +559,9 @@ class TnConverter(object):
         print(contextId)
 
     def get_tw_html(self):
-        tw_html = '<div id="tw-{0}" class="article">\n<h1 class="section-header">translationWords</h1>\n</div>\n\n'.format(self.book_id)
+        tw_html = '<div id="tw-{0}" class="resource-title-page">\n<h1 class="section-header">translationWords</h1>\n</div>\n\n'.format(self.book_id)
         sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
-        for idx, rc in enumerate(sorted_rcs):
+        for rc in sorted_rcs:
             if '/tw/' not in rc:
                 continue
             html = self.resource_data[rc]['text']
@@ -572,7 +572,7 @@ class TnConverter(object):
         return tw_html
 
     def get_ta_html(self):
-        ta_html = '<div id="ta-{0}" class="resource-header">\n<h1 class="section-header">translationAcademy</h1>\n</div>\n\n'.format(self.book_id)
+        ta_html = '<div id="ta-{0}" class="resource-title-page">\n<h1 class="section-header">translationAcademy</h1>\n</div>\n\n'.format(self.book_id)
         sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
         for rc in sorted_rcs:
             if '/ta/' not in rc:
