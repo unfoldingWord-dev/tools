@@ -575,7 +575,11 @@ class TnConverter(object):
             html = self.resource_data[rc]['text']
             html = self.increase_headers(html)
             title = self.resource_data[rc]['title']
-            html = '<h2 class="section-header">{0}</h2>\n{1}{2}'.format(title, self.get_reference_text(rc), html)
+            alt_title = self.resource_data[rc]['alt_title']
+            if alt_title:
+                html = '<h2 class="hidden">{0}</h2><span class="h2">{1}</span>\n{2}{3}'.format(alt_title, title, self.get_reference_text(rc), html)
+            else:
+                html = '<h2 class="section-header">{0}</h2>\n{1}{2}'.format(title, self.get_reference_text(rc), html)
             tw_html += '<div id="{0}" class="article">\n{1}\n</div>\n\n'.format(self.resource_data[rc]['id'], html)
         return tw_html
 

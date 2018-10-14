@@ -251,10 +251,10 @@ table.tn-notes-table {
 h2.hidden {
     color: white;
     height: 0;
+    line-height: 0;
     padding: 0;
     margin: 0;
     overflow: hidden;
-    width: 0;
 }
 
 .resource-title-page {
