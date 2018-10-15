@@ -261,3 +261,8 @@ table.tn-notes-table {
     text-align: center;
     padding-top: 200px
 }
+
+.col1 p {
+    padding: 0;
+    margin: 0;
+}

@@ -73,7 +73,6 @@ class TnConverter(object):
             '%(levelname)s - %(message)s')
         ch.setFormatter(formatter)
         self.logger.addHandler(ch)
-        self.pp = pprint.PrettyPrinter(indent=4)
 
         if not self.working_dir:
             self.working_dir = tempfile.mkdtemp(prefix='tn-')
@@ -109,6 +108,12 @@ class TnConverter(object):
         self.publisher = None
         self.issued = None
         self.filename_base = None
+        self.my_path = os.path.dirname(os.path.realpath(__file__))
+
+        self.lastEndedWithQuoteTag = False
+        self.lastEndedWithParagraphTag = False
+        self.openQuote = False
+        self.nextFollowsQuote = False
 
     def run(self):
         self.setup_resource_files()
@@ -123,25 +128,39 @@ class TnConverter(object):
             self.book_id = p['identifier'].lower()
             self.book_title = p['title'].replace(' translationNotes', '')
             self.book_number = BOOK_NUMBERS[self.book_id]
-            if int(self.book_number) != 41:
+            if int(self.book_number) != 59:
                 continue
             self.populate_tn_book_data()
             self.populate_tw_words_data()
-
+            self.populate_usfm2_from_usfm3()
             self.populate_chapters_and_verses()
             self.populate_usfm_chunks()
             self.filename_base = '{0}_tn_{1}-{2}_v{3}'.format(self.lang_code, self.book_number.zfill(2), self.book_id.upper(), self.version)
             self.rc_references = {}
             self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number, self.book_id))
-            if not os.path.isfile(os.path.join(self.output_dir, '{0}.hhhhtml'.format(self.filename_base))):
-                print("Processing HTML...")
-                self.generate_html()
+            if not os.path.isdir(os.path.join(self.output_dir, 'tn_html')):
+                os.makedirs(os.path.join(self.output_dir, 'tn_html'))
+            self.logger.info("Generating Body HTML...")
+            self.generate_body_html()
+            self.logger.info("Generating Cover HTML...")
+            self.generate_cover_html()
+            self.logger.info("Generating License HTML...")
+            self.generate_license_html()
+            self.logger.info("Copying page header file...")
+            header_file = os.path.join(self.my_path, 'header.html')
+            shutil.copyfile(header_file, os.path.join(self.output_dir, 'tn_html', '{0}_header.html'.format(self.filename_base)))
+            self.logger.info("Copying style sheet file...")
+            style_file = os.path.join(self.my_path, 'style.css')
+            shutil.copyfile(style_file, os.path.join(self.output_dir, 'tn_html', '{0}_style.css'.format(self.filename_base)))
+            self.logger.info("Generating PDF {0}...".format(os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))))
+            self.generate_tn_pdf()
+
         if len(self.bad_links.keys()):
-            _print("BAD LINKS:")
+            self.logger.error("BAD LINKS:")
             for bad in sorted(self.bad_links.keys()):
                 for ref in self.bad_links[bad]:
                     parts = ref[5:].split('/')
-                    _print("Bad reference: `{0}` in {1}'s {2}".format(bad, parts[1], '/'.join(parts[3:])))
+                    self.logger.error("Bad reference: `{0}` in {1}'s {2}".format(bad, parts[1], '/'.join(parts[3:])))
 
     def get_book_projects(self):
         projects = []
@@ -209,37 +228,27 @@ class TnConverter(object):
                 continue
             
             book_chunks[resource] = {}
-
-            bible_dir = getattr(self, '{0}_dir'.format(resource))
-            usfm = read_file(os.path.join(bible_dir, '{0}-{1}.usfm'.format(BOOK_NUMBERS[self.book_id], self.book_id.upper())), encoding='utf-8')
-
-            usfm = usfm3_to_usfm2(usfm)
-
-            usfm = re.sub(r'\n*\s*\\s5\s*\n*', r'\n', usfm, flags=re.MULTILINE | re.IGNORECASE)
-            chapters_usfm = re.compile(r'\n*\s*\\c[\u00A0\s]+').split(usfm)
-            book_chunks[resource]['header'] = chapters_usfm[0]
             for chapter_data in self.chapters_and_verses:
-                chapter = str(chapter_data['chapter'])
+                chapter = chapter_data['chapter']
                 book_chunks[resource][chapter] = {}
-                book_chunks[resource][chapter]['chunks'] = []
-                chapter_usfm = r'\\c ' + chapters_usfm[int(chapter)].strip()
-                verses_usfm = re.compile(r'\n*\s*\\v[\u00A0\s]+').split(chapter_usfm)
                 for idx, first_verse in enumerate(chapter_data['first_verses']):
                     if len(chapter_data['first_verses']) > idx+1:
                         last_verse = chapter_data['first_verses'][idx+1] - 1
                     else:
-                        last_verse = int(BOOK_CHAPTER_VERSES[self.book_id][chapter])
-                    chunk_usfm = ''
+                        last_verse = int(BOOK_CHAPTER_VERSES[self.book_id][str(chapter)])
+                    versesInChunk = []
                     for verse in range(first_verse, last_verse+1):
-                        chunk_usfm += r'\v '+verses_usfm[verse]+'\n'
+                        versesInChunk.append(self.usfm2[resource][chapter][verse])
+                    chunk_usfm = '\n'.join(versesInChunk)
                     data = {
                         'usfm': chunk_usfm,
                         'first_verse': first_verse,
                         'last_verse': last_verse,
                     }
                     # print('chunk: {0}-{1}-{2}-{3}-{4}'.format(resource, self.book_id, chapter, first_verse, last_verse))
-                    book_chunks[resource][chapter][str(first_verse)] = data
-                    book_chunks[resource][chapter]['chunks'].append(data)
+                    # print(data)
+                    # exit(0)
+                    book_chunks[resource][chapter][first_verse] = data
             write_file(save_file, book_chunks[resource])
         self.usfm_chunks = book_chunks
 
@@ -249,7 +258,7 @@ class TnConverter(object):
         else:
             return ''
 
-    def generate_html(self):
+    def generate_body_html(self):
         tn_html = self.get_tn_html()
         ta_html = self.get_ta_html()
         tw_html = self.get_tw_html()
@@ -257,9 +266,7 @@ class TnConverter(object):
         html = '\n'.join([tn_html, tw_html, ta_html, contributors_html])
         html = self.replace_rc_links(html)
         html = self.fix_links(html)
-
         html = '<head><title>tN</title></head>\n' + html
-
         soup = BeautifulSoup(html, 'html.parser')
 
         # Make all headers that have a header right before them non-break
@@ -274,12 +281,74 @@ class TnConverter(object):
                 h['class'] = h.get('class', []) + [h.name]
                 h.name = 'span'
 
-        soup.head.append(soup.new_tag('link', href="style.css", rel="stylesheet"))
+        soup.head.append(soup.new_tag('link', href="{0}_style.css".format(self.filename_base), rel="stylesheet"))
         soup.head.append(soup.new_tag('link', href="http://fonts.googleapis.com/css?family=Noto+Serif", rel="stylesheet", type="text/css"))
 
-        html_file = os.path.join(self.output_dir, '{0}.html'.format(self.filename_base))
+        html_file = os.path.join(self.output_dir, 'tn_html', '{0}.html'.format(self.filename_base))
         write_file(html_file, unicode(soup))
-        print('Wrote HTML to {0}'.format(html_file))
+        self.logger.info('Wrote HTML to {0}'.format(html_file))
+
+    def generate_cover_html(self):
+        cover_html = '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
+  <link href="{0}_style.css" rel="stylesheet"/>
+</head>
+<body>
+  <div style="text-align:center;padding-top:200px" class="break" id="cover">
+    <img src="https://unfoldingword.org/assets/img/icon-tn.png" width="120">
+    <span class="h1">translationNotes</span>
+    <span class="h2">{1}</span>
+    <span class="h3">Version {2}</span>
+  </div>
+</body>
+</html>
+'''.format(self.filename_base, self.book_title, self.version)
+        html_file = os.path.join(self.output_dir, 'tn_html', '{0}_cover.html'.format(self.filename_base))
+        write_file(html_file, cover_html)
+
+    def generate_license_html(self):
+        license_file = os.path.join(self.tn_dir, 'LICENSE.md')
+        license = markdown.markdown(read_file(license_file))
+        license_html = '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
+  <link href="{0}_style.css" rel="stylesheet"/>
+</head>
+<body>
+  <div class="break">
+    <span class="h1">Copyrights & Licensing</span>
+    <p>
+      <strong>Date:</strong> {1}<br/>
+      <strong>Version:</strong> {2}<br/>
+      <strong>Published by:</strong> {3}<br/>
+    </p>
+    {4}
+  </div>
+</body>
+</html>'''.format(self.filename_base, self.issued, self.version, self.publisher, license)
+        html_file = os.path.join(self.output_dir, 'tn_html', '{0}_license.html'.format(self.filename_base))
+        write_file(html_file, license_html)
+
+    def generate_tn_pdf(self):
+        header_file = os.path.join(self.output_dir, 'tn_html', '{0}_header.html'.format(self.filename_base))
+        cover_file = os.path.join(self.output_dir, 'tn_html', '{0}_cover.html'.format(self.filename_base))
+        license_file = os.path.join(self.output_dir, 'tn_html', '{0}_license.html'.format(self.filename_base))
+        body_file = os.path.join(self.output_dir, 'tn_html', '{0}.html'.format(self.filename_base))
+        output_file = os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))
+        template_file = os.path.join(self.my_path, 'toc_template.xsl')
+        if not os.path.isdir(os.path.join(self.output_dir, 'tn_pdf')):
+            os.makedirs(os.path.join(self.output_dir, 'tn_pdf'))
+        command = '''wkhtmltopdf --javascript-delay 2000 --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 15  --header-html "{0}" --header-spacing 2 --footer-center '[page]' cover "{1}" cover "{2}" toc --disable-dotted-lines --enable-external-links --xsl-style-sheet "{3}" "{4}" "{5}"'''.format(
+            header_file, cover_file, license_file, template_file, body_file, output_file)
+        self.logger.info(command)
+        subprocess.call(command, shell=True)
 
     def pad(self, num):
         if self.book_id == 'psa':
@@ -294,7 +363,108 @@ class TnConverter(object):
             return True
         except ValueError:
             return False
-    
+
+    def get_usfm_from_verse_objects(self, verseObjects, depth=0):
+        usfm = ''
+        for idx, obj in enumerate(verseObjects):
+            if obj['type'] == 'milestone':
+                usfm += self.get_usfm_from_verse_objects(obj['children'])
+            elif obj['type'] == 'word':
+                if not self.nextFollowsQuote and obj['text'] != 's':
+                    usfm += ' '
+                usfm += obj['text']
+                self.nextFollowsQuote = False
+            elif obj['type'] == 'text':
+                obj['text'] = obj['text'].replace('\n', '').strip()
+                if not self.openQuote and len(obj['text']) > 2 and obj['text'][-1] == '"':
+                    obj['text' ] = '{0} {1}'.format(obj['text'][:-1], obj['text'][-1])
+                if not self.openQuote and obj['text'] == '."':
+                    obj['text' ] = '. "'
+                if len(obj['text']) and obj['text'][0] == '"' and not self.openQuote and obj['text'] not in ['-', '—']:
+                    usfm += ' '
+                usfm += obj['text']
+                if obj['text'].count('"') == 1:
+                    self.openQuote = not self.openQuote
+                if self.openQuote and '"' in obj['text'] or obj['text'] in ['-', '—', '(', '[']:
+                    self.nextFollowsQuote = True
+            elif obj['type'] == 'quote':
+                obj['text'] = obj['text'].replace('\n', '').strip() if 'text' in obj else ''
+                if idx == len(verseObjects) -1 and obj['tag'] == 'q' and len(obj['text']) == 0:
+                    self.lastEndedWithQuoteTag = True
+                else:
+                    usfm += '\n\\{0} {1}'.format(obj['tag'], obj['text'] if len(obj['text']) > 0 else '')
+                if obj['text'].count('"') == 1:
+                    self.openQuote = not self.openQuote
+                if self.openQuote and '"' in obj['text']:
+                    self.nextFollowsQuote = True 
+            elif obj['type'] == 'section':  
+                obj['text'] = obj['text'].replace('\n', '').strip() if 'text' in obj else ''
+                if len(obj['text']):
+                    print("Seciton with text: {0}:{1}:".format(chapter, verse))
+                    print(obj)
+                    exit(1)
+                    continue
+            elif obj['type'] == 'paragraph':
+                obj['text'] = obj['text'].replace('\n', '').strip() if 'text' in obj else ''
+                if len(obj['text']):
+                    print("Paragraph with text: {0}:{1}:".format(chapter, verse))
+                    print(obj)
+                    exit(1)
+                if idx == len(verseObjects) - 1:
+                    self.lastEndedWithParagraphTag = True
+                else:
+                    usfm += '\n\\{0}{1}'.format(obj['tag'], obj['text'] if 'text' in obj else '\n')
+            elif obj['type'] == 'footnote':
+                obj['text'] = obj['text'].replace('\n', '').strip() if 'text' in obj else ''
+                if len(obj['text']):
+                    print("Footnote with text: {0}:{1}:".format(chapter, verse))
+                    print(obj)
+                    exit(1)
+                usfm += ' \{0} {1} \{0}*'.format(obj['tag'], obj['content'])
+            else:
+                print("ERROR! Not sure what to do with this in {0}:{1} in {2}: ".format(chapter, verse, chapter_file))
+                print(obj)
+                exit(1)
+        return usfm
+
+    def populate_usfm2_from_usfm3(self):
+        resources = ['ult', 'ust']
+        bible_path = 'tools/tn/generate_tn_pdf/en/bibles'
+        bookData = {}
+        for resource in resources:
+            bookData[resource] = {}
+            chapters_path = '{0}/{1}/v1/{2}'.format(bible_path, resource, self.book_id)
+            chapter_files_path = '{0}/*.json'.format(chapters_path)
+            chapter_files = sorted(glob(chapter_files_path))
+            for chapter_file in chapter_files:
+                try:
+                    chapter = int(os.path.splitext(os.path.basename(chapter_file))[0])
+                except ValueError:
+                    continue
+                bookData[resource][chapter] = {}
+                chapterData = load_json_object(chapter_file)
+                self.lastEndedWithQuoteTag = False
+                self.lastEndedWithParagraphTag = False
+                for verse, verseData in chapterData.iteritems():
+                    try:
+                        verse = int(verse)
+                    except ValueError:
+                        continue
+                    verseObjects = verseData['verseObjects']
+                    self.openQuote = False
+                    self.nextFollowsQuote = False
+                    usfm = ''
+                    if self.lastEndedWithParagraphTag:
+                        usfm += '\p '
+                        self.lastEndedWithParagraphTag = False
+                    usfm += '\\v {0} '.format(verse)
+                    if self.lastEndedWithQuoteTag:
+                        usfm += '\q '
+                        self.lastEndedWithQuoteTag = False
+                    usfm += self.get_usfm_from_verse_objects(verseObjects)
+                    bookData[resource][chapter][verse] = usfm
+        self.usfm2 = bookData
+
     def populate_chapters_and_verses(self):
         versification_file = os.path.join(self.versification_dir, '{0}.json'.format(self.book_id))
         self.chapter_and_verses = {}
@@ -407,7 +577,7 @@ class TnConverter(object):
                 if col2 != '':
                     col2 = self.decrease_headers(col2, 5)  # bring headers of 5 or more #'s down 1
                     col2 = self.fix_tn_links(col2, chapter)
-                    chunk_article = '{0}\n<table class="tn-notes-table" style="width:100%">\n<tr>\n<td style="vertical-align:top;width:35%;padding-right:5px">\n\n<p>{1}</p>\n</td>\n<td style="vertical-align:top">\n\n<p>{2}</p>\n</td>\n</tr>\n</table>\n'.format(header, col1, col2)
+                    chunk_article = '{0}\n<table class="tn-notes-table" style="width:100%">\n<tr>\n<td class="col1" style="vertical-align:top;width:35%;padding-right:5px">\n\n<p>{1}</p>\n</td>\n<td class="col2" style="vertical-align:top">\n\n<p>{2}</p>\n</td>\n</tr>\n</table>\n'.format(header, col1, col2)
                     tn_html += '<div id="{0}" class="article">\n{1}\n{2}\n</div>\n\n'.format(ids[0], ''.join(map(lambda x: '<a id="{0}"></a>'.format(x), ids)) if len(ids) > 1 else '', chunk_article)
         return tn_html
 
@@ -415,7 +585,7 @@ class TnConverter(object):
         groups = ['kt', 'names', 'other']
         grc_path = 'tools/tn/generate_tn_pdf/grc/translationHelps/translationWords/v0.4'
         if not os.path.isdir(grc_path):
-            _print('{0} not found! Please make sure you ran `node getResources ./` in the generate_tn_pdf dir and that the version in the script is correct'.format(grc_path))
+            self.logger.error('{0} not found! Please make sure you ran `node getResources ./` in the generate_tn_pdf dir and that the version in the script is correct'.format(grc_path))
             exit(1)
         words = {}
         for group in groups:
@@ -465,7 +635,7 @@ class TnConverter(object):
                     if not part or len(part) == 0 or part.lower() in ['a', 'an', 'and', 'and a', 'and an', 'as', 'at', 'at the', 'by', 'by the', 'for', 'from', 'in', 'into', 'may', 'of', 'of the', 'of a', 'on', 'onto', 'the', 'with'] or (idx < len(parts)-1 and (part.endswith(' a') or part.endswith(' at') or part.endswith(' the'))):
                         continue
                     if len(part) < 2 or part.endswith(' a') or part.endswith(' an') or part.endswith(' the'):
-                        print(part)
+                        self.logger.info(part)
                     pattern += r'(?<![></\\_-])\b{0}\b(?![></\\_-])'.format(part)
                     replace += r'<a href="{0}">{1}</a>'.format(word['contextId']['rc'], part)
                     if idx + 1 < len(parts):
@@ -575,13 +745,12 @@ class TnConverter(object):
         text = self.find_english_from_split(verseObjects, contextId['quote'], contextId['occurrence'])
         if text:
             return text
-        # _print('English not found!')
-        # print(contextId)
+        self.logger.error('English not found!')
+        print(contextId)
 
     def get_tw_html(self):
         tw_html = '<div id="tw-{0}" class="resource-title-page">\n<h1 class="section-header">translationWords</h1>\n</div>\n\n'.format(self.book_id)
         sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
-        print(sorted_rcs)
         for rc in sorted_rcs:
             if '/tw/' not in rc:
                 continue
@@ -792,10 +961,16 @@ class TnConverter(object):
             return read_file(html_file)
         if not os.path.exists(path):
             os.makedirs(path)
-        chunk = self.usfm_chunks[resource][str(chapter)][str(verse)]['usfm']
-        usfm = self.usfm_chunks[resource]['header']
-        if '\\c' not in chunk:
-            usfm += '\n\n\\c {0}\n'.format(chapter)
+        chunk = self.usfm_chunks[resource][chapter][verse]['usfm']
+        # usfm = self.usfm_chunks[resource]['header']
+        # if '\\c' not in chunk:
+        #     usfm += '\n\n\\c {0}\n'.format(chapter)
+        usfm = '''\id {0}
+\ide UTF-8
+\h {1}
+\mt {1}
+
+'''.format(self.book_id.upper(), self.book_title)
         usfm += chunk
         write_file(usfm_file, usfm)
         UsfmTransform.buildSingleHtml(path, path, filename_base)

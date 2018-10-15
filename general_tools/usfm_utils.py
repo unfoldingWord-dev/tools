@@ -316,14 +316,10 @@ def strip_word_data(usfm3):
     # remove empty word markers
     usfm = re.sub(r'\\w\s*(\|[^\\]*)?\\w\*', r'', usfm3, flags=re.UNICODE)
 
-    # usfm = re.match()
-
     # usfm = re.sub(r'\n(?!\\v|\\w|\\zaln-e\\\*.+).*', r'', usfm, flags=re.UNICODE)
     # usfm = re.sub(r'\\w ([^|]+).*', r'\g<1>', usfm, flags=re.UNICODE)    
     # usfm = re.sub(r'\n(?!\\v)', ' ', usfm, flags=re.UNICODE)
     # usfm = re.sub(r' \\zaln-e\\\*', '', usfm, flags=re.UNICODE)
-    # print(usfm)
-    # exit(1)
     # usmf = re.sub(r'\\zaln-s.*?(\\w ([^|]+).*?\\w\*[\s\n]*)+(\\zaln-e\\\*\s*)+', r'\g<1>', usfm, flags=re.UNICODE | re.MULTILINE | re.DOTALL)
 
     # place words on their own lines so regex doesn't break
@@ -347,6 +343,11 @@ def strip_word_data(usfm3):
     usfm = re.sub(r'\\zaln-s.*" ([^"]+)\n', r'\g<1>\n', usfm, flags=re.UNICODE)
     usfm = re.sub(r'\n\\zaln-e\\\*(.+)', r'\g<1>', usfm, flags=re.UNICODE)
     usfm = re.sub(r'\n(?!\\)', r' ', usfm, flags=re.UNICODE)
+
+    # Move punctuation away from other tags as the case is for `\q2-` in Hebrews 8:10
+    usfm = re.sub(r'\\([\w]+)([^\w\s])', r'\1 \2', usfm, flags=re.UNICODE | re.IGNORECASE)
+    usfm = re.sub(r'([^\n\s])\\([\w]+)', r'\1 \\\2', usfm, flags=re.UNICODE | re.IGNORECASE | re.MULTILINE)
+
     return usfm.strip()
 
 def convert_chunk_markers(str):
