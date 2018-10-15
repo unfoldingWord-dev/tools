@@ -99,6 +99,9 @@ class TnConverter(object):
         self.ta_text = ''
         self.rc_references = {}
         self.chapters_and_verses = {}
+        self.verse_usfm = {}
+        self.chunks_text = {}
+        self.chunk_text = {}
         self.resource_data = {}
         self.tn_book_data = {}
         self.tw_words_data = {}
@@ -132,9 +135,9 @@ class TnConverter(object):
                 continue
             self.populate_tn_book_data()
             self.populate_tw_words_data()
-            self.populate_usfm2_from_usfm3()
             self.populate_chapters_and_verses()
-            self.populate_usfm_chunks()
+            self.populate_verse_usfm()
+            self.populate_chunks_text()
             self.filename_base = '{0}_tn_{1}-{2}_v{3}'.format(self.lang_code, self.book_number.zfill(2), self.book_id.upper(), self.version)
             self.rc_references = {}
             self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number, self.book_id))
@@ -215,42 +218,40 @@ class TnConverter(object):
         finally:
             self.logger.debug('finished.')
 
-    def populate_usfm_chunks(self):
-        book_chunks = {}
-        for resource in ['ult', 'ust']:
-            save_dir = os.path.join(self.working_dir, 'chunk_data', resource)
-            if not os.path.exists(save_dir):
-                os.makedirs(save_dir)
-            save_file = os.path.join(save_dir, '{0}.json'.format(self.book_id))
+    def populate_chunks_text(self):
+        save_dir = os.path.join(self.working_dir, 'chunks_text')
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        save_file = os.path.join(save_dir, '{0}.json'.format(self.book_id))
 
-            if os.path.isfile(save_file):
-                book_chunks[resource] = load_json_object(save_file)
-                continue
-            
-            book_chunks[resource] = {}
-            for chapter_data in self.chapters_and_verses:
-                chapter = chapter_data['chapter']
-                book_chunks[resource][chapter] = {}
-                for idx, first_verse in enumerate(chapter_data['first_verses']):
-                    if len(chapter_data['first_verses']) > idx+1:
-                        last_verse = chapter_data['first_verses'][idx+1] - 1
-                    else:
-                        last_verse = int(BOOK_CHAPTER_VERSES[self.book_id][str(chapter)])
+        if os.path.isfile(save_file):
+            self.chunks_text = load_json_object(save_file)
+            return
+
+        chunks_text = {}            
+        for chapter_data in self.chapters_and_verses:
+            chapter = chapter_data['chapter']
+            chunks_text[chapter] = {}
+            for idx, first_verse in enumerate(chapter_data['first_verses']):
+                if len(chapter_data['first_verses']) > idx+1:
+                    last_verse = chapter_data['first_verses'][idx+1] - 1
+                else:
+                    last_verse = int(BOOK_CHAPTER_VERSES[self.book_id][str(chapter)])
+                chunks_text[chapter][first_verse] = {
+                    'first_verse': first_verse,
+                    'last_verse': last_verse
+                }
+                for resource in ['ult', 'ust']:
                     versesInChunk = []
                     for verse in range(first_verse, last_verse+1):
-                        versesInChunk.append(self.usfm2[resource][chapter][verse])
-                    chunk_usfm = '\n'.join(versesInChunk)
-                    data = {
+                        versesInChunk.append(self.verse_usfm[resource][chapter][verse])
+                        chunk_usfm = '\n'.join(versesInChunk)
+                    chunks_text[chapter][first_verse][resource] = {
                         'usfm': chunk_usfm,
-                        'first_verse': first_verse,
-                        'last_verse': last_verse,
+                        'html': self.get_chunk_html(chunk_usfm, resource, chapter, first_verse)
                     }
-                    # print('chunk: {0}-{1}-{2}-{3}-{4}'.format(resource, self.book_id, chapter, first_verse, last_verse))
-                    # print(data)
-                    # exit(0)
-                    book_chunks[resource][chapter][first_verse] = data
-            write_file(save_file, book_chunks[resource])
-        self.usfm_chunks = book_chunks
+            write_file(save_file, chunks_text)
+        self.chunks_text = chunks_text
 
     def get_contributors_html(self):
         if self.contributors and len(self.contributors):
@@ -427,7 +428,7 @@ class TnConverter(object):
                 exit(1)
         return usfm
 
-    def populate_usfm2_from_usfm3(self):
+    def populate_verse_usfm(self):
         resources = ['ult', 'ust']
         bible_path = 'tools/tn/generate_tn_pdf/en/bibles'
         bookData = {}
@@ -463,8 +464,8 @@ class TnConverter(object):
                         self.lastEndedWithQuoteTag = False
                     usfm += self.get_usfm_from_verse_objects(verseObjects)
                     bookData[resource][chapter][verse] = usfm
-        self.usfm2 = bookData
-
+        self.verse_usfm = bookData
+    
     def populate_chapters_and_verses(self):
         versification_file = os.path.join(self.versification_dir, '{0}.json'.format(self.book_id))
         self.chapter_and_verses = {}
@@ -558,9 +559,9 @@ class TnConverter(object):
                         'title': title
                     }
                 header = '<h2 class="section-header">{0}</h2>'.format(title)
-                col1 += '<sup style="color:light-gray">ULT</sup>' + self.get_bible_html('ult', int(chapter), first_verse, last_verse)
+                col1 += '<sup style="color:light-gray">ULT</sup>' + self.get_highlighted_html('ult', int(chapter), first_verse, last_verse)
                 col1 += '\n<br><br>\n'
-                col1 += '<sup style="color:light-gray">UST</sup>' + self.get_bible_html('ust', int(chapter), first_verse, last_verse)
+                col1 += '<sup style="color:light-gray">UST</sup>' + self.get_plain_html('ust', int(chapter), first_verse)
 
                 col2 = ''
                 for verse in range(first_verse, last_verse+1):
@@ -607,12 +608,14 @@ class TnConverter(object):
                     words[chapter][verse].append(contextId)
         self.tw_words_data = words
 
-    def get_bible_html(self, resource, chapter, first_verse, last_verse):
-        html = self.get_chunk_html(resource, chapter, first_verse)
+    def get_plain_html(self, resource, chapter, first_verse):
+        html = self.chunks_text[chapter][first_verse][resource]['html']
         html = html.replace('\n', '').replace('<p>', '').replace('</p>', '').strip()
         html = re.sub(r'<span class="v-num"', '<br><span class="v-num"', html, flags=re.IGNORECASE | re.MULTILINE)
-        if resource != 'ult':
-            return html
+        return html;
+
+    def get_highlighted_html(self, resource, chapter, first_verse, last_verse):
+        html = self.get_plain_html(resource, chapter, first_verse)
         regex = re.compile(' <div')
         versesAndFooter = regex.split(html)
         versesHtml = versesAndFooter[0]
@@ -950,7 +953,7 @@ class TnConverter(object):
 
         return text
 
-    def get_chunk_html(self, resource, chapter, verse):
+    def get_chunk_html(self, usfm, resource, chapter, verse):
         # print("html: {0}-{3}-{1}-{2}".format(resource, chapter, verse, self.book_id))
         path = os.path.join(self.working_dir, 'usfm_chunks', 'usfm-{0}-{1}-{2}-{3}-{4}'.
                                 format(self.lang_code, resource, self.book_id, chapter, verse))
@@ -961,7 +964,6 @@ class TnConverter(object):
             return read_file(html_file)
         if not os.path.exists(path):
             os.makedirs(path)
-        chunk = self.usfm_chunks[resource][chapter][verse]['usfm']
         # usfm = self.usfm_chunks[resource]['header']
         # if '\\c' not in chunk:
         #     usfm += '\n\n\\c {0}\n'.format(chapter)
@@ -970,8 +972,7 @@ class TnConverter(object):
 \h {1}
 \mt {1}
 
-'''.format(self.book_id.upper(), self.book_title)
-        usfm += chunk
+{2}'''.format(self.book_id.upper(), self.book_title, usfm)
         write_file(usfm_file, usfm)
         UsfmTransform.buildSingleHtml(path, path, filename_base)
         html = read_file(os.path.join(path, filename_base+'.html'))
