@@ -231,13 +231,13 @@ class TnConverter(object):
         chunks_text = {}            
         for chapter_data in self.chapters_and_verses:
             chapter = chapter_data['chapter']
-            chunks_text[chapter] = {}
+            chunks_text[str(chapter)] = {}
             for idx, first_verse in enumerate(chapter_data['first_verses']):
                 if len(chapter_data['first_verses']) > idx+1:
                     last_verse = chapter_data['first_verses'][idx+1] - 1
                 else:
                     last_verse = int(BOOK_CHAPTER_VERSES[self.book_id][str(chapter)])
-                chunks_text[chapter][first_verse] = {
+                chunks_text[str(chapter)][str(first_verse)] = {
                     'first_verse': first_verse,
                     'last_verse': last_verse
                 }
@@ -246,7 +246,7 @@ class TnConverter(object):
                     for verse in range(first_verse, last_verse+1):
                         versesInChunk.append(self.verse_usfm[resource][chapter][verse])
                         chunk_usfm = '\n'.join(versesInChunk)
-                    chunks_text[chapter][first_verse][resource] = {
+                    chunks_text[str(chapter)][str(first_verse)][resource] = {
                         'usfm': chunk_usfm,
                         'html': self.get_chunk_html(chunk_usfm, resource, chapter, first_verse)
                     }
@@ -609,7 +609,7 @@ class TnConverter(object):
         self.tw_words_data = words
 
     def get_plain_html(self, resource, chapter, first_verse):
-        html = self.chunks_text[chapter][first_verse][resource]['html']
+        html = self.chunks_text[str(chapter)][str(first_verse)][resource]['html']
         html = html.replace('\n', '').replace('<p>', '').replace('</p>', '').strip()
         html = re.sub(r'<span class="v-num"', '<br><span class="v-num"', html, flags=re.IGNORECASE | re.MULTILINE)
         return html;
@@ -635,10 +635,10 @@ class TnConverter(object):
                 pattern = ''
                 replace = ''
                 for idx, part in enumerate(parts):
-                    if not part or len(part) == 0 or part.lower() in ['a', 'an', 'and', 'and a', 'and an', 'as', 'at', 'at the', 'by', 'by the', 'for', 'from', 'in', 'into', 'may', 'of', 'of the', 'of a', 'on', 'onto', 'the', 'with'] or (idx < len(parts)-1 and (part.endswith(' a') or part.endswith(' at') or part.endswith(' the'))):
+                    prepositions = ['a', 'an', 'and', 'as', 'at', 'by', 'for', 'from', 'in', 'into', 'may', 'of', 'on', 'onto', 'the', 'with']
+                    part = re.sub(r'^(({0})\s+)+'.format('|'.join(prepositions)), '', part, flags=re.MULTILINE | re.IGNORECASE)
+                    if not part or (idx < len(parts)-1 and part.lower().split(' ')[-1] in prepositions):
                         continue
-                    if len(part) < 2 or part.endswith(' a') or part.endswith(' an') or part.endswith(' the'):
-                        self.logger.info(part)
                     pattern += r'(?<![></\\_-])\b{0}\b(?![></\\_-])'.format(part)
                     replace += r'<a href="{0}">{1}</a>'.format(word['contextId']['rc'], part)
                     if idx + 1 < len(parts):
@@ -748,8 +748,8 @@ class TnConverter(object):
         text = self.find_english_from_split(verseObjects, contextId['quote'], contextId['occurrence'])
         if text:
             return text
-        self.logger.error('English not found!')
-        print(contextId)
+        # self.logger.error('English not found!')
+        # print(contextId)
 
     def get_tw_html(self):
         tw_html = '<div id="tw-{0}" class="resource-title-page">\n<h1 class="section-header">translationWords</h1>\n</div>\n\n'.format(self.book_id)
@@ -960,13 +960,8 @@ class TnConverter(object):
         filename_base = '{0}-{1}-{2}-{3}'.format(resource, self.book_id, chapter, verse)
         html_file = os.path.join(path, '{0}.html'.format(filename_base))
         usfm_file = os.path.join(path, '{0}.usfm'.format(filename_base))
-        if os.path.isfile(html_file):
-            return read_file(html_file)
         if not os.path.exists(path):
             os.makedirs(path)
-        # usfm = self.usfm_chunks[resource]['header']
-        # if '\\c' not in chunk:
-        #     usfm += '\n\n\\c {0}\n'.format(chapter)
         usfm = '''\id {0}
 \ide UTF-8
 \h {1}
