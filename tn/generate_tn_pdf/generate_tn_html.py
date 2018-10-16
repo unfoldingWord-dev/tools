@@ -157,6 +157,7 @@ class TnConverter(object):
                 self.logger.info("Copying style sheet file...")
                 style_file = os.path.join(self.my_path, 'style.css')
                 shutil.copyfile(style_file, os.path.join(self.output_dir, 'tn_html', '{0}_style.css'.format(self.filename_base)))
+                shutil.copyfile(style_file, os.path.join(self.output_dir, 'tn_html', 'style.css'))
             if not os.path.exists(os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))):
                 self.logger.info("Generating PDF {0}...".format(os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))))
                 try:
