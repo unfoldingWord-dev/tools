@@ -868,116 +868,114 @@ class TnConverter(object):
                 self.rc_references[rc] = []
             if source_rc not in self.rc_references[rc]:
                 self.rc_references[rc].append(source_rc)
-
-            if True:
-                title = ''
-                t = ''
-                anchor_id = '{0}-{1}'.format(resource, path.replace('/', '-'))
-                link = '#{0}'.format(anchor_id)
+            title = ''
+            t = ''
+            anchor_id = '{0}-{1}'.format(resource, path.replace('/', '-'))
+            link = '#{0}'.format(anchor_id)
+            file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
+                                        '{0}.md'.format(path))
+            if not os.path.isfile(file_path):
                 file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
-                                            '{0}.md'.format(path))
-                if not os.path.isfile(file_path):
+                                            '{0}/01.md'.format(path))
+            fix = None
+            if not os.path.isfile(file_path):
+                if resource == 'tw':
+                    bad_names = {
+                        'fishermen': 'bible/other/fisherman',
+                        'chiefpriests': 'bible/kt/highpriest',
+                        'capitive': 'bible/other/captive',
+                        'olive': 'bible/other/olive',
+                        'forsake': 'bible/kt/forsaken',
+                        'destroy': 'bible/other/destroyer',
+                        'jusdasiscariot': 'bible/names/judasiscariot',
+                        'jusdassonofjames': 'bible/names/judassonofjames',
+                        'jusdasonofjames': 'bible/names/judassonofjames',
+                        'curcumcise': 'bible/kt/circumcise',
+                        'noble': 'bible/other/noble',
+                        'thessalonia': 'bible/names/thessalonica',
+                        'deliver': 'bible/other/deliverer',
+                        'strnegth': 'bible/other/strength',
+                        'destiny': 'bible/kt/predestine',
+                        'zeal': 'bible/kt/zealous',
+                        'pure': 'bible/kt/purify',
+                        'boey': 'bible/kt/body',
+                        'prefect': 'bible/other/perfect',
+                        'glorify': 'bible/kt/glory',
+                        'partiarchs': 'bible/other/patriarchs',
+                        'joseph': 'bible/names/josephot',
+                        'soldier': 'bible/other/warrior',
+                        'live': 'bible/kt/life'
+                    }
+                    if parts[5] in bad_names:
+                        path2 = bad_names[parts[5]]
+                    elif path.startswith('bible/other/'):
+                        path2 = re.sub(r'^bible/other/', r'bible/kt/', path)
+                    else:
+                        path2 = re.sub(r'^bible/kt/', r'bible/other/', path)
+                    fix = 'rc://*/tw/dict/{0}'.format(path2)
+                    anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
+                    link = '#{0}'.format(anchor_id)
                     file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
-                                                '{0}/01.md'.format(path))
-                fix = None
-                if not os.path.isfile(file_path):
-                    if resource == 'tw':
-                        bad_names = {
-                            'fishermen': 'bible/other/fisherman',
-                            'chiefpriests': 'bible/kt/highpriest',
-                            'capitive': 'bible/other/captive',
-                            'olive': 'bible/other/olive',
-                            'forsake': 'bible/kt/forsaken',
-                            'destroy': 'bible/other/destroyer',
-                            'jusdasiscariot': 'bible/names/judasiscariot',
-                            'jusdassonofjames': 'bible/names/judassonofjames',
-                            'jusdasonofjames': 'bible/names/judassonofjames',
-                            'curcumcise': 'bible/kt/circumcise',
-                            'noble': 'bible/other/noble',
-                            'thessalonia': 'bible/names/thessalonica',
-                            'deliver': 'bible/other/deliverer',
-                            'strnegth': 'bible/other/strength',
-                            'destiny': 'bible/kt/predestine',
-                            'zeal': 'bible/kt/zealous',
-                            'pure': 'bible/kt/purify',
-                            'boey': 'bible/kt/body',
-                            'prefect': 'bible/other/perfect',
-                            'glorify': 'bible/kt/glory',
-                            'partiarchs': 'bible/other/patriarchs',
-                            'joseph': 'bible/names/josephot',
-                            'soldier': 'bible/other/warrior',
-                            'live': 'bible/kt/life'
-                        }
-                        if parts[5] in bad_names:
-                            path2 = bad_names[parts[5]]
-                        elif path.startswith('bible/other/'):
-                            path2 = re.sub(r'^bible/other/', r'bible/kt/', path)
-                        else:
-                            path2 = re.sub(r'^bible/kt/', r'bible/other/', path)
-                        fix = 'rc://*/tw/dict/{0}'.format(path2)
-                        anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
-                        link = '#{0}'.format(anchor_id)
-                        file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
-                                                    '{0}.md'.format(path2))
-                    elif resource == 'ta':
-                        bad_names = {
-                            'figs-abstractnoun': 'translate/figs-abstractnouns'
-                        }
-                        if parts[3] in bad_names:
-                            path2 = bad_names[parts[3]]
-                        else:
-                            path2 = path
-                        fix = 'rc://*/ta/man/{0}'.format(path2)
-                        anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
-                        link = '#{0}'.format(anchor_id)
-                        file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
-                                                    '{0}/01.md'.format(path2))
+                                                '{0}.md'.format(path2))
+                elif resource == 'ta':
+                    bad_names = {
+                        'figs-abstractnoun': 'translate/figs-abstractnouns'
+                    }
+                    if parts[3] in bad_names:
+                        path2 = bad_names[parts[3]]
+                    else:
+                        path2 = path
+                    fix = 'rc://*/ta/man/{0}'.format(path2)
+                    anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
+                    link = '#{0}'.format(anchor_id)
+                    file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
+                                                '{0}/01.md'.format(path2))
 
-                if os.path.isfile(file_path):
-                    if fix:
-                        if source_rc not in self.bad_links:
-                            self.bad_links[source_rc] = {} 
-                        self.bad_links[source_rc][rc] = fix
-                    if not rc in self.resource_data:
-                        t = markdown.markdown(read_file(file_path))
-                        alt_title = ''
-                        if resource == 'ta':
-                            title_file = os.path.join(os.path.dirname(file_path), 'title.md')
-                            question_file = os.path.join(os.path.dirname(file_path), 'sub-title.md')
-                            if os.path.isfile(title_file):
-                                title = read_file(title_file)
-                            else:
-                                title = self.get_first_header(t)
-                                t = re.sub(r'\s*\n*\s*<h\d>[^<]+</h\d>\s*\n*', r'', t, 1, flags=re.IGNORECASE | re.MULTILINE) # removes the header
-                            if os.path.isfile(question_file):
-                                question = read_file(question_file)
-                                alt_title = 'This page answers the question: <i>{0}</i>'.format(question)
-                            t = self.fix_ta_links(t, path.split('/')[0])
-                        elif resource == 'tw':
+            if os.path.isfile(file_path):
+                if fix:
+                    if source_rc not in self.bad_links:
+                        self.bad_links[source_rc] = {} 
+                    self.bad_links[source_rc][rc] = fix
+                if not rc in self.resource_data:
+                    t = markdown.markdown(read_file(file_path))
+                    alt_title = ''
+                    if resource == 'ta':
+                        title_file = os.path.join(os.path.dirname(file_path), 'title.md')
+                        question_file = os.path.join(os.path.dirname(file_path), 'sub-title.md')
+                        if os.path.isfile(title_file):
+                            title = read_file(title_file)
+                        else:
                             title = self.get_first_header(t)
                             t = re.sub(r'\s*\n*\s*<h\d>[^<]+</h\d>\s*\n*', r'', t, 1, flags=re.IGNORECASE | re.MULTILINE) # removes the header
-                            if len(title) > 70:
-                                alt_title = ','.join(title[:70].split(',')[:-1]) + ', ...'
-                            t = re.sub(r'\n*\s*\(See [^\n]*\)\s*\n*', '\n\n', t, flags=re.IGNORECASE | re.MULTILINE) # removes the See also line
-                            t = self.fix_tw_links(t, path.split('/')[1])
-                        self.resource_data[rc] = {
-                            'rc': rc,
-                            'link': link,
-                            'id': anchor_id,
-                            'title': title,
-                            'alt_title': alt_title,
-                            'text': t,
-                            'references': [source_rc]
-                        }
-                        self.get_resource_data_from_rc_links(t, rc)
-                    else:
-                        if source_rc not in self.resource_data[rc]['references']:
-                            self.resource_data[rc]['references'].append(source_rc)
+                        if os.path.isfile(question_file):
+                            question = read_file(question_file)
+                            alt_title = 'This page answers the question: <i>{0}</i>'.format(question)
+                        t = self.fix_ta_links(t, path.split('/')[0])
+                    elif resource == 'tw':
+                        title = self.get_first_header(t)
+                        t = re.sub(r'\s*\n*\s*<h\d>[^<]+</h\d>\s*\n*', r'', t, 1, flags=re.IGNORECASE | re.MULTILINE) # removes the header
+                        if len(title) > 70:
+                            alt_title = ','.join(title[:70].split(',')[:-1]) + ', ...'
+                        t = re.sub(r'\n*\s*\(See [^\n]*\)\s*\n*', '\n\n', t, flags=re.IGNORECASE | re.MULTILINE) # removes the See also line
+                        t = self.fix_tw_links(t, path.split('/')[1])
+                    self.resource_data[rc] = {
+                        'rc': rc,
+                        'link': link,
+                        'id': anchor_id,
+                        'title': title,
+                        'alt_title': alt_title,
+                        'text': t,
+                        'references': [source_rc]
+                    }
+                    self.get_resource_data_from_rc_links(t, rc)
                 else:
-                    if source_rc not in self.bad_links:
-                        self.bad_links[source_rc] = {}
-                    if rc not in self.bad_links[source_rc]:
-                        self.bad_links[source_rc][rc] = None
+                    if source_rc not in self.resource_data[rc]['references']:
+                        self.resource_data[rc]['references'].append(source_rc)
+            else:
+                if source_rc not in self.bad_links:
+                    self.bad_links[source_rc] = {}
+                if rc not in self.bad_links[source_rc]:
+                    self.bad_links[source_rc][rc] = None
 
     @staticmethod
     def increase_headers(text, increase_depth=1):
