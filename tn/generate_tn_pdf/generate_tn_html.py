@@ -167,7 +167,6 @@ class TnConverter(object):
                 parts = rc[5:].split('/')
                 if source[1] == 'ult':
                     str = '  ULT {0} {1}:{2}: English not found for Greek word `{3}` (occurrence: {4})'.format(source[3].upper(), source[4], source[5], parts[3], part[4])
-                    ERROR - `τέκνον` (occurrence: 1) in `ULT MRK 2:5`
                 else:
                     if source[1] == 'tn':
                         if parts[1] == 'tw':
