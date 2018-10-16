@@ -134,7 +134,7 @@ class TnConverter(object):
             if int(self.book_number) < 41:
                 continue
             self.resource_data = {}
-	    self.rc_references = {}
+            self.rc_references = {}
             self.bad_links = {}
             self.populate_tn_book_data()
             self.populate_tw_words_data()
