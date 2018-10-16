@@ -135,7 +135,6 @@ class TnConverter(object):
                 continue
             self.resource_data = {}
             self.rc_references = {}
-            self.bad_links = {}
             self.populate_tn_book_data()
             self.populate_tw_words_data()
             self.populate_chapters_and_verses()
@@ -161,6 +160,17 @@ class TnConverter(object):
             if not os.path.exists(os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))):
                 self.logger.info("Generating PDF {0}...".format(os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))))
                 self.generate_tn_pdf()
+        _print("BAD LINKS:")
+        for rc in sorted(self.bad_links.keys()):
+            for source_rc in self.bad_links[rc]:
+                rc = rc.lstrip('*')
+                parts = source_rc[5:].split('/')
+                if part[1] == 'tn':
+                    str = 'UGNT {0} {1}:{2}'.format(part[3].upper(), part[4], part[5])
+                else:
+                    str = 't{0} {1}'.format(part[1][1].upper(), '/'.join(part[3:]))
+                str += ': BAD RC - {0}'.format(rc)
+                _print(str)
 
     def get_book_projects(self):
         projects = []
@@ -264,7 +274,7 @@ class TnConverter(object):
         write_file(save_file, self.resource_data)
         save_file = os.path.join(save_dir, '{0}_references.json'.format(self.book_id))
         write_file(save_file, self.rc_references)
-        save_file = os.path.join(save_dir, '{0}_bad.json'.format(self.book_id))
+        save_file = os.path.join(save_dir, 'bad_links.json'.format(self.book_id))
         write_file(save_file, self.bad_links)
 
     def load_resource_data(self):
@@ -277,7 +287,7 @@ class TnConverter(object):
         save_file = os.path.join(save_dir, '{0}_references.json'.format(self.book_id))
         if os.path.isfile(save_file):
             self.rc_references = load_json_object(save_file)
-        save_file = os.path.join(save_dir, '{0}_bad.json'.format(self.book_id))
+        save_file = os.path.join(save_dir, 'bad_links.json'.format(self.book_id))
         if os.path.isfile(save_file):
             self.bad_links = load_json_object(save_file)
 
@@ -864,10 +874,12 @@ class TnConverter(object):
                             'destroy': 'bible/other/destroyer',
                             'jusdasiscariot': 'bible/names/judasiscariot',
                             'jusdassonofjames': 'bible/names/judassonofjames',
+                            'jusdasonofjames': 'bible/names/judassonofjames',
                             'curcumcise': 'bible/kt/circumcise',
                             'noble': 'bible/other/noble',
                             'thessalonia': 'bible/names/thessalonica',
-                            'deliver': 'bible/other/deliverer'
+                            'deliver': 'bible/other/deliverer',
+                            'strnegth': 'bible/other/strength'
                         }
                         if parts[5] in bad_names:
                             path2 = bad_names[parts[5]]
@@ -913,13 +925,20 @@ class TnConverter(object):
                         'title': title,
                         'alt_title': alt_title,
                         'text': t,
-                        'reference': source_rc
+                        'references': [source_rc]
                     }
                     self.get_resource_data_from_rc_links(t, rc)
                 else:
                     if rc not in self.bad_links:
                         self.bad_links[rc] = []
-                    self.bad_links[rc].append(source_rc)
+                    if source_rc not in self.bad_links[rc]:
+                        self.bad_links[rc].append(source_rc)
+            else:
+                if source_rc not in self.resource_data[rc]['references']:
+                    self.resource_data[rc]['references'].append(source_rc)
+                if '*'+rc in self.bad_links:
+                    if source_rc not in self.bad_links['*'+rc]:
+                        self.bad_links['*'+rc].append(source_rc)
 
     @staticmethod
     def increase_headers(text, increase_depth=1):
