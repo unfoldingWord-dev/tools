@@ -866,7 +866,7 @@ class TnConverter(object):
                             'jusdassonofjames': 'bible/names/judassonofjames',
                             'curcumcise': 'bible/kt/circumcise',
                             'noble': 'bible/other/noble',
-                            'thessalonia': 'bible/names/thessalonica'
+                            'thessalonia': 'bible/names/thessalonica',
                             'deliver': 'bible/other/deliverer'
                         }
                         if parts[5] in bad_names:
