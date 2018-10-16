@@ -869,7 +869,7 @@ class TnConverter(object):
             if source_rc not in self.rc_references[rc]:
                 self.rc_references[rc].append(source_rc)
 
-            if rc not in self.resource_data:
+            if True:
                 title = ''
                 t = ''
                 anchor_id = '{0}-{1}'.format(resource, path.replace('/', '-'))
@@ -938,48 +938,46 @@ class TnConverter(object):
                         if source_rc not in self.bad_links:
                             self.bad_links[source_rc] = {} 
                         self.bad_links[source_rc][rc] = fix
-                    t = markdown.markdown(read_file(file_path))
-                    alt_title = ''
-                    if resource == 'ta':
-                        title_file = os.path.join(os.path.dirname(file_path), 'title.md')
-                        question_file = os.path.join(os.path.dirname(file_path), 'sub-title.md')
-                        if os.path.isfile(title_file):
-                            title = read_file(title_file)
-                        else:
+                    if not rc in self.resource_data:
+                        t = markdown.markdown(read_file(file_path))
+                        alt_title = ''
+                        if resource == 'ta':
+                            title_file = os.path.join(os.path.dirname(file_path), 'title.md')
+                            question_file = os.path.join(os.path.dirname(file_path), 'sub-title.md')
+                            if os.path.isfile(title_file):
+                                title = read_file(title_file)
+                            else:
+                                title = self.get_first_header(t)
+                                t = re.sub(r'\s*\n*\s*<h\d>[^<]+</h\d>\s*\n*', r'', t, 1, flags=re.IGNORECASE | re.MULTILINE) # removes the header
+                            if os.path.isfile(question_file):
+                                question = read_file(question_file)
+                                alt_title = 'This page answers the question: <i>{0}</i>'.format(question)
+                            t = self.fix_ta_links(t, path.split('/')[0])
+                        elif resource == 'tw':
                             title = self.get_first_header(t)
                             t = re.sub(r'\s*\n*\s*<h\d>[^<]+</h\d>\s*\n*', r'', t, 1, flags=re.IGNORECASE | re.MULTILINE) # removes the header
-                        if os.path.isfile(question_file):
-                            question = read_file(question_file)
-                            alt_title = 'This page answers the question: <i>{0}</i>'.format(question)
-                        t = self.fix_ta_links(t, path.split('/')[0])
-                    elif resource == 'tw':
-                        title = self.get_first_header(t)
-                        t = re.sub(r'\s*\n*\s*<h\d>[^<]+</h\d>\s*\n*', r'', t, 1, flags=re.IGNORECASE | re.MULTILINE) # removes the header
-                        if len(title) > 70:
-                            alt_title = ','.join(title[:70].split(',')[:-1]) + ', ...'
-                        t = re.sub(r'\n*\s*\(See [^\n]*\)\s*\n*', '\n\n', t, flags=re.IGNORECASE | re.MULTILINE) # removes the See also line
-                        t = self.fix_tw_links(t, path.split('/')[1])
-                    self.resource_data[rc] = {
-                        'rc': rc,
-                        'link': link,
-                        'id': anchor_id,
-                        'title': title,
-                        'alt_title': alt_title,
-                        'text': t,
-                        'references': [source_rc]
-                    }
-                    self.get_resource_data_from_rc_links(t, rc)
+                            if len(title) > 70:
+                                alt_title = ','.join(title[:70].split(',')[:-1]) + ', ...'
+                            t = re.sub(r'\n*\s*\(See [^\n]*\)\s*\n*', '\n\n', t, flags=re.IGNORECASE | re.MULTILINE) # removes the See also line
+                            t = self.fix_tw_links(t, path.split('/')[1])
+                        self.resource_data[rc] = {
+                            'rc': rc,
+                            'link': link,
+                            'id': anchor_id,
+                            'title': title,
+                            'alt_title': alt_title,
+                            'text': t,
+                            'references': [source_rc]
+                        }
+                        self.get_resource_data_from_rc_links(t, rc)
+                    else:
+                        if source_rc not in self.resource_data[rc]['references']:
+                            self.resource_data[rc]['references'].append(source_rc)
                 else:
                     if source_rc not in self.bad_links:
                         self.bad_links[source_rc] = {}
                     if rc not in self.bad_links[source_rc]:
                         self.bad_links[source_rc][rc] = None
-            else:
-                if source_rc not in self.resource_data[rc]['references']:
-                    self.resource_data[rc]['references'].append(source_rc)
-                if '*'+rc in self.bad_links:
-                    if source_rc not in self.bad_links['*'+rc]:
-                        self.bad_links['*'+rc].append(source_rc)
 
     @staticmethod
     def increase_headers(text, increase_depth=1):
