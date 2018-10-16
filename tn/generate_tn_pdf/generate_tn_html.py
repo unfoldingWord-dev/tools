@@ -408,7 +408,7 @@ class TnConverter(object):
             elif obj['type'] == 'paragraph':
                 obj['text'] = obj['text'].replace('\n', '').strip() if 'text' in obj else ''
                 if len(obj['text']):
-                    print("Paragraph with text: {0}:{1}:".format(chapter, verse))
+                    print("Paragraph with text:")
                     print(obj)
                     exit(1)
                 if idx == len(verseObjects) - 1:
