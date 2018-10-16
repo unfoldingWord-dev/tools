@@ -520,6 +520,7 @@ class TnConverter(object):
                         print('ERROR: {0} is maformed'.format(book_file))
                         exit(1)
                     data[field] = row[idx]
+		print(data)
                 chapter = data['Chapter']
                 verse = data['Verse']
                 if not chapter in book_data:
@@ -552,6 +553,8 @@ class TnConverter(object):
 
         for chapter_verses in self.chapters_and_verses:
             chapter = str(chapter_verses['chapter'])
+            print(chapter)
+            print(self.tn_book_data)
             if 'intro' in self.tn_book_data[chapter]:
                 intro = markdown.markdown(self.tn_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>',"\n"))
                 intro = re.sub(r'<h(\d)>([^>]+) 0+([1-9])', r'<h\1>\2 \3', intro, 1, flags=re.MULTILINE | re.IGNORECASE)
