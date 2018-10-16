@@ -853,7 +853,10 @@ class TnConverter(object):
                             'fishermen': 'bible/other/fisherman',
                             'chiefpriests': 'bible/kt/highpriest',
                             'capitive': 'bible/other/captive',
-                            'olive': 'bible/other/olive'
+                            'olive': 'bible/other/olive',
+                            'forsake': 'bible/kt/forsaken',
+                            'destroy': 'bible/other/destroyer',
+
                         }
                         if parts[5] in bad_names:
                             path2 = bad_names[parts[5]]
@@ -899,6 +902,7 @@ class TnConverter(object):
                         'title': title,
                         'alt_title': alt_title,
                         'text': t,
+                        'reference': source_rc
                     }
                     self.get_resource_data_from_rc_links(t, rc)
                 else:
