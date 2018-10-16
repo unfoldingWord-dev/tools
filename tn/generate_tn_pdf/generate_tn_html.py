@@ -132,18 +132,18 @@ class TnConverter(object):
             self.book_number = BOOK_NUMBERS[self.book_id]
             if int(self.book_number) < 41:
                 continue
-            self.resource_data = {}
-            self.rc_references = {}
-            self.populate_tn_book_data()
-            self.populate_tw_words_data()
-            self.populate_chapters_and_verses()
-            self.populate_verse_usfm()
-            self.populate_chunks_text()
             self.filename_base = '{0}_tn_{1}-{2}_v{3}'.format(self.lang_code, self.book_number.zfill(2), self.book_id.upper(), self.version)
             self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number, self.book_id))
             if not os.path.isdir(os.path.join(self.output_dir, 'tn_html')):
                 os.makedirs(os.path.join(self.output_dir, 'tn_html'))
-            if not os.path.exists(os.path.join(self.output_dir, 'tn_html', '{0}.html'.format(self.filename_base))):
+            if True or not os.path.exists(os.path.join(self.output_dir, 'tn_html', '{0}.html'.format(self.filename_base))):
+                self.resource_data = {}
+                self.rc_references = {}
+                self.populate_tn_book_data()
+                self.populate_tw_words_data()
+                self.populate_chapters_and_verses()
+                self.populate_verse_usfm()
+                self.populate_chunks_text()
                 self.logger.info("Generating Body HTML...")
                 self.generate_body_html()
                 self.logger.info("Generating Cover HTML...")
@@ -157,7 +157,7 @@ class TnConverter(object):
                 style_file = os.path.join(self.my_path, 'style.css')
                 shutil.copyfile(style_file, os.path.join(self.output_dir, 'tn_html', '{0}_style.css'.format(self.filename_base)))
                 shutil.copyfile(style_file, os.path.join(self.output_dir, 'tn_html', 'style.css'))
-            if not os.path.exists(os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))):
+            if True or not os.path.exists(os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))):
                 self.logger.info("Generating PDF {0}...".format(os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))))
                 try:
                     self.generate_tn_pdf()
