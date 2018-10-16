@@ -167,12 +167,12 @@ class TnConverter(object):
                 parts = rc[5:].split('/')
                 if source[1] == 'tn':
                     if parts[1] == 'tw':
-                        str = 'UGNT'
+                        str = '  UGNT'
                     else:
-                        str = 'tN'
-                    str = ' {0} {1}:{2}'.format(source[3].upper(), source[4], source[5])
+                        str = '  tN'
+                    str += ' {0} {1}:{2}'.format(source[3].upper(), source[4], source[5])
                 else:
-                    str = 't{0} {1}'.format(source[1][1].upper(), '/'.join(source[3:]))
+                    str = '  t{0} {1}'.format(source[1][1].upper(), '/'.join(source[3:]))
                 str += ': BAD RC - {0}'.format(rc)
                 if self.bad_links[source_rc][rc]:
                     str += ' - change to `{0}`'.format(self.bad_links[source_rc][rc])
