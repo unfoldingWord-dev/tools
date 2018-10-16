@@ -801,7 +801,7 @@ class TnConverter(object):
 
     def get_reference_text(self, rc):
         uses = ''
-        if len(self.rc_references[rc]):
+        if rc in self.rc_resources and len(self.rc_references[rc]):
             references = []
             book_title = '{0} '.format(self.book_title)
             done = {}
