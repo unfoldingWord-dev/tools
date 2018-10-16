@@ -514,6 +514,9 @@ class TnConverter(object):
             for row in rd:
                 data = {}
                 for idx, field in enumerate(header):
+                    if idx not in row:
+                        print('ERROR: {0} is maformed'.format(book_file))
+                        exit(1)
                     data[field] = row[idx]
                 chapter = data['Chapter']
                 verse = data['Verse']
