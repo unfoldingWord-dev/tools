@@ -800,7 +800,7 @@ class TnConverter(object):
         self.bad_links['rc://*/ult/bible/{0}/{1}/{2}'.format(self.book_id, contextId['reference']['chapter'], contextId['reference']['verse'])] = {
             'rc://*/grc/word/{0}/{1}'.format(contextId['quote'], contextId['occurrence']): None
         }
-        self.logger.error('English not found for Greek word `{0}` (occurrence: {1}) in `ULT {2} {3}:{4}`'.format(contextId['quote'], contextId['occurrence'], self.book_id.upper(), contextId['reference']['chapter'], contextId['reference']['verse']))
+        # self.logger.error('English not found for Greek word `{0}` (occurrence: {1}) in `ULT {2} {3}:{4}`'.format(contextId['quote'], contextId['occurrence'], self.book_id.upper(), contextId['reference']['chapter'], contextId['reference']['verse']))
 
     def get_tw_html(self):
         tw_html = '<div id="tw-{0}" class="resource-title-page">\n<h1 class="section-header">translationWords</h1>\n</div>\n\n'.format(self.book_id)
