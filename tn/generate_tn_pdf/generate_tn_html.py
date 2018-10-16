@@ -652,14 +652,17 @@ class TnConverter(object):
                 parts = word['text'].split(' ... ')
                 pattern = ''
                 replace = ''
+                newParts = []
                 for idx, part in enumerate(parts):
                     prepositions = ['a', 'an', 'and', 'as', 'at', 'by', 'for', 'from', 'in', 'into', 'may', 'of', 'on', 'onto', 'the', 'with']
                     part = re.sub(r'^(({0})\s+)+'.format('|'.join(prepositions)), '', part, flags=re.MULTILINE | re.IGNORECASE)
                     if not part or (idx < len(parts)-1 and part.lower().split(' ')[-1] in prepositions):
                         continue
+                    newParts.append(part)
+                for idx, part in enumerate(newParts):
                     pattern += r'(?<![></\\_-])\b{0}\b(?![></\\_-])'.format(part)
                     replace += r'<a href="{0}">{1}</a>'.format(word['contextId']['rc'], part)
-                    if idx + 1 < len(parts):
+                    if idx + 1 < len(newParts):
                         pattern += r'(.*?)'
                         replace += r'\{0}'.format(idx + 1)
                 verses[verseNum] = re.sub(pattern, replace, verses[verseNum], 1, flags=re.MULTILINE | re.IGNORECASE)
