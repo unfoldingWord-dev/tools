@@ -143,20 +143,22 @@ class TnConverter(object):
             self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number, self.book_id))
             if not os.path.isdir(os.path.join(self.output_dir, 'tn_html')):
                 os.makedirs(os.path.join(self.output_dir, 'tn_html'))
-            self.logger.info("Generating Body HTML...")
-            self.generate_body_html()
-            self.logger.info("Generating Cover HTML...")
-            self.generate_cover_html()
-            self.logger.info("Generating License HTML...")
-            self.generate_license_html()
-            self.logger.info("Copying page header file...")
-            header_file = os.path.join(self.my_path, 'header.html')
-            shutil.copyfile(header_file, os.path.join(self.output_dir, 'tn_html', '{0}_header.html'.format(self.filename_base)))
-            self.logger.info("Copying style sheet file...")
-            style_file = os.path.join(self.my_path, 'style.css')
-            shutil.copyfile(style_file, os.path.join(self.output_dir, 'tn_html', '{0}_style.css'.format(self.filename_base)))
-            self.logger.info("Generating PDF {0}...".format(os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))))
-            self.generate_tn_pdf()
+            if not os.path.exists(os.path.join(self.output_dir, 'tn_html', '{0}.html'.format(self.filename_base))):
+                self.logger.info("Generating Body HTML...")
+                self.generate_body_html()
+                self.logger.info("Generating Cover HTML...")
+                self.generate_cover_html()
+                self.logger.info("Generating License HTML...")
+                self.generate_license_html()
+                self.logger.info("Copying page header file...")
+                header_file = os.path.join(self.my_path, 'header.html')
+                shutil.copyfile(header_file, os.path.join(self.output_dir, 'tn_html', '{0}_header.html'.format(self.filename_base)))
+                self.logger.info("Copying style sheet file...")
+                style_file = os.path.join(self.my_path, 'style.css')
+                shutil.copyfile(style_file, os.path.join(self.output_dir, 'tn_html', '{0}_style.css'.format(self.filename_base)))
+            if not os.path.exists(os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))):
+                self.logger.info("Generating PDF {0}...".format(os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))))
+                self.generate_tn_pdf()
 
     def get_book_projects(self):
         projects = []
