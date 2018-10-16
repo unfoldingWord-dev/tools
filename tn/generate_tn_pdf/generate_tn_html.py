@@ -887,7 +887,17 @@ class TnConverter(object):
                             'noble': 'bible/other/noble',
                             'thessalonia': 'bible/names/thessalonica',
                             'deliver': 'bible/other/deliverer',
-                            'strnegth': 'bible/other/strength'
+                            'strnegth': 'bible/other/strength',
+                            'destiny': 'bible/kt/predestine',
+                            'zeal': 'bible/kt/zealous',
+                            'pure': 'bible/kt/purify',
+                            'boey': 'bible/kt/body',
+                            'prefect': 'bible/other/perfect',
+                            'glorify': 'bible/kt/glory',
+                            'partiarchs': 'bible/other/patriarchs',
+                            'joseph': 'bible/names/josephot',
+                            'soldier': 'bible/other/warrior',
+                            'live': 'bible/kt/life'
                         }
                         if parts[5] in bad_names:
                             path2 = bad_names[parts[5]]
@@ -895,11 +905,23 @@ class TnConverter(object):
                             path2 = re.sub(r'^bible/other/', r'bible/kt/', path)
                         else:
                             path2 = re.sub(r'^bible/kt/', r'bible/other/', path)
-                        fix = 'rc://*/tw/{0}'.format(path2)
+                        fix = 'rc://*/tw/dict/{0}'.format(path2)
                         anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
                         link = '#{0}'.format(anchor_id)
                         file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
                                                     '{0}.md'.format(path2))
+                    if resource == 'ta':
+                        bad_names = {
+                            'figs-abstractnoun': 'translate/figs-abstractnouns'
+                        }
+                        if parts[5] in bad_names:
+                            path2 = bad_names[parts[5]]
+                        fix = 'rc://*/ta/man/{0}'.format(path2)
+                        anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
+                        link = '#{0}'.format(anchor_id)
+                        file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
+                                                    '{0}/01.md'.format(path2))
+
                 if os.path.isfile(file_path):
                     if fix:
                         if source_rc not in self.bad_links:
