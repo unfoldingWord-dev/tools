@@ -171,8 +171,10 @@ class TnConverter(object):
                     else:
                         str = '  tN'
                     str += ' {0} {1}:{2}'.format(source[3].upper(), source[4], source[5])
+                elif source[1] == 'ult':
+                    str = '  ULT {0} {1}:{2}'.format(source[3].upper(), source[4], source[5])
                 else:
-                    str = '  {0} {1}'.format(source[1].upper(), '/'.join(source[3:]))
+                    str = '  t{0} {1}'.format(source[1][1].upper(), '/'.join(source[3:]))
                 str += ': BAD RC - `{0}`'.format(rc)
                 if self.bad_links[source_rc][rc]:
                     str += ' - change to `{0}`'.format(self.bad_links[source_rc][rc])
