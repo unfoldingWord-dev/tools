@@ -165,20 +165,21 @@ class TnConverter(object):
             for rc in sorted(self.bad_links[source_rc].keys()):
                 source = source_rc[5:].split('/')
                 parts = rc[5:].split('/')
-                if source[1] == 'tn':
-                    if parts[1] == 'tw':
-                        str = '  UGNT'
-                    else:
-                        str = '  tN'
-                    str += ' {0} {1}:{2}'.format(source[3].upper(), source[4], source[5])
-                elif source[1] == 'ult':
-                    str = '  ULT {0} {1}:{2}'.format(source[3].upper(), source[4], source[5])
-                    continue
+                if source[1] == 'ult':
+                    str = '  ULT {0} {1}:{2}: English not found for Greek word `{3}` (occurrence: {4})'.format(source[3].upper(), source[4], source[5], parts[3], part[4])
+                    ERROR - `τέκνον` (occurrence: 1) in `ULT MRK 2:5`
                 else:
-                    str = '  t{0} {1}'.format(source[1][1].upper(), '/'.join(source[3:]))
-                str += ': BAD RC - `{0}`'.format(rc)
-                if self.bad_links[source_rc][rc]:
-                    str += ' - change to `{0}`'.format(self.bad_links[source_rc][rc])
+                    if source[1] == 'tn':
+                        if parts[1] == 'tw':
+                            str = '  UGNT'
+                        else:
+                            str = '  tN'
+                        str += ' {0} {1}:{2}'.format(source[3].upper(), source[4], source[5])
+                    else:
+                        str = '  t{0} {1}'.format(source[1][1].upper(), '/'.join(source[3:]))
+                    str += ': BAD RC - `{0}`'.format(rc)
+                    if self.bad_links[source_rc][rc]:
+                        str += ' - change to `{0}`'.format(self.bad_links[source_rc][rc])
                 _print(str)
 
     def get_book_projects(self):
