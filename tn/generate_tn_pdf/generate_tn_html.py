@@ -470,44 +470,68 @@ class TnConverter(object):
                 print(obj)
                 exit(1)
         return usfm
-
+    
     def populate_verse_usfm(self):
-        resources = ['ult', 'ust']
-        bible_path = 'tools/tn/generate_tn_pdf/en/bibles'
+        self.populate_verse_usfm_ult()
+        self.populate_verse_usfm_ust()
+
+    def populate_verse_usfm_ust(self):
         bookData = {}
-        for resource in resources:
-            bookData[resource] = {}
-            chapters_path = '{0}/{1}/v1/{2}'.format(bible_path, resource, self.book_id)
-            chapter_files_path = '{0}/*.json'.format(chapters_path)
-            chapter_files = sorted(glob(chapter_files_path))
-            for chapter_file in chapter_files:
+        book_file = os.path.join(self.ust_dir, '{0}-{1}.usfm'.format(self.book_number, self.book_id.upper()))
+        usfm3 = read_file(book_file)
+        usfm2 = usfm3_to_usfm2(usfm3)
+        chapters = usfm2.split('\\c ')
+        for chapterUsfm in chapters[1:]:
+            chapter = int(re.findall('(\d+)', chapterUsfm)[0])
+            bookData[chapter] = {}
+            chapterUsfm = '\\c '+chapterUsfm
+            verses = chapterUsfm.split('\\v ')
+            prev_verse = 0
+            for verseUsfm in verses[1:]:
+                verse = int(re.findall('(\d+)', verseUsfm)[0])
+                verseUsfm = '\\v '+verseUsfm
+                bookData[chapter][verse] = verseUsfm
+                for v in range(prev_verse + 1, verse):
+                    bookData[chapter][v] = '' # just in case we have skipped a verse due to merged verses
+                prev_verse = verse
+            total_verses = int(BOOK_CHAPTER_VERSES[self.book_id][str(chapter)])
+            if prev_verse < total_verses:
+                for v in range(prev_verse + 1, total_verses + 1):
+                    bookData[chapter][v] = '' # just in case we have skipped a verse due to merged verses
+        self.verse_usfm['ust'] = bookData
+
+    def populate_verse_usfm_ult(self):
+        bookData = {}
+        chapter_files_path = 'tools/tn/generate_tn_pdf/en/bibles/ult/v1/{0}/*.json'.format(self.book_id)
+        chapter_files = sorted(glob(chapter_files_path))
+        for chapter_file in chapter_files:
+            try:
+                chapter = int(os.path.splitext(os.path.basename(chapter_file))[0])
+            except ValueError:
+                continue
+            bookData[chapter] = {}
+            chapterData = load_json_object(chapter_file)
+            self.lastEndedWithQuoteTag = False
+            self.lastEndedWithParagraphTag = False
+            for verse, verseData in chapterData.iteritems():
                 try:
-                    chapter = int(os.path.splitext(os.path.basename(chapter_file))[0])
+                    verse = int(verse)
                 except ValueError:
                     continue
-                bookData[resource][chapter] = {}
-                chapterData = load_json_object(chapter_file)
-                self.lastEndedWithQuoteTag = False
-                self.lastEndedWithParagraphTag = False
-                for verse, verseData in chapterData.iteritems():
-                    try:
-                        verse = int(verse)
-                    except ValueError:
-                        continue
-                    verseObjects = verseData['verseObjects']
-                    self.openQuote = False
-                    self.nextFollowsQuote = False
-                    usfm = ''
-                    if self.lastEndedWithParagraphTag:
-                        usfm += '\p '
-                        self.lastEndedWithParagraphTag = False
-                    usfm += '\\v {0} '.format(verse)
-                    if self.lastEndedWithQuoteTag:
-                        usfm += '\q '
-                        self.lastEndedWithQuoteTag = False
-                    usfm += self.get_usfm_from_verse_objects(verseObjects)
-                    bookData[resource][chapter][verse] = usfm
-        self.verse_usfm = bookData
+                verseObjects = verseData['verseObjects']
+                self.openQuote = False
+                self.nextFollowsQuote = False
+                usfm = ''
+                if self.lastEndedWithParagraphTag:
+                    usfm += '\p '
+                    self.lastEndedWithParagraphTag = False
+                usfm += '\\v {0} '.format(verse)
+                if self.lastEndedWithQuoteTag:
+                    usfm += '\q '
+                    self.lastEndedWithQuoteTag = False
+                usfm += self.get_usfm_from_verse_objects(verseObjects)
+                bookData[chapter][verse] = usfm
+        self.verse_usfm['ult'] = bookData
     
     def populate_chapters_and_verses(self):
         versification_file = os.path.join(self.versification_dir, '{0}.json'.format(self.book_id))
