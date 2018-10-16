@@ -794,7 +794,7 @@ class TnConverter(object):
         text = self.find_english_from_split(verseObjects, contextId['quote'], contextId['occurrence'])
         if text:
             return text
-        self.bad_links['rc://*/ult/bible/{0}/{1}/{2}/{3}/{4}'.format(self.book_id, contextId['reference']['chapter'], contextId['reference']['verse'])] = {
+        self.bad_links['rc://*/ult/bible/{0}/{1}/{2}'.format(self.book_id, contextId['reference']['chapter'], contextId['reference']['verse'])] = {
             'rc://*/grc/word/{0}/{1}'.format(contextId['quote'], contextId['occurrence']): None
         }
         self.logger.error('English not found for Greek word `{0}` (occurrence: {2}) in `ULT {3} {4}:{5}`'.format(contextId['quote'], contextId['occurrence'], self.book_id.upper(), contextid['reference']['chapter'], contextId['reference']['verse']))
