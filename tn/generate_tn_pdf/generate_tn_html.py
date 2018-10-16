@@ -159,7 +159,10 @@ class TnConverter(object):
                 shutil.copyfile(style_file, os.path.join(self.output_dir, 'tn_html', '{0}_style.css'.format(self.filename_base)))
             if not os.path.exists(os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))):
                 self.logger.info("Generating PDF {0}...".format(os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))))
-                #self.generate_tn_pdf()
+                try:
+                    self.generate_tn_pdf()
+                except:
+                    continue
         _print("BAD LINKS:")
         for source_rc in sorted(self.bad_links.keys()):
             for rc in sorted(self.bad_links[source_rc].keys()):
@@ -309,7 +312,6 @@ class TnConverter(object):
         tw_html = self.get_tw_html()
         contributors_html = self.get_contributors_html()
         html = '\n'.join([tn_html, tw_html, ta_html, contributors_html])
-        return html
         html = self.replace_rc_links(html)
         html = self.fix_links(html)
         html = '<head><title>tN</title></head>\n' + html
