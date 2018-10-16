@@ -147,7 +147,6 @@ class TnConverter(object):
             if not os.path.exists(os.path.join(self.output_dir, 'tn_html', '{0}.html'.format(self.filename_base))):
                 self.logger.info("Generating Body HTML...")
                 self.generate_body_html()
-                continue
                 self.logger.info("Generating Cover HTML...")
                 self.generate_cover_html()
                 self.logger.info("Generating License HTML...")
@@ -160,17 +159,19 @@ class TnConverter(object):
                 shutil.copyfile(style_file, os.path.join(self.output_dir, 'tn_html', '{0}_style.css'.format(self.filename_base)))
             if not os.path.exists(os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))):
                 self.logger.info("Generating PDF {0}...".format(os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))))
-                self.generate_tn_pdf()
+                #self.generate_tn_pdf()
         _print("BAD LINKS:")
-        for rc in sorted(self.bad_links.keys()):
-            for source_rc in self.bad_links[rc]:
-                rc = rc.lstrip('*')
-                parts = source_rc[5:].split('/')
-                if parts[1] == 'tn':
-                    str = 'UGNT {0} {1}:{2}'.format(parts[3].upper(), parts[4], parts[5])
+        for source_rc in sorted(self.bad_links.keys()):
+            for rc in sorted(self.bad_links[source_rc].keys()):
+                source = source_rc[5:].split('/')
+                parts = rc[5:].split('/')
+                if source[1] == 'tn' and parts[1] == 'tw':
+                    str = 'UGNT {0} {1}:{2}'.format(source[3].upper(), source[4], source[5])
                 else:
-                    str = 't{0} {1}'.format(parts[1][1].upper(), '/'.join(parts[3:]))
+                    str = 't{0} {1}'.format(source[1][1].upper(), '/'.join(source[3:]))
                 str += ': BAD RC - {0}'.format(rc)
+                if self.bad_links[source_rc][rc]:
+                    str += ' - change to `{0}`'.format(self.bad_links[source_rc][rc])
                 _print(str)
 
     def get_book_projects(self):
@@ -297,11 +298,11 @@ class TnConverter(object):
         self.load_resource_data()
         tn_html = self.get_tn_html()
         self.save_resource_data()
-        return
         ta_html = self.get_ta_html()
         tw_html = self.get_tw_html()
         contributors_html = self.get_contributors_html()
         html = '\n'.join([tn_html, tw_html, ta_html, contributors_html])
+        return html
         html = self.replace_rc_links(html)
         html = self.fix_links(html)
         html = '<head><title>tN</title></head>\n' + html
@@ -869,9 +870,8 @@ class TnConverter(object):
                 if not os.path.isfile(file_path):
                     file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
                                                 '{0}/01.md'.format(path))
-                needs_fixing = False
+                fix = None
                 if not os.path.isfile(file_path):
-                    needs_fixing = True
                     if resource == 'tw':
                         bad_names = {
                             'fishermen': 'bible/other/fisherman',
@@ -895,16 +895,16 @@ class TnConverter(object):
                             path2 = re.sub(r'^bible/other/', r'bible/kt/', path)
                         else:
                             path2 = re.sub(r'^bible/kt/', r'bible/other/', path)
+                        fix = 'rc://*/tw/{0}'.format(path2)
                         anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
                         link = '#{0}'.format(anchor_id)
                         file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
                                                     '{0}.md'.format(path2))
                 if os.path.isfile(file_path):
-                    if needs_fixing:
-                        if '*'+rc not in self.bad_links:
-                            self.bad_links['*'+rc] = []
-                        if source_rc not in self.bad_links['*'+rc]:
-                            self.bad_links['*'+rc].append(source_rc)
+                    if fix:
+                        if source_rc not in self.bad_links:
+                            self.bad_links[source_rc] = {} 
+                        self.bad_links[source_rc][rc] = fix
                     t = markdown.markdown(read_file(file_path))
                     alt_title = ''
                     if resource == 'ta':
@@ -937,10 +937,10 @@ class TnConverter(object):
                     }
                     self.get_resource_data_from_rc_links(t, rc)
                 else:
-                    if rc not in self.bad_links:
-                        self.bad_links[rc] = []
-                    if source_rc not in self.bad_links[rc]:
-                        self.bad_links[rc].append(source_rc)
+                    if source_rc not in self.bad_links:
+                        self.bad_links[source_rc] = {}
+                    if rc not in self.bad_links[source_rc]:
+                        self.bad_links[source_rc][rc] = None
             else:
                 if source_rc not in self.resource_data[rc]['references']:
                     self.resource_data[rc]['references'].append(source_rc)
