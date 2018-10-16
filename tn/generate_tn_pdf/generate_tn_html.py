@@ -684,7 +684,7 @@ class TnConverter(object):
                 replace = ''
                 newParts = []
                 for idx, part in enumerate(parts):
-                    prepositions = ['a', 'an', 'and', 'as', 'at', 'by', 'for', 'from', 'in', 'into', 'may', 'of', 'on', 'onto', 'the', 'with']
+                    prepositions = ['a', 'an', 'and', 'as', 'are', 'at', 'be', 'by', 'for', 'from', 'in', 'into', 'may', 'is', 'of', 'on', 'onto', 'the', 'with']
                     part = re.sub(r'^(({0})\s+)+'.format('|'.join(prepositions)), '', part, flags=re.MULTILINE | re.IGNORECASE)
                     if not part or (idx < len(parts)-1 and part.lower().split(' ')[-1] in prepositions):
                         continue
