@@ -914,8 +914,8 @@ class TnConverter(object):
                         bad_names = {
                             'figs-abstractnoun': 'translate/figs-abstractnouns'
                         }
-                        if parts[5] in bad_names:
-                            path2 = bad_names[parts[5]]
+                        if parts[3] in bad_names:
+                            path2 = bad_names[parts[3]]
                         fix = 'rc://*/ta/man/{0}'.format(path2)
                         anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
                         link = '#{0}'.format(anchor_id)
