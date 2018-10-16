@@ -108,7 +108,7 @@ def read_file(file_name, encoding='utf-8'):
     return content
 
 
-def write_file(file_name, file_contents, indent=None):
+def write_file(file_name, file_contents, indent=2):
     """
     Writes the <file_contents> to <file_name>.
 
@@ -127,7 +127,7 @@ def write_file(file_name, file_contents, indent=None):
         if os.path.splitext(file_name)[1] == '.yaml':
             text_to_write = yaml.safe_dump(file_contents)
         else:
-            text_to_write = json.dumps(file_contents, sort_keys=True, indent=indent)
+            text_to_write = json.dumps(file_contents, sort_keys=True, indent=indent, ensure_ascii=False)
 
     with codecs.open(file_name, 'w', encoding='utf-8') as out_file:
         out_file.write(text_to_write)
