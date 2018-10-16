@@ -166,10 +166,10 @@ class TnConverter(object):
             for source_rc in self.bad_links[rc]:
                 rc = rc.lstrip('*')
                 parts = source_rc[5:].split('/')
-                if part[1] == 'tn':
-                    str = 'UGNT {0} {1}:{2}'.format(part[3].upper(), part[4], part[5])
+                if parts[1] == 'tn':
+                    str = 'UGNT {0} {1}:{2}'.format(parts[3].upper(), parts[4], parts[5])
                 else:
-                    str = 't{0} {1}'.format(part[1][1].upper(), '/'.join(part[3:]))
+                    str = 't{0} {1}'.format(parts[1][1].upper(), '/'.join(parts[3:]))
                 str += ': BAD RC - {0}'.format(rc)
                 _print(str)
 
@@ -252,8 +252,9 @@ class TnConverter(object):
                 for resource in ['ult', 'ust']:
                     versesInChunk = []
                     for verse in range(first_verse, last_verse+1):
-                        versesInChunk.append(self.verse_usfm[resource][chapter][verse])
-                        chunk_usfm = '\n'.join(versesInChunk)
+                        if resource != 'ust' or verse in self.verse_usfm[resource][chapter]:
+                            versesInChunk.append(self.verse_usfm[resource][chapter][verse])
+                    chunk_usfm = '\n'.join(versesInChunk)
                     chunks_text[str(chapter)][str(first_verse)][resource] = {
                         'usfm': chunk_usfm,
                         'html': self.get_chunk_html(chunk_usfm, resource, chapter, first_verse)
@@ -520,14 +521,14 @@ class TnConverter(object):
                         print('ERROR: {0} is maformed'.format(book_file))
                         exit(1)
                     data[field] = row[idx]
-		print(data)
-                chapter = data['Chapter']
-                verse = data['Verse']
+                print('{0} {1}:{2}:{3}'.format(data['Book'], data['Chapter'], data['Verse'], data['ID']))
+                chapter = data['Chapter'].lstrip('0')
+                verse = data['Verse'].lstrip('0')
                 if not chapter in book_data:
                     book_data[chapter] = {}
                 if not verse in book_data[chapter]:
                     book_data[chapter][verse] = []
-                book_data[chapter][verse].append(data)
+                book_data[str(chapter)][str(verse)].append(data)
         self.tn_book_data = book_data
 
     def get_tn_html(self):
@@ -553,8 +554,7 @@ class TnConverter(object):
 
         for chapter_verses in self.chapters_and_verses:
             chapter = str(chapter_verses['chapter'])
-            print(chapter)
-            print(self.tn_book_data)
+            print('Chapter {0}...'.format(chapter))
             if 'intro' in self.tn_book_data[chapter]:
                 intro = markdown.markdown(self.tn_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>',"\n"))
                 intro = re.sub(r'<h(\d)>([^>]+) 0+([1-9])', r'<h\1>\2 \3', intro, 1, flags=re.MULTILINE | re.IGNORECASE)
