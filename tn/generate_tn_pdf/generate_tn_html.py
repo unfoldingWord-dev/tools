@@ -407,14 +407,10 @@ class TnConverter(object):
                     continue
             elif obj['type'] == 'paragraph':
                 obj['text'] = obj['text'].replace('\n', '').strip() if 'text' in obj else ''
-                if len(obj['text']):
-                    print("Paragraph with text:")
-                    print(obj)
-                    exit(1)
-                if idx == len(verseObjects) - 1:
+                if idx == len(verseObjects) - 1 and not obj['text']:
                     self.lastEndedWithParagraphTag = True
                 else:
-                    usfm += '\n\\{0}{1}'.format(obj['tag'], obj['text'] if 'text' in obj else '\n')
+                    usfm += '\n\\{0}{1}\n'.format(obj['tag'], obj['text'])
             elif obj['type'] == 'footnote':
                 obj['text'] = obj['text'].replace('\n', '').strip() if 'text' in obj else ''
                 if len(obj['text']):
