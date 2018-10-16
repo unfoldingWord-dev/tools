@@ -101,7 +101,6 @@ class TnConverter(object):
         self.chapters_and_verses = {}
         self.verse_usfm = {}
         self.chunks_text = {}
-        self.chunk_text = {}
         self.resource_data = {}
         self.tn_book_data = {}
         self.tw_words_data = {}
@@ -685,7 +684,7 @@ class TnConverter(object):
                 replace = ''
                 newParts = []
                 for idx, part in enumerate(parts):
-                    wordsToIgnore = ['a', 'an', 'and', 'as', 'are', 'at', 'be', 'by', 'for', 'from', 'had', 'has', 'have', 'he', 'her', 'his', 'i', 'in', 'into', 'less', 'let', 'may', 'more', 'my', 'not', 'is', 'of', 'on', 'one', 'onto', 'our', 'she', 'the', 'their', 'they', 'this', 'that', 'those', 'these', 'to', 'was', 'we', 'with', 'will', 'were', 'your', 'you']
+                    wordsToIgnore = ['a', 'am', 'an', 'and', 'as', 'are', 'at', 'be', 'by', 'did', 'do', 'does', 'done', 'for', 'from', 'had', 'has', 'have', 'he', 'her', 'his', 'i', 'in', 'into', 'less', 'let', 'may', 'might', 'more', 'my', 'not', 'is', 'of', 'on', 'one', 'onto', 'our', 'she', 'the', 'their', 'they', 'this', 'that', 'those', 'these', 'to', 'was', 'we', 'who', 'whom', 'with', 'will', 'were', 'your', 'you']
                     part = re.sub(r'^(({0})\s+)+'.format('|'.join(wordsToIgnore)), '', part, flags=re.MULTILINE | re.IGNORECASE)
                     if not part or (idx < len(parts)-1 and part.lower().split(' ')[-1] in wordsToIgnore):
                         continue
