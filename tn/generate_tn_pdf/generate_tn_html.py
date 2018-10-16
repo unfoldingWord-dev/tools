@@ -166,7 +166,7 @@ class TnConverter(object):
                 source = source_rc[5:].split('/')
                 parts = rc[5:].split('/')
                 if source[1] == 'ult':
-                    str = '  ULT {0} {1}:{2}: English not found for Greek word `{3}` (occurrence: {4})'.format(source[3].upper(), source[4], source[5], parts[3], parts[4])
+                    str = '  ULT {0} {1}:{2}: English not found for Greek word `{3}` (occurrence: {4}) (NOT ALIGNED)'.format(source[3].upper(), source[4], source[5], parts[3], parts[4])
                 else:
                     if source[1] == 'tn':
                         if parts[1] == 'tw':
