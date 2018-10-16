@@ -486,18 +486,12 @@ class TnConverter(object):
             bookData[chapter] = {}
             chapterUsfm = '\\c '+chapterUsfm
             verses = chapterUsfm.split('\\v ')
-            prev_verse = 0
             for verseUsfm in verses[1:]:
                 verse = int(re.findall('(\d+)', verseUsfm)[0])
                 verseUsfm = '\\v '+verseUsfm
+                if re.match(r'^\\v \d+\s*$', verseUsfm, flags=re.MULTILINE):
+                    verseUsfm = ''
                 bookData[chapter][verse] = verseUsfm
-                for v in range(prev_verse + 1, verse):
-                    bookData[chapter][v] = '' # just in case we have skipped a verse due to merged verses
-                prev_verse = verse
-            total_verses = int(BOOK_CHAPTER_VERSES[self.book_id][str(chapter)])
-            if prev_verse < total_verses:
-                for v in range(prev_verse + 1, total_verses + 1):
-                    bookData[chapter][v] = '' # just in case we have skipped a verse due to merged verses
         self.verse_usfm['ust'] = bookData
 
     def populate_verse_usfm_ult(self):
