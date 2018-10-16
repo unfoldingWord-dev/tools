@@ -165,8 +165,12 @@ class TnConverter(object):
             for rc in sorted(self.bad_links[source_rc].keys()):
                 source = source_rc[5:].split('/')
                 parts = rc[5:].split('/')
-                if source[1] == 'tn' and parts[1] == 'tw':
-                    str = 'UGNT {0} {1}:{2}'.format(source[3].upper(), source[4], source[5])
+                if source[1] == 'tn':
+                    if parts[1] == 'tw':
+                        str = 'UGNT'
+                    else:
+                        str = 'tN'
+                    str = ' {0} {1}:{2}'.format(source[3].upper(), source[4], source[5])
                 else:
                     str = 't{0} {1}'.format(source[1][1].upper(), '/'.join(source[3:]))
                 str += ': BAD RC - {0}'.format(rc)
@@ -910,7 +914,7 @@ class TnConverter(object):
                         link = '#{0}'.format(anchor_id)
                         file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
                                                     '{0}.md'.format(path2))
-                    if resource == 'ta':
+                    elif resource == 'ta':
                         bad_names = {
                             'figs-abstractnoun': 'translate/figs-abstractnouns'
                         }
