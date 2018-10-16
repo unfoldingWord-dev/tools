@@ -147,6 +147,7 @@ class TnConverter(object):
             if not os.path.exists(os.path.join(self.output_dir, 'tn_html', '{0}.html'.format(self.filename_base))):
                 self.logger.info("Generating Body HTML...")
                 self.generate_body_html()
+                continue
                 self.logger.info("Generating Cover HTML...")
                 self.generate_cover_html()
                 self.logger.info("Generating License HTML...")
@@ -295,6 +296,7 @@ class TnConverter(object):
         self.load_resource_data()
         tn_html = self.get_tn_html()
         self.save_resource_data()
+        return
         ta_html = self.get_ta_html()
         tw_html = self.get_tw_html()
         contributors_html = self.get_contributors_html()
@@ -514,7 +516,7 @@ class TnConverter(object):
             for row in rd:
                 data = {}
                 for idx, field in enumerate(header):
-                    if idx not in row:
+                    if idx >= len(row):
                         print('ERROR: {0} is maformed'.format(book_file))
                         exit(1)
                     data[field] = row[idx]
