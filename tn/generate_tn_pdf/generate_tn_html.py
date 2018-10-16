@@ -158,13 +158,6 @@ class TnConverter(object):
             self.logger.info("Generating PDF {0}...".format(os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))))
             self.generate_tn_pdf()
 
-        if len(self.bad_links.keys()):
-            self.logger.error("BAD LINKS:")
-            for bad in sorted(self.bad_links.keys()):
-                for ref in self.bad_links[bad]:
-                    parts = ref[5:].split('/')
-                    self.logger.error("Bad reference: `{0}` in {1}'s {2}".format(bad, parts[1], '/'.join(parts[3:])))
-
     def get_book_projects(self):
         projects = []
         if not self.manifest or 'projects' not in self.manifest or not self.manifest['projects']:
@@ -259,8 +252,35 @@ class TnConverter(object):
         else:
             return ''
 
+    def save_resource_data(self):
+        save_dir = os.path.join(self.working_dir, 'resource_data')
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        save_file = os.path.join(save_dir, '{0}.json'.format(self.book_id))
+        write_file(save_file, self.resource_data)
+        save_file = os.path.join(save_dir, '{0}_references.json'.format(self.book_id))
+        write_file(save_file, self.rc_references)
+        save_file = os.path.join(save_dir, '{0}_bad.json'.format(self.book_id))
+        write_file(save_file, self.bad_links)
+
+    def load_resource_data(self):
+        save_dir = os.path.join(self.working_dir, 'resource_data')
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        save_file = os.path.join(save_dir, '{0}.json'.format(self.book_id))
+        if os.path.isfile(save_file):
+            self.resource_data = load_json_object(save_file)
+        save_file = os.path.join(save_dir, '{0}_references.json'.format(self.book_id))
+        if os.path.isfile(save_file):
+            self.rc_references = load_json_object(save_file)
+        save_file = os.path.join(save_dir, '{0}_bad.json'.format(self.book_id))
+        if os.path.isfile(save_file):
+            self.bad_links = load_json_object(save_file)
+
     def generate_body_html(self):
+        self.load_resource_data()
         tn_html = self.get_tn_html()
+        self.save_resource_data()
         ta_html = self.get_ta_html()
         tw_html = self.get_tw_html()
         contributors_html = self.get_contributors_html()
@@ -812,7 +832,8 @@ class TnConverter(object):
 
             if rc not in self.rc_references:
                 self.rc_references[rc] = []
-            self.rc_references[rc].append(source_rc)
+            if source_rc not in self.rc_references[rc]:
+                self.rc_references[rc].append(source_rc)
 
             if rc not in self.resource_data:
                 title = ''
@@ -824,17 +845,32 @@ class TnConverter(object):
                 if not os.path.isfile(file_path):
                     file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
                                                 '{0}/01.md'.format(path))
-                # if not os.path.isfile(file_path):
-                #     if resource == 'tw':
-                #         if path.startswith('bible/other/'):
-                #             path2 = re.sub(r'^bible/other/', r'bible/kt/', path)
-                #         else:
-                #             path2 = re.sub(r'^bible/kt/', r'bible/other/', path)
-                #         anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
-                #         link = '#{0}'.format(anchor_id)
-                #         file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
-                #                                     '{0}.md'.format(path2))
+                needs_fixing = False
+                if not os.path.isfile(file_path):
+                    needs_fixing = True
+                    if resource == 'tw':
+                        bad_names = {
+                            'fishermen': 'bible/other/fisherman',
+                            'chiefpriests': 'bible/kt/highpriest',
+                            'capitive': 'bible/other/captive',
+                            'olive': 'bible/other/olive'
+                        }
+                        if parts[5] in bad_names:
+                            path2 = bad_names[parts[5]]
+                        elif path.startswith('bible/other/'):
+                            path2 = re.sub(r'^bible/other/', r'bible/kt/', path)
+                        else:
+                            path2 = re.sub(r'^bible/kt/', r'bible/other/', path)
+                        anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
+                        link = '#{0}'.format(anchor_id)
+                        file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
+                                                    '{0}.md'.format(path2))
                 if os.path.isfile(file_path):
+                    if needs_fixing:
+                        if '*'+rc not in self.bad_links:
+                            self.bad_links['*'+rc] = []
+                        if source_rc not in self.bad_links['*'+rc]:
+                            self.bad_links['*'+rc].append(source_rc)
                     t = markdown.markdown(read_file(file_path))
                     alt_title = ''
                     if resource == 'ta':
