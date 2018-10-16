@@ -916,6 +916,8 @@ class TnConverter(object):
                         }
                         if parts[3] in bad_names:
                             path2 = bad_names[parts[3]]
+                        else:
+                            path2 = path
                         fix = 'rc://*/ta/man/{0}'.format(path2)
                         anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
                         link = '#{0}'.format(anchor_id)
