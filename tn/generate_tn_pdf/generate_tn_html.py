@@ -685,9 +685,9 @@ class TnConverter(object):
                 replace = ''
                 newParts = []
                 for idx, part in enumerate(parts):
-                    prepositions = ['a', 'an', 'and', 'as', 'are', 'at', 'be', 'by', 'for', 'from', 'had', 'has', 'have', 'he', 'her', 'his', 'i', 'in', 'into', 'less', 'let', 'may', 'more', 'my', 'not', 'is', 'of', 'on', 'one', 'onto', 'our', 'she', 'the', 'their', 'they', 'this', 'that', 'those', 'these', 'to', 'was', 'we', 'with', 'will', 'were', 'your', 'you']
-                    part = re.sub(r'^(({0})\s+)+'.format('|'.join(prepositions)), '', part, flags=re.MULTILINE | re.IGNORECASE)
-                    if not part or (idx < len(parts)-1 and part.lower().split(' ')[-1] in prepositions):
+                    wordsToIgnore = ['a', 'an', 'and', 'as', 'are', 'at', 'be', 'by', 'for', 'from', 'had', 'has', 'have', 'he', 'her', 'his', 'i', 'in', 'into', 'less', 'let', 'may', 'more', 'my', 'not', 'is', 'of', 'on', 'one', 'onto', 'our', 'she', 'the', 'their', 'they', 'this', 'that', 'those', 'these', 'to', 'was', 'we', 'with', 'will', 'were', 'your', 'you']
+                    part = re.sub(r'^(({0})\s+)+'.format('|'.join(wordsToIgnore)), '', part, flags=re.MULTILINE | re.IGNORECASE)
+                    if not part or (idx < len(parts)-1 and part.lower().split(' ')[-1] in wordsToIgnore):
                         continue
                     newParts.append(part)
                 for idx, part in enumerate(newParts):
