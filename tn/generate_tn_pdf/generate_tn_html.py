@@ -166,7 +166,7 @@ class TnConverter(object):
                 source = source_rc[5:].split('/')
                 parts = rc[5:].split('/')
                 if source[1] == 'ult':
-                    str = '  ULT {0} {1}:{2}: English not found for Greek word `{3}` (occurrence: {4}) (NOT ALIGNED)'.format(source[3].upper(), source[4], source[5], parts[3], parts[4])
+                    str = '  ULT {0} {1}:{2}: English ULT alignment not found for `{3}` (greek: `{4}`, occurrence: {5})'.format(source[3].upper(), source[4], source[5], self.bad_links[source_rc][rc], parts[3], parts[4])
                 else:
                     if source[1] == 'tn':
                         if parts[1] == 'tw':
@@ -798,7 +798,7 @@ class TnConverter(object):
         if text:
             return text
         self.bad_links['rc://*/ult/bible/{0}/{1}/{2}'.format(self.book_id, contextId['reference']['chapter'], contextId['reference']['verse'])] = {
-            'rc://*/grc/word/{0}/{1}'.format(contextId['quote'], contextId['occurrence']): None
+            'rc://*/grc/word/{0}/{1}'.format(contextId['quote'], contextId['occurrence']): contextId['rc']
         }
         # self.logger.error('English not found for Greek word `{0}` (occurrence: {1}) in `ULT {2} {3}:{4}`'.format(contextId['quote'], contextId['occurrence'], self.book_id.upper(), contextId['reference']['chapter'], contextId['reference']['verse']))
 
