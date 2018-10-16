@@ -865,7 +865,10 @@ class TnConverter(object):
                             'destroy': 'bible/other/destroyer',
                             'jusdasiscariot': 'bible/names/judasiscariot',
                             'jusdassonofjames': 'bible/names/judassonofjames',
-                            'curcumcise': 'bible/kt/circumcise'
+                            'curcumcise': 'bible/kt/circumcise',
+                            'noble': 'bible/other/noble',
+                            'thessalonia': 'bible/names/thessalonica'
+                            'deliver': 'bible/other/deliverer'
                         }
                         if parts[5] in bad_names:
                             path2 = bad_names[parts[5]]
