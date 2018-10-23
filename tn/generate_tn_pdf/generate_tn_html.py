@@ -152,10 +152,7 @@ class TnConverter(object):
                 self.generate_license_html()
                 self.logger.info("Copying header file...")
                 header_file = os.path.join(self.my_path, 'header.html')
-                shutil.copy2(header_file, os.path.join(self.output_dir, 'tn_html'))
-                self.logger.info("Copying footer file...")
-                footer_file = os.path.join(self.my_path, 'footer.html')
-                shutil.copy2(footer_file, os.path.join(self.output_dir, 'tn_html'))
+                shutil.copyfile(header_file, os.path.join(self.output_dir, 'tn_html', 'header.html'))
                 self.logger.info("Copying style sheet file...")
                 style_file = os.path.join(self.my_path, 'style.css')
                 shutil.copy2(style_file, os.path.join(self.output_dir, 'tn_html'))
@@ -394,7 +391,6 @@ class TnConverter(object):
         cover_file = os.path.join(self.output_dir, 'tn_html', '{0}_cover.html'.format(self.filename_base))
         license_file = os.path.join(self.output_dir, 'tn_html', 'license.html')
         header_file = os.path.join(self.output_dir, 'tn_html', 'header.html')
-        footer_file = os.path.join(self.output_dir, 'tn_html', 'footer.html')
         body_file = os.path.join(self.output_dir, 'tn_html', '{0}.html'.format(self.filename_base))
         output_file = os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))
         template_file = os.path.join(self.my_path, 'toc_template.xsl')
@@ -407,15 +403,15 @@ class TnConverter(object):
                         -L 15 -R 15 -T 15 -B 15 
                         --header-html "{0}" --header-spacing 2 
                         --footer-center '[page]' 
+                        cover "{1}" 
                         cover "{2}" 
-                        cover "{3}" 
                         toc 
                         --disable-dotted-lines 
                         --enable-external-links 
-                        --xsl-style-sheet "{4}" 
-                        "{5}" 
-                        "{6}"
-                    '''.format(header_file, footer_file, cover_file, license_file, template_file, body_file, output_file)
+                        --xsl-style-sheet "{3}" 
+                        "{4}" 
+                        "{5}"
+                    '''.format(header_file, cover_file, license_file, template_file, body_file, output_file)
         command = re.sub(r'\s+', ' ', command, flags=re.MULTILINE)
         self.logger.info(command)
         subprocess.call(command, shell=True)
