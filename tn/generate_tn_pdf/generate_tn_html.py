@@ -397,6 +397,7 @@ class TnConverter(object):
         if not os.path.isdir(os.path.join(self.output_dir, 'tn_pdf')):
             os.makedirs(os.path.join(self.output_dir, 'tn_pdf'))
         command = '''wkhtmltopdf 
+                        --javascript-delay 2000 
                         --encoding utf-8 
                         --outline-depth 3 
                         -O portrait 
