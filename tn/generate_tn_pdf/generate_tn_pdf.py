@@ -86,6 +86,8 @@ class TnConverter(object):
         self.ust_dir = os.path.join(self.working_dir, '{0}_ust'.format(lang_code))
         self.ult_dir = os.path.join(self.working_dir, '{0}_ult'.format(lang_code))
         self.ugnt_dir = os.path.join(self.working_dir, 'UGNT')
+        self.html_dir = os.path.join(self.output_dir, '{0}_tn_html'.format(self.lang_code))
+        self.pdf_dir = os.path.join(self.output_dir, '{0}_tn_pdf'.format(self.lang_code))
         self.versification_dir = os.path.join(self.working_dir, 'versification', 'bible', 'ufw', 'chunks')
 
         self.manifest = None
@@ -134,9 +136,9 @@ class TnConverter(object):
                 continue
             self.filename_base = '{0}_tn_{1}-{2}_v{3}'.format(self.lang_code, self.book_number.zfill(2), self.book_id.upper(), self.version)
             self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number, self.book_id))
-            if not os.path.isdir(os.path.join(self.output_dir, 'tn_html')):
-                os.makedirs(os.path.join(self.output_dir, 'tn_html'))
-            if True or not os.path.exists(os.path.join(self.output_dir, 'tn_html', '{0}.html'.format(self.filename_base))):
+            if not os.path.isdir(self.html_dir):
+                os.makedirs(self.html_dir)
+            if not os.path.exists(os.path.join(self.self.html_dir, '{0}.html'.format(self.filename_base))):
                 self.resource_data = {}
                 self.rc_references = {}
                 self.populate_tn_book_data()
@@ -152,17 +154,14 @@ class TnConverter(object):
                 self.generate_license_html()
                 self.logger.info("Copying header file...")
                 header_file = os.path.join(self.my_path, 'header.html')
-                shutil.copyfile(header_file, os.path.join(self.output_dir, 'tn_html', 'header.html'))
+                shutil.copy2(header_file, self.html_dir)
                 self.logger.info("Copying style sheet file...")
                 style_file = os.path.join(self.my_path, 'style.css')
-                shutil.copy2(style_file, os.path.join(self.output_dir, 'tn_html'))
-            if True or not os.path.exists(os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))):
-                self.logger.info("Generating PDF {0}...".format(os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))))
-                try:
-                    self.generate_tn_pdf()
-                except:
-                    continue
-        # self.show_bad_links()
+                shutil.copy2(style_file, self.html_dir)
+            if not os.path.exists(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))):
+                self.logger.info("Generating PDF {0}...".format(self.pdf_dir, '{0}.pdf'.format(self.filename_base))))
+                self.generate_tn_pdf()
+        self.show_bad_links()
 
     def show_bad_links(self):
         _print("BAD LINKS:")
@@ -335,7 +334,7 @@ class TnConverter(object):
         soup.head.append(soup.new_tag('link', href="style.css", rel="stylesheet"))
         soup.head.append(soup.new_tag('link', href="http://fonts.googleapis.com/css?family=Noto+Serif", rel="stylesheet", type="text/css"))
 
-        html_file = os.path.join(self.output_dir, 'tn_html', '{0}.html'.format(self.filename_base))
+        html_file = os.path.join(self.self.html_dir, '{0}.html'.format(self.filename_base))
         write_file(html_file, unicode(soup))
         self.logger.info('Wrote HTML to {0}'.format(html_file))
 
@@ -358,7 +357,7 @@ class TnConverter(object):
 </body>
 </html>
 '''.format(self.book_title, self.version)
-        html_file = os.path.join(self.output_dir, 'tn_html', '{0}_cover.html'.format(self.filename_base))
+        html_file = os.path.join(self.self.html_dir, '{0}_cover.html'.format(self.filename_base))
         write_file(html_file, cover_html)
 
     def generate_license_html(self):
@@ -384,18 +383,18 @@ class TnConverter(object):
   </div>
 </body>
 </html>'''.format(self.issued, self.version, self.publisher, license)
-        html_file = os.path.join(self.output_dir, 'tn_html', 'license.html')
+        html_file = os.path.join(self.self.html_dir, 'license.html')
         write_file(html_file, license_html)
 
     def generate_tn_pdf(self):
-        cover_file = os.path.join(self.output_dir, 'tn_html', '{0}_cover.html'.format(self.filename_base))
-        license_file = os.path.join(self.output_dir, 'tn_html', 'license.html')
-        header_file = os.path.join(self.output_dir, 'tn_html', 'header.html')
-        body_file = os.path.join(self.output_dir, 'tn_html', '{0}.html'.format(self.filename_base))
+        cover_file = os.path.join(self.self.html_dir, '{0}_cover.html'.format(self.filename_base))
+        license_file = os.path.join(self.self.html_dir, 'license.html')
+        header_file = os.path.join(self.self.html_dir, 'header.html')
+        body_file = os.path.join(self.self.html_dir, '{0}.html'.format(self.filename_base))
         output_file = os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))
         template_file = os.path.join(self.my_path, 'toc_template.xsl')
-        if not os.path.isdir(os.path.join(self.output_dir, 'tn_pdf')):
-            os.makedirs(os.path.join(self.output_dir, 'tn_pdf'))
+        if not os.path.isdir(self.pdf_dir):
+            os.makedirs(self.pdf_dir)
         command = '''wkhtmltopdf 
                         --javascript-delay 2000 
                         --encoding utf-8 
