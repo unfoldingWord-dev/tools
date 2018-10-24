@@ -266,3 +266,58 @@ table.tn-notes-table {
     padding: 0;
     margin: 0;
 }
+
+.bible-book {
+    width: 21cm !important;
+    margin: 0 !important;
+    height: 29.7cm !important;
+}
+
+.bible-book-text {
+    -webkit-columns: 0 0;
+    -webkit-column-gap: 2em;
+    -webkit-column-rule: 1px solid black;
+    -webkit-column-count: 2; /* Chrome, Safari, Opera */
+    -moz-column-count: 2; /* Firefox */
+    column-count: 2;    
+    column-gap: 10px;
+    height: 96%;
+    width: 50%; 
+    text-align: justify;    
+}
+
+.indent-0 {
+    margin-left:0em;
+    margin-bottom:0em;
+    margin-top:0em;
+}
+.indent-1 {
+    margin-left:0em;
+    margin-bottom:0em;
+    margin-top:0em;
+}
+.indent-2 {
+    margin-left:1em;
+    margin-bottom:0em;
+    margin-top:0em;
+}
+.indent-3 {
+    margin-left:2em;
+    margin-bottom:0em;
+    margin-top:0em;
+}
+.c-num {
+    color:gray;
+}
+.v-num {
+    color:gray;
+}
+.tetragrammaton {
+    font-variant: small-caps;
+}
+.footnotes {
+    font-size: 0.8em;
+}
+.footnotes-hr {
+    width: 90%;
+}

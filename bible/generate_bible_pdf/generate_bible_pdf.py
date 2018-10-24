@@ -155,18 +155,8 @@ class BibleConverter(object):
     def generate_body_html(self):
         bible_html = self.get_bible_html()
         contributors_html = self.get_contributors_html()
-        html = '\n'.join([bible_html, contributors_html])
+        html = '\n'.join(['<html><head><title>{0} - {1}</title></head><body>'.format(self.book_title, self.title), bible_html, contributors_html, '</body></html>'])
         soup = BeautifulSoup(html, 'html.parser')
-        # Make all headers that have a header right before them non-break
-        for h in soup.find_all(['h2','h3', 'h4', 'h5', 'h6']):
-            prev = h.find_previous_sibling()
-            if prev and re.match('^h[2-6]$', prev.name):
-                h['class'] = h.get('class', []) + ['no-break'] 
-        # Make all headers within the page content to just be span tags with h# classes
-        for h in soup.find_all(['h3', 'h4', 'h5', 'h6']):
-            if not h.get('class') or 'section-header' not in h['class']:
-                h['class'] = h.get('class', []) + [h.name]
-                h.name = 'span'
         soup.head.append(soup.new_tag('link', href="style.css", rel="stylesheet"))
         soup.head.append(soup.new_tag('link', href="http://fonts.googleapis.com/css?family=Noto+Serif", rel="stylesheet", type="text/css"))
         html_file = os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))
@@ -280,6 +270,14 @@ class BibleConverter(object):
             write_file(usfm_file, usfm2)
             UsfmTransform.buildSingleHtml(path, path, filename_base)
         html = read_file(html_file)
+        soup = BeautifulSoup(html, 'html.parser')
+        body = soup.find('body')
+        header = body.find('h1')
+        title = header.text
+        header.decompose()
+        body.name = 'div'
+        body['class'] = ['bible-book-text']
+        html = '<div class="bible-book"><h1 class="bible-book-header">{0}</h1>{1}</div>'.format(title, unicode(body))
         return html
 
     @staticmethod
