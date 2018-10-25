@@ -1,15 +1,15 @@
 #!/usr/bin/env python2
 # -*- coding: utf8 -*-
 #
-#  Copyright (c) 2017 unfoldingWord
+#  Copyright (c) 2018 unfoldingWord
 #  http://creativecommons.org/licenses/MIT/
 #  See LICENSE file for details.
 #
 #  Contributors:
-#  Richard Mahn <richard_mahn@wycliffeassociates.org>
+#  Richard Mahn <rich.mahn@unfoldingword.org>
 
 """
-This script generates the HTML tN documents for each book of the Bible
+This script generates the HTML and PDF tN documents for each book of the Bible
 """
 from __future__ import unicode_literals, print_function
 import os
