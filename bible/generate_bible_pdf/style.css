@@ -262,28 +262,13 @@ table.tn-notes-table {
     padding-top: 200px
 }
 
-.col1 p {
-    padding: 0;
-    margin: 0;
-}
-
 .bible-book {
-    width: 21cm !important;
     margin: 0 !important;
-    height: 29.7cm !important;
 }
 
 .bible-book-text {
-    -webkit-columns: 0 0;
-    -webkit-column-gap: 2em;
-    -webkit-column-rule: 1px solid black;
-    -webkit-column-count: 2; /* Chrome, Safari, Opera */
-    -moz-column-count: 2; /* Firefox */
-    column-count: 2;    
-    column-gap: 10px;
-    height: 96%;
-    width: 50%; 
     text-align: justify;    
+    margin: 0 !important;
 }
 
 .indent-0 {
