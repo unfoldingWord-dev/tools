@@ -34,7 +34,6 @@ from ...general_tools.bible_books import BOOK_NUMBERS, BOOK_CHAPTER_VERSES
 from ...general_tools.usfm_utils import usfm3_to_usfm2
 from ...catalog.v3.catalog import UWCatalog
 
-
 _print = print
 
 def print(obj):
@@ -111,7 +110,7 @@ class BibleConverter(object):
             self.logger.info('Creating PDF for {0} {1} ({2}-{3})...'.format(self.resource_id.upper(), self.book_title, self.book_number, self.book_id))
             if not os.path.isdir(self.html_dir):
                 os.makedirs(self.html_dir)
-            if not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
+            if True or not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
                 self.logger.info("Generating Body HTML...")
                 self.generate_body_html()
                 self.logger.info("Generating Cover HTML...")
@@ -124,7 +123,13 @@ class BibleConverter(object):
                 self.logger.info("Copying style sheet file...")
                 style_file = os.path.join(self.my_path, 'style.css')
                 shutil.copy2(style_file, self.html_dir)
-            if not os.path.exists(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))):
+                self.logger.info("Copying jquery file...")
+                jquery_file = os.path.join(self.my_path, 'jquery.min.js')
+                shutil.copy2(jquery_file, self.html_dir)
+                self.logger.info("Copying script file...")
+                script_file = os.path.join(self.my_path, 'script.js')
+                shutil.copy2(script_file, self.html_dir)
+            if True or not os.path.exists(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))):
                 self.logger.info("Generating PDF {0}...".format(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))))
                 self.generate_bible_pdf()
 
@@ -157,7 +162,9 @@ class BibleConverter(object):
         contributors_html = self.get_contributors_html()
         html = '\n'.join(['<html><head><title>{0} - {1}</title></head><body>'.format(self.book_title, self.title), bible_html, contributors_html, '</body></html>'])
         soup = BeautifulSoup(html, 'html.parser')
-        soup.head.append(soup.new_tag('link', href="style.css", rel="stylesheet"))
+        soup.head.append(soup.new_tag('link', href="style.css", rel="stylesheet", type="text/css"))
+        soup.head.append(soup.new_tag('script', src="jquery.min.js"))
+        soup.head.append(soup.new_tag('script', src="script.js", type="text/javascript"))
         soup.head.append(soup.new_tag('link', href="http://fonts.googleapis.com/css?family=Noto+Serif", rel="stylesheet", type="text/css"))
         html_file = os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))
         write_file(html_file, unicode(soup))
@@ -175,9 +182,9 @@ class BibleConverter(object):
 <body>
   <div style="text-align:center;padding-top:200px" class="break" id="cover">
     <img src="https://unfoldingword.org/assets/img/icon-{0}.png" width="120">
-    <span class="h1">{1}</span>
-    <span class="h2">{2}</span>
-    <span class="h3">Version {3}</span>
+    <h1>{1}</h1>
+    <h2>{2}</h2>
+    <h3>Version {3}</h3>
   </div>
 </body>
 </html>
@@ -198,7 +205,7 @@ class BibleConverter(object):
 </head>
 <body>
   <div class="break">
-    <span class="h1">Copyrights & Licensing</span>
+    <h1>Copyrights & Licensing</h1>
     <p>
       <strong>Date:</strong> {0}<br/>
       <strong>Version:</strong> {1}<br/>
@@ -218,13 +225,21 @@ class BibleConverter(object):
         body_file = os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))
         output_file = os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))
         template_file = os.path.join(self.my_path, 'toc_template.xsl')
+        
         if not os.path.isdir(self.pdf_dir):
             os.makedirs(self.pdf_dir)
+
         command = '''wkhtmltopdf 
-                        --javascript-delay 2000 
+                        --print-media-type
+                        --dpi 96
+                        --page-size letter
+                        --enable-javascript
+                        --javascript-delay 5000
+                        --no-stop-slow-scripts
+                        --debug-javascript
                         --encoding utf-8 
                         --outline-depth 3 
-                        -O portrait 
+                        -O portrait
                         -L 15 -R 15 -T 15 -B 15 
                         --header-html "{0}" --header-spacing 2 
                         --footer-center '[page]' 
@@ -263,7 +278,7 @@ class BibleConverter(object):
         html_file = os.path.join(path, '{0}.html'.format(filename_base))
         if not os.path.exists(path):
             os.makedirs(path)
-        if not os.path.exists(html_file):
+        if True or not os.path.exists(html_file):
             repo_usfm_file = os.path.join(self.bible_dir, '{0}.usfm'.format(filename_base))
             usfm3 = read_file(repo_usfm_file)
             usfm2 = usfm3_to_usfm2(usfm3)
@@ -272,12 +287,9 @@ class BibleConverter(object):
         html = read_file(html_file)
         soup = BeautifulSoup(html, 'html.parser')
         body = soup.find('body')
-        header = body.find('h1')
-        title = header.text
-        header.decompose()
         body.name = 'div'
         body['class'] = ['bible-book-text']
-        html = '<div class="bible-book"><h1 class="bible-book-header">{0}</h1>{1}</div>'.format(title, unicode(body))
+        html = '<div class="bible-book">{0}</div>'.format(unicode(body))
         return html
 
     @staticmethod
