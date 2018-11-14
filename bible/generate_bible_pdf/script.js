@@ -28,7 +28,6 @@ $(document).ready(function(){
             console.log('Trying to put container: '+col.height()+' > '+page.height())
             if(col.height() > page.height()){
                 $content.detach();
-
                 var items = [];
                 var lastItemWasVerseNum = false;
                 for (var i = 0; i < content.childNodes.length; i++) {
@@ -73,14 +72,14 @@ $(document).ready(function(){
                     var item = items.shift();
                     console.log("our item is: "+item);
                     var element = $('<span>'+item+'</span>');
-                    $(element).appendTo(wrapper);
+                    element.appendTo(wrapper);
                     console.log('appended to wrapper, wrapper now has '+wrapper.contents().length+' children');
                     console.log(wrapper.parent().height()+' > '+wrapper.parent().parent().height(), wrapper.parent().height() > wrapper.parent().parent().height());
                     var colHeight = col.height();
                     var pageHeight = page.height();
                     if (colHeight > pageHeight) {
                         ++colIdx;
-                        $(element).detach();
+                        element.detach();
                         if (wrapper.is(':empty')) {
                             wrapper.detach();
                         } else {
@@ -97,8 +96,8 @@ $(document).ready(function(){
                         items.unshift(item);
                     }
                     else {
-                        $(element).detach();
-                        wrapper.append(item);
+                        element.detach();
+                        wrapper.html(wrapper.html() + element.html());
                         //console.log("all is good for "+colIdx);
                         //console.log(wrapper.html());
                     }

@@ -4,6 +4,7 @@
 body {
     font-family: 'Noto Serif', 'Noto Sans', sans-serif;
     font-size: 12pt;
+    letter-spacing:0.09em;
 }
 
 .no-break {
@@ -121,7 +122,7 @@ p.indent-3 {
 }
 
 .page {
-    height: 1180px;
+    height: 1175px;
     padding-bottom: 10px;
     width: 800px;
     overflow:hidden;
@@ -138,8 +139,7 @@ p.indent-3 {
 
 .col p {
     text-align: justify;
-    justify-content: space-between;
-    text-rendering: geometricPrecision;
+    letter-spacing:0.09em;
     padding: 0;
     margin-top: 28px;
     margin-bottom: 28px;
