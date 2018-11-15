@@ -110,7 +110,7 @@ class BibleConverter(object):
             self.logger.info('Creating PDF for {0} {1} ({2}-{3})...'.format(self.resource_id.upper(), self.book_title, self.book_number, self.book_id))
             if not os.path.isdir(self.html_dir):
                 os.makedirs(self.html_dir)
-            if True or not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
+            if not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
                 self.logger.info("Generating Body HTML...")
                 self.generate_body_html()
                 self.logger.info("Generating Cover HTML...")
@@ -129,7 +129,7 @@ class BibleConverter(object):
                 self.logger.info("Copying script file...")
                 script_file = os.path.join(self.my_path, 'script.js')
                 shutil.copy2(script_file, self.html_dir)
-            if True or not os.path.exists(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))):
+            if not os.path.exists(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))):
                 self.logger.info("Generating PDF {0}...".format(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))))
                 self.generate_bible_pdf()
 
@@ -278,7 +278,7 @@ class BibleConverter(object):
         html_file = os.path.join(path, '{0}.html'.format(filename_base))
         if not os.path.exists(path):
             os.makedirs(path)
-        if True or not os.path.exists(html_file):
+        if not os.path.exists(html_file):
             repo_usfm_file = os.path.join(self.bible_dir, '{0}.usfm'.format(filename_base))
             usfm3 = read_file(repo_usfm_file)
             usfm2 = usfm3_to_usfm2(usfm3)
