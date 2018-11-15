@@ -12,17 +12,18 @@
                 <title>Table of Content</title>
                 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
                 <style>
+                    @import url(http://fonts.googleapis.com/css?family=Noto+Serif);
+                    @import url(http://fonts.googleapis.com/css?family=Noto+Sans);
                     #toc {
                         text-align: center;
-                        font-size: 18pt;
-                        font-family: arial;
+                        font-size: 22pt;
+                        font-family: 'Noto Serif', 'Noto Sans', sans-serif;
                     }
-
                     * {
                         text-align: left;
-                        font-size: 10pt;
-                        line-height: 14pt;
-                        font-family: Segoe UI;
+                        font-size: 16pt;
+                        line-height: 20pt;
+                        font-family: 'Noto Serif', 'Noto Sans', sans-serif;
                     }
                     .toclink {
                         text-decoration:none;

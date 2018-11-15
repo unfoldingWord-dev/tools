@@ -4,16 +4,9 @@
 body {
     font-family: 'Noto Serif', 'Noto Sans', sans-serif;
     font-size: 12pt;
-    letter-spacing:0.09em;
-}
-
-.no-break {
-    page-break-before: avoid !important;
 }
 
 a {
-    display: inline-block;
-    text-decoration: none;
     color: #f47142;
 }
 a:link {
@@ -29,22 +22,9 @@ a.external {
     color: #f47142 !important;
 }
 
-.h1 {
-    display: block;
-    font-size: 2em;
-    -webkit-margin-before: 0.67em;
-    -webkit-margin-after: 0.67em;
-    -webkit-margin-start:0;
-    -webkit-margin-end:0;
-    font-weight: bold;
-}
-
-h2 {
-    font-size: 28px;
-    line-height: 24px;
-    page-break-before: auto !important;
+h1, h2 {
     page-break-after: avoid !important;
-    break-after: avoid-page !important;
+    page-break-inside: avoid !important;
 }
 
 .page-header {
@@ -83,29 +63,42 @@ h2 {
     text-align: center;
 }
 
+.bible-book-text h2 {
+    font-size: 28px;
+    line-height: 24px;
+    page-break-before: auto !important;
+    page-break-after: avoid !important;
+    break-after: avoid-page !important;
+}
+
 p.indent-0 {
     margin-left:0em !important;
     margin-bottom:0em !important;
     margin-top:0em !important;
 }
+
 p.indent-1 {
     margin-left:1em !important;
     margin-bottom:0em !important;
     margin-top:0em !important;
 }
+
 p.indent-2 {
     margin-left:2em !important;
     margin-bottom:0em !important;
     margin-top:0em !important;
 }
+
 p.indent-3 {
     margin-left:3em !important;
     margin-bottom:0em !important;
     margin-top:0em !important;
 }
+
 .c-num {
     color:gray;
 }
+
 .v-num {
     color:gray;
     margin-right: 3px;
@@ -124,24 +117,27 @@ p.indent-3 {
 .page {
     height: 1165px;
     padding-bottom: 10px;
-    width: 800px;
+    width: 900px;
     overflow:hidden;
     margin: 0;
-    page-break-after: always;
+    page-break-inside: avoid !important;
+    page-break-after: always !important;
     position: relative;
 }
 
 .col {
-    width: 380px;
+    width: 430px;
     padding: 10px;
     min-height: 600px;
+    page-break-inside: avoid !important;
     position: absolute;
     top: 0;
 }
 
 .footnotesSection {
-    width: 380px;
+    width: 430px;
     padding: 0 10px;
+    page-break-inside: avoid !important;
     position: absolute;
     bottom: 0;
 }
@@ -160,10 +156,10 @@ p.indent-3 {
 
 .col p {
     text-align: justify;
-    letter-spacing:0.09em;
     padding: 0;
     margin-top: 28px;
     margin-bottom: 28px;
+    page-break-inside: avoid !important;
 }
 
 .col p:first-child {
@@ -171,12 +167,18 @@ p.indent-3 {
     padding-top: 0;
 }
 
-p {
-    line-height:28px;
-}
-
 sup {
     vertical-align: baseline;
     position: relative;
     top: -0.4em; 
+}
+
+.split-paragraph {
+    text-align-last: justify;
+	text-align:justify;
+}
+.split-paragraph:after {
+    content: "";
+    display: inline-block;
+    width: 100%;	
 }

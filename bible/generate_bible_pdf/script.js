@@ -141,7 +141,10 @@ $(document).ready(function(){
                         if (wrapper.is(':empty')) {
                             wrapper.detach();
                         } else {
+                            var oldWrapper = wrapper;
                             wrapper = $content.clone().empty();
+                            if (oldWrapper.prop("tagName") === 'P')
+                                oldWrapper.addClass('split-paragraph'); // so we can justify the last line of this split paragraph
                         }
                         if (colIdx % 2 === 0) {
                             ++pageIdx;
