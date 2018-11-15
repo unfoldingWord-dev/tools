@@ -19,7 +19,7 @@
                         font-size: 22pt;
                         font-family: 'Noto Serif', 'Noto Sans', sans-serif;
                     }
-                    * {
+                    * {                    
                         text-align: left;
                         font-size: 16pt;
                         line-height: 20pt;

@@ -153,8 +153,9 @@ p.indent-3 {
 .right {
     right: 0;
 }
-
+ 
 .col p {
+    
     text-align: justify;
     padding: 0;
     margin-top: 28px;

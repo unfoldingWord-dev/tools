@@ -25,21 +25,19 @@ $(document).ready(function(){
     books.each(function(bookIdx) {
         var book = books[bookIdx];
         var contents = $(book).contents();
+        $(book).empty();
         console.log(contents);
         var footnotes = {}
 
         contents.each(function(contentIdx) {
             var content = this;
-            console.log(content.localName+' '+content.className);
             if (content.localName === 'div' && content.className === 'footnotes') {
-                console.log(content.childNodes.length);
                 for (var i = 0; i < content.childNodes.length; ++i) {
                     childNode = content.childNodes[i];
                     if (childNode.id.startsWith('fn-')) {
-                        footnotes[childNode.id] = $(childNode).detach();
+                        footnotes[childNode.id] = childNode;
                     }
                 }
-                $(content).detach();
             }
         });
         console.log(footnotes);
@@ -58,15 +56,11 @@ $(document).ready(function(){
         footnotesSection2.appendTo(page);
         col = page.find('#col'+colIdx);
         var footnotesSection = page.find('#footnotesSection'+colIdx);
-        console.log(footnotesSection.length);
-        console.log(contents.clone());
-        console.log(contents);
         contents.each(function(contentIdx) {
             var content = this;
             var $content = $(this);
-            console.log('Got content of tag <'+content.localName+' '+content.id+' '+content.className+'>');
             if (content.localName == 'p' || content.localName == 'h1' || content.localName == 'h2') {
-                $content.detach();
+                console.log('Got content of tag <'+content.localName+' '+content.id+' '+content.className+'>');
                 var items = [];
                 var lastItemWasVerseNum = false;
                 for (var i = 0; i < content.childNodes.length; i++) {
@@ -111,9 +105,9 @@ $(document).ready(function(){
                 wrapper.appendTo(col);
                 while(items.length) {
                     var item = items.shift();
-                    // console.log("our item is: "+item);
-                    var element = $('<span>'+item+'</span>');
-                    element.appendTo(wrapper);
+                    // console.log("Item is: "+item);
+                    var wrappedItem = $('<span>'+item+'</span>');
+                    wrappedItem.appendTo(wrapper);
                     var itemFootnotes = [];
                     if (item.includes('ref-fn-')) {
                         if (! footnotesSection.contents().length) {
@@ -134,10 +128,12 @@ $(document).ready(function(){
                     var pageHeight = page.height();
                     if (colHeight > pageHeight) {
                         ++colIdx;
-                        element.detach();
-                        itemFootnotes.forEach(function(element) {
-                            element.detach();
-                        });
+                        wrappedItem.detach();
+                        if (itemFootnotes.length) {
+                            itemFootnotes.forEach(function(element) {
+                                element.detach();
+                            });
+                        }
                         if (wrapper.is(':empty')) {
                             wrapper.detach();
                         } else {
@@ -161,15 +157,12 @@ $(document).ready(function(){
                         }
                         col = page.find('#col'+colIdx);
                         footnotesSection = page.find('#footnotesSection'+colIdx);
-                        console.log(footnotesSection.length);
                         wrapper.appendTo(col);
                         items.unshift(item);
                     }
                     else {
-                        element.detach();
-                        wrapper.html(wrapper.html() + element.html());
-                        //console.log("all is good for "+colIdx);
-                        //console.log(wrapper.html());
+                        wrappedItem.detach();
+                        wrapper.html(wrapper.html() + wrappedItem.html());
                     }
                 }
             }
