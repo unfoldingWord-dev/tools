@@ -69,10 +69,8 @@ $(document).ready(function(){
                 $content.detach();
                 var items = [];
                 var lastItemWasVerseNum = false;
-                console.log('CHILD NODES LENGTH: '+content.childNodes.length);
                 for (var i = 0; i < content.childNodes.length; i++) {
                     var childNode = content.childNodes[i];
-                    console.log("TYPE: "+childNode.nodeType);
                     if (childNode.nodeType === 3) {
                         if (childNode.nodeValue.trim().length) {
                             var words = childNode.nodeValue.trim().split(/ +/g).map(function(val){return val+' '});
@@ -101,12 +99,11 @@ $(document).ready(function(){
                             // do nothing
                         }
                         else {
-                            console.log('=========> GOT THIS FUNKY THING: '+childNode.outerHTML);
+                            console.log('=========> UNKNOWN CHILDNODE: '+childNode.outerHTML);
                         }
                     }
                     else {
-                        console.log(childNode.nodeType);
-                        console.log("================> Have a node of "+childNode.nodeType+" -> "+childNode.outerHTML);
+                        console.log("================> UNKONWN CHILDNODE TYPE: "+childNode.nodeType+" -> "+childNode.outerHTML);
                     }
                 }
     
