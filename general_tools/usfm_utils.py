@@ -22,7 +22,7 @@ def usfm3_to_usfm2(usfm):
     usfm = re.sub(r"\s*' s(?!\w)", "'s", usfm, flags=re.UNICODE | re.MULTILINE)
     usfm = re.sub(r'\\s5', '', usfm, flags=re.UNICODE | re.MULTILINE)
     usfm = re.sub(r'\\fqa([^*]+)\\fqa(?![*])', r'\\fqa\1\\fqa*', usfm, flags=re.UNICODE | re.MULTILINE)
-    usfm = re.sub(r' +([\\:;.?,!)-])', r'\1', usfm, flags=re.UNICODE | re.MULTILINE)
+    usfm = re.sub(r' +([:;.?,!)-])', r'\1', usfm, flags=re.UNICODE | re.MULTILINE)
     usfm = re.sub(r'([(-]) +', r'\1', usfm, flags=re.UNICODE | re.MULTILINE)
     chapters = re.compile(r'\\c').split(usfm)
     usfm = chapters[0];

@@ -122,19 +122,40 @@ p.indent-3 {
 }
 
 .page {
-    height: 1175px;
+    height: 1165px;
     padding-bottom: 10px;
     width: 800px;
     overflow:hidden;
     margin: 0;
     page-break-after: always;
+    position: relative;
 }
 
 .col {
     width: 380px;
     padding: 10px;
-    float: left;
     min-height: 600px;
+    position: absolute;
+    top: 0;
+}
+
+.footnotesSection {
+    width: 380px;
+    padding: 0 10px;
+    position: absolute;
+    bottom: 0;
+}
+
+.footnotesSection > div.footnote:first-child {
+    border-top: solid #9a9a9a 1px;
+}
+
+.left {
+    left: 0;
+}
+
+.right {
+    right: 0;
 }
 
 .col p {

@@ -5,33 +5,74 @@ if (!String.prototype.startsWith) {
     };
 }
 
+if (!String.prototype.includes) {
+    Object.defineProperty(String.prototype, 'includes', {
+        value: function(search, start) {
+          if (typeof start !== 'number') {
+               start = 0
+          }
+          if (start + search.length > this.length) {
+               return false
+          } else {
+              return this.indexOf(search, start) !== -1
+          }
+        }
+    })
+}
+
 $(document).ready(function(){
-    var area = $('.bible-book-text');
-    var contents = area.contents();
-    var pageIdx = 0;
-    var colIdx = 0;
-    var page = $('<div id="page'+pageIdx+'" class="page"></div>');
-    page.appendTo(area);
-    var col = $('<div id="col'+colIdx+'" class="col"></div>');
-    col.appendTo(page);
-    console.log(contents.clone());
-    console.log(contents);
-    contents.each(function(contentIdx) {
-        var content = this;
-        var $content = $(this);
-        console.log('Got content of tag <'+content.localName+' '+content.id+' '+content.className+'>');
-        if (content.localName == 'p' || content.localName == 'h2' || content.localName == 'h1' || content.localName == 'div') {
-            $content.detach();
-            console.log('Is a '+content.localName);
-            console.log('trying to append');
-            $content.appendTo(col);
-            console.log('Trying to put container: '+col.height()+' > '+page.height())
-            if(col.height() > page.height()){
+    var books = $('.bible-book-text');
+    books.each(function(bookIdx) {
+        var book = books[bookIdx];
+        var contents = $(book).contents();
+        console.log(contents);
+        var footnotes = {}
+
+        contents.each(function(contentIdx) {
+            var content = this;
+            console.log(content.localName+' '+content.className);
+            if (content.localName === 'div' && content.className === 'footnotes') {
+                console.log(content.childNodes.length);
+                for (var i = 0; i < content.childNodes.length; ++i) {
+                    childNode = content.childNodes[i];
+                    if (childNode.id.startsWith('fn-')) {
+                        footnotes[childNode.id] = $(childNode).detach();
+                    }
+                }
+                $(content).detach();
+            }
+        });
+        console.log(footnotes);
+        
+        var pageIdx = 0;
+        var colIdx = 0;
+        var page = $('<div id="page'+pageIdx+'" class="page"></div>');
+        page.appendTo(book);
+        var col1 = $('<div id="col'+colIdx+'" class="col left"></div>');
+        col1.appendTo(page);
+        var col2 = $('<div id="col'+(colIdx+1)+'" class="col right"></div>');
+        col2.appendTo(page);
+        var footnotesSection1 = $('<div id="footnotesSection'+colIdx+'" class="footnotesSection left footnotes"></div>');
+        footnotesSection1.appendTo(page);
+        var footnotesSection2 = $('<div id="footnotesSection'+(colIdx+1)+'" class="footnotesSection right footnotes"></div>');
+        footnotesSection2.appendTo(page);
+        col = page.find('#col'+colIdx);
+        var footnotesSection = page.find('#footnotesSection'+colIdx);
+        console.log(footnotesSection.length);
+        console.log(contents.clone());
+        console.log(contents);
+        contents.each(function(contentIdx) {
+            var content = this;
+            var $content = $(this);
+            console.log('Got content of tag <'+content.localName+' '+content.id+' '+content.className+'>');
+            if (content.localName == 'p' || content.localName == 'h1' || content.localName == 'h2') {
                 $content.detach();
                 var items = [];
                 var lastItemWasVerseNum = false;
+                console.log('CHILD NODES LENGTH: '+content.childNodes.length);
                 for (var i = 0; i < content.childNodes.length; i++) {
                     var childNode = content.childNodes[i];
+                    console.log("TYPE: "+childNode.nodeType);
                     if (childNode.nodeType === 3) {
                         if (childNode.nodeValue.trim().length) {
                             var words = childNode.nodeValue.trim().split(/ +/g).map(function(val){return val+' '});
@@ -49,6 +90,9 @@ $(document).ready(function(){
                         }
                         else if(childNode.id.startsWith('ref-fn-')) {
                             items[items.length-1] = items[items.length-1].trim()+childNode.outerHTML+' ';
+                        }
+                        else if(content.localName === 'div' && content.className === 'footnotes') {
+                            // do nothing, already have footnotes
                         }
                         else if(content.localName === 'div') {
                             items.push(childNode.outerHTML+' ');
@@ -70,16 +114,33 @@ $(document).ready(function(){
                 wrapper.appendTo(col);
                 while(items.length) {
                     var item = items.shift();
-                    console.log("our item is: "+item);
+                    // console.log("our item is: "+item);
                     var element = $('<span>'+item+'</span>');
                     element.appendTo(wrapper);
-                    console.log('appended to wrapper, wrapper now has '+wrapper.contents().length+' children');
-                    console.log(wrapper.parent().height()+' > '+wrapper.parent().parent().height(), wrapper.parent().height() > wrapper.parent().parent().height());
-                    var colHeight = col.height();
+                    var itemFootnotes = [];
+                    if (item.includes('ref-fn-')) {
+                        if (! footnotesSection.contents().length) {
+                            itemFootnotes.push($('<hr class="footnotes-hr"/>'));
+                        }
+                        var re = /ref-(fn-\d+-\d+-\d+-\d+)/g;
+                        while (match = re.exec(item)) {
+                            var idx = match[1];
+                            if (footnotes[idx]) {
+                                itemFootnotes.push($(footnotes[idx]));
+                            }
+                        }
+                        itemFootnotes.forEach(function(element) {
+                            element.appendTo(footnotesSection);
+                        });
+                    }
+                    var colHeight = col.height() + footnotesSection.height();
                     var pageHeight = page.height();
                     if (colHeight > pageHeight) {
                         ++colIdx;
                         element.detach();
+                        itemFootnotes.forEach(function(element) {
+                            element.detach();
+                        });
                         if (wrapper.is(':empty')) {
                             wrapper.detach();
                         } else {
@@ -88,10 +149,19 @@ $(document).ready(function(){
                         if (colIdx % 2 === 0) {
                             ++pageIdx;
                             page = $('<div id="page'+pageIdx+'" class="page"/>');
-                            page.appendTo(area);
+                            page.appendTo(book);
+                            col1 = $('<div id="col'+colIdx+'" class="col left"/>');
+                            col1.appendTo(page);
+                            col2 = $('<div id="col'+(colIdx+1)+'" class="col right"/>');
+                            col2.appendTo(page);
+                            footnotesSection1 = $('<div id="footnotesSection'+colIdx+'" class="footnotesSection left footnotes"></div>');
+                            footnotesSection1.appendTo(page);
+                            footnotesSection2 = $('<div id="footnotesSection'+(colIdx+1)+'" class="footnotesSection right footnotes"></div>');
+                            footnotesSection2.appendTo(page);
                         }
-                        col = $('<div id="col'+colIdx+'" class="col"/>');
-                        col.appendTo(page);
+                        col = page.find('#col'+colIdx);
+                        footnotesSection = page.find('#footnotesSection'+colIdx);
+                        console.log(footnotesSection.length);
                         wrapper.appendTo(col);
                         items.unshift(item);
                     }
@@ -103,6 +173,6 @@ $(document).ready(function(){
                     }
                 }
             }
-        }
+        });
     });
 });
