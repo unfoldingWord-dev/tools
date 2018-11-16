@@ -22,9 +22,23 @@ a.external {
     color: #f47142 !important;
 }
 
-h1, h2 {
+.bible-book-text h1, .bible-book-text h2 {
+    page-break-before: auto !important;
     page-break-after: avoid !important;
     page-break-inside: avoid !important;
+    break-after: avoid-page !important;
+    margin: 22px 0;
+}
+
+.bible-book-text h1 {
+    font-size: 44px;
+    line-height: 44px;
+    text-align: center;
+}
+
+.bible-book-text h2 {
+    font-size: 22px;
+    line-height: 22px;
 }
 
 .page-header {
@@ -54,21 +68,6 @@ h1, h2 {
     justify-content: space-between;
     text-rendering: geometricPrecision;
     margin: 0 !important;
-}
-
-.bible-book-text h1 {
-    margin-top: 0;
-    padding-top: 0;
-    display: block;
-    text-align: center;
-}
-
-.bible-book-text h2 {
-    font-size: 28px;
-    line-height: 24px;
-    page-break-before: auto !important;
-    page-break-after: avoid !important;
-    break-after: avoid-page !important;
 }
 
 p.indent-0 {
@@ -101,7 +100,7 @@ p.indent-3 {
 
 .v-num {
     color:gray;
-    margin-right: 3px;
+    margin-right: 2px;
 }
 
 .tetragrammaton {
@@ -154,18 +153,22 @@ p.indent-3 {
     right: 0;
 }
  
-.col p {
-    
+.col > p {
     text-align: justify;
     padding: 0;
-    margin-top: 28px;
-    margin-bottom: 28px;
+    margin-top: 22px;
+    margin-bottom: 22px;
     page-break-inside: avoid !important;
 }
 
-.col p:first-child {
-    margin-top: 0;
-    padding-top: 0;
+.col > :first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+.col > :last-child {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
 }
 
 sup {
@@ -182,4 +185,63 @@ sup {
     content: "";
     display: inline-block;
     width: 100%;	
+}
+
+.h1 {
+    display: block;
+    font-size: 2em;
+    -webkit-margin-before: 0.67em;
+    -webkit-margin-after: 0.67em;
+    -webkit-margin-start:0;
+    -webkit-margin-end:0;
+    font-weight: bold;
+}
+
+.h2 {
+    display: block;
+    font-size: 1.5em;
+    -webkit-margin-before: 0.83em;
+    -webkit-margin-after: 0.83em;
+    -webkit-margin-start:0;
+    -webkit-margin-end:0;
+    font-weight: bold;
+}
+
+.h3 {
+    display: block;
+    font-size: 1.17em;
+    -webkit-margin-before: 1em;
+    -webkit-margin-after: 1em;
+    -webkit-margin-start:0;
+    -webkit-margin-end:0;
+    font-weight: bold;
+}
+
+.h4 {
+    display: block;
+    -webkit-margin-before: 1.33em;
+    -webkit-margin-after: 1.33em;
+    -webkit-margin-start:0;
+    -webkit-margin-end:0;
+    font-weight: bold;
+}
+
+.h5 {
+    display: block;
+    font-size: 0.83em;
+    -webkit-margin-before: 1.67em;
+    -webkit-margin-after: 1.67em;
+    -webkit-margin-start:0;
+    -webkit-margin-end:0;
+    font-weight: bold;
+}
+
+.h6 {
+    display: block;
+    font-size: 0.75em;
+    -webkit-margin-before: 2em;
+    -webkit-margin-after: 2em;
+    -webkit-margin-start:0;
+    -webkit-margin-end:0;
+    font-weight: bold;
 }
