@@ -125,7 +125,7 @@ p.indent-3 {
 }
 
 .col {
-    width: 430px;
+    width: 420px;
     padding: 10px;
     min-height: 600px;
     page-break-inside: avoid !important;
@@ -134,7 +134,7 @@ p.indent-3 {
 }
 
 .footnotesSection {
-    width: 430px;
+    width: 420px;
     padding: 0 10px;
     page-break-inside: avoid !important;
     position: absolute;
