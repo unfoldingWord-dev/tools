@@ -138,7 +138,7 @@ class TnConverter(object):
             self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number, self.book_id))
             if not os.path.isdir(self.html_dir):
                 os.makedirs(self.html_dir)
-            if not os.path.exists(os.path.join(self.self.html_dir, '{0}.html'.format(self.filename_base))):
+            if not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
                 self.resource_data = {}
                 self.rc_references = {}
                 self.populate_tn_book_data()
@@ -159,7 +159,7 @@ class TnConverter(object):
                 style_file = os.path.join(self.my_path, 'style.css')
                 shutil.copy2(style_file, self.html_dir)
             if not os.path.exists(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))):
-                self.logger.info("Generating PDF {0}...".format(self.pdf_dir, '{0}.pdf'.format(self.filename_base))))
+                self.logger.info("Generating PDF {0}...".format(self.pdf_dir, '{0}.pdf'.format(self.filename_base)))
                 self.generate_tn_pdf()
         self.show_bad_links()
 
@@ -334,7 +334,7 @@ class TnConverter(object):
         soup.head.append(soup.new_tag('link', href="style.css", rel="stylesheet"))
         soup.head.append(soup.new_tag('link', href="http://fonts.googleapis.com/css?family=Noto+Serif", rel="stylesheet", type="text/css"))
 
-        html_file = os.path.join(self.self.html_dir, '{0}.html'.format(self.filename_base))
+        html_file = os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))
         write_file(html_file, unicode(soup))
         self.logger.info('Wrote HTML to {0}'.format(html_file))
 
@@ -349,7 +349,7 @@ class TnConverter(object):
 </head>
 <body>
   <div style="text-align:center;padding-top:200px" class="break" id="cover">
-    <img src="https://unfoldingword.org/assets/img/icon-tn.png" width="120">
+    <img src="https://unfoldingword.bible/assets/img/icon-tn.png" width="120">
     <span class="h1">translationNotes</span>
     <span class="h2">{0}</span>
     <span class="h3">Version {1}</span>
@@ -357,7 +357,7 @@ class TnConverter(object):
 </body>
 </html>
 '''.format(self.book_title, self.version)
-        html_file = os.path.join(self.self.html_dir, '{0}_cover.html'.format(self.filename_base))
+        html_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.filename_base))
         write_file(html_file, cover_html)
 
     def generate_license_html(self):
@@ -383,15 +383,15 @@ class TnConverter(object):
   </div>
 </body>
 </html>'''.format(self.issued, self.version, self.publisher, license)
-        html_file = os.path.join(self.self.html_dir, 'license.html')
+        html_file = os.path.join(self.html_dir, 'license.html')
         write_file(html_file, license_html)
 
     def generate_tn_pdf(self):
-        cover_file = os.path.join(self.self.html_dir, '{0}_cover.html'.format(self.filename_base))
-        license_file = os.path.join(self.self.html_dir, 'license.html')
-        header_file = os.path.join(self.self.html_dir, 'header.html')
-        body_file = os.path.join(self.self.html_dir, '{0}.html'.format(self.filename_base))
-        output_file = os.path.join(self.output_dir, 'tn_pdf', '{0}.pdf'.format(self.filename_base))
+        cover_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.filename_base))
+        license_file = os.path.join(self.html_dir, 'license.html')
+        header_file = os.path.join(self.html_dir, 'header.html')
+        body_file = os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))
+        output_file = os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))
         template_file = os.path.join(self.my_path, 'toc_template.xsl')
         if not os.path.isdir(self.pdf_dir):
             os.makedirs(self.pdf_dir)
@@ -712,7 +712,7 @@ class TnConverter(object):
         for i in range(1, len(versesSplit), 2):
             verses[int(versesSplit[i])] = versesSplit[i+1]
         newHtml = versesSplit[0]
-        for verseNum in range(first_verse, last_verse +1):
+        for verseNum in range(first_verse, last_verse+1):
             words = self.get_all_words_to_match(resource, chapter, verseNum)
             for word in words:
                 parts = word['text'].split(' ... ')
@@ -731,6 +731,8 @@ class TnConverter(object):
                     if idx + 1 < len(newParts):
                         pattern += r'(.*?)'
                         replace += r'\{0}'.format(idx + 1)
+                print(verseNum)
+                print(chapter)
                 verses[verseNum] = re.sub(pattern, replace, verses[verseNum], 1, flags=re.MULTILINE | re.IGNORECASE)
             rc = 'rc://*/tn/help/{0}/{1}/{2}'.format(self.book_id, self.pad(chapter), self.pad(str(verseNum)))
             self.get_resource_data_from_rc_links(verses[verseNum], rc)
@@ -1149,7 +1151,7 @@ if __name__ == '__main__':
     parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help="Working Directory")
     parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False, help="Output Directory")
     parser.add_argument('--ta-tag', dest='ta', default='v10', required=False, help="tA Tag")
-    parser.add_argument('--tn-tag', dest='tn', default='v13', required=False, help="tN Tag")
+    parser.add_argument('--tn-tag', dest='tn', default='master', required=False, help="tN Tag")
     parser.add_argument('--tw-tag', dest='tw', default='v9', required=False, help="tW Tag")
     parser.add_argument('--ust-tag', dest='ust', default='master', required=False, help="UST Tag")
     parser.add_argument('--ult-tag', dest='ult', default='master', required=False, help="ULT Tag")
