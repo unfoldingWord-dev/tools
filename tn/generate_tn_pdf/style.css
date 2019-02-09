@@ -1,11 +1,8 @@
-@font-face {
-    font-family: "Noto Sans Sinhala";
-    src: url(<%= asset_data_uri 'NotoSansSinhala-Regular.ttf' %>) format("truetype");
-    font-weight: normal;
-}
+@import url('https://fonts.googleapis.com/css?family=Noto+Sans');
+@import url('https://fonts.googleapis.com/css?family=Noto+Serif');
 
 body {
-    font-family: 'Noto Serif', 'Noto Sans', sans-serif;
+    /* WKHTMLTOPDF MESSES UP THESE FONTS - font-family: 'Noto Serif', 'Noto Sans', sans-serif;*/
     font-size: 12pt;
 }
 

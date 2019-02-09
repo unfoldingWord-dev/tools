@@ -28,6 +28,7 @@ import json
 from glob import glob
 from bs4 import BeautifulSoup
 from usfm_tools.transform import UsfmTransform
+from StringIO import StringIO
 from ...general_tools.file_utils import write_file, read_file, load_json_object, unzip, load_yaml_object
 from ...general_tools.url_utils import download_file
 from ...general_tools.bible_books import BOOK_NUMBERS, BOOK_CHAPTER_VERSES
@@ -127,6 +128,7 @@ class TnConverter(object):
         self.publisher = self.manifest['dublin_core']['publisher']
         self.issued = self.manifest['dublin_core']['issued']
         projects = self.get_book_projects()
+        self.load_bad_links()
         for p in projects:
             self.project = p
             self.book_id = p['identifier'].lower()
@@ -265,6 +267,7 @@ class TnConverter(object):
                 for resource in ['ult', 'ust']:
                     versesInChunk = []
                     for verse in range(first_verse, last_verse+1):
+                        print(self.verse_usfm)
                         if resource != 'ust' or verse in self.verse_usfm[resource][chapter]:
                             versesInChunk.append(self.verse_usfm[resource][chapter][verse])
                     chunk_usfm = '\n'.join(versesInChunk)
@@ -289,8 +292,14 @@ class TnConverter(object):
         write_file(save_file, self.resource_data)
         save_file = os.path.join(save_dir, '{0}_references.json'.format(self.book_id))
         write_file(save_file, self.rc_references)
-        save_file = os.path.join(save_dir, 'bad_links.json'.format(self.book_id))
+        save_file = os.path.join(save_dir, 'bad_links.json')
         write_file(save_file, self.bad_links)
+
+    def load_bad_links(self):
+        save_dir = os.path.join(self.working_dir, 'resource_data')
+        save_file = os.path.join(save_dir, 'bad_links.json')
+        if os.path.isfile(save_file):
+            self.bad_links = load_json_object(save_file)
 
     def load_resource_data(self):
         save_dir = os.path.join(self.working_dir, 'resource_data')
@@ -302,9 +311,6 @@ class TnConverter(object):
         save_file = os.path.join(save_dir, '{0}_references.json'.format(self.book_id))
         if os.path.isfile(save_file):
             self.rc_references = load_json_object(save_file)
-        save_file = os.path.join(save_dir, 'bad_links.json'.format(self.book_id))
-        if os.path.isfile(save_file):
-            self.bad_links = load_json_object(save_file)
 
     def generate_body_html(self):
         self.load_resource_data()
@@ -332,7 +338,6 @@ class TnConverter(object):
                 h.name = 'span'
 
         soup.head.append(soup.new_tag('link', href="style.css", rel="stylesheet"))
-        soup.head.append(soup.new_tag('link', href="http://fonts.googleapis.com/css?family=Noto+Serif", rel="stylesheet", type="text/css"))
 
         html_file = os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))
         write_file(html_file, unicode(soup))
@@ -344,7 +349,6 @@ class TnConverter(object):
 <html>
 <head>
   <meta charset="UTF-8" />
-  <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
   <link href="style.css" rel="stylesheet"/>
 </head>
 <body>
@@ -368,7 +372,6 @@ class TnConverter(object):
 <html>
 <head>
   <meta charset="UTF-8" />
-  <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
   <link href="style.css" rel="stylesheet"/>
 </head>
 <body>
@@ -514,7 +517,7 @@ class TnConverter(object):
 
     def populate_verse_usfm_ult(self):
         bookData = {}
-        chapter_files_path = 'tools/tn/generate_tn_pdf/en/bibles/ult/v1/{0}/*.json'.format(self.book_id)
+        chapter_files_path = 'tools/tn/generate_tn_pdf/en/bibles/ult/v2/{0}/*.json'.format(self.book_id)
         chapter_files = sorted(glob(chapter_files_path))
         for chapter_file in chapter_files:
             try:
@@ -557,16 +560,25 @@ class TnConverter(object):
         if not os.path.isfile(book_file):
             return
         book_data = {}
-        with open(book_file) as fd:
-            rd = csv.reader(fd, delimiter=str("\t"), quotechar=str('"'))
+        with codecs.open(book_file, 'r+', encoding="utf-8") as f:
+            content = f.read().encode('utf-8')
+            s = StringIO(content)
+            rd = csv.reader(s, delimiter=str("\t"), quotechar=str('"'))
             header = next(rd)
             for row in rd:
                 data = {}
+                found = False
                 for idx, field in enumerate(header):
+                    field = field.strip()
                     if idx >= len(row):
                         print('ERROR: {0} is maformed'.format(book_file))
-                        exit(1)
-                    data[field] = row[idx]
+                        found = False
+                        break
+                    else:
+                        found = True
+                        data[field] = row[idx].decode('utf-8').encode('utf-8')
+                if not found:
+                    break
                 print('{0} {1}:{2}:{3}'.format(data['Book'], data['Chapter'], data['Verse'], data['ID']))
                 chapter = data['Chapter'].lstrip('0')
                 verse = data['Verse'].lstrip('0')
@@ -580,7 +592,7 @@ class TnConverter(object):
     def get_tn_html(self):
         tn_html = '<div id="tn-{0}" class="resource-title-page">\n<h1 class="section-header">translationNotes</h1>\n</div>'.format(self.book_id)
         if 'front' in self.tn_book_data and 'intro' in self.tn_book_data['front']:
-            intro = markdown.markdown(self.tn_book_data['front']['intro'][0]['OccurrenceNote'].decode('utf8').replace('<br>', '\n'))
+            intro = markdown.markdown(self.tn_book_data['front']['intro'][0]['OccurrenceNote'].decode('utf-8').replace('<br>', '\n'))
             title = self.get_first_header(intro)
             intro = self.fix_tn_links(intro, 'intro')
             intro = self.increase_headers(intro)
@@ -652,9 +664,9 @@ class TnConverter(object):
                     if str(verse) in self.tn_book_data[chapter]:
                         verseNotes = ''
                         for data in self.tn_book_data[chapter][str(verse)]:
-                            title = data['GLQuote'].decode('utf8')
-                            verseNotes += '<b>' + title + (' -' if not title.endswith(':') else '') + ' </b>'
-                            verseNotes += markdown.markdown(data['OccurrenceNote'].decode('utf8').replace('<br>',"\n")).replace('<p>', '').replace('</p>', '')
+                            title = data['GLQuote']
+                            verseNotes += '<b>' + title.decode('utf-8') + (' -' if not title.decode('utf-8').endswith(':') else '') + ' </b>'
+                            verseNotes += markdown.markdown(data['OccurrenceNote'].decode('utf-8').replace('<br>',"\n")).replace('<p>', '').replace('</p>', '')
                             verseNotes += '\n<br><br>\n'
                         rc = 'rc://*/tn/help/{0}/{1}/{2}'.format(self.book_id, self.pad(chapter), self.pad(verse))
                         self.get_resource_data_from_rc_links(verseNotes, rc)
@@ -731,8 +743,6 @@ class TnConverter(object):
                     if idx + 1 < len(newParts):
                         pattern += r'(.*?)'
                         replace += r'\{0}'.format(idx + 1)
-                print(verseNum)
-                print(chapter)
                 verses[verseNum] = re.sub(pattern, replace, verses[verseNum], 1, flags=re.MULTILINE | re.IGNORECASE)
             rc = 'rc://*/tn/help/{0}/{1}/{2}'.format(self.book_id, self.pad(chapter), self.pad(str(verseNum)))
             self.get_resource_data_from_rc_links(verses[verseNum], rc)
@@ -741,7 +751,7 @@ class TnConverter(object):
         return newHtml
 
     def get_all_words_to_match(self, resource, chapter, verse):
-        path = 'tools/tn/generate_tn_pdf/en/bibles/{0}/v1/{1}/{2}.json'.format(resource, self.book_id, chapter)
+        path = 'tools/tn/generate_tn_pdf/en/bibles/{0}/v2/{1}/{2}.json'.format(resource, self.book_id, chapter)
         words = []
         data = load_json_object(path)
         chapter = int(chapter)
