@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 
 import sys
@@ -40,6 +41,7 @@ mt3     = usfmTokenValue( u"mt3", phrase )
 mte     = usfmTokenValue( u"mte", phrase )
 imt     = usfmTokenValue( u"imt", phrase )
 imt1    = usfmTokenValue( u"imt1", phrase )
+im      = usfmTokenValue( u"im", phrase )
 ms      = usfmTokenValue( u"ms", phrase )
 ms1     = usfmTokenValue( u"ms1", phrase )
 ms2     = usfmTokenValue( u"ms2", phrase )
@@ -55,6 +57,7 @@ sts     = usfmTokenValue( u"sts", phrase )
 r       = usfmTokenValue( u"r", phrase )
 p       = usfmToken(u"p")
 pi      = usfmToken(u"pi")
+pi2     = usfmToken(u"pi2")
 pc      = usfmToken(u"pc")
 b       = usfmToken(u"b")
 c       = usfmTokenNumber(u"c")
@@ -86,20 +89,26 @@ m       = usfmToken(u"m")
 
 # Footnotes
 fs      = usfmTokenValue(u"f", plus)
+fe      = usfmEndToken(u"f")
+fes     = usfmTokenValue(u"fe", plus)
+fee     = usfmEndToken(u"fe")
 fr      = usfmTokenValue( u"fr", phrase )
 fre     = usfmEndToken( u"fr" )
 fk      = usfmTokenValue( u"fk", phrase )
 ft      = usfmTokenValue( u"ft", phrase )
-fp      = usfmTokenValue( u"fp", phrase )
+fp      = usfmToken( u"fp" )
 fq      = usfmTokenValue( u"fq", phrase )
+fqe     = usfmEndToken( u"fq")
 fqa     = usfmTokenValue( u"fqa", phrase )
-fe      = usfmEndToken(u"f")
+fqae    = usfmEndToken( u"fqa")
+fqb     = usfmTokenValue( u"fqb", phrase)
 
 # Cross References
 xs      = usfmTokenValue(u"x", plus)
 xdcs    = usfmToken(u"xdc")
 xdce    = usfmEndToken(u"xdc")
 xo      = usfmTokenValue( u"xo", phrase )
+xq      = usfmTokenValue( u"xq", phrase )
 xt      = usfmTokenValue( u"xt", phrase )
 xe      = usfmEndToken(u"x")
 
@@ -188,6 +197,7 @@ bk_e    =  usfmEndToken( u"bk")
 element =  MatchFirst([ide, id, h, toc, toc1, toc2, toc3, mt, mt1, mt2, mt3, mte,
  imt,
  imt1,
+ im,
  ms,
  ms1,
  ms2,
@@ -204,6 +214,7 @@ element =  MatchFirst([ide, id, h, toc, toc1, toc2, toc3, mt, mt1, mt2, mt3, mte
  p,
  pc,
  pi,
+ pi2,
  mi,
  b,
  c,
@@ -235,18 +246,24 @@ element =  MatchFirst([ide, id, h, toc, toc1, toc2, toc3, mt, mt1, mt2, mt3, mte
  nb,
  m,
  fs,
+ fes,
  fr,
  fre,
  fk,
  ft,
  fp,
  fq,
+ fqe,
  fqa,
+ fqae,
+ fqb,
  fe,
+ fee,
  xs,
  xdcs,
  xdce,
  xo,
+ xq,
  xt,
  xe,
  ist,
@@ -342,6 +359,7 @@ def createToken(t):
         u'mte':  MTEToken,
         u'imt':  IMTToken,
         u'imt1': IMTToken,
+        u'im':   IMToken,
         u'ms':   MSToken,
         u'ms1':  MSToken,
         u'ms2':  MS2Token,
@@ -349,6 +367,7 @@ def createToken(t):
         u'p':    PToken,
         u'pc':   PCToken,
         u'pi':   PIToken,
+        u'pi2':  PI2Token,
         u'b':    BToken,
         u's':    SToken,
         u's1':   SToken,
@@ -386,18 +405,24 @@ def createToken(t):
         u'qt*':  QTEToken,
         u'nb':   NBToken,
         u'f':    FSToken,
+        u'fe':   FESToken,  # Footnote intended as an end note
         u'fr':   FRToken,
         u'fr*':  FREToken,
         u'fk':   FKToken,
         u'ft':   FTToken,
         u'fp':   FPToken,
         u'fq':   FQToken,
+        u'fq*':  FQEToken,
         u'fqa':  FQAToken,
+        u'fqa*': FQAEToken,
+        u'fqb':  FQAEToken,
         u'f*':   FEToken,
+        u'fe*':  FEEToken,
         u'x':    XSToken,
         u'xdc':  XDCSToken,
         u'xdc*': XDCEToken,
         u'xo':   XOToken,
+        u'xq':   XQToken,
         u'xt':   XTToken,
         u'x*':   XEToken,
         u'it':   ISToken,
@@ -495,6 +520,7 @@ class UsfmToken(object):
     def isMT3(self):    return False
     def isMTE(self):    return False
     def isIMT(self):    return False
+    def isIM(self):     return False
     def isMS(self):     return False
     def isMS2(self):    return False
     def isMR(self):     return False
@@ -502,6 +528,7 @@ class UsfmToken(object):
     def isP(self):      return False
     def isPC(self):     return False
     def isPI(self):     return False
+    def isPI2(self):    return False
     def isS(self):      return False
     def isS2(self):     return False
     def isS3(self):     return False
@@ -537,6 +564,7 @@ class UsfmToken(object):
     def isQTE(self):    return False
     def isNB(self):     return False
     def isFS(self):     return False
+    def isFES(self):    return False
     def isFR(self):     return False
     def isFRE(self):    return False
     def isFK(self):     return False
@@ -544,11 +572,16 @@ class UsfmToken(object):
     def isFP(self):     return False
     def isFQ(self):     return False
     def isFQA(self):    return False
+    def isFQE(self):    return False
+    def isFQAE(self):   return False
+    def isFQB(self):    return False
     def isFE(self):     return False
+    def isFEE(self):    return False
     def isXS(self):     return False
     def isXDCS(self):   return False
     def isXDCE(self):   return False
     def isXO(self):     return False
+    def isXQ(self):     return False
     def isXT(self):     return False
     def isXE(self):     return False
     def isIS(self):     return False
@@ -674,6 +707,11 @@ class IMTToken(UsfmToken):
     def renderOn(self, printer):
         return printer.renderIMT(self)
     def isIMT(self):     return True
+
+class IMToken(UsfmToken):
+    def renderOn(self, printer):
+        return printer.renderIM(self)
+    def isIM(self):     return True
 
 class MSToken(UsfmToken):
     def renderOn(self, printer):
@@ -880,6 +918,11 @@ class FSToken(UsfmToken):
         return printer.renderFS(self)
     def isFS(self):      return True
 
+class FESToken(UsfmToken):
+    def renderOn(self, printer):
+        return printer.renderFES(self)
+    def isFES(self):      return True
+
 class FRToken(UsfmToken):
     def renderOn(self, printer):
         return printer.renderFR(self)
@@ -910,15 +953,32 @@ class FQToken(UsfmToken):
         return printer.renderFQ(self)
     def isFQ(self):      return True
 
-class FQAToken(UsfmToken):
+class FQEToken(UsfmToken):
     def renderOn(self, printer):
-        return printer.renderFQA(self)
+        return printer.renderFQE(self)
+    def isFQE(self):      return True
+
+class FQAToken(UsfmToken):
+    def renderOn(self, printer): return printer.renderFQA(self)
     def isFQA(self):     return True
+
+class FQAEToken(UsfmToken):
+    def renderOn(self, printer): return printer.renderFQAE(self)
+    def isFQAE(self):    return True
+
+class FQBToken(UsfmToken):
+    def renderOn(self, printer): return printer.renderFQAE(self)
+    def isFQB(self):     return True
 
 class FEToken(UsfmToken):
     def renderOn(self, printer):
         return printer.renderFE(self)
     def isFE(self):      return True
+
+class FEEToken(UsfmToken):
+    def renderOn(self, printer):
+        return printer.renderFEE(self)
+    def isFEE(self):      return True
 
 class ISToken(UsfmToken):
     def renderOn(self, printer):
@@ -1037,6 +1097,11 @@ class XOToken(UsfmToken):
         return printer.renderXO(self)
     def isXO(self):      return True
 
+class XQToken(UsfmToken):
+    def renderOn(self, printer):
+        return printer.renderXQ(self)
+    def isXQ(self):      return True
+
 class XTToken(UsfmToken):
     def renderOn(self, printer):
         return printer.renderXT(self)
@@ -1073,6 +1138,11 @@ class PIToken(UsfmToken):
     def renderOn(self, printer):
         return printer.renderPI(self)
     def isPI(self):      return True
+
+class PI2Token(UsfmToken):
+    def renderOn(self, printer):
+        return printer.renderPI2(self)
+    def isPI2(self):      return True
 
 # Small caps
 class SCSToken(UsfmToken):
