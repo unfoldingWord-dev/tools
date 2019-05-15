@@ -1,8 +1,8 @@
 # coding: latin-1
-# This program converts a folder of OBS text files in the newer(?)
+# This program converts a folder of OBS text files in the newer tStudio
 # format (one .txt file per OBS chunk, multiple chunks per story)
 # to a set of corresponding OBS story files in Markdown format.
-# Outputs .md files to a content folder under the input folder.
+# Outputs .md files to a content folder under target_dir.
 # The input should contain folders named 01-50, front, and back.
 
 import re       # regular expression module
@@ -12,7 +12,9 @@ import codecs
 import string
 import sys
 
-en_contentdir = r'C:\Users\Larry\Documents\GitHub\English\en_obs\content'
+# Globals
+target_dir = r'C:\DCS\Ache\guq_obs'
+en_contentdir = r'C:\DCS\English\en_obs\content'
 
 # Merges the contents of each file in the folder, into output mdfile.
 # Intersperses image links between text from each file if it can.
@@ -129,6 +131,7 @@ def renameTitle(contentdir, subdir):
 # Merge title, chunks, and reference the files from folder into one equivalent .md file
 def convertStory(folder, storynumber, contentpath):
     sys.stdout.write("Converting " + folder + "\\\n")
+    sys.stdout.flush()
     mdpath = os.path.join(contentpath, storynumber + ".md")
     english_md_path = os.path.join(en_contentdir, storynumber + '.md')
 
@@ -156,7 +159,7 @@ def convertStory(folder, storynumber, contentpath):
 # Creates content folder if needed.
 # Calls convertStory to merge and convert one folder (one story) at a time.
 def convertStories(masterfolder):
-    contentpath = os.path.join(masterfolder, "content")
+    contentpath = os.path.join(target_dir, "content")
     if not os.path.isdir(contentpath):
         os.mkdir(contentpath)
 
@@ -175,7 +178,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == '.':       # use current directory
         folder = os.getcwd()
     elif sys.argv[1] == 'hard-coded-path':
-        folder = r'C:\Users\Larry\Documents\GitHub\Hausa\ha_obs_text_obs'
+        folder = r'C:\DCS\Ache\guq_obs_text_obs'
     else:
         folder = sys.argv[1]
 
