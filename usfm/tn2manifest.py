@@ -84,7 +84,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: python tn2manifest <folder>\n  Use . for current folder.\n")
     elif sys.argv[1] == 'hard-coded-path':
-        extract(r'C:\Users\Larry\Documents\GitHub\Malayalam\BCS.ml_tQ\content')
+        extract(r'C:\Users\Larry\Documents\GitHub\Kannada\BCS.kn_tn')
     else:       # the first command line argument presumed to be a folder
         extract(sys.argv[1])
 

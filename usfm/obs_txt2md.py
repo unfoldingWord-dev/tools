@@ -1,16 +1,19 @@
-# coding: latin-1
+# -*- coding: utf-8 -*-
 # This program converts a folder of OBS text files
-# in the older(?) format (one .txt file per OBS story)
+# in the older format (one .txt file per OBS story)
 # to a set of corresponding, OBS story files in Markdown format.
-# Outputs .md files to a content folder under the input folder.
+# Outputs .md files to a content folder under target_dir.
 
 import re       # regular expression module
 import io
 import os
 import codecs
 import string
-# import json
 import sys
+
+# Globals
+en_contentdir = r'C:\DCS\English\en_obs\content'
+target_dir = r'C:\DCS\Hausa\ha_obs_L1'
 
 def merge(image_list, txtfile, mdfile):
     titleLinesOut = 0
@@ -84,7 +87,6 @@ def detect_by_bom(path, default):
     return default
 
 
-en_contentdir = r'C:\Users\Larry\Documents\GitHub\English\en_obs\content'
 obsfilename = re.compile(r'([0-5][0-9])\.txt')
 
 # Convert each .txt file in the specified folder to equivalent .md format
@@ -103,7 +105,7 @@ def convertStories(folder):
             inputpath = os.path.join(folder, filename)
             enc = detect_by_bom(inputpath, default="utf-8")
             input = io.open(inputpath, "tr", 1, encoding=enc)
-            outputpath = os.path.join(folder, "content")
+            outputpath = os.path.join(target_dir, "content")
             if not os.path.isdir(outputpath):
                 os.mkdir(outputpath)
             outputpath = os.path.join(outputpath, story + ".md")
@@ -118,7 +120,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == '.':       # use current directory
         folder = os.getcwd()
     elif sys.argv[1] == 'hard-coded-path':
-        folder = r'C:\Users\Larry\Documents\GitHub\Swahili\sw_obs_text_obs\01'
+        folder = r'C:\DCS\Hausa\ha_obs_text_obs_L1'
     else:
         folder = sys.argv[1]
 

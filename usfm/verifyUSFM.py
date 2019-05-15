@@ -1,4 +1,4 @@
-# coding: latin-1
+# -*- coding: utf-8 -*-
 
 # Script for verifying proper USFM.
 # Uses parseUsfm module.
@@ -16,7 +16,7 @@ import parseUsfm
 import io
 import codecs
 # import chardet # $ pip install chardet
-import json
+import usfm_verses
 import re
 
 # Global variables
@@ -35,9 +35,9 @@ class State:
     textOkayHere = False
     reference = u""
     lastRef = u""
-    verseCounts = {}
     errorRefs = set()
     
+    # Resets state data for a new book
     def addID(self, id):
         State.IDs.append(id)
         State.ID = id
@@ -59,6 +59,7 @@ class State:
     def addChapter(self, c):
         State.lastChapter = State.chapter
         State.chapter = int(c)
+        State.nParagraphs = 0
         State.lastVerse = 0
         State.verse = 0
         State.needVerseText = False
@@ -67,7 +68,7 @@ class State:
         State.reference = State.ID + " " + c
     
     def addParagraph(self):
-        State.nParagraphs += State.nParagraphs + 1
+        State.nParagraphs += 1
         State.textOkayHere = True
 
     # supports a span of verses, e.g. 3-4, if needed. Passes the verse(s) on to addVerse()
@@ -75,11 +76,14 @@ class State:
         vlist = []
         if vv.find('-') > 0:
             vv_range = vv_re.search(vv)
-            vn = int(vv_range.group(1))
-            vnEnd = int(vv_range.group(2))
-            while vn <= vnEnd:
-                vlist.append(vn)
-                vn += 1
+            if vv_range:
+                vn = int(vv_range.group(1))
+                vnEnd = int(vv_range.group(2))
+                while vn <= vnEnd:
+                    vlist.append(vn)
+                    vn += 1
+            else:
+                sys.stderr.write("Problem in verse range near " + State.reference + u'\n')
         else:
             vlist.append(int(vv))
             
@@ -118,39 +122,19 @@ class State:
             success = True
         return success
         
-    def loadVerseCounts(self):
-        jsonPath = 'verses.json'
-        if not os.access(jsonPath, os.F_OK):
-            jsonPath = os.path.dirname(os.path.abspath(__file__)) + "\\" + jsonPath
-        if os.access(jsonPath, os.F_OK):
-            f = open(jsonPath, 'r')
-            State.verseCounts = json.load(f)
-            f.close()
-        else:
-            sys.stderr.write("File not found: verses.json\n")
-
     # Returns the number of chapters that the specified book should contain
     def nChapters(self, id):
-        n = 0
-        if len(State.verseCounts) == 0:
-            self.loadVerseCounts()
-        n = State.verseCounts[id]['chapters']
-        return n   
+        return usfm_verses.verseCounts[id]['chapters']
                  
     # Returns the number of verses that the specified chapter should contain
     def nVerses(self, id, chap):
-        n = 0
-        if len(State.verseCounts) == 0:
-            self.loadVerseCounts()
-        chaps = State.verseCounts[id]['verses']
+        chaps = usfm_verses.verseCounts[id]['verses']
         n = chaps[chap-1]
         return n  
         
     # Returns the English title for the specified book
     def bookTitleEnglish(self, id):
-        if len(State.verseCounts) == 0:
-            self.loadVerseCounts()
-        return State.verseCounts[id]['en_name']    
+        return usfm_verses.verseCounts[id]['en_name']
 
 # Verifies that at least one book title is specified, other than the Engligh book title.
 # This method is called just before chapter 1 begins, so there has been every
@@ -178,7 +162,7 @@ def verifyVerseCount():
 def verifyNotEmpty(filename):
     state = State()
     if not state.ID or state.chapter == 0:
-        sys.stderr.write(filename + u" -- may be empty.\n")
+        sys.stderr.write(filename + u" -- may be empty, or open in another program.\n")
 
 def verifyChapterCount():
     state = State()
@@ -199,11 +183,12 @@ def printToken(token):
 
 def takeID(id):
     state = State()
-    if id in state.getIDs():
-        sys.stderr.write("Duplicate ID: " + id + '\n')
     if len(id) < 3:
         sys.stderr.write("Invalid ID: " + id + '\n')
-    state.addID(id[0:3])
+    id = id[0:3].upper()
+    if id in state.getIDs():
+        sys.stderr.write("Duplicate ID: " + id + '\n')
+    state.addID(id)
     
 def takeC(c):
     state = State()
@@ -230,76 +215,78 @@ def takeV(v):
         sys.stderr.write("Missing ID before verse: " + v + '\n')
     if state.chapter == 0:
         sys.stderr.write("Missing chapter tag: " + state.reference + '\n')
-    if state.chapter <= 1 and state.verse == 1 and state.nParagraphs == 0:
+    if state.verse == 1 and state.nParagraphs == 0:
         sys.stderr.write("Missing paragraph marker before: " + state.reference + '\n')
+
     if state.verse < state.lastVerse and state.addError(state.lastRef):
         sys.stderr.write("Verse out of order: " + state.reference + " after " + state.lastRef + '\n')
         state.addError(state.reference)
     elif state.verse == state.lastVerse:
         sys.stderr.write("Duplicated verse: " + state.reference + '\n')
-    elif state.verse > state.lastVerse + 1 and state.addError(state.lastRef):
-        if state.lastRef == 'MAT 17:20' and state.reference == 'MAT 17:22':
-            exception = 'MAT 17:21'
-        elif state.lastRef == 'MAT 18:10' and state.reference == 'MAT 18:12':
-            exception = 'MAT 18:11'
-        elif state.lastRef == 'MAT 23:13' and state.reference == 'MAT 23:15':
-            exception = 'MAT 23:14'
-        elif state.lastRef == 'LUK 17:35' and state.reference == 'LUK 17:37':
-            exception = 'LUK 17:36'
-        else:
-            sys.stderr.write("Missing verse(s) between: " + state.lastRef + " and " + state.reference + '\n')
+    elif state.verse == state.lastVerse + 2 and not isOptional(state.reference):
+        if state.addError(state.lastRef):
+            sys.stderr.write("Missing verse between: " + state.lastRef + " and " + state.reference + '\n')
+    elif state.verse > state.lastVerse + 2 and state.addError(state.lastRef):
+        sys.stderr.write("Missing verses between: " + state.lastRef + " and " + state.reference + '\n')
  
 def takeText(t):
     state = State()
     global lastToken
     if not state.textOkay() and not isTextCarryingToken(lastToken):
         if t[0] == '\\':
-            sys.stderr.write("Uncommon or invalid marker around " + state.reference + '\n')
+            sys.stderr.write("Uncommon or invalid marker near " + state.reference + '\n')
         else:
             # print u"Missing verse marker before text: <" + t.encode('utf-8') + u"> around " + state.reference
             # sys.stderr.write(u"Missing verse marker or extra text around " + state.reference + u": <" + t[0:10] + u'>.\n')
-            sys.stderr.write(u"Missing verse marker or extra text around " + state.reference + '\n')
-        # if lastToken:
-        #     sys.stderr.write("  preceding Token.type was " + lastToken.getType() + '\n')
-        # else:
-        #     sys.stderr.write("  no preceding Token\n")
+            sys.stderr.write("Missing verse marker or extra text near " + state.reference + '\n')
+        if lastToken:
+            sys.stderr.write("  preceding Token.type was " + lastToken.getType() + '\n')
+        else:
+            sys.stderr.write("  no preceding Token\n")
     state.addText()
 
 # Returns true if token is part of a footnote
 def isFootnote(token):
-    return token.isFS() or token.isFE() or token.isFR() or token.isFRE() or token.isFT()
+    return token.isFS() or token.isFE() or token.isFR() or token.isFRE() or token.isFT() or token.isFP() or token.isFES() or token.isFEE()
 
 # Returns true if token is part of a cross reference
-def isCrossReference(token):
+def isCrossRef(token):
     return token.isXS() or token.isXE() or token.isXO() or token.isXT()
 
-# Returns True if the current reference is a verse that does not appear in some manuscripts.
+# Returns True if the specified reference immediately FOLLOWS a verse that does not appear in some manuscripts.
+# Does not handle optional passages, such as John 7:53-8:11, or Mark 16:9-20.
 def isOptional(ref):
-    return ref in { 'MAT 17:21', 'MAT 18:11', 'MAT 23:14', 'MRK 7:16', 'MRK 9:44', 'MRK 9:46', 'MRK 11:26', 'MRK 15:28', 'MRK 16:9', 'MRK 16:12', 'MRK 16:14', 'MRK 16:17', 'MRK 16:19', 'LUK 17:36', 'LUK 23:17', 'JHN 5:4', 'JHN 7:53', 'JHN 8:1', 'JHN 8:4', 'JHN 8:7', 'JHN 8:9', 'ACT 8:37', 'ACT 15:34', 'ACT 24:7', 'ACT 28:29', 'ROM 16:24' }
+#   return ref in { 'MAT 17:21', 'MAT 18:11', 'MAT 23:14', 'MRK 7:16', 'MRK 9:44', 'MRK 9:46', 'MRK 11:26', 'MRK 15:28', 'MRK 16:9', 'MRK 16:12', 'MRK 16:14', 'MRK 16:17', 'MRK 16:19', 'LUK 17:36', 'LUK 23:17', 'JHN 5:4', 'JHN 7:53', 'JHN 8:1', 'JHN 8:4', 'JHN 8:7', 'JHN 8:9', 'ACT 8:37', 'ACT 15:34', 'ACT 24:7', 'ACT 28:29', 'ROM 16:24' }
+    return ref in { 'MAT 17:22', 'MAT 18:12', 'MAT 23:15', 'MRK 7:17', 'MRK 9:45', 'MRK 9:47', 'MRK 11:27', 'MRK 15:29', 'LUK 17:37', 'LUK 23:18', 'JHN 5:5', 'ACT 8:38', 'ACT 15:35', 'ACT 24:8', 'ACT 28:30', 'ROM 16:25' }
 
 def isPoetry(token):
-    return token.isQ() or token.isQ1()
+    return token.isQ() or token.isQ1() or token.isQA() or token.isSP()
+
+def isIntro(token):
+    return token.is_is1() or token.is_ip() or token.is_iot() or token.is_io1()
     
 def isTextCarryingToken(token):
-    return token.isB() or token.isM() or token.isD() or isFootnote(token) or isCrossReference(token) or isPoetry(token)
+    return token.isB() or token.isM() or token.isD() or isFootnote(token) or isCrossRef(token) or isPoetry(token) or isIntro(token)
     
 def take(token):
     global lastToken
     state = State()
-    if isOptional(state.reference):
-        state.addText()        # counts as text for our purposes
-    elif state.needText() and not token.isTEXT() and not isTextCarryingToken(token):
-        sys.stderr.write("Empty verse: " + state.reference + '\n')
-        sys.stderr.write("  preceding Token.type was " + lastToken.getType() + '\n')
-        sys.stderr.write("  current Token.type is " + token.getType() + '\n')
+    if isFootnote(token):
+        state.addText()     # footnote replaces need for text
+    if state.needText() and not token.isTEXT() and not isTextCarryingToken(token):
+        # sys.stderr.write("Empty verse: " + state.reference + ". preceding Token.type was " + lastToken.getType() + ". current Token.type is " + token.getType() + '.\n')
+        sys.stderr.write("Empty verse: " + state.reference + '.\n')
     if token.isID():
         takeID(token.value)
     elif token.isC():
         verifyVerseCount()  # for the preceding chapter
+        if not state.ID:
+            sys.stderr.write("Missing book ID: " + state.reference + '\n')
+            sys.exit(-1)
         if token.value == "1":
             verifyBookTitle()
         takeC(token.value)
-    elif token.isP() or token.isPI() or token.isPC():
+    elif token.isP() or token.isPI() or token.isPC() or token.isNB():
         takeP()
         if token.value:     # paragraph markers can be followed by text
             sys.stderr.write("Unexpected: text returned as part of paragraph token." +  state.reference + '\n')
@@ -313,20 +300,59 @@ def take(token):
     elif token.isH() or token.isTOC1() or token.isTOC2() or token.isMT() or token.isIMT():
         state.addTitle(token.value)
     elif token.isUnknown():
-        sys.stderr.write("Unknown token at " + state.reference + '\n')
+        if token.value == "p":
+            sys.stderr.write("Orphaned paragraph marker after " + state.reference + '\n')
+        else:
+            sys.stderr.write("Unknown token following " + state.reference + '\n')
         
     lastToken = token
-     
+
+bad_chapter_re1 = re.compile(r'[^\n\r](\\c\s*\d+)', re.UNICODE)
+bad_chapter_re2 = re.compile(r'(\\c[0-9]+)', re.UNICODE)
+bad_chapter_re3 = re.compile(r'(\\c\s*\d+)[^\d\s]+[\n\r]', re.UNICODE)
+bad_verse_re1 = re.compile(r'([^\n\r\s]\\v\s*\d+)', re.UNICODE)
+bad_verse_re2 = re.compile(r'(\\v[0-9]+)', re.UNICODE)
+bad_verse_re3 = re.compile(r'(\\v\s*[-0-9]+[^-\d\s])', re.UNICODE)
+
+# Receives the text of an entire book as input.
+# Reports bad patterns.
+# Can't report verse references because we haven't started to parse the book yet.
+def verifyChapterAndVerseMarkers(text, book):
+    for badactor in bad_chapter_re1.finditer(text):
+        sys.stderr.write(book + ": missing newline before chapter marker: " + badactor.group(1) + "\n")
+    for badactor in bad_chapter_re2.finditer(text):
+        sys.stderr.write(book + ": missing space before chapter number: " + badactor.group(0) + "\n")
+    for badactor in bad_chapter_re3.finditer(text):
+        sys.stderr.write(book + ": missing space after chapter number: " + badactor.group(1) + "\n")
+    for badactor in bad_verse_re1.finditer(text):
+        str = badactor.group(1)
+        if str[0] < ' ' or str[0] > '~': # not printable ascii
+            str = str[1:]
+        sys.stderr.write(book + ": missing space before verse marker: " + str + "\n")
+    for badactor in bad_verse_re2.finditer(text):
+        sys.stderr.write(book + ": missing space before verse number: " + badactor.group(0) + "\n")
+    for badactor in bad_verse_re3.finditer(text):
+        str = badactor.group(1)
+        if str[-1] < ' ' or str[-1] > '~': # not printable ascii
+            str = str[:-1]
+        sys.stderr.write(book + ": missing space after verse number: " + str + "\n")
+
+prefix_re = re.compile(r'C:\\DCS')
+
+# Corresponding entry point in tx-manager code is verify_contents_quiet()
 def verifyFile(filename):
     # detect file encoding
     enc = detect_by_bom(filename, default="utf-8")
-    # print "DECODING: " + enc
     input = io.open(filename, "tr", 1, encoding=enc)
     str = input.read(-1)
     input.close
 
-    print "CHECKING " + filename + ":"
+    shortname = filename
+    if prefix_re.match(filename):
+        shortname = "..." + filename[6:]
+    print "CHECKING " + shortname + ":"
     sys.stdout.flush()
+    verifyChapterAndVerseMarkers(str, shortname)
     for token in parseUsfm.parseString(str):
         take(token)
     verifyNotEmpty(filename)
@@ -335,7 +361,7 @@ def verifyFile(filename):
     state = State()
     state.addID(u"")
     sys.stderr.flush()
-    print "FINISHED CHECKING.\n"
+    # print "FINISHED CHECKING.\n"
 
 def detect_by_bom(path, default):
     with open(path, 'rb') as f:
@@ -358,10 +384,8 @@ def verifyDir(dirpath):
             verifyFile(path)
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        source = raw_input("Enter path to .usfm file or directory containing .usfm files: ")
-    elif sys.argv[1] == 'hard-coded-path':
-        source = r'C:\Users\Larry\Documents\GitHub\Gujarati\GUJARATI-ULB-OT.BCS\temp'
+    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
+        source = r'C:\DCS\Portuguese-Brazil\pt-br_ulb\34-NAM.usfm'
     else:
         source = sys.argv[1]
         
@@ -371,3 +395,5 @@ if __name__ == "__main__":
         verifyFile(source)
     else:
         sys.stderr.write("File not found: " + source + '\n')
+
+    print "Done.\n"
