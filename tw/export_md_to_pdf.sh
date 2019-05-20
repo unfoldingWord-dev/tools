@@ -22,7 +22,7 @@ set -e # die if errors
 : ${TEMPLATE_ALL:="$MY_DIR/toc_template_all.xsl"}
 : ${LANGUAGE:="en"}
 : ${RESOURCE:="tw"}
-: ${TAG:="v9"}
+: ${TAG:="v10"}
 
 if [[ -z $WORKING_DIR ]]; then
     WORKING_DIR=$(mktemp -d -t "export_md_to_pdf.XXXXXX")
@@ -73,7 +73,7 @@ mkdir -p "$OUTPUT_DIR/html"
 cp "$MY_DIR/style.css" "$OUTPUT_DIR/html"
 cp "$MY_DIR/header.html" "$OUTPUT_DIR/html"
 
-"$MY_DIR/md_to_html_export.py" -i "$WORKING_DIR/$repo" -o "$OUTPUT_DIR/html" -v "$version" -c "$contributors" -p "$publisher" -d "$issued_date"
+"$MY_DIR/md_to_html_export.py" -i "$WORKING_DIR/$repo" -o "$OUTPUT_DIR/html" -v "$version" -c "$contributors" -p "$publisher" -d "$issued_date" -t "$title"
 
 headerfile="file://$OUTPUT_DIR/html/header.html"
 coverfile="file://$OUTPUT_DIR/html/cover.html"
