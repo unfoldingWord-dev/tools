@@ -90,6 +90,7 @@ class TnConverter(object):
         self.html_dir = os.path.join(self.output_dir, '{0}_tn_html'.format(self.lang_code))
         self.pdf_dir = os.path.join(self.output_dir, '{0}_tn_pdf'.format(self.lang_code))
         self.versification_dir = os.path.join(self.working_dir, 'versification', 'bible', 'ufw', 'chunks')
+        self.title = 'Translation Notes'
 
         self.manifest = None
 
@@ -124,6 +125,7 @@ class TnConverter(object):
         self.setup_resource_files()
         self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
         self.version = self.manifest['dublin_core']['version']
+        self.title = self.manifest['dublin_core']['title']
         self.contributors = '; '.join(self.manifest['dublin_core']['contributor'])
         self.publisher = self.manifest['dublin_core']['publisher']
         self.issued = self.manifest['dublin_core']['issued']
@@ -132,7 +134,7 @@ class TnConverter(object):
         for p in projects:
             self.project = p
             self.book_id = p['identifier'].lower()
-            self.book_title = p['title'].replace(' translationNotes', '')
+            self.book_title = p['title'].replace(' {0}'.format(self.title), '')
             self.book_number = BOOK_NUMBERS[self.book_id]
             if int(self.book_number) < 41:
                 continue
@@ -222,7 +224,7 @@ class TnConverter(object):
             ugnt_url = 'https://git.door43.org/unfoldingWord/UGNT/archive/{0}.zip'.format(self.ugnt_tag)
             self.extract_files_from_url(ugnt_url)
         if not os.path.isfile(os.path.join(self.working_dir, 'icon-tn.png')):
-            command = 'curl -o {0}/icon-tn.png https://unfoldingword.bible/assets/img/icon-tn.png'.format(self.working_dir)
+            command = 'curl -o {0}/icon-tn.png https://cdn.door43.org/assets/uw-icons/logo-utn-256.png'.format(self.working_dir)
             subprocess.call(command, shell=True)
         if not os.path.isdir(os.path.join(self.working_dir, 'versification')):
             versification_url = 'https://git.door43.org/Door43-Catalog/versification/archive/master.zip'
@@ -322,7 +324,7 @@ class TnConverter(object):
         html = '\n'.join([tn_html, tw_html, ta_html, contributors_html])
         html = self.replace_rc_links(html)
         html = self.fix_links(html)
-        html = '<head><title>translationNotes - {0} - v{1}</title></head>\n'.format(self.book_title, self.version) + html
+        html = '<head><title>{0} - {1} - v{2}</title></head>\n'.format(self.title, self.book_title, self.version) + html
         soup = BeautifulSoup(html, 'html.parser')
 
         # Make all headers that have a header right before them non-break
@@ -353,14 +355,14 @@ class TnConverter(object):
 </head>
 <body>
   <div style="text-align:center;padding-top:200px" class="break" id="cover">
-    <img src="https://unfoldingword.bible/assets/img/icon-tn.png" width="120">
-    <span class="h1">translationNotes</span>
-    <span class="h2">{0}</span>
-    <span class="h3">Version {1}</span>
+    <img src="https://cdn.door43.org/assets/uw-icons/logo-utn-256.png" width="120">
+    <span class="h1">{0}</span>
+    <span class="h2">{1}</span>
+    <span class="h3">Version {2}</span>
   </div>
 </body>
 </html>
-'''.format(self.book_title, self.version)
+'''.format(self.title, self.book_title, self.version)
         html_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.filename_base))
         write_file(html_file, cover_html)
 
@@ -590,7 +592,7 @@ class TnConverter(object):
         self.tn_book_data = book_data
 
     def get_tn_html(self):
-        tn_html = '<div id="tn-{0}" class="resource-title-page">\n<h1 class="section-header">translationNotes</h1>\n</div>'.format(self.book_id)
+        tn_html = '<div id="tn-{0}" class="resource-title-page">\n<h1 class="section-header">{1}</h1>\n</div>'.format(self.book_id, self.title)
         if 'front' in self.tn_book_data and 'intro' in self.tn_book_data['front']:
             intro = markdown.markdown(self.tn_book_data['front']['intro'][0]['OccurrenceNote'].decode('utf-8').replace('<br>', '\n'))
             title = self.get_first_header(intro)
@@ -680,7 +682,7 @@ class TnConverter(object):
 
     def populate_tw_words_data(self):
         groups = ['kt', 'names', 'other']
-        grc_path = 'tools/tn/generate_tn_pdf/grc/translationHelps/translationWords/v0.4'
+        grc_path = 'tools/tn/generate_tn_pdf/grc/translationHelps/translationWords/v0.6'
         if not os.path.isdir(grc_path):
             self.logger.error('{0} not found! Please make sure you ran `node getResources ./` in the generate_tn_pdf dir and that the version in the script is correct'.format(grc_path))
             exit(1)
@@ -853,7 +855,7 @@ class TnConverter(object):
         # self.logger.error('English not found for Greek word `{0}` (occurrence: {1}) in `ULT {2} {3}:{4}`'.format(contextId['quote'], contextId['occurrence'], self.book_id.upper(), contextId['reference']['chapter'], contextId['reference']['verse']))
 
     def get_tw_html(self):
-        tw_html = '<div id="tw-{0}" class="resource-title-page">\n<h1 class="section-header">translationWords</h1>\n</div>\n\n'.format(self.book_id)
+        tw_html = '<div id="tw-{0}" class="resource-title-page">\n<h1 class="section-header">Translation Words</h1>\n</div>\n\n'.format(self.book_id)
         sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
         for rc in sorted_rcs:
             if '/tw/' not in rc:
@@ -870,7 +872,7 @@ class TnConverter(object):
         return tw_html
 
     def get_ta_html(self):
-        ta_html = '<div id="ta-{0}" class="resource-title-page">\n<h1 class="section-header">translationAcademy</h1>\n</div>\n\n'.format(self.book_id)
+        ta_html = '<div id="ta-{0}" class="resource-title-page">\n<h1 class="section-header">Translation Academy</h1>\n</div>\n\n'.format(self.book_id)
         sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
         for rc in sorted_rcs:
             if '/ta/' not in rc:
@@ -1161,11 +1163,11 @@ if __name__ == '__main__':
     parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help="Working Directory")
     parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False, help="Output Directory")
     parser.add_argument('--ta-tag', dest='ta', default='v10', required=False, help="tA Tag")
-    parser.add_argument('--tn-tag', dest='tn', default='master', required=False, help="tN Tag")
-    parser.add_argument('--tw-tag', dest='tw', default='v9', required=False, help="tW Tag")
+    parser.add_argument('--tn-tag', dest='tn', default='v15', required=False, help="tN Tag")
+    parser.add_argument('--tw-tag', dest='tw', default='v10', required=False, help="tW Tag")
     parser.add_argument('--ust-tag', dest='ust', default='master', required=False, help="UST Tag")
     parser.add_argument('--ult-tag', dest='ult', default='master', required=False, help="ULT Tag")
-    parser.add_argument('--ugnt-tag', dest='ugnt', default='v0.4', required=False, help="UGNT Tag")
+    parser.add_argument('--ugnt-tag', dest='ugnt', default='v0.6', required=False, help="UGNT Tag")
 
     args = parser.parse_args(sys.argv[1:])
     main(args.ta, args.tn, args.tw, args.ust, args.ult, args.ugnt, args.lang_code, args.books, args.working_dir, args.output_dir)

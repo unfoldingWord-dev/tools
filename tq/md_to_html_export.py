@@ -35,17 +35,20 @@ def fix_content(content):
     return content
 
 
-def main(inpath, outpath, version, publisher, contributors, issued_date, book):
+def main(inpath, outpath, version, publisher, contributors, issued_date, book, title):
     tqRoot = inpath
 
     license = markdown2.markdown_path(tqRoot+'/'+'LICENSE.md')
 
     content = ''
+    coverBookTitle = ''
     books = get_bible_book.book_order
     for b in books:
-        title = get_bible_book.books[b][0]
+        bookTitle = get_bible_book.books[b][0]
         b = b.lower()
         if book == u'all' or b == book:
+            if b == book:
+              coverBookTitle = bookTitle
             content += u'<div id="{0}" class="book">\n\n'.format(b)
             chapter_dirs = sorted(glob(os.path.join(tqRoot, b, '*')))
             for chapter_dir in chapter_dirs:
@@ -53,8 +56,8 @@ def main(inpath, outpath, version, publisher, contributors, issued_date, book):
                     chapter = os.path.basename(chapter_dir).lstrip('0')
                     content += u'<div id="{0}-chapter-{1}" class="chapter break">\n\n'.format(b, chapter)
                     if chapter == u'1':
-                       content += u'<h1>{0}</h1>\n'.format(title)
-                    content += u'<h2>{0} {1}</h2>\n'.format(title, chapter)
+                       content += u'<h1>{0}</h1>\n'.format(bookTitle)
+                    content += u'<h2>{0} {1}</h2>\n'.format(bookTitle, chapter)
                     verse_files = sorted(glob(os.path.join(chapter_dir, u'*.md')))
                     for verse_idx, verse_file in enumerate(verse_files):
                         start_verse = os.path.splitext(os.path.basename(verse_file))[0].lstrip(u'0')
@@ -66,7 +69,7 @@ def main(inpath, outpath, version, publisher, contributors, issued_date, book):
                         if start_verse == end_verse:
                            verses = start_verse
                         content += u'<div id="{0}-chapter-{1}-verse-{2}" class="verse">\n'.format(b, chapter, start_verse)
-                        content += u'<h3>{0} {1}:{2}</h3>\n'.format(title, chapter, verses)
+                        content += u'<h3>{0} {1}:{2}</h3>\n'.format(bookTitle, chapter, verses)
                         c = markdown2.markdown_path(verse_file)
                         c = c.replace(u'<h1>', u'<div class="question no-break">\n<h4>')
                         c = c.replace(u'</h1>', u'</h4>')
@@ -86,9 +89,10 @@ def main(inpath, outpath, version, publisher, contributors, issued_date, book):
   <link href="style.css" rel="stylesheet">
 </head>
 <body>
-  <div style="text-align:center;padding-top:200px" class="break" id="translationQuestions">
-    <img src="https://unfoldingword.org/assets/img/icon-tq.png" width="120">
-    <h1 class="h1">translationQuestions</h1>
+  <div style="text-align:center;padding-top:200px" class="break" id="translationquestions">
+    <img src="https://cdn.door43.org/assets/uw-icons/logo-utq-256.png" width="120">
+    <h1 class="h1">'''+title+'''</h1>
+    <h2 class="h2">'''+coverBookTitle+'''</h2>
     <h3 class="h3">v'''+version+'''</h3>
   </div>
 </body>
@@ -131,7 +135,7 @@ def main(inpath, outpath, version, publisher, contributors, issued_date, book):
 </html>
 '''
 
-    coverFile = outpath+'/cover.html'
+    coverFile = outpath+'/{0}_cover.html'.format(book)
     f = codecs.open(coverFile, 'w', encoding='utf-8')
     f.write(cover)
     f.close()
@@ -155,15 +159,16 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', dest="outpath", default='.',
         required=False, help="Output path of the html file")
     parser.add_argument('-v', '--version', dest="version",
-        required=True, help="Version of translationQuestions")
+        required=True, help="Version of Translation Questions")
     parser.add_argument('-p', '--publisher', dest="publisher",
-        required=True, help="Publisher of translationQuestions")
+        required=True, help="Publisher of Translation Questions")
     parser.add_argument('-c', '--contributors', dest="contributors",
-        required=True, help="Contributors of translationQuestions")
+        required=True, help="Contributors of Translation Questions")
     parser.add_argument('-b', '--book', dest="book", default='all',
         required=False, help="Bible book")
     parser.add_argument('-d', '--issued-date', dest='issued_date', required=True, help='Issued date')
+    parser.add_argument('-t', '--title', dest='title', required=True, help='Title')
 
     args = parser.parse_args(sys.argv[1:])
 
-    main(args.inpath, args.outpath, args.version, args.publisher, args.contributors, args.issued_date, args.book)
+    main(args.inpath, args.outpath, args.version, args.publisher, args.contributors, args.issued_date, args.book, args.title)

@@ -22,7 +22,7 @@ set -e # die if errors
 : ${TEMPLATE_ALL:="$MY_DIR/toc_template_all.xsl"}
 : ${LANGUAGE:="en"}
 : ${RESOURCE:="tq"}
-: ${TAG:="v10"}
+: ${TAG:="v11"}
 
 if [[ -z $WORKING_DIR ]]; then
     WORKING_DIR=$(mktemp -d -t "export_md_to_pdf.XXXXXX")
@@ -84,11 +84,11 @@ book_export () {
     htmlfile="$OUTPUT_DIR/html/${book}.html"
     if [[ ! -f $htmlfile ]]; then 
       echo "GENERATING HTML File: $htmlfile"
-      python -m tools.tq.md_to_html_export -i "$WORKING_DIR/$repo" -o "$OUTPUT_DIR/html" -v "$version" -p "$publisher" -c "$contributors" -d "$issued_date" -b "$book"
+      python -m tools.tq.md_to_html_export -i "$WORKING_DIR/$repo" -o "$OUTPUT_DIR/html" -v "$version" -p "$publisher" -c "$contributors" -d "$issued_date" -b "$book" -t "$title"
     fi
 
     headerfile="file://$OUTPUT_DIR/html/header.html"
-    coverfile="file://$OUTPUT_DIR/html/cover.html"
+    coverfile="file://$OUTPUT_DIR/html/${book}_cover.html"
     licensefile="file://$OUTPUT_DIR/html/license.html"
     bodyfile="file://$OUTPUT_DIR/html/$book.html"
     if [[ $book != "all" ]]; then

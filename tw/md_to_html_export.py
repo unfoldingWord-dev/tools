@@ -116,7 +116,7 @@ def main(inpath, outpath, version, publisher, contributors, issued_date, title):
   <link href="style.css" rel="stylesheet">
 </head>
 <body>
-  <div style="text-align:center;padding-top:200px" class="break" id="Translation Words">
+  <div style="text-align:center;padding-top:200px" class="break" id="translaitonwords">
     <img src="https://cdn.door43.org/assets/uw-icons/logo-utw-256.png" width="120">
     <h1 class="h1">''' + title +'''</h1>
     <h3 class="h3">v''' + version + '''</h3>
