@@ -1,0 +1,29 @@
+{
+  "name": "config_yaml_generator",
+  "version": "1.0.0",
+  "description": "Generates the config.yaml file for tW",
+  "main": "index.js",
+  "scripts": {
+    "generate_config": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/unfoldingword-dev/tools.git"
+  },
+  "keywords": [
+    "tw"
+  ],
+  "author": "Richard Mahn",
+  "license": "GPL-2.0",
+  "bugs": {
+    "url": "https://github.com/unfoldingword-dev/tools/issues"
+  },
+  "homepage": "https://github.com/unfoldingword-dev/tools#readme",
+  "dependencies": {
+    "babel-polyfill": "^6.26.0",
+    "fs-extra": "^7.0.0",
+    "path-extra": "^4.2.1",
+    "tc-source-content-updater": "^0.2.16",
+    "yamljs": "^0.3.0"
+  }
+}

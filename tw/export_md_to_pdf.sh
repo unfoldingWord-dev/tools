@@ -22,7 +22,7 @@ set -e # die if errors
 : ${TEMPLATE_ALL:="$MY_DIR/toc_template_all.xsl"}
 : ${LANGUAGE:="en"}
 : ${RESOURCE:="tw"}
-: ${TAG:="v8"}
+: ${TAG:="v10"}
 
 if [[ -z $WORKING_DIR ]]; then
     WORKING_DIR=$(mktemp -d -t "export_md_to_pdf.XXXXXX")
@@ -42,7 +42,9 @@ echo $WORKING_DIR
 pushd "$WORKING_DIR" > /dev/null
 
 # link tools folder
-ln -sf $MY_DIR/.. ./tools
+if [ ! -L ./tools ]; then
+  ln -sf $MY_DIR/.. ./tools
+fi
 
 repo="${LANGUAGE}_${RESOURCE}"
 url="https://git.door43.org/Door43/${repo}/archive/${TAG}.zip"
@@ -53,19 +55,25 @@ unzip -qo "./${repo}.zip"
 echo "Checked out repo files:"
 ls "${repo}"
 
-version=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.version'`
-issued_date=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.issued'`
-title=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.title'`
-checking_level=`yaml2json "${repo}/manifest.yaml" | jq -r '.checking.checking_level'`
+version=`js-yaml "${repo}/manifest.yaml" | jq -r '.dublin_core.version'`
+publisher=`js-yaml "${repo}/manifest.yaml" | jq -r '.dublin_core.publisher'`
+issued_date=`js-yaml "${repo}/manifest.yaml" | jq -r '.dublin_core.issued'`
+title=`js-yaml "${repo}/manifest.yaml" | jq -r '.dublin_core.title'`
+checking_level=`js-yaml "${repo}/manifest.yaml" | jq -r '.checking.checking_level'`
+contributors=$(echo `js-yaml "${repo}/manifest.yaml" | jq -c '.dublin_core.contributor[]'`)
+contributors=${contributors//\" \"/; }
+contributors=${contributors//\"/}
 
 echo "Current '$repo' Resource is at: ${url}"
 echo "Current '$repo' Version is at: ${version}"
+echo "Current '$repo' Publisher is: ${publisher}"
+echo "Current '$repo' Contributors are: ${contributors}"
 
 mkdir -p "$OUTPUT_DIR/html"
 cp "$MY_DIR/style.css" "$OUTPUT_DIR/html"
 cp "$MY_DIR/header.html" "$OUTPUT_DIR/html"
 
-"$MY_DIR/md_to_html_export.py" -i "$WORKING_DIR/$repo" -o "$OUTPUT_DIR/html" -v "$version" -d "$issued_date"
+"$MY_DIR/md_to_html_export.py" -i "$WORKING_DIR/$repo" -o "$OUTPUT_DIR/html" -v "$version" -c "$contributors" -p "$publisher" -d "$issued_date" -t "$title"
 
 headerfile="file://$OUTPUT_DIR/html/header.html"
 coverfile="file://$OUTPUT_DIR/html/cover.html"
@@ -74,4 +82,4 @@ bodyfile="file://$OUTPUT_DIR/html/body.html"
 outfile="$OUTPUT_DIR/pdf/${repo}_${TAG}.pdf"
 mkdir -p "$OUTPUT_DIR/pdf"
 echo "GENERATING $outfile"
-wkhtmltopdf --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 15  --header-html "$headerfile" --header-spacing 2 --footer-center '[page]' cover "$coverfile" cover "$licensefile" toc --disable-dotted-lines --enable-external-links --xsl-style-sheet "$TEMPLATE" "$bodyfile" "$outfile"
+wkhtmltopdf --javascript-delay 2000 --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 15  --header-html "$headerfile" --header-spacing 2 --footer-center '[page]' cover "$coverfile" cover "$licensefile" toc --disable-dotted-lines --enable-external-links --xsl-style-sheet "$TEMPLATE" "$bodyfile" "$outfile"

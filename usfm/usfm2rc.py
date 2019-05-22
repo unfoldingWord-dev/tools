@@ -1,5 +1,4 @@
-# coding: latin-1
-
+# -*- coding: utf-8 -*-
 # This script produces one or more .usfm files in resource container format from valid USFM source text.
 # Chunk division and paragraph locations are based on an English resource container of the same Bible book.
 # Uses parseUsfm module.
@@ -18,6 +17,7 @@ import os
 rootdiroftools = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(rootdiroftools,'support'))
 
+import usfm_verses
 import parseUsfm
 import io
 import codecs
@@ -25,8 +25,7 @@ import re
 
 # Global variables
 en_rc_dir = r'C:\Users\Larry\AppData\Local\translationstudio\library\resource_containers'
-target_dir = r'C:\Users\Larry\Documents\GitHub\Assamese\as_ulb'
-verseCounts = {}
+target_dir = r'C:\DCS\Portuguese-Brazil\pt-br_ulb2'
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
 class State:
@@ -106,6 +105,8 @@ class State:
         State.reference = State.ID + " " + c
         State.chunks = loadChunks(State.ID, State.chapterPad)
         State.chunkIndex = 0
+        State.needPp = True     # need \p marker after each \c marker
+
         # State.s5marked = False
         
     def addP(self):
@@ -173,35 +174,20 @@ def loadChunks(id, chap):
     chunks.sort()
     return chunks
 
-import json
-
-# Opens the verses.json file, which must reside in the same path as this .py script.
-def loadVerseCounts():
-    global verseCounts
-    if len(verseCounts) == 0:
-        jsonPath = os.path.dirname(os.path.abspath(__file__)) + "\\" + "verses.json"
-        if os.access(jsonPath, os.F_OK):
-            f = open(jsonPath, 'r')
-            verseCounts = json.load(f)
-            f.close()
-        else:
-            sys.stderr.write("File not found: verses.json\n")
-            sys.exit(-1)
-
 # Returns path name for usfm file
 def makeUsfmFilename(id):
-    loadVerseCounts()
-    num = verseCounts[id]['usfm_number']
+    # loadVerseCounts()
+    num = usfm_verses.verseCounts[id]['usfm_number']
     return str(num) + "-" + id + ".usfm"
     
 # Returns path of temporary manifest file block listing projects converted
 def makeManifestPath():
-    return os.path.join(target_dir, "manifest.txt")
+    return os.path.join(target_dir, "projects.yaml")
     
 # Looks up the English book name, for use when book name is not defined in the file
 def getDefaultName(id):
-    loadVerseCounts()
-    en_name = verseCounts[id]['en_name']
+    # loadVerseCounts()
+    en_name = usfm_verses.verseCounts[id]['en_name']
     return en_name
            
 def printToken(token):
@@ -265,7 +251,7 @@ def takeV(v):
         v1 = vv_range.group(1)
         v2 = vv_range.group(2)
         state.addVerse(v1)
-        print "Range of verses encountered at " + State.reference
+        # print "Range of verses encountered at " + State.reference
         addSection(v1)
         state.addVerse(v2)
     else:
@@ -285,13 +271,15 @@ def takeText(t):
 # Before writing chapter 1, we output the USFM header.
 def takeC(c):
     state = State()
+    if not state.ID:
+        sys.stderr.write("Error: no book ID\n")
+        sys.exit(-1)
     state.addChapter(c)
-    # print "Starting chapter " + c
     if state.chapter == 1:
         writeHeader()
-    state.usfmFile.write(u"\n")
+#    state.usfmFile.write(u"\n")
     if not state.hasS5():
-        state.usfmFile.write(u"\n\\s5")
+        state.usfmFile.write(u"\n\n\\s5")
     state.usfmFile.write(u"\n\\c " + c)
     
 def take(token):
@@ -309,7 +297,7 @@ def take(token):
     elif token.isS5():
         takeS5()
     elif token.isID():
-        state.addID(token.value[0:3])   # use first 3 characters of \id value
+        state.addID(token.value[0:3].upper())   # use first 3 characters of \id value
         if len(token.value) > 3:
             state.addSTS(token.value[3:])
     elif token.isH():
@@ -351,9 +339,10 @@ def writeHeader():
     if not mt:
         mt = state.title
     # sys.stdout.write(u"Starting to write header.\n")
-    state.usfmFile.write(u"\\id " + state.ID + u"\n\\ide UTF-8")
+    state.usfmFile.write(u"\\id " + state.ID)
     if state.sts and state.sts != state.ID:
-        state.usfmFile.write(u"\n\\sts " + state.sts)
+        state.usfmFile.write(u" " + state.sts)
+    state.usfmFile.write(u"\n\\ide UTF-8")
     if state.rem:
         state.usfmFile.write(u"\n\\rem " + state.rem)
     state.usfmFile.write(u"\n\\h " + h)
@@ -367,22 +356,42 @@ def writeHeader():
         state.usfmFile.write(state.postHeader)
     state.usfmFile.write(u'\n')     # blank line between header and chapter 1
 
-def convertFile(folder, fname):
+backslash_re = re.compile(r'\\\s')
+jammed_re = re.compile(r'(\\v [-0-9]+[^-\s0-9])', re.UNICODE)
+usfmcode_re = re.compile(r'\\[^A-Za-z]', re.UNICODE)
+
+def isParseable(str, fname):
+    parseable = True
+    if backslash_re.search(str):
+        printError("File contains stranded backslash(es): " + fname)
+        parseable = False
+    if jammed_re.search(str):
+        printError("File contains verse number(s) not followed by space: " + fname)
+        parseable = True   # let it convert because the bad spots are easier to locate in the converted USFM
+    if usfmcode_re.search(str):
+        printError("File contains foreign usfm code(s): " + fname)
+        parseable = False
+    return parseable
+        
+
+def convertFile(usfmpath, fname):
     state = State()
     state.reset()
     
-    usfmfile = os.path.join(folder, fname)
     # detect file encoding
-    enc = detect_by_bom(usfmfile, default="utf-8")
-    input = io.open(usfmfile, "tr", 1, encoding=enc)
+    enc = detect_by_bom(usfmpath, default="utf-8")
+    input = io.open(usfmpath, "tr", 1, encoding=enc)
     str = input.read(-1)
     input.close
 
     print "CONVERTING " + fname + ":"
     sys.stdout.flush()
-    for token in parseUsfm.parseString(str):
-        take(token)
-    state.usfmFile.close()
+    success = isParseable(str, fname)
+    if success:
+        for token in parseUsfm.parseString(str):
+            take(token)
+        state.usfmFile.close()
+    return success
 
 def appendToManifest():
     state = State()
@@ -390,12 +399,12 @@ def appendToManifest():
     manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
     manifest.write(u"  -\n")
     manifest.write(u"    title: '" + state.title + u" '\n")
-    manifest.write(u"    versification: 'ufw'\n")
+    manifest.write(u"    versification: ufw\n")
     manifest.write(u"    identifier: " + state.ID.lower() + u"\n")
-    manifest.write(u"    sort: " + '{0:02d}'.format(verseCounts[state.ID]['sort']) + u"\n")
+    manifest.write(u"    sort: " + '{0:02d}'.format(usfm_verses.verseCounts[state.ID]['sort']) + u"\n")
     manifest.write(u"    path: ./" + makeUsfmFilename(state.ID) + u"\n")
     testament = u'nt'
-    if verseCounts[state.ID]['sort'] < 40:
+    if usfm_verses.verseCounts[state.ID]['sort'] < 40:
         testament = u'ot'
     manifest.write(u"    categories: [ 'bible-" + testament + u"' ]\n")
     manifest.close()
@@ -404,16 +413,20 @@ def appendToManifest():
 # Converts the book or books contained in the specified folder
 def convertFolder(folder):
     if not os.path.isdir(folder):
-        printError("Invalid folder path given: " + folder + '\n')
+        printError("Invalid folder path given: " + folder)
         return
     if not os.path.isdir(target_dir):
         os.mkdir(target_dir)
-    if os.path.isfile( makeManifestPath() ):
-        os.remove( makeManifestPath() )
     for fname in os.listdir(folder):
-        if fname[-3:].lower() == 'sfm':
-            convertFile(folder, fname)
-            appendToManifest()
+        path = os.path.join(folder, fname)
+        if os.path.isdir(path):
+            convertFolder(path)
+        elif fname[-3:].lower() == 'sfm':
+            if convertFile(path, fname):
+                appendToManifest()
+            else:
+                printError("File cannot be converted: " + fname)
+                
 
 def detect_by_bom(path, default):
     with open(path, 'rb') as f:
@@ -431,10 +444,10 @@ def printError(text):
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        sys.stderr.write("Usage: python usfm2rc <folder>\n  Use . for current folder.\n")
-    elif sys.argv[1] == 'hard-coded-path':
-        convertFolder(r'C:\Users\Larry\Documents\GitHub\Assamese\ASSAMESE-ULB-OT.BCS\new')
+    if os.path.isfile( makeManifestPath() ):
+        os.remove( makeManifestPath() )
+    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
+         convertFolder(r'C:\DCS\Portuguese-Brazil\pt-br_ulb')
     else:       # the first command line argument is presumed to be the folder containing usfm files to be converted
         convertFolder(sys.argv[1])
 

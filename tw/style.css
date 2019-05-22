@@ -125,7 +125,7 @@ thead tr:first-child>th:first-child {
 }
 
 a {
-    display: inline-block;
+    /* display: inline-block;*/
     text-decoration: none;
     color: blue;
 }

@@ -100,7 +100,7 @@ def load_yaml_object(file_name, default=None):
     return yaml.load(read_file(file_name))
 
 
-def read_file(file_name, encoding='utf-8-sig'):
+def read_file(file_name, encoding='utf-8'):
     with codecs.open(file_name, 'r', encoding=encoding) as f:
         content = f.read()
     # convert Windows line endings to Linux line endings
@@ -108,7 +108,7 @@ def read_file(file_name, encoding='utf-8-sig'):
     return content
 
 
-def write_file(file_name, file_contents, indent=None):
+def write_file(file_name, file_contents, indent=2):
     """
     Writes the <file_contents> to <file_name>.
 
@@ -127,7 +127,7 @@ def write_file(file_name, file_contents, indent=None):
         if os.path.splitext(file_name)[1] == '.yaml':
             text_to_write = yaml.safe_dump(file_contents)
         else:
-            text_to_write = json.dumps(file_contents, sort_keys=True, indent=indent)
+            text_to_write = json.dumps(file_contents, sort_keys=True, indent=indent, ensure_ascii=False)
 
     with codecs.open(file_name, 'w', encoding='utf-8') as out_file:
         out_file.write(text_to_write)

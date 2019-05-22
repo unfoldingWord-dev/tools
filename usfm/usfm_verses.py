@@ -1,4 +1,7 @@
-{
+# usfm_verses module, to be imported by any module that needs access to the
+# chapter and verse counts, and other information about each book of the Bible.
+
+verseCounts = {
 	"GEN": {
     "en_name": "Genesis",
     "chapters": 50,

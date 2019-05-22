@@ -1,0 +1,82 @@
+# -*- coding: utf-8 -*-
+# This program moves standalone \p and \q markers which occur just before an \s# marker
+# to the next line after the \s# marker.
+# This is to avoid the annoying Door43 warning message, "useless \q# markers before \s# markers"
+# Outputs .usfm files of the same name in the same location.
+# Backs up the original files to .usfm.orig files.
+
+import re       # regular expression module
+import io
+import os
+# import shutil
+import codecs
+import string
+import sys
+
+# Globals
+nChanged = 0
+max_changes = 10000
+filename_re = re.compile(r'.*\.usfm$')
+
+# wholestring is used with whole file matches
+wholestring = re.compile(r'\n(\\[pq][1-9]*?)\n(\\s[0-9])\n', flags=re.UNICODE+re.DOTALL)
+
+prefix_re = re.compile(r'C:\\DCS')
+
+def shortname(longpath):
+    shortname = longpath
+    if prefix_re.match(longpath):
+        shortname = "..." + longpath[6:]
+    return shortname
+
+
+# Converts the text a whole file at a time.
+def convertWholeFile(mdpath):
+    global nChanged
+    input = io.open(mdpath, "tr", 1, encoding="utf-8")
+    alltext = input.read()
+    input.close()
+    found = wholestring.search(alltext)
+    if found:
+        bakpath = mdpath + ".orig"
+        if not os.path.isfile(bakpath):
+            os.rename(mdpath, bakpath)
+        output = io.open(mdpath, "tw", buffering=1, encoding='utf-8', newline='\n')
+        while found:
+            output.write( alltext[0:found.start()] + u'\n' + found.group(2) + u'\n' + found.group(1) + u'\n' )
+            alltext = alltext[found.end():]
+            found = wholestring.search(alltext)
+        output.write(alltext)
+        output.close()
+        sys.stdout.write("Converted " +shortname(mdpath) + "\n")
+        nChanged += 1    
+
+# Recursive routine to convert all files under the specified folder
+def convertFolder(folder):
+    global nChanged
+    global max_changes
+    if nChanged >= max_changes:
+        return
+    sys.stdout.write("Convert folder: " + shortname(folder) + '\n')
+    for entry in os.listdir(folder):
+        if entry[0] != '.':
+            path = os.path.join(folder, entry)
+            if os.path.isdir(path):
+                convertFolder(path)
+            elif filename_re.match(entry):
+                convertWholeFile(path)
+            if nChanged >= max_changes:
+                break
+
+# Processes all .txt files in specified directory, one at a time
+if __name__ == "__main__":
+    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
+        folder = r'C:\DCS\Marathi\mr_udb'
+    else:
+        folder = sys.argv[1]
+
+    if folder and os.path.isdir(folder):
+        convertFolder(folder)
+        sys.stdout.write("Done. Changed " + str(nChanged) + " files.\n")
+    else:
+        sys.stderr.write("Usage: python usfm_move_pq.py <folder>\n  Use . for current folder.\n")

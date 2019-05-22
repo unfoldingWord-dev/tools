@@ -1,0 +1,247 @@
+@import url(http://fonts.googleapis.com/css?family=Noto+Serif);
+@import url(http://fonts.googleapis.com/css?family=Noto+Sans);
+
+body {
+    font-family: 'Noto Serif', 'Noto Sans', sans-serif;
+    font-size: 12pt;
+}
+
+a {
+    color: #f47142;
+}
+a:link {
+    color: #f47142;
+}
+a:visited {
+    color: #f47142;
+}
+a.internal {
+    color: #f47142 !important;
+}
+a.external {
+    color: #f47142 !important;
+}
+
+.bible-book-text h1, .bible-book-text h2 {
+    page-break-before: auto !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-after: avoid-page !important;
+    margin: 22px 0;
+}
+
+.bible-book-text h1 {
+    font-size: 44px;
+    line-height: 44px;
+    text-align: center;
+}
+
+.bible-book-text h2 {
+    font-size: 22px;
+    line-height: 22px;
+}
+
+.page-header {
+    border-bottom: solid grey 1px;
+    font-style: italic;
+    height: 1.5em;
+    width: 100%;
+}
+
+.page-header .section {
+    text-align: left;
+}
+
+.page-header .subsection {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
+    max-height: 1.5em;
+}
+
+.bible-book {
+    margin: 0 !important;
+}
+
+.bible-book-text {
+    text-align: justify;
+    justify-content: space-between;
+    text-rendering: geometricPrecision;
+    margin: 0 !important;
+}
+
+p.indent-0 {
+    margin-left:0em !important;
+    margin-bottom:0em !important;
+    margin-top:0em !important;
+}
+
+p.indent-1 {
+    margin-left:1em !important;
+    margin-bottom:0em !important;
+    margin-top:0em !important;
+}
+
+p.indent-2 {
+    margin-left:2em !important;
+    margin-bottom:0em !important;
+    margin-top:0em !important;
+}
+
+p.indent-3 {
+    margin-left:3em !important;
+    margin-bottom:0em !important;
+    margin-top:0em !important;
+}
+
+.c-num {
+    color:gray;
+}
+
+.v-num {
+    color:gray;
+    margin-right: 2px;
+}
+
+.tetragrammaton {
+    font-variant: small-caps;
+}
+.footnotes {
+    font-size: 0.8em;
+}
+.footnotes-hr {
+    width: 90%;
+}
+
+.page {
+    height: 1165px;
+    padding-bottom: 10px;
+    width: 900px;
+    overflow:hidden;
+    margin: 0;
+    page-break-inside: avoid !important;
+    page-break-after: always !important;
+    position: relative;
+}
+
+.col {
+    width: 420px;
+    padding: 10px;
+    min-height: 600px;
+    page-break-inside: avoid !important;
+    position: absolute;
+    top: 0;
+}
+
+.footnotesSection {
+    width: 420px;
+    padding: 0 10px;
+    page-break-inside: avoid !important;
+    position: absolute;
+    bottom: 0;
+}
+
+.footnotesSection > div.footnote:first-child {
+    border-top: solid #9a9a9a 1px;
+}
+
+.left {
+    left: 0;
+}
+
+.right {
+    right: 0;
+}
+ 
+.col > p {
+    text-align: justify;
+    padding: 0;
+    margin-top: 22px;
+    margin-bottom: 22px;
+    page-break-inside: avoid !important;
+}
+
+.col > :first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+.col > :last-child {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+sup {
+    vertical-align: baseline;
+    position: relative;
+    top: -0.4em; 
+}
+
+.split-paragraph {
+    text-align-last: justify;
+	text-align:justify;
+}
+.split-paragraph:after {
+    content: "";
+    display: inline-block;
+    width: 100%;	
+}
+
+.h1 {
+    display: block;
+    font-size: 2em;
+    -webkit-margin-before: 0.67em;
+    -webkit-margin-after: 0.67em;
+    -webkit-margin-start:0;
+    -webkit-margin-end:0;
+    font-weight: bold;
+}
+
+.h2 {
+    display: block;
+    font-size: 1.5em;
+    -webkit-margin-before: 0.83em;
+    -webkit-margin-after: 0.83em;
+    -webkit-margin-start:0;
+    -webkit-margin-end:0;
+    font-weight: bold;
+}
+
+.h3 {
+    display: block;
+    font-size: 1.17em;
+    -webkit-margin-before: 1em;
+    -webkit-margin-after: 1em;
+    -webkit-margin-start:0;
+    -webkit-margin-end:0;
+    font-weight: bold;
+}
+
+.h4 {
+    display: block;
+    -webkit-margin-before: 1.33em;
+    -webkit-margin-after: 1.33em;
+    -webkit-margin-start:0;
+    -webkit-margin-end:0;
+    font-weight: bold;
+}
+
+.h5 {
+    display: block;
+    font-size: 0.83em;
+    -webkit-margin-before: 1.67em;
+    -webkit-margin-after: 1.67em;
+    -webkit-margin-start:0;
+    -webkit-margin-end:0;
+    font-weight: bold;
+}
+
+.h6 {
+    display: block;
+    font-size: 0.75em;
+    -webkit-margin-before: 2em;
+    -webkit-margin-after: 2em;
+    -webkit-margin-start:0;
+    -webkit-margin-end:0;
+    font-weight: bold;
+}

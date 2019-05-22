@@ -225,6 +225,8 @@ for book in "${BOOKS[@]}"; do
         $CHECKING_FILE \
         -V notofile="$NOTOFILE" \
         -V version="$version" \
+        -V contributors="ADD CONTRIBUTORS" \
+        -V publisher="ADD PUBLISHER" \
         -V publish_date="$issued_date" \
         -V mainfont="Noto Serif" \
         -V sansfont="Noto Sans" \

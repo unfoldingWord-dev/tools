@@ -74,9 +74,9 @@ def populateWords():
             content = re.sub(r'href="\.\.\/([^\/"]+)\/([^"]+)\.md"', r'href="#\1-\2"', content)
 
             #replace rc: links
-            content = re.sub(r'href="rc\:\/\/([^\/"]+)\/([^\/"]+)\/([^\/"]+)\/([^\/"]+)\/([^\/"]+)\/([^\/"]+)"', r'href="https://git.door43.org/Door43/\1_\2/src/master/\4/\5/\6.md"', content)
+            content = re.sub(r'<a href="rc\:[^"]+">([^<]+)</a>', r'\1', content)
 
-            soup = BeautifulSoup(content)
+            soup = BeautifulSoup(content, features="html.parser")
             if soup.h1:
                 title = soup.h1.text
             else:
@@ -100,7 +100,7 @@ def fix_content(content):
     return content
 
 
-def main(inpath, outpath, version, issued_date):
+def main(inpath, outpath, version, publisher, contributors, issued_date, title):
     global twRoot, taUrl, taManualUrls, twOrder, terms
 
     twRoot = inpath
@@ -116,9 +116,9 @@ def main(inpath, outpath, version, issued_date):
   <link href="style.css" rel="stylesheet">
 </head>
 <body>
-  <div style="text-align:center;padding-top:200px" class="break" id="translationWords">
-    <img src="https://unfoldingword.org/assets/img/icon-tw.png" width="120">
-    <h1 class="h1">translationWords</h1>
+  <div style="text-align:center;padding-top:200px" class="break" id="translaitonwords">
+    <img src="https://cdn.door43.org/assets/uw-icons/logo-utw-256.png" width="120">
+    <h1 class="h1">''' + title +'''</h1>
     <h3 class="h3">v''' + version + '''</h3>
   </div>
 </body>
@@ -135,11 +135,13 @@ def main(inpath, outpath, version, issued_date):
 <body>
   <div class="break">
     <span class="h1">Copyrights & Licensing</span>
-''' + license + '''
     <p>
       <strong>Date:</strong> ''' + issued_date + '''<br/>
-      <strong>Version:</strong> ''' + version + '''
+      <strong>Version:</strong> ''' + version + '''<br/>
+      <strong>Contributors:</strong> ''' + contributors + '''<br/>
+      <strong>Published by:</strong> ''' + publisher + '''<br/>
     </p>
+''' + license + '''
   </div>
 </body>
 </html>
@@ -196,10 +198,15 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', dest="outpath", default='.',
                         required=False, help="Output path of the html file")
     parser.add_argument('-v', '--version', dest="version",
-                        required=True, help="Version of translationWords")
+                        required=True, help="Version of Translation Words")
+    parser.add_argument('-p', '--publisher', dest="publisher",
+                        required=True, help="Publisher of Translation Words")
+    parser.add_argument('-c', '--contributors', dest="contributors",
+                        required=True, help="Contributors of Translation Words")
     parser.add_argument('-d', '--issued_date', dest="issued_date",
                         required=True, help="Issued Date")
+    parser.add_argument('-t', '--title', dest="title", required=True, help="Acdtual title of Translation Words for the cover page")
 
     args = parser.parse_args(sys.argv[1:])
 
-    main(args.inpath, args.outpath, args.version, args.issued_date)
+    main(args.inpath, args.outpath, args.version, args.publisher, args.contributors, args.issued_date, args.title)

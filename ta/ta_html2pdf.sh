@@ -8,7 +8,7 @@
 #  Contributors:
 #  Richard Mahn <richard_mahn@wyciffeassociates.org>
 #
-#  Execute export_md_to_pdf.sh to run
+#  Execute ta_html2pdf.sh to run
 #  Set OUTPUT_DIR, otherwise will be the current dir
 
 if [ -z $1 ]; then
@@ -36,10 +36,12 @@ mkdir -p "./html"
 mkdir -p "./pdf"
 
 repo="${LANGUAGE}_${RESOURCE}"
-print_url="https://api.door43.org/tx/print?id=Door43/${repo}/${TAG}"
-archive_url="https://git.door43.org/Door43/${repo}/archive/${TAG}.zip"
+print_url="https://api.door43.org/tx/print?id=unfoldingWord/${repo}/${TAG}"
+archive_url="https://git.door43.org/unfoldingWord/${repo}/archive/${TAG}.zip"
 
-wget "$print_url" -O "./html/ta_orig.html"
+cdn_url=$(wget -qO- $print_url)
+echo $cdn_url
+wget "$cdn_url" -O "./html/ta_orig.html"
 wget "$archive_url" -O "./${repo}.zip"
 
 unzip -qo "./${repo}.zip"
@@ -47,14 +49,21 @@ unzip -qo "./${repo}.zip"
 echo "Checked out repo files:"
 ls "./${repo}"
 
+license=$(markdown2 "${repo}/LICENSE.md")
 version=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.version'`
 issued_date=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.issued'`
 title=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.title'`
 checking_level=`yaml2json "${repo}/manifest.yaml" | jq -r '.checking.checking_level'`
+publisher=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.publisher'`
+contributors=$(echo `js-yaml "${repo}/manifest.yaml" | jq -c '.dublin_core.contributor[]'`)
+contributors=${contributors//\" \"/; }
+contributors=${contributors//\"/}
 
 echo "Current '$repo' print page is at: ${print_url}"
 echo "Current '$repo' archive file is at: ${archive_url}"
 echo "Current '$repo' Version is at: ${version}"
+echo "Current '$repo' Publisher is: ${publisher}"
+echo "Current '$repo' Contributors are: ${contributors}"
 
 "$MY_DIR/massage_ta_html.py" -i "./html/ta_orig.html" -o "./html/ta.html" \
                              -s "$MY_DIR/style.css" -v $version
@@ -86,28 +95,13 @@ echo '<!DOCTYPE html>
 <body>
   <div class="break">
     <span class="h1">Copyrights & Licensing</span>
-<h2>Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)</h2>
-<p>This is a human-readable summary of (and not a substitute for) the <a href="http://creativecommons.org/licenses/by-sa/4.0/">license</a>.</p>
-<h3>You are free to:</h3>
-<ul>
-<li><strong>Share</strong> — copy and redistribute the material in any medium or format</li>
-<li><strong>Adapt</strong> — remix, transform, and build upon the material </li>
-</ul>
-<p>for any purpose, even commercially.</p>
-<p>The licensor cannot revoke these freedoms as long as you follow the license terms.</p>
-<h3>Under the following conditions:</h3>
-<ul>
-<li><strong>Attribution</strong> — You must attribute the work as follows: "Original work available at https://door43.org/." Attribution statements in derivative works should not in any way suggest that we endorse you or your use of this work.</li>
-<li><strong>ShareAlike</strong> — If you remix, transform, or build upon the material, you must distribute your contributions under the same license as the original.</li>
-</ul>
-<p><strong>No additional restrictions</strong> — You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.</p>
-<h3>Notices:</h3>
-<p>You do not have to comply with the license for elements of the material in the public domain or where your use is permitted by an applicable exception or limitation.</p>
-<p>No warranties are given. The license may not give you all of the permissions necessary for your intended use. For example, other rights such as publicity, privacy, or moral rights may limit how you use the material.</p>
     <p>
-      <strong>Date:</strong> '${issued_date}'<br/>
-      <strong>Version:</strong> '${version}'
+      <strong>Date:</strong> '$issued_date'<br/>
+      <strong>Version:</strong> '$version'<br/>
+      <strong>Contributors:</strong> '$contributors'<br/>
+      <strong>Published by:</strong> '$publisher'<br/>
     </p>
+    '$license'
   </div>
 </body>
 </html>

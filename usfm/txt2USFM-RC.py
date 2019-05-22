@@ -1,59 +1,114 @@
 # coding: latin-1
+#### ###### -*- coding: utf-8 -*-
+
 # This script converts a repository of text files from tStudio to USFM format.
-# It is an improved version of txt2USFM.py in these ways:
 #    Parses manifest.json to get the book ID.
 #    Outputs list of contributors gleaned from all manifest.json files.
 #    Finds and parses title.txt to get the book title.
-#    Populates the USFM headers without the need for a bookId.usfm required by the previous script.
+#    Populates the USFM headers.
 #    Standardizes the names of .usfm files. For example 41-MAT.usfm and 42-MRK.usfm.
-#    Specify output folder.
 #    Converts multiple books at once.
 
 # Global variables
 contributors = []
-target_dir = r'C:\Users\Larry\Documents\GitHub\Hausa\ha_ulb'
-verseCounts = {}
+target_dir = r'C:\DCS\Portuguese-Brazil\pt-br_ulb'
 
+import usfm_verses
 import re
 
-# Copies XX.txt to XX-orig.txt.
-# Calls ensureFirstMarkers().
-# On exit, XX.txt contains the improved chunk.
+verseMarker_re = re.compile(r'[ \n\t]*\\v *[\d]', re.UNICODE)
+chapMarker_re = re.compile(r'\\c *[\d]{1,3}', re.UNICODE)
+
+# Copies named file to XX-orig.txt.
+# Calls ensureMarkers() to put in missing chapter and verse markers.
+# @param verserange is a set of verse number strings that should exist in the file.
+# On exit, the named file contains the improved chunk.
 # On exit, XX-orig.txt contains the original chunk, if different.
-def cleanupChunk(directory, filename):
+def cleanupChunk(directory, filename, verserange):
     dot = filename.find('.')
     verse = filename[0:dot]
-    chapter = u""
-    if verse == "01":
-        chapter = directory
-    ext = filename[dot:]
     path = directory + "/" + filename
-    tmpPath = directory + "/" + verse + "-orig" + ext
-    if os.access(tmpPath, os.F_OK):
-        os.remove(tmpPath)
-    os.rename(path, tmpPath)
-
-    input = io.open(tmpPath, "tr", 1, encoding='utf-8')
-    output = io.open(path, "tw", 1, encoding='utf-8')
-    lacking = lacksMarkers(input, chapter.lstrip('0'), verse.lstrip('0'))  # returns (lacksC, lacksV) pair
-    input.seek(0)
-    changed = ensureFirstMarkers(input, output, lacking[0], lacking[1])
-    output.close()
+    input = io.open(path, "tr", 1, encoding='utf-8')
+    text = input.read(-1)
     input.close()
-    if not changed:
-        # Restore the original file
-        os.remove(path)
-        os.rename(tmpPath, path)
 
-# Many input files are lacking a chapter marker.
-# Many are lacking a verse marker.
+    chapter = u""
+    if int(verse) == 1 and lacksChapter(text):
+        chapter = directory.lstrip('0')
+    if len(verseMarker_re.findall(text)) >= len(verserange):     # there are enough verse markers
+        verserange = {}
+    # lacking = lacksMarkers(input, chapter.lstrip('0'), verse.lstrip('0'))  # returns (lacksC, lacksV) pair
+    # input.seek(0)
+    # changed = ensureFirstMarkers(input, output, lacking[0], lacking[1])
+    if chapter or verserange:
+        ext = filename[dot:]
+        tmpPath = directory + "/" + verse + "-orig" + ext
+        if os.access(tmpPath, os.F_OK):
+            os.remove(tmpPath)
+        os.rename(path, tmpPath)
+        output = io.open(path, "tw", 1, encoding='utf-8', newline='\n')
+        ensureMarkers(text, output, chapter, int(verse), verserange)
+        output.close()
+    # if not changed:
+        # # Restore the original file
+        # os.remove(path)
+        # os.rename(tmpPath, path)
+
+# Returns True unchanged if there is no \c marker before the first verse marker.
+# Returns False if \c marker precedes first verse marker.
+def lacksChapter(text):
+    verseMarker = verseMarker_re.search(text)
+    if verseMarker:
+        text = text[0:verseMarker.start()]
+    return (not chapMarker_re.search(text))
+
+numberMatch_re = re.compile(r'[ \n\t]*([\d]{1,3}[ \n])', re.UNICODE+re.DOTALL)
+number_re =     re.compile(r'[^v][ \n]([\d]{1,3}[ \n])', re.UNICODE+re.DOTALL)
+
+# Writes chapter marker at beginning of file if needed.
+# Write initial verse marker and number at beginning of file if needed.
+# Finds orphaned verse numbers and inserts \v before them.
+def ensureMarkers(text, output, missingChapter, firstverse, verserange):
+    # foundV = False
+    # foundText = False
+    # markerExpr = re.compile(r'\\\\[a-z0-9]+[ \n\t]+[\d]{0,3}')
+    if missingChapter:
+        output.write(u"\\c " + missingChapter + '\n')
+    if not verserange:
+        output.write(text)
+    else:
+        chap = chapMarker_re.search(text)
+        if chap:
+            output.write(text[0:chap.end()])
+            text = text[chap.end():]
+        initialVerse = verseMarker_re.match(text)
+        if not initialVerse:
+            text = u"\\v " + str(firstverse) + u" " + text      # insert initial verse marker
+        number = numberMatch_re.match(text)
+        if not number:
+            number = number_re.search(text)
+        while number:
+            # verse = number.group(1)
+            verse = number.group(1)[0:-1]
+            if verse in verserange:
+                output.write(text[0:number.start(1)] + u"\\v " + number.group(1))
+            else:
+                output.write(text[0:number.end()])
+            text = text[number.end():]
+            number = number_re.search(text)
+        output.write(text)
+
+
+# Looks for \c marker missing before wantChapter, and/or \v missing before wantVerse
+# @param input is a file handle
+# @param wantChapter is chapter number expected, or "" if not at the beginning of chapter
+# @parma wantVerse is always the first verse expected in the file
 # This function returns a pair where the first item is the missing chapter, or "", and the
 # second item is the missing verse, or "".
-def lacksMarkers(input, wantChapter, wantVerse):
-    foundC = False
+""" def lacksMarkers(input, wantChapter, wantVerse):
     foundV = False
     foundText = False
-    markerExpr = re.compile(u'\\\\[a-z0-9]+[ \n\t]+[\d]{0,3}')
+    markerExpr = re.compile(r'\\\\[a-z0-9]+[ \n\t]+[\d]{0,3}')
 
     line = input.readline()
     while line and not foundV and not foundText:
@@ -81,17 +136,17 @@ def lacksMarkers(input, wantChapter, wantVerse):
             # The line was blank or had markers only
             line = input.readline()
     return (wantChapter, wantVerse)
-
+ """
 
 # Many input files are missing the first verse marker.
 # This function prepends a verse marker if missing. The verse number is based on the file name.
 # Since all 01.txt input files start a new chapter, they should all start with a chapter marker.
 # This method makes it so.
 # Returns True if any missing markers were corrected.
-def ensureFirstMarkers(input, output, missingChapter, missingVerse):
+""" def ensureFirstMarkers(input, output, missingChapter, missingVerse):
     foundV = False
     changes = (missingChapter or missingVerse)
-    markerExpr = re.compile(u'\\\\[a-z0-9]+[ \n\t]+[\d]{0,3}')
+    markerExpr = re.compile(r'\\\\[a-z0-9]+[ \n\t]+[\d]{0,3}')
 
     line = input.readline()
     while line and (missingChapter or missingVerse):
@@ -132,11 +187,10 @@ def ensureFirstMarkers(input, output, missingChapter, missingVerse):
         output.write(u"\\v " + missingVerse + u"\n")
         missingVerse = ""
     while line:
-        # print "COPYING: " + line
         output.write(line)
         line = input.readline()
     return changes
-
+ """
 # Restores files that were renamed to XX-orig.txt by cleanupCheck().
 # Renames fixed XX.txt file to XX-fixed.txt.
 def restoreOrigFile(directory, filename):
@@ -214,11 +268,11 @@ def fixPunctuationSpacing(section):
     section = section.replace(" ?", "?")
     section = section.replace(" !", "!")
     section = section.replace(" )", ")")
-    section = section.replace(u" »", u"»")
-    section = section.replace(u" ›", u"›")
+    section = section.replace(u" ï¿½", u"ï¿½")
+    section = section.replace(u" ï¿½", u"ï¿½")
 
     # Then add space after punctuation where needed
-    jammed = re.compile(u"[.?!;:,)][^ .?!;:,)'‘’›»\"]")
+    jammed = re.compile(u"[.?!;:,)][^ .?!;:,)'ï¿½ï¿½ï¿½ï¿½\"]")
     match = jammed.search(section, 0)
     while match:
         if match.end() < len(section) and section[match.end()-1] != '\n':
@@ -258,14 +312,13 @@ def fixVerseMarkers(section):
         if repeatedVerseNumber.match(token):
             parts = re.split(' ', token)
             verse = parts[1]
-            if parts[2] == parts[1]:
-                token = "\\v " + parts[1]
+            if parts[2] == verse:
+                token = "\\v " + verse
         section = section + token
     # print "B. section length is " + str(len(section))
 
-
-    # Ensure space after each verse number
-    jammed = re.compile(u'\\\\v [0-9]+[^ \n0123456789]')
+    # Ensure space after verse number
+    jammed = re.compile(u'\\\\v [0-9]+[^ \n-0123456789]')
     match = jammed.search(section)
     while match:
         section = section[:match.end()-1] + ' ' + section[match.end()-1:]
@@ -282,8 +335,8 @@ def fixVerseMarkers(section):
             if token != lastVerseMarker:
                 lastVerseMarker = token
                 section = section + token
-            else:
-                sys.stdout.write("\nREMOVED DUPLICATE VERSE MARKER: " + token + '\n')
+            # else:
+                # sys.stdout.write("\nREMOVED DUPLICATE VERSE MARKER: " + token + '\n')
         else:
             section = section + token
     
@@ -304,7 +357,6 @@ def convertFile(txtPath):
     section = addSectionMarker(section)
     section = addParagraphMarker(section)
     # Most texts already have paragraph markers after chapter markers
-    # Technically, only the first verse in the book is required to have a paragraph marker
     section = fixPunctuationSpacing(section)
     section = fixChapterMarkers(section)
     section = fixVerseMarkers(section)
@@ -313,22 +365,14 @@ def convertFile(txtPath):
 # Returns True if the specified directory is one with text files to be converted
 def isChapter(dirname):
     isChap = False
-    if len(dirname) == 2 and dirname != '00' and re.match('\d\d', dirname):
+    if dirname != '00' and re.match(r'\d{2,3}', dirname):
         isChap = True
     return isChap
 
-# Returns True if the specified file name matches a pattern that indicates
-# the file contains text to be converted.
-def isChunk(filename):
-    isSect = False
-    if re.match('\d\d\.txt$', filename) and filename != '00.txt':
-        isSect = True;
-    return isSect
-
 # Returns True if the specified path looks like a repository of chapters    
 def isBookFolder(path):
-    manifestPath = os.path.join(path, 'manifest.json')
     chapterPath = os.path.join(path, '01')
+    # manifestPath = os.path.join(path, 'manifest.json')
     # return os.path.isfile(manifestPath) and os.path.isdir(chapterPath)
     return os.path.isdir(chapterPath)
 
@@ -371,15 +415,23 @@ def appendToManifest(bookId, bookTitle):
     manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
     manifest.write(u"  -\n")
     manifest.write(u"    title: '" + bookTitle + u" '\n")
-    manifest.write(u"    versification: 'ufw'\n")
+    manifest.write(u"    versification: ufw\n")
     manifest.write(u"    identifier: '" + bookId.lower() + u"'\n")
-    manifest.write(u"    sort: " + str(verseCounts[bookId]['sort']) + u"\n")
-    manifest.write(u"    path: './" + makeUsfmFilename(bookId) + u"'\n")
+    manifest.write(u"    sort: " + str(usfm_verses.verseCounts[bookId]['sort']) + u"\n")
+    manifest.write(u"    path: ./" + makeUsfmFilename(bookId) + u"\n")
     testament = u'nt'
-    if verseCounts[bookId]['sort'] < 40:
+    if usfm_verses.verseCounts[bookId]['sort'] < 40:
         testament = u'ot'
     manifest.write(u"    categories: [ 'bible-" + testament + u"' ]\n")
     manifest.close()
+
+prefix_re = re.compile(r'C:\\DCS')
+
+def shortname(longpath):
+    shortname = longpath
+    if prefix_re.match(longpath):
+        shortname = "..." + longpath[6:]
+    return shortname
 
 def convertFolder(folder):
     if not folder:
@@ -393,33 +445,21 @@ def convertFolder(folder):
         sys.stderr.write("Invalid folder: " + folder + "\n")
         return
     else:
-        sys.stdout.write("Converting: " + folder + "\n")
+        sys.stdout.write("Converting: " + shortname(folder) + "\n")
         sys.stdout.flush()
         bookId = getBookId()
         bookTitle = getBookTitle()
         if bookId and bookTitle:
             convertBook(bookId, bookTitle)   # converts the pieces in the current folder
             appendToManifest(bookId, bookTitle)
-            sys.stdout.write("\n")
-            sys.stdout.flush()
+            # sys.stdout.write("\n")
+            # sys.stdout.flush()
  
-# Opens the verses.json file, which must reside in the same path as this .py script.
-def loadVerseCounts():
-    global verseCounts
-    if len(verseCounts) == 0:
-        jsonPath = os.path.dirname(os.path.abspath(__file__)) + "\\" + "verses.json"
-        if os.access(jsonPath, os.F_OK):
-            f = open(jsonPath, 'r')
-            verseCounts = json.load(f)
-            f.close()
-        else:
-            sys.stderr.write("File not found: verses.json\n")
-
 # Returns file name for usfm file in current folder
 def makeUsfmFilename(bookId):
-    loadVerseCounts()
-    if len(verseCounts) > 0:
-        num = verseCounts[bookId]['usfm_number']
+    # loadVerseCounts()
+    if len(usfm_verses.verseCounts) > 0:
+        num = usfm_verses.verseCounts[bookId]['usfm_number']
         filename = num + '-' + bookId + '.usfm'
     else:
         pathComponents = os.path.split(os.getcwd())   # old method
@@ -428,7 +468,7 @@ def makeUsfmFilename(bookId):
            
 # Returns path of temporary manifest file block listing projects converted
 def makeManifestPath():
-    return os.path.join(target_dir, "manifest.txt")
+    return os.path.join(target_dir, "projects.yaml")
     
 def writeHeader(usfmfile, bookId, bookTitle):
     usfmfile.write(u"\\id " + bookId + u"\n\\ide UTF-8")
@@ -445,31 +485,74 @@ def dumpContributors():
     path = os.path.join(target_dir, "contributors.txt")
     f = io.open(path, 'tw', encoding='utf-8', newline='\n')
     for name in contribs:
-        f.write(name + u'\n')
+        if name:
+            f.write(u'    - "' + name + u'"\n')
     f.close()
 
+# This method returns a list of chapter folders in the specified directory.
+# This list is returned in numeric order.
+def listChapters(dir):
+    list = []
+    for directory in os.listdir(dir):
+        if isChapter(directory):
+            list.append(directory)
+    if len(list) > 99:
+        list.sort(key=int)
+    return list
 
-# This method is called to convert the pieces in the *current folder* to USFM
+# This method lists the chunk names (just the digits, without the .txt extension)
+# in the specified folder.
+# The list is returned in numeric order.
+def listChunks(chap):
+    list = []
+    longest = 0
+    for filename in os.listdir(chap):
+        chunky = re.match(r'(\d{2,3})\.txt$', filename)
+        if chunky and filename != '00.txt':
+            chunk = chunky.group(1)
+            list.append(chunk)
+            if len(chunk) > longest:
+                longest = len(chunk)
+    if longest > 2:
+        list.sort(key=int)
+    return list
+
+# Compiles a list of verse number strings that should be in the specified chunk
+def makeVerseRange(chunks, i, bookId, chapter):
+    verserange = { chunks[i].lstrip('0') }
+    if i+1 < len(chunks):
+        limit = int(chunks[i+1])
+    else:           # last chunk
+        limit = usfm_verses.verseCounts[bookId]['verses'][chapter-1] + 1
+    v = int(chunks[i]) + 1
+    while v < limit:
+        verserange.add(str(v))
+        v += 1
+    return verserange
+
+# This method is called to convert the chapters in the *current folder* to USFM
 def convertBook(bookId, bookTitle):
+    chapters = listChapters(os.getcwd())
     # Open output USFM file for writing.
     usfmPath = os.path.join(target_dir, makeUsfmFilename(bookId))
     usfmFile = io.open(usfmPath, "tw", buffering=1, encoding='utf-8', newline='\n')
     writeHeader(usfmFile, bookId, bookTitle)
 
-    for directory in os.listdir(os.getcwd()):
-        if isChapter(directory):
-            sys.stdout.write(directory + " ")
-            for filename in os.listdir(directory):
-                if isChunk(filename):
-                    txtPath = os.path.join(directory, filename)
-                    cleanupChunk(directory, filename)
-                    section = convertFile(txtPath) + u'\n'
-                    usfmFile.write(section)
-                    restoreOrigFile(directory, filename)
-            # Process misnamed 00.txt file last, if it exists
-            # if os.access(directory + "/00.txt", os.F_OK):
-            #     section = convertFile(directory, "00.txt") + u'\n'
-            #     usfmFile.write(section)
+    for chap in chapters:
+        chunks = listChunks(chap)
+        i = 0
+        while i < len(chunks):
+            filename = chunks[i] + ".txt"
+            txtPath = os.path.join(chap, filename)
+            cleanupChunk(chap, filename, makeVerseRange(chunks, i, bookId, int(chap)))
+            section = convertFile(txtPath) + u'\n'
+            usfmFile.write(section)
+            restoreOrigFile(chap, filename)
+            i += 1
+        # Process misnamed 00.txt file last, if it exists
+        # if os.access(chap + "/00.txt", os.F_OK):
+        #     section = convertFile(chap, "00.txt") + u'\n'
+        #     usfmFile.write(section)
     # Wrap up
     usfmFile.close()
     # print "\nFINISHED: " + usfmPath
@@ -491,10 +574,8 @@ def convert(dir):
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        sys.stderr.write("Usage: python txt2USFM-RC <folder>\n  Use . for current folder.\n")
-    elif sys.argv[1] == 'hard-coded-path':
-        convert(r'C:\Users\Larry\Documents\GitHub\Hausa\hausa_ulb')
+    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
+        convert(r'C:\DCS\Portuguese-Brazil\ULB\pt-br_nam_text_ulb_l3')
     else:       # the first command line argument presumed to be a folder
         convert(sys.argv[1])
 
