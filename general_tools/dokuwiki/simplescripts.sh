@@ -134,6 +134,22 @@ for x in `find /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages -maxdepth 
     chown -R apache:apache .
 done
 
+# Cycles through all namespaces and drops unused repos
+for x in `find /var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages -maxdepth 1 -type d`; do
+    [ "$x" == "/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages" ] && continue
+    [ "$x" == "/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/playground" ] && continue
+    [ "$x" == "/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/templates" ] && continue
+    [ "$x" == "/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/.git" ] && continue
+    [ ! -d "$x/.git" ] && continue
+    cd $x
+    git remote -v
+    git rev-list --all --count
+    #if [ $NUM_COM -gt 2 ]; then
+      #echo "$x has $NUM_COM commits" # >>/tmp/num_com.txt
+    #fi
+    cd ..
+done
+
 
 # Find files owned by root and chown them to apache
 find meta/ -uid 0 -exec chown 48:48 {} \;
