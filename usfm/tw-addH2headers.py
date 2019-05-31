@@ -17,10 +17,10 @@ import sys
 # Globals
 # Heading to the added where needed.
 # Include hash marks, word for "Definition" in target language, and 2 newlines
-h2_terms = u"## વ્યાખ્યા: \n\n"   # คำจำกัดความ    
-h2_names = u"## તથ્યો: \n\n"
+h2_terms = u"## Definisi: \n\n"  
+h2_names = u"## Fakta-fakta: \n\n"
 
-max_changes = 3000
+max_changes = 1
 nChanged = 0
 nRead = 0
 
@@ -42,30 +42,26 @@ def convertWholeFile(mdpath, folder):
     input = io.open(mdpath, "tr", 1, encoding="utf-8")
     alltext = input.read()
     input.close()
-    found = h1_re.match(alltext)
-    if found:
-        bakpath = mdpath + ".orig"
-        if not os.path.isfile(bakpath):
-            os.rename(mdpath, bakpath)
-        output = io.open(mdpath, "tw", buffering=1, encoding='utf-8', newline='\n')
-        output.write( alltext[0:found.end()] )
-        alltext = alltext[found.end():]
+    foundH1 = h1_re.match(alltext)
+    if foundH1:
+        h1 = alltext[0:foundH1.end()]
+        alltext = alltext[foundH1.end():]
         
-        found = h2_re.match(alltext)
-        if not found:       # level 2 heading is missing
+        foundH2 = h2_re.match(alltext)
+        if not foundH2:
+            bakpath = mdpath + ".orig"
+            if not os.path.isfile(bakpath):
+                os.rename(mdpath, bakpath)
+            output = io.open(mdpath, "tw", buffering=1, encoding='utf-8', newline='\n')
+            output.write( h1 )
             h2 = h2_terms
             if folder == 'names':
                 h2 = h2_names
             output.write(h2)
             nChanged += 1  
+            output.write(alltext)
+            output.close()
             sys.stdout.write("Converted " + shortname(mdpath) + "\n")
-        output.write(alltext)
-        output.close()
-        
-        if found:       # H2 was there all along, revert to original file
-            os.remove(mdpath)
-            os.rename(bakpath, mdpath)
-        # sys.stdout.write("Converted " + shortname(mdpath) + "\n")
     else:
         sys.stderr.write("File does not begin with H1 header: " + shortname(mdpath) + "\n")  
 
@@ -94,7 +90,7 @@ def convertFolder(folder):
 # Processes all .txt files in specified directory, one at a time
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        folder = r'C:\DCS\Gujarati\gu_tw\bible'
+        folder = r'C:\DCS\Indonesian\id_tw\bible'
     else:
         folder = sys.argv[1]
 
