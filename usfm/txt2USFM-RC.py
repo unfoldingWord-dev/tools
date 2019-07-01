@@ -1,7 +1,7 @@
 # coding: latin-1
 #### ###### -*- coding: utf-8 -*-
 
-# This script converts a repository of text files from tStudio to USFM format.
+# This script converts text files from tStudio to USFM Resource Container format.
 #    Parses manifest.json to get the book ID.
 #    Outputs list of contributors gleaned from all manifest.json files.
 #    Finds and parses title.txt to get the book title.
@@ -11,7 +11,7 @@
 
 # Global variables
 contributors = []
-target_dir = r'C:\DCS\Portuguese-Brazil\pt-br_ulb'
+target_dir = r'C:\DCS\Spanish\es-419_ulb'
 
 import usfm_verses
 import re
@@ -365,35 +365,50 @@ def convertFile(txtPath):
 # Returns True if the specified directory is one with text files to be converted
 def isChapter(dirname):
     isChap = False
-    if dirname != '00' and re.match(r'\d{2,3}', dirname):
+    if dirname != '00' and re.match(r'\d{2,3}$', dirname):
         isChap = True
     return isChap
 
-# Returns True if the specified path looks like a repository of chapters    
+# Returns True if the specified path looks like a collection of chapter folders
 def isBookFolder(path):
     chapterPath = os.path.join(path, '01')
-    # manifestPath = os.path.join(path, 'manifest.json')
-    # return os.path.isfile(manifestPath) and os.path.isdir(chapterPath)
     return os.path.isdir(chapterPath)
 
 import sys
 import json
 
-# Parses manifest.json in the current folder to extract the book ID.
-# Return upper case bookId or empty string if failed to retrieve.
-def getBookId():
+def parseManifest(path):
     bookId = ""
     try:
-        f = open('manifest.json', 'r')
+        f = open(path, 'r')
     except IOError as e:
-        sys.stderr.write("   Can't open " + os.getcwd() + "\\manifest.json!\n")
+        sys.stderr.write("   Can't open: " + path + "!\n")
+        sys.stderr.flush()
     else:
         global contributors
-        manifest = json.load(f)
+        try:
+            manifest = json.load(f)
+        except ValueError as e:
+            sys.stderr.write("   Can't parse: " + path + ".\n")
+            sys.stderr.flush()
+        else:
+            bookId = manifest['project']['id']
+            contributors += manifest['translators']
         f.close()
-        bookId = manifest['project']['id']
-        contributors += manifest['translators']
     return bookId.upper()
+
+# Parses all *manifest.json files in the current folder.
+# If more than one manifest.json, their names vary.
+# Return upper case bookId, or empty string if failed to retrieve.
+# Also parses translator names out of the manifest, adds to global contributors list.
+def getBookId(folder):
+    bookId = ""
+    for file in os.listdir(folder):
+        if file.find("manifest") >= 0 and file.find(".json") >= 8:
+            path = os.path.join(folder, file)
+            if os.path.isfile(path):
+                bookId = parseManifest(path)
+    return bookId
 
 # Locates title.txt in either the front folder or 00 folder.
 # Extracts the first line of that file as the book title.
@@ -447,7 +462,7 @@ def convertFolder(folder):
     else:
         sys.stdout.write("Converting: " + shortname(folder) + "\n")
         sys.stdout.flush()
-        bookId = getBookId()
+        bookId = getBookId(folder)
         bookTitle = getBookTitle()
         if bookId and bookTitle:
             convertBook(bookId, bookTitle)   # converts the pieces in the current folder
@@ -478,6 +493,8 @@ def writeHeader(usfmfile, bookId, bookTitle):
     usfmfile.write(u"\n\\toc3 " + bookId.lower())
     usfmfile.write(u"\n\\mt " + bookTitle + u"\n")
 
+# Eliminates duplicates from contributors list and sorts the list.
+# Outputs list to contributors.txt.
 def dumpContributors():
     global contributors
     contribs = list(set(contributors))
@@ -491,9 +508,9 @@ def dumpContributors():
 
 # This method returns a list of chapter folders in the specified directory.
 # This list is returned in numeric order.
-def listChapters(dir):
+def listChapters(bookdir):
     list = []
-    for directory in os.listdir(dir):
+    for directory in os.listdir(bookdir):
         if isChapter(directory):
             list.append(directory)
     if len(list) > 99:
@@ -575,7 +592,7 @@ def convert(dir):
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        convert(r'C:\DCS\Portuguese-Brazil\ULB\pt-br_nam_text_ulb_l3')
+        convert(r'C:\DCS\Spanish\NT\es-419_1pe_text_lvl3_ulb')
     else:       # the first command line argument presumed to be a folder
         convert(sys.argv[1])
 
