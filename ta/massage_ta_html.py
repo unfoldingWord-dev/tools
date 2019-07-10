@@ -55,7 +55,7 @@ def main(infile, outfile, stylefile, version):
         container = soup.new_tag('div', style='text-align:center;padding-top:200px')
         container['class'] = ['break']
         h.insert_before(container)
-        img = soup.new_tag('img', src="https://unfoldingword.org/assets/img/icon-ta.png", width="120")
+        img = soup.new_tag('img', src="https://cdn.door43.org/assets/uw-icons/logo-uta-256.png", width="120")
         img['class'] = ['break']
         container.append(img)
         h1 = soup.new_tag('span')
