@@ -12,7 +12,7 @@
 #  Set OUTPUT_DIR, otherwise will be the current dir
 
 if [ -z $1 ]; then
-    echo "Please specify the TAG or COMMIT ID for the en_ta repo."
+    echo "Please specify the TAG or COMMIT ID for the ${LANGUAGE}_ta repo."
     exit 1
 fi
 
@@ -26,6 +26,7 @@ set -e # die if errors
 : ${OUTPUT_DIR:=$(pwd)}
 : ${TEMPLATE:="$MY_DIR/toc_template.xsl"}
 : ${TAG:=$1}
+: ${OWNER=Door43-Catalog}
 
 pushd "$OUTPUT_DIR"
 
@@ -36,8 +37,8 @@ mkdir -p "./html"
 mkdir -p "./pdf"
 
 repo="${LANGUAGE}_${RESOURCE}"
-print_url="https://api.door43.org/tx/print?id=unfoldingWord/${repo}/${TAG}"
-archive_url="https://git.door43.org/unfoldingWord/${repo}/archive/${TAG}.zip"
+print_url="https://api.door43.org/tx/print?id=${OWNER}/${repo}/${TAG}"
+archive_url="https://git.door43.org/${OWNER}/${repo}/archive/${TAG}.zip"
 
 cdn_url=$(wget -qO- $print_url)
 echo $cdn_url
@@ -77,7 +78,7 @@ echo '<!DOCTYPE html>
 </head>
 <body>
   <div style="text-align:center;padding-top:200px" class="break" id="cover">
-    <img src="http://unfoldingword.org/assets/img/icon-ta.png" width="120">
+    <img src="https://cdn.door43.org/assets/uw-icons/logo-uta-256.png" width="120">
     <span class="h1">translationAcademy</span>
     <span class="h3">Version '${version}'</span>
   </div>
@@ -144,7 +145,7 @@ headerfile="file://$OUTPUT_DIR/html/header.html"
 coverfile="file://$OUTPUT_DIR/html/cover.html"
 licensefile="file://$OUTPUT_DIR/html/license.html"
 tafile="file://$OUTPUT_DIR/html/ta.html"
-outfile="./pdf/en_ta_v${version}.pdf"
+outfile="./pdf/${LANGUAGE}_ta_v${version}.pdf"
 echo "GENERATING $outfile"
 wkhtmltopdf --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 15 --header-html "$headerfile" --header-spacing 2 --footer-center '[page]' cover "$coverfile" cover "$licensefile" toc --disable-dotted-lines --enable-external-links --xsl-style-sheet "$TEMPLATE" "$tafile" "$outfile"
 
