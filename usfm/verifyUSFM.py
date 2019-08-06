@@ -26,6 +26,11 @@ import usfm_verses
 import re
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
+# Marker types
+PP = 1      # paragraph or quote
+QQ = 2
+OTHER = 9
+
 
 class State:
     IDs = []
@@ -40,6 +45,8 @@ class State:
     reference = u""
     lastRef = u""
     errorRefs = set()
+    currMarker = OTHER
+    
     
     # Resets state data for a new book
     def addID(self, id):
@@ -53,12 +60,14 @@ class State:
         State.textOkayHere = False
         State.lastRef = State.reference
         State.reference = id
+        State.currMarker = OTHER
         
     def getIDs(self):
         return State.IDs
         
     def addTitle(self, bookTitle):
         State.titles.append(bookTitle)
+        State.currMarker = OTHER
         
     def addChapter(self, c):
         State.lastChapter = State.chapter
@@ -70,10 +79,12 @@ class State:
         State.textOkayHere = False
         State.lastRef = State.reference
         State.reference = State.ID + " " + c
+        State.currMarker = OTHER
     
     def addParagraph(self):
         State.nParagraphs += 1
         State.textOkayHere = True
+        State.currMarker = PP
 
     # supports a span of verses, e.g. 3-4, if needed. Passes the verse(s) on to addVerse()
     def addVerses(self, vv):
@@ -101,6 +112,7 @@ class State:
         State.textOkayHere = True
         State.lastRef = State.reference
         State.reference = State.ID + " " + str(State.chapter) + ":" + v
+        State.currMarker = OTHER
 
     def textOkay(self):
         return State.textOkayHere
@@ -114,6 +126,7 @@ class State:
         
     def addQuote(self):
         State.textOkayHere = True
+        State.currMarker = QQ
 
     
     # Adds the specified reference to the set of error references
@@ -240,6 +253,13 @@ def takeP():
     state = State()
     state.addParagraph()
 
+def takeSection():
+    state = State()
+    if state.currMarker == PP:
+        reportError("Warning: \"useless \p before \s marker\" at: " + state.reference)
+    elif state.currMarker == QQ:
+        reportError("Warning: \"useless \q before \s marker\" at: " + state.reference)
+
 def takeV(v):
     state = State()
     state.addVerses(v)
@@ -331,6 +351,8 @@ def take(token):
         takeV(token.value)
     elif token.isTEXT():
         takeText(token.value)
+    elif token.isS5() or token.isS():
+        takeSection()
     elif token.isQ() or token.isQ1() or token.isQ2() or token.isQ3():
         state.addQuote()
     elif token.isH() or token.isTOC1() or token.isTOC2() or token.isMT() or token.isIMT():
@@ -421,7 +443,7 @@ def verifyDir(dirpath):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        source = r'C:\DCS\Spanish\es-419_ulb'
+        source = r'C:\DCS\Telugu\te_iev'
     else:
         source = sys.argv[1]
         

@@ -12,20 +12,23 @@
 # References are properly formed: [[rc://ur-deva/ta/man/translate/figs-hyperbole]]
 # References in headings (warning)
 # References to tA entries are valid.
+# No html code: <!-- -->, &nbsp;
 
 # Globals
-language_code = u'id'
-resource_type = 'tq'
-ta_dir = r'C:\DCS\English\en_ta'    # English tA
-obs_dir = r'C:\DCS\English\en_obs\content'   # Target language OBS content folder, needed if OBS links are to be checked
-# tn_dir = r'C:\DCS\Kannada\kn_tn'    # Target language tN, needed if note links are to be checked
+language_code = u'ml'
+resource_type = 'obs'
+ta_dir = r'C:\DCS\English\en_tA'    # English tA
+obs_dir = r'C:\DCS\Tamil\ta_obs\content'   # Target language OBS content folder, needed if OBS links are to be checked
+#tn_dir = r'C:\DCS\Malayalam\ml_tn'    # Target language tN, needed if note links are to be checked
 nChecked = 0
+sourceDir = ""
+issuesFile = None
 
 suppress1 = False    # Suppress warnings about text before first heading
 suppress2 = False    # Suppress warnings about blank headings
-suppress3 = False    # Suppress warnings about no period after numbers at start of line
+suppress3 = False    # Suppress warnings about item number not followed by period
 suppress4 = False    # Suppress warnings about closed headings
-suppress5 = False    # Suppress warnings about invalid passage links (needed for OBS)
+suppress5 = False    # Suppress warnings about invalid passage links (needed for OBS links)
 suppress6 = False    # Suppress warnings about invalid OBS links
 suppress7 = False    # Suppress warnings about file starting with blank line
 suppress8 = False    # Suppress warnings about invalid list style
@@ -63,8 +66,10 @@ class State:
     headingcount = 0
     headinglevel = 0
     linetype = []
-    # prevlinetype = None
+    prevlinetype = None
     currlinetype = None
+    italicized = False      # Does the last TEXT line begin with and underscore
+    reported1 = False       # reported text before first heading
         
     def setPath(self, path):
         State.path = path
@@ -75,11 +80,10 @@ class State:
         State.prevlinetype = None
         State.currlinetype = None
         State.linetype = []
+        State.reported1 = False
         # sys.stdout.write(shortname(path) + "\n")
         
     def addLine(self, line):
-        # State.prevline = State.currline
-        # State.currline = line
         State.prevlinetype = State.currlinetype
         State.linecount += 1
         if line and line[0] == u'#' or badheading_re.match(line):
@@ -95,16 +99,40 @@ class State:
             State.currlinetype = ORDEREDLIST_ITEM
         else:
             State.currlinetype = TEXT
+            State.italicized = (line[0] == u'_' and line[-1] == u'_')
         State.linetype.append(State.currlinetype)
         # sys.stdout.write(str(State.linecount) + ": line length: " + str(len(line)) + ". headingcount is " + str(State.headingcount) + "\n")
+    
+    def report1(self):
+        State.reported1 = True
 
+# If issues.txt file is not already open, opens it for writing.
+# First renames existing issues.txt file to issues-oldest.txt unless
+# issues-oldest.txt already exists.
+# Returns new file pointer.
+def openIssuesFile():
+    global issuesFile
+    if not issuesFile:
+        global sourceDir
+        path = os.path.join(sourceDir, "issues.txt")
+        if os.path.exists(path):
+            bakpath = os.path.join(sourceDir, "issues-oldest.txt")
+            if not os.path.exists(bakpath):
+                os.rename(path, bakpath)
+        issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
+        
+    return issuesFile
+
+# Writes error message to stderr and to issues.txt.
 def reportError(msg):
     state = State()
     try:
         sys.stderr.write(shortname(state.path) + " line " + str(state.linecount) + ": " + msg + ".\n")
     except UnicodeEncodeError as e:
         sys.stderr.write(shortname(state.path) + " line " + str(state.linecount) + ": (Unicode...)\n")
-        
+ 
+    issues = openIssuesFile()       
+    issues.write(shortname(state.path) + u" line " + str(state.linecount) + u": " + msg + u".\n")
  
 # Reports empty file 
 def verifyNotEmpty(mdPath):
@@ -116,6 +144,7 @@ def verifyNotEmpty(mdPath):
 heading_re = re.compile(r'#+[ \t]')
 closedHeading_re = re.compile(r'#+[ \t].*#+[ \t]*$', re.UNICODE)
 badclosedHeading_re = re.compile(r'#+[ \t].*[^# \t]#+[ \t]*$', re.UNICODE)  # closing hash without preceding space
+toobold_re = re.compile(r'#+[ \t]+[\*_]', re.UNICODE)        # unwanted formatting in headings
 
 def take(line):
     state = State()
@@ -126,8 +155,9 @@ def take(line):
         return
     if state.prevlinetype == HEADING and state.currlinetype != BLANKLINE:
         reportError("missing blank line after heading.")
-    if state.currlinetype != HEADING and state.headingcount == 0 and not suppress1:
+    if state.currlinetype != HEADING and state.headingcount == 0 and not suppress1 and not state.reported1:
         reportError("has text before first heading")
+        state.report1()
     if state.currlinetype == HEADING:
         if state.linecount > 1 and state.prevlinetype != BLANKLINE:
             reportError("missing blank line before heading")
@@ -142,7 +172,9 @@ def take(line):
                 reportError("no space before closing hash mark")
         elif len(line) == 1 and not suppress2:
             reportError("blank heading")
-        if state.currheadinglevel > state.prevheadinglevel + 1:
+        if resource_type != "ta" and state.currheadinglevel > 2:
+            reportError("excessive heading level")
+        elif state.currheadinglevel > state.prevheadinglevel + 1:
             if resource_type != "ta" or state.prevheadinglevel > 0:
                 reportError("heading level incremented by more than one level")
     if state.currlinetype == LIST_ITEM:
@@ -166,12 +198,27 @@ def take(line):
         reportError('probable heading syntax error')
     if len(line) > 2 and line[0:2] == u'% ':
         reportError("% used to mark a heading")
+    if line.find(u"<!--") != -1 or line.find(u"&nbsp;") != -1:
+        reportError("html code")
+    if toobold_re.match(line):
+        reportError("Extra formatting in heading")
+    
+
+# Looks for :en: and rc://en in the line
+def checkUnconvertedLinks(line):
+    if line.find(u'figs_') >= 0:
+        reportError("Underscore in tA reference")
+    if language_code != u'en':
+        if line.find(u':en:') >= 0 or line.find(u'rc://en/') >= 0:
+            reportError("Unconverted language code")
+
 
 tapage_re = re.compile(r'\[\[.*/ta/man/(.*?)]](.*)', flags=re.UNICODE)
 talink_re = re.compile(r'(\(rc://[\w\-]+/ta/man/)(.+?/.+?)(\).*)', flags=re.UNICODE)
 obslink_re = re.compile(r'(rc://)([\w\-]+)(/tn/help/obs/)(\d+)(/\d+)(.*)', flags=re.UNICODE)
 notelink_re = re.compile(r'(rc://)([\w\-]+)(/tn/help/)(\w\w\w/\d+/\d+)(.*)', flags=re.UNICODE)
-passagelink_re = re.compile(r']\(([^\)]+)\)(.*)', flags=re.UNICODE)
+passagelink_re = re.compile(r']\(([^\)]*?)\)(.*)', flags=re.UNICODE)
+obsJpg_re = re.compile(r'https://cdn.door43.org/obs/jpg/360px/obs-en-[0-9]+\-[0-9]+\.jpg$', re.UNICODE)
 
 # Parse tA manual page names from the link.
 # Verifies the existence of the referenced page.
@@ -207,6 +254,7 @@ def checkTALinks(line):
 
 # Parse tA links, note links, OBS links and passage links to verify existence of referenced .md file.
 def checkMdLinks(line, fullpath):
+    checkUnconvertedLinks(line)
     foundTA = checkTALinks(line)
     foundOBS = checkOBSLinks(line)
     if not foundOBS:        # because note links match OBS links
@@ -248,13 +296,21 @@ def checkNoteLinks(line):
     if notelink:
         found = True
     return found
-    
+
+# If there is a match to passageLink_re, passage.group(1) is the URL or other text between
+# the parentheses,
+# and passage.group(2) is everything after the right paren to the end of line.
 def checkPassageLinks(line, fullpath):
+    global resource_type
     passage = passagelink_re.search(line)
     while passage:
-        referencedPath = os.path.join( os.path.dirname(fullpath), passage.group(1) )
-        if not suppress5 and not os.path.isfile(referencedPath):
-            reportError("invalid passage link: " + passage.group(1))
+        reported = False
+        obsJpg = obsJpg_re.match(passage.group(1))
+        if not (resource_type == 'obs' and obsJpg):
+            referencedPath = os.path.join( os.path.dirname(fullpath), passage.group(1) )
+            if not suppress5 and not os.path.isfile(referencedPath):
+                reportError("invalid passage link: " + passage.group(1))
+                reported = True
         passage = passagelink_re.search(passage.group(2))
 
 prefix_re = re.compile(r'C:\\DCS')
@@ -265,13 +321,15 @@ def shortname(longpath):
         shortname = "..." + longpath[6:]
     return shortname
 
+storyfile_re = re.compile(r'[0-9][0-9]\.md$')
+
 # Markdown file verification
 def verifyFile(path):
     # detect file encoding
     enc = detect_by_bom(path, default="utf-8")
     input = io.open(path, "tr", 1, encoding=enc)
     lines = input.readlines(-1)
-    input.close
+    input.close()
 
     verifyNotEmpty(path)
     state = State()
@@ -280,6 +338,8 @@ def verifyFile(path):
         line = line.rstrip()
         take( line )
         checkMdLinks(line, path)
+    if resource_type == 'obs' and not state.italicized and storyfile_re.search(path):
+        reportError("Last line is not italicized")
     sys.stderr.flush()
     global nChecked
     nChecked += 1
@@ -316,7 +376,7 @@ def verifyDir(dirpath):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        source = r'C:\DCS\Indonesian\id_tq'
+        source = r'C:\DCS\Nagamese\nag_obs'
     else:
         source = sys.argv[1]
 
@@ -325,10 +385,14 @@ if __name__ == "__main__":
         sys.stdout.flush()
 
     if os.path.isdir(source):
-        verifyDir(source)
+        sourceDir = source
+        verifyDir(sourceDir)
     elif os.path.isfile(source):
+        sourceDir = os.path.dirname(source)
         verifyFile(source)
     else:
-        sys.stderr.write("File not found: " + source + '\n')
+        reportError("File not found: " + source + '\n') 
 
+    if issuesFile:
+        issuesFile.close()
     print "Done. Checked " + str(nChecked) + " files.\n"
