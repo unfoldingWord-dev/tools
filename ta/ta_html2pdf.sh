@@ -11,11 +11,6 @@
 #  Execute ta_html2pdf.sh to run
 #  Set OUTPUT_DIR, otherwise will be the current dir
 
-if [ -z $1 ]; then
-    echo "Please specify the TAG or COMMIT ID for the ${LANGUAGE}_ta repo."
-    exit 1
-fi
-
 set -e # die if errors
 
 : ${DEBUG:=false}
@@ -25,8 +20,14 @@ set -e # die if errors
 : ${LANGUAGE:='en'}
 : ${OUTPUT_DIR:=$(pwd)}
 : ${TEMPLATE:="$MY_DIR/toc_template.xsl"}
+: ${OWNER=unfoldingWord}
+
+if [ -z $1 ]; then
+    echo "Please specify the TAG or COMMIT ID for the ${LANGUAGE}_ta repo."
+    exit 1
+fi
+
 : ${TAG:=$1}
-: ${OWNER=Door43-Catalog}
 
 pushd "$OUTPUT_DIR"
 
