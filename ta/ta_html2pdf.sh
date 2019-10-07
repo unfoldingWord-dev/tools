@@ -38,37 +38,50 @@ mkdir -p "./html"
 mkdir -p "./pdf"
 
 repo="${LANGUAGE}_${RESOURCE}"
-TAG2="590d872bf5"
-print_url="https://api.door43.org/tx/print?id=${OWNER}/${repo}/${TAG2}"
-archive_url="https://git.door43.org/${OWNER}/${repo}/archive/${TAG}.zip"
+repo_url="https://git.door43.org/${OWNER}/${repo}"
+repo_dir="${repo}_${TAG}"
+archive_url="${repo_url}/archive/${TAG}.zip"
 
-cdn_url=$(wget -qO- $print_url)
-echo $cdn_url
-wget "$cdn_url" -O "./html/${LANGUAGE}_ta_v${version}_orig.html"
-wget "$archive_url" -O "./${repo}.zip"
-
-unzip -qo "./${repo}.zip"
+if ! [ -d "${repo_dir}" ]; then
+  git clone "${repo_url}.git" "${repo_dir}"
+fi
+pushd "${repo_dir}"
+git fetch --all
+git checkout ${TAG}
+hash=`git rev-parse ${TAG}`
 
 echo "Checked out repo files:"
-ls "./${repo}"
+ls
 
-license=$(markdown2 "${repo}/LICENSE.md")
-version=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.version'`
-issued_date=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.issued'`
-title=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.title'`
-checking_level=`yaml2json "${repo}/manifest.yaml" | jq -r '.checking.checking_level'`
-publisher=`yaml2json "${repo}/manifest.yaml" | jq -r '.dublin_core.publisher'`
-contributors=$(echo `js-yaml "${repo}/manifest.yaml" | jq -c '.dublin_core.contributor[]'`)
+license=$(markdown2 "LICENSE.md")
+version=`yaml2json "manifest.yaml" | jq -r '.dublin_core.version'`
+issued_date=`yaml2json "manifest.yaml" | jq -r '.dublin_core.issued'`
+title=`yaml2json "manifest.yaml" | jq -r '.dublin_core.title'`
+checking_level=`yaml2json "manifest.yaml" | jq -r '.checking.checking_level'`
+publisher=`yaml2json "manifest.yaml" | jq -r '.dublin_core.publisher'`
+contributors=$(echo `js-yaml "manifest.yaml" | jq -c '.dublin_core.contributor[]'`)
 contributors=${contributors//\" \"/; }
 contributors=${contributors//\"/}
 
-echo "Current '$repo' print page is at: ${print_url}"
-echo "Current '$repo' archive file is at: ${archive_url}"
-echo "Current '$repo' Version is at: ${version}"
-echo "Current '$repo' Publisher is: ${publisher}"
-echo "Current '$repo' Contributors are: ${contributors}"
+repo_id="${LANGUAGE}_${RESOURCE}_v${version}"
 
-"$MY_DIR/massage_ta_html.py" -i "./html/${LANGUAGE}_ta_v${version}_orig.html" -o "./html/${LANGUAGE}_ta_v${version}.html" \
+echo "Current '${repo_id}' print page is at: ${print_url}"
+echo "Current '${repo_id}' archive file is at: ${archive_url}"
+echo "Current '${repo_id}' Version is at: ${version}"
+echo "Current '${repo_id}' Publisher is: ${publisher}"
+echo "Current '${repo_id}' Contributors are: ${contributors}"
+
+popd
+
+print_url="https://api.door43.org/tx/print?id=${OWNER}/${repo}/${hash:0:10}"
+cdn_url=$(wget -qO- $print_url)
+echo $cdn_url
+wget "$cdn_url" -O "./html/${repo_id}_orig.html"
+
+#wget "$archive_url" -O "./${repo}.zip"
+#unzip -qo "./${repo}.zip"
+
+"$MY_DIR/massage_ta_html.py" -i "./html/${repo_id}_orig.html" -o "./html/${repo_id}.html" \
                              -s "$MY_DIR/style.css" -v $version
 
 echo '<!DOCTYPE html>
@@ -146,8 +159,8 @@ echo '<!DOCTYPE html>
 headerfile="file://$OUTPUT_DIR/html/header.html"
 coverfile="file://$OUTPUT_DIR/html/cover.html"
 licensefile="file://$OUTPUT_DIR/html/license.html"
-tafile="file://$OUTPUT_DIR/html/${LANGUAGE}_ta_v${version}.html"
-outfile="./pdf/${LANGUAGE}_ta_v${version}.pdf"
+tafile="file://$OUTPUT_DIR/html/${repo_id}.html"
+outfile="./pdf/${repo_id}.pdf"
 echo "GENERATING $outfile"
 wkhtmltopdf --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 15 --header-html "$headerfile" --header-spacing 2 --footer-center '[page]' cover "$coverfile" cover "$licensefile" toc --disable-dotted-lines --enable-external-links --xsl-style-sheet "$TEMPLATE" "$tafile" "$outfile"
 
