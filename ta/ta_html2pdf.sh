@@ -64,6 +64,7 @@ contributors=${contributors//\" \"/; }
 contributors=${contributors//\"/}
 
 repo_id="${LANGUAGE}_${RESOURCE}_v${version}"
+print_url="https://api.door43.org/tx/print?id=${OWNER}/${repo}/${hash:0:10}"
 
 echo "Current '${repo_id}' print page is at: ${print_url}"
 echo "Current '${repo_id}' archive file is at: ${archive_url}"
@@ -73,7 +74,6 @@ echo "Current '${repo_id}' Contributors are: ${contributors}"
 
 popd
 
-print_url="https://api.door43.org/tx/print?id=${OWNER}/${repo}/${hash:0:10}"
 cdn_url=$(wget -qO- $print_url)
 echo $cdn_url
 wget "$cdn_url" -O "./html/${repo_id}_orig.html"
