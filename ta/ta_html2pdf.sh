@@ -17,17 +17,11 @@ set -e # die if errors
 
 : ${MY_DIR:=$(cd $(dirname "$0") && pwd)} # Tools dir relative to this script
 : ${RESOURCE:='ta'}
-: ${LANGUAGE:='en'}
+: ${LANGUAGE:="en"}
 : ${OUTPUT_DIR:=$(pwd)}
 : ${TEMPLATE:="$MY_DIR/toc_template.xsl"}
-: ${OWNER=unfoldingWord}
-
-if [ -z $1 ]; then
-    echo "Please specify the TAG or COMMIT ID for the ${LANGUAGE}_ta repo."
-    exit 1
-fi
-
-: ${TAG:=$1}
+: ${OWNER="unfoldingWord"}
+: ${TAG:="master"}
 
 pushd "$OUTPUT_DIR"
 
@@ -39,13 +33,12 @@ mkdir -p "./pdf"
 
 repo="${LANGUAGE}_${RESOURCE}"
 repo_url="https://git.door43.org/${OWNER}/${repo}"
-repo_dir="${repo}_${TAG}"
 archive_url="${repo_url}/archive/${TAG}.zip"
 
-if ! [ -d "${repo_dir}" ]; then
-  git clone "${repo_url}.git" "${repo_dir}"
+if ! [ -d "${repo}" ]; then
+  git clone "${repo_url}.git" "${repo}"
 fi
-pushd "${repo_dir}"
+pushd "${repo}"
 git fetch --all
 git checkout ${TAG}
 hash=`git rev-parse ${TAG}`
@@ -63,7 +56,7 @@ contributors=$(echo `js-yaml "manifest.yaml" | jq -c '.dublin_core.contributor[]
 contributors=${contributors//\" \"/; }
 contributors=${contributors//\"/}
 
-repo_id="${LANGUAGE}_${RESOURCE}_v${version}"
+repo_id="${repo}_v${version}"
 print_url="https://api.door43.org/tx/print?id=${OWNER}/${repo}/${hash:0:10}"
 
 echo "Current '${repo_id}' print page is at: ${print_url}"
