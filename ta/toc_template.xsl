@@ -12,17 +12,15 @@
                 <title>Table of Content</title>
                 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
                 <style>
-                    #toc {
-                        text-align: center;
-                        font-size: 18pt;
-                        font-family: arial;
-                    }
-
                     * {
                         text-align: left;
-                        font-size: 10pt;
-                        line-height: 14pt;
+                        font-size: 14pt;
                         font-family: Segoe UI;
+                    }
+                    #toc {
+                        text-align: center;
+                        font-size: 2em;
+                        font-family: arial;
                     }
                     .toclink {
                         text-decoration:none;
@@ -67,7 +65,7 @@
                     }
                 </script>
             </head>
-            <body onload="subst()">
+            <body id="toc-body" onload="subst()">
                 <h1 id="toc">Table of Contents</h1>
                 <ul class="tocul" id="top">
                     <xsl:if test="(@type)='xhtml'">

@@ -21,7 +21,12 @@ set -e # die if errors
 : ${OUTPUT_DIR:=$(pwd)}
 : ${TEMPLATE:="$MY_DIR/toc_template.xsl"}
 : ${OWNER="unfoldingWord"}
-: ${TAG:="master"}
+
+if [ -z $1 ]; then
+  : ${TAG:="master"}
+else
+  TAG=$1
+fi
 
 pushd "$OUTPUT_DIR"
 
@@ -33,14 +38,13 @@ mkdir -p "./pdf"
 
 repo="${LANGUAGE}_${RESOURCE}"
 repo_url="https://git.door43.org/${OWNER}/${repo}"
-archive_url="${repo_url}/archive/${TAG}.zip"
 
 if ! [ -d "${repo}" ]; then
   git clone "${repo_url}.git" "${repo}"
 fi
 pushd "${repo}"
 git fetch --all
-git checkout ${TAG}
+git checkout "origin/${TAG}"
 hash=`git rev-parse ${TAG}`
 
 echo "Checked out repo files:"
@@ -60,7 +64,6 @@ repo_id="${repo}_v${version}"
 print_url="https://api.door43.org/tx/print?id=${OWNER}/${repo}/${hash:0:10}"
 
 echo "Current '${repo_id}' print page is at: ${print_url}"
-echo "Current '${repo_id}' archive file is at: ${archive_url}"
 echo "Current '${repo_id}' Version is at: ${version}"
 echo "Current '${repo_id}' Publisher is: ${publisher}"
 echo "Current '${repo_id}' Contributors are: ${contributors}"
@@ -71,18 +74,14 @@ cdn_url=$(wget -qO- $print_url)
 echo $cdn_url
 wget "$cdn_url" -O "./html/${repo_id}_orig.html"
 
-#wget "$archive_url" -O "./${repo}.zip"
-#unzip -qo "./${repo}.zip"
-
-"$MY_DIR/massage_ta_html.py" -i "./html/${repo_id}_orig.html" -o "./html/${repo_id}.html" \
-                             -s "$MY_DIR/style.css" -v $version
+"$MY_DIR/massage_ta_html.py" -i "./html/${repo_id}_orig.html" -o "./html/${repo_id}.html" -v $version
 
 echo '<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8" />
   <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
-  <link href="file://'$MY_DIR'/style.css" rel="stylesheet"/>
+  <link href="style.css" rel="stylesheet"/>
 </head>
 <body>
   <div style="text-align:center;padding-top:200px" class="break" id="cover">
@@ -99,7 +98,7 @@ echo '<!DOCTYPE html>
 <head>
   <meta charset="UTF-8" />
   <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
-  <link href="file://'$MY_DIR'/style.css" rel="stylesheet"/>
+  <link href="style.css" rel="stylesheet"/>
 </head>
 <body>
   <div class="break">
@@ -121,7 +120,7 @@ echo '<!DOCTYPE html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
-    <link href="file://'$MY_DIR'/style.css" rel="stylesheet"/>
+    <link href="style.css" rel="stylesheet"/>
     <script>
         function subst() {
             var vars = {};
@@ -148,6 +147,8 @@ echo '<!DOCTYPE html>
 </body>
 </html>
 ' > "./html/header.html"
+
+cp "${MY_DIR}/style.css" ./html
 
 headerfile="file://$OUTPUT_DIR/html/header.html"
 coverfile="file://$OUTPUT_DIR/html/cover.html"

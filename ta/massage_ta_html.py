@@ -32,7 +32,7 @@ def write_file(file_name, file_contents):
         out_file.write(file_contents)
 
 
-def main(infile, outfile, stylefile, version):
+def main(infile, outfile, version):
     soup = BeautifulSoup(read_file(infile), 'html.parser')
 
     # Removes first h1 tag which is English: translationAcademy
@@ -72,7 +72,7 @@ def main(infile, outfile, stylefile, version):
     for a in soup.find_all('a'):
         a['href'] = re.sub(r'^[A-Za-z0-9\.-]+#(.*)$', r'#\1', a['href'])
 
-    soup.head.append(soup.new_tag('link', href="file://"+stylefile, rel="stylesheet"))
+    soup.head.append(soup.new_tag('link', href="style.css", rel="stylesheet"))
 
     write_file(outfile, unicode(soup))
 
@@ -84,11 +84,9 @@ if __name__ == '__main__':
         help="Filename of the ta.html file to read", required=True)
     parser.add_argument('-o', '--outfile', dest="outfile",
         help="Filename of the ta.html file to write out to", required=True)
-    parser.add_argument('-s', '--stylefile', dest="stylefile",
-        help="Filename of the style sheet", required=True)
     parser.add_argument('-v', '--version', dest="version",
         help="Version of tA", required=True)
 
     args = parser.parse_args(sys.argv[1:])
 
-    main(args.infile, args.outfile, args.stylefile, args.version)
+    main(args.infile, args.outfile, args.version)
