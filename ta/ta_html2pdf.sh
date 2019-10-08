@@ -37,15 +37,21 @@ mkdir -p "./html"
 mkdir -p "./pdf"
 
 repo="${LANGUAGE}_${RESOURCE}"
+repo_dir="${repo}_${TAG}"
 repo_url="https://git.door43.org/${OWNER}/${repo}"
 
-if ! [ -d "${repo}" ]; then
-  git clone "${repo_url}.git" "${repo}"
+if ! [ -d "${repo_dir}" ]; then
+  git clone "${repo_url}.git" "${repo_dir}"
 fi
-pushd "${repo}"
+pushd "${repo_dir}"
+git fetch --tags
 git fetch --all
-git checkout "origin/${TAG}"
+git checkout "${TAG}"
+if ! [[ $TAG =~ ^v[0-9] ]]; then
+  git pull
+fi
 hash=`git rev-parse ${TAG}`
+hash=${hash:0:10}
 
 echo "Checked out repo files:"
 ls
@@ -60,8 +66,8 @@ contributors=$(echo `js-yaml "manifest.yaml" | jq -c '.dublin_core.contributor[]
 contributors=${contributors//\" \"/; }
 contributors=${contributors//\"/}
 
-repo_id="${repo}_v${version}"
-print_url="https://api.door43.org/tx/print?id=${OWNER}/${repo}/${hash:0:10}"
+repo_id="${repo_dir}_${hash}"
+print_url="https://api.door43.org/tx/print?id=${OWNER}/${repo}/${hash}"
 
 echo "Current '${repo_id}' print page is at: ${print_url}"
 echo "Current '${repo_id}' Version is at: ${version}"
@@ -159,3 +165,6 @@ echo "GENERATING $outfile"
 wkhtmltopdf --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 15 --header-html "$headerfile" --header-spacing 2 --footer-center '[page]' cover "$coverfile" cover "$licensefile" toc --disable-dotted-lines --enable-external-links --xsl-style-sheet "$TEMPLATE" "$tafile" "$outfile"
 
 popd
+
+echo "PDF located at https://dw.door43.org/output/${outfile}"
+
