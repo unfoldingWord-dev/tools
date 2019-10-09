@@ -8,7 +8,7 @@
 #  Contributors:
 #  Richard Mahn <richard_mahn@wyciffeassociates.org>
 #
-#  Execute ta_html2pdf.sh to run
+#  Execute html2pdf.sh to run
 #  Set OUTPUT_DIR, otherwise will be the current dir
 
 set -e # die if errors
@@ -80,7 +80,7 @@ cdn_url=$(wget -qO- $print_url)
 echo $cdn_url
 wget "$cdn_url" -O "./html/${repo_id}_orig.html"
 
-"$MY_DIR/massage_ta_html.py" -i "./html/${repo_id}_orig.html" -o "./html/${repo_id}.html" -v $version
+"$MY_DIR/massage_html.py" -i "./html/${repo_id}_orig.html" -o "./html/${repo_id}.html" -v $version
 
 echo '<!DOCTYPE html>
 <html>
@@ -166,5 +166,5 @@ wkhtmltopdf --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 
 
 popd
 
-echo "PDF located at https://dw.door43.org/output/${outfile}"
+echo "PDF located at https://dw.door43.org/output/pdf/${repo_id}.pdf"
 

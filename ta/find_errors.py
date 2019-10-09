@@ -48,7 +48,7 @@ class TaInspector(object):
             if not os.path.isfile(os.path.join(self.repo_dir, found, link, '01.md')):
                 logger.critical('No 01.md for {0}/{1}'.format(found, link))
         elif type == 'TOC':
-            logger.critical('Article {0} in {1}/toc.yaml does not exit ({1}/{0} does not exist)'.format(link, d))
+            logger.critical('Article {0} in {1}/toc.yaml does not exist ({1}/{0} does not exist)'.format(link, d))
         else:
             logger.critical('{0} {1} for {2} in {3}/config.yaml not found!'.format(type, link, parent, d))
 
