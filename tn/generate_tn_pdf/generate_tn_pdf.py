@@ -112,6 +112,7 @@ class TnConverter(object):
         self.usfm_chunks = {}
         self.version = None
         self.publisher = None
+        self.contributors = None
         self.issued = None
         self.filename_base = None
         self.my_path = os.path.dirname(os.path.realpath(__file__))
@@ -205,19 +206,19 @@ class TnConverter(object):
         return 'https://git.door43.org/unfoldingWord/{0}_{1}/archive/{2}.zip'.format(self.lang_code, resource, tag)
 
     def setup_resource_files(self):
-        if not os.path.isdir(os.path.join(self.working_dir, 'en_tn')):
+        if not os.path.isdir(os.path.join(self.working_dir, '{0}_tn'.format(self.lang_code))):
             tn_url = self.get_resource_url('tn', self.tn_tag)
             self.extract_files_from_url(tn_url)
-        if not os.path.isdir(os.path.join(self.working_dir, 'en_tw')):
+        if not os.path.isdir(os.path.join(self.working_dir, '{0}_tw'.format(self.lang_code))):
             tw_url = self.get_resource_url('tw', self.tw_tag)
             self.extract_files_from_url(tw_url)
-        if not os.path.isdir(os.path.join(self.working_dir, 'en_ta')):
+        if not os.path.isdir(os.path.join(self.working_dir, '{0}_ta'.format(self.lang_code))):
             ta_url = self.get_resource_url('ta', self.ta_tag)
             self.extract_files_from_url(ta_url)
-        if not os.path.isdir(os.path.join(self.working_dir, 'en_ust')):
+        if not os.path.isdir(os.path.join(self.working_dir, '{0}_ust'.format(self.lang_code))):
             ust_url = self.get_resource_url('ust', self.ust_tag)
             self.extract_files_from_url(ust_url)
-        if not os.path.isdir(os.path.join(self.working_dir, 'en_ult')):
+        if not os.path.isdir(os.path.join(self.working_dir, '{0}_ult'.format(self.lang_code))):
             ult_url = self.get_resource_url('ult', self.ult_tag)
             self.extract_files_from_url(ult_url)
         if not os.path.isdir(os.path.join(self.working_dir, 'ugnt')):
@@ -471,10 +472,9 @@ class TnConverter(object):
             elif obj['type'] == 'section':  
                 obj['text'] = obj['text'].replace('\n', '').strip() if 'text' in obj else ''
                 if len(obj['text']):
-                    print("Seciton with text: {0}:{1}:".format(chapter, verse))
+                    print("Section with text: {0}:{1}:".format(chapter, verse))
                     print(obj)
                     exit(1)
-                    continue
             elif obj['type'] == 'paragraph':
                 obj['text'] = obj['text'].replace('\n', '').strip() if 'text' in obj else ''
                 if idx == len(verseObjects) - 1 and not obj['text']:
@@ -573,7 +573,7 @@ class TnConverter(object):
                 for idx, field in enumerate(header):
                     field = field.strip()
                     if idx >= len(row):
-                        print('ERROR: {0} is maformed'.format(book_file))
+                        print('ERROR: {0} is malformed'.format(book_file))
                         found = False
                         break
                     else:
@@ -682,7 +682,7 @@ class TnConverter(object):
 
     def populate_tw_words_data(self):
         groups = ['kt', 'names', 'other']
-        grc_path = 'tools/tn/generate_tn_pdf/grc/translationHelps/translationWords/v0.6'
+        grc_path = 'tools/tn/generate_tn_pdf/grc/translationHelps/translationWords/v0.8'
         if not os.path.isdir(grc_path):
             self.logger.error('{0} not found! Please make sure you ran `node getResources ./` in the generate_tn_pdf dir and that the version in the script is correct'.format(grc_path))
             exit(1)

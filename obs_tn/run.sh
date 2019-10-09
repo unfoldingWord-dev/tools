@@ -10,5 +10,5 @@
 
 #npm i
 #node getResources ./
-cd $(dirname "$0")/../../..
-python -m tools.tn.generate_tn_pdf.generate_tn_pdf $@
+cd $(dirname "$0")/../..
+python -m tools.obs_tn.generate_pdf $@

@@ -12,7 +12,7 @@
 #
 #  Usage: md_to_pdf.py -i <directory of all ta repos> -o <directory where html flies will be placed>
 #
-
+from __future__ import unicode_literals
 import os
 import re
 import sys
@@ -46,39 +46,39 @@ def main(inpath, outpath, version, publisher, contributors, issued_date, book, t
     for b in books:
         bookTitle = get_bible_book.books[b][0]
         b = b.lower()
-        if book == u'all' or b == book:
+        if book == 'all' or b == book:
             if b == book:
               coverBookTitle = bookTitle
-            content += u'<div id="{0}" class="book">\n\n'.format(b)
+            content += '<div id="{0}" class="book">\n\n'.format(b)
             chapter_dirs = sorted(glob(os.path.join(tqRoot, b, '*')))
             for chapter_dir in chapter_dirs:
                 if os.path.isdir(chapter_dir):
                     chapter = os.path.basename(chapter_dir).lstrip('0')
-                    content += u'<div id="{0}-chapter-{1}" class="chapter break">\n\n'.format(b, chapter)
-                    if chapter == u'1':
-                       content += u'<h1>{0}</h1>\n'.format(bookTitle)
-                    content += u'<h2>{0} {1}</h2>\n'.format(bookTitle, chapter)
-                    verse_files = sorted(glob(os.path.join(chapter_dir, u'*.md')))
+                    content += '<div id="{0}-chapter-{1}" class="chapter break">\n\n'.format(b, chapter)
+                    if chapter == '1':
+                       content += '<h1>{0}</h1>\n'.format(bookTitle)
+                    content += '<h2>{0} {1}</h2>\n'.format(bookTitle, chapter)
+                    verse_files = sorted(glob(os.path.join(chapter_dir, '*.md')))
                     for verse_idx, verse_file in enumerate(verse_files):
-                        start_verse = os.path.splitext(os.path.basename(verse_file))[0].lstrip(u'0')
+                        start_verse = os.path.splitext(os.path.basename(verse_file))[0].lstrip('0')
                         if verse_idx < len(verse_files)-1:
                             end_verse = str(int(os.path.splitext(os.path.basename(verse_files[verse_idx+1]))[0])-1)
                         else:
-                            end_verse = bible_books.BOOK_CHAPTER_VERSES[b][chapter.lstrip(u'0')]
-                        verses = u'{0}-{1}'.format(start_verse, end_verse)
+                            end_verse = bible_books.BOOK_CHAPTER_VERSES[b][chapter.lstrip('0')]
+                        verses = '{0}-{1}'.format(start_verse, end_verse)
                         if start_verse == end_verse:
                            verses = start_verse
-                        content += u'<div id="{0}-chapter-{1}-verse-{2}" class="verse">\n'.format(b, chapter, start_verse)
-                        content += u'<h3>{0} {1}:{2}</h3>\n'.format(bookTitle, chapter, verses)
+                        content += '<div id="{0}-chapter-{1}-verse-{2}" class="verse">\n'.format(b, chapter, start_verse)
+                        content += '<h3>{0} {1}:{2}</h3>\n'.format(bookTitle, chapter, verses)
                         c = markdown2.markdown_path(verse_file)
-                        c = c.replace(u'<h1>', u'<div class="question no-break">\n<h4>')
-                        c = c.replace(u'</h1>', u'</h4>')
-                        c = re.sub(u'<p><strong><a href="\./">Back to .*?</a></strong></p>', u'', c)
-                        c = c.replace(u'</p>', u'</p>\n</div>\n\n')
+                        c = c.replace('<h1>', '<div class="question no-break">\n<h4>')
+                        c = c.replace('</h1>', '</h4>')
+                        c = re.sub('<p><strong><a href="\./">Back to .*?</a></strong></p>', '', c)
+                        c = c.replace('</p>', '</p>\n</div>\n\n')
                         content += c
-                        content += u'</div>\n\n';
-                    content += u'</div>\n\n'
-            content += u'</div>\n\n'
+                        content += '</div>\n\n';
+                    content += '</div>\n\n'
+            content += '</div>\n\n'
     content = fix_content(content)
 
     cover = '''<!DOCTYPE html>
@@ -121,7 +121,7 @@ def main(inpath, outpath, version, publisher, contributors, issued_date, book, t
 </html>
 '''
 
-    body = u'''<!DOCTYPE html>
+    body = '''<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8" />
@@ -130,7 +130,7 @@ def main(inpath, outpath, version, publisher, contributors, issued_date, book, t
   </style>
 </head>
 <body>
-'''+content+u'''
+'''+content+'''
 </body>
 </html>
 '''
