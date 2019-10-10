@@ -369,7 +369,7 @@ class TnConverter(object):
                         soup = BeautifulSoup(frame_html, 'html.parser')
                         headers = soup.find_all('h3')
                         for header in headers:
-                            if len(header.text) <= 50:
+                            if len(header.text) <= 60:
                                 text = text.replace(header.text, '<b>{0}</b>'.format(header.text))
                     content += '<div id="{0}-text" class="frame-text">\n{1}\n</div>\n'.format(id, text)
                     content += frame_html
@@ -405,6 +405,7 @@ class TnConverter(object):
         if tw_html:
             tw_html = '<div id="tw" class="resource-title-page">\n<h1 class="section-header">Translation Words</h1>\n</div>\n\n' + tw_html
         return tw_html
+
 
     def get_ta_html(self):
         ta_html = '<div id="ta" class="resource-title-page">\n<h1 class="section-header">Translation Academy</h1>\n</div>\n\n'
