@@ -164,7 +164,7 @@ class TnConverter(object):
         self.logger.info('BAD LINKS file can be found at {0}'.format(save_file))
 
     def save_bad_text(self):
-        bad_text = "<html><body><p>BAD TEXT:</p><ul>"
+        bad_text = '<!DOCTYPE html><html lang="en-US"><head data-suburl=""><meta charset="utf-8"></head><body><p>BAD TEXT:</p><ul>'
         for text in sorted(self.bad_text.keys()):
             bad_text += '<li>{0} - not found in {1}</li>'.format(text, ', '.join(self.bad_text[text]))
         bad_text += "</u></html>"
