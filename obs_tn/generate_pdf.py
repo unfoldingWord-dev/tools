@@ -223,21 +223,20 @@ class TnConverter(object):
 
     def determine_if_regeneration_needed(self):
         # check if any commit hashes have changed
-        if not self.regenerate:
-            old_info = self.get_previous_generation_info()
-            if not old_info:
-                self.logger.info('Looks like this is a new commit of {0}. Generating PDF.'.format(self.id))
-                self.regenerate = True
-            else:
-                for resource in self.generation_info:
-                    if not old_info or resource not in old_info \
-                            or old_info[resource]['tag'] != self.generation_info[resource]['tag'] \
-                            or old_info[resource]['commit'] != self.generation_info[resource]['commit']:
-                        self.logger.info('Resource {0} has changed: {1} => {2}, {3} => {4}. REGENERATING PDF.'.format(
-                            resource, old_info[resource]['tag'], self.generation_info[resource]['tag'],
-                            old_info[resource]['commit'], self.generation_info[resource]['commit']
-                        ))
-                        self.regenerate = True
+        old_info = self.get_previous_generation_info()
+        if not old_info:
+            self.logger.info('Looks like this is a new commit of {0}. Generating PDF.'.format(self.id))
+            self.regenerate = True
+        else:
+            for resource in self.generation_info:
+                if not old_info or resource not in old_info \
+                        or old_info[resource]['tag'] != self.generation_info[resource]['tag'] \
+                        or old_info[resource]['commit'] != self.generation_info[resource]['commit']:
+                    self.logger.info('Resource {0} has changed: {1} => {2}, {3} => {4}. REGENERATING PDF.'.format(
+                        resource, old_info[resource]['tag'], self.generation_info[resource]['tag'],
+                        old_info[resource]['commit'], self.generation_info[resource]['commit']
+                    ))
+                    self.regenerate = True
 
     def get_contributors_html(self):
         if self.contributors and len(self.contributors):
