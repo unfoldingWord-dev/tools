@@ -127,13 +127,13 @@ class TnConverter(object):
             self.logger.info("Copying style sheet file...")
             style_file = os.path.join(self.my_path, 'style.css')
             shutil.copy2(style_file, self.html_dir)
+            self.save_resource_data()
             self.save_bad_links()
         if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.pdf'.format(self.filename_base))):
             self.logger.info("Generating PDF {0}...".format(self.output_dir, '{0}.pdf'.format(self.filename_base)))
             self.generate_tn_pdf()
         else:
             self.logger.info("No PDF generation needed.")
-        self.save_resource_data()
         self.logger.info('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.filename_base))
 
     def save_bad_links(self):
