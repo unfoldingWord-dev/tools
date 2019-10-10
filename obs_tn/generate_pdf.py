@@ -135,6 +135,7 @@ class TnConverter(object):
             self.logger.info("Generating PDF {0}...".format(self.pdf_dir, '{0}.pdf'.format(self.filename_base)))
             self.generate_tn_pdf()
         self.show_bad_links()
+        _print('File can be found at https://dw.door43.org/output/{0}_pdf/{0}.pdf'.format(self.filename_base))
 
     def show_bad_links(self):
         bad_links = "BAD LINKS:\n"
@@ -341,7 +342,6 @@ class TnConverter(object):
         command = re.sub(r'\s+', ' ', command, flags=re.MULTILINE)
         self.logger.info(command)
         subprocess.call(command, shell=True)
-        _print('File can be found at https://dw.door43.org/output/{0}_pdf/{0}.pdf'.format(self.filename_base))
 
     def generate_tn_content(self):
         content = ''
