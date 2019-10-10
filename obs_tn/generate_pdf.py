@@ -84,7 +84,6 @@ class TnConverter(object):
         self.setup_resource_files()
 
         self.html_dir = os.path.join(self.output_dir, '{0}_html'.format(self.id))
-        self.pdf_dir = os.path.join(self.output_dir, '{0}_pdf'.format(self.id))
 
         self.manifest = None
 
@@ -131,11 +130,12 @@ class TnConverter(object):
             self.logger.info("Copying style sheet file...")
             style_file = os.path.join(self.my_path, 'style.css')
             shutil.copy2(style_file, self.html_dir)
-        if not os.path.exists(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))):
-            self.logger.info("Generating PDF {0}...".format(self.pdf_dir, '{0}.pdf'.format(self.filename_base)))
+        if not os.path.exists(os.path.join(self.working_dir, '{0}.pdf'.format(self.filename_base))):
+            self.logger.info("Generating PDF {0}...".format(self.output_dir, '{0}.pdf'.format(self.filename_base)))
             self.generate_tn_pdf()
         self.show_bad_links()
-        _print('File can be found at https://dw.door43.org/output/{0}_pdf/{0}.pdf'.format(self.filename_base))
+        _print('PDF file can be found at {0}/{1}_bad_links.txt'.format(self.output_dir, self.id))
+        _print('BAD LINKS file can be found at {0}/{1}.pdf'.format(self.output_dir, self.id))
 
     def show_bad_links(self):
         bad_links = "BAD LINKS:\n"
@@ -318,10 +318,8 @@ class TnConverter(object):
         license_file = os.path.join(self.html_dir, 'license.html')
         header_file = os.path.join(self.html_dir, 'header.html')
         body_file = os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))
-        output_file = os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))
+        output_file = os.path.join(self.working_dir, '{0}.pdf'.format(self.filename_base))
         template_file = os.path.join(self.my_path, 'toc_template.xsl')
-        if not os.path.isdir(self.pdf_dir):
-            os.makedirs(self.pdf_dir)
         command = '''wkhtmltopdf 
                         --javascript-delay 2000 
                         --encoding utf-8 
