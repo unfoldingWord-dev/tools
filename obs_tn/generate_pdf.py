@@ -166,7 +166,7 @@ class TnConverter(object):
     def save_bad_text(self):
         bad_text = "<html><body><p>BAD TEXT:</p><ul>"
         for text in sorted(self.bad_text.keys()):
-            bad_text += '<li>{0} - not found in {1}</li>'.format(text, self.bad_text[text].join(', '))
+            bad_text += '<li>{0} - not found in {1}</li>'.format(text, ', '.join(self.bad_text[text]))
         bad_text += "</u></html>"
         save_file = os.path.join(self.output_dir, '{0}_bad_text.html'.format(self.id))
         write_file(save_file, bad_text)
