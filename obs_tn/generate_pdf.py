@@ -126,10 +126,10 @@ class TnConverter(object):
         if not os.path.exists(os.path.join(self.output_dir, '{0}.pdf'.format(self.filename_base))):
             self.logger.info("Generating PDF {0}...".format(self.output_dir, '{0}.pdf'.format(self.filename_base)))
             self.generate_tn_pdf()
-        self.show_bad_links()
         _print('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.filename_base))
+        self.save_bad_links()
 
-    def show_bad_links(self):
+    def save_bad_links(self):
         bad_links = "BAD LINKS:\n"
         for source_rc in sorted(self.bad_links.keys()):
             for rc in sorted(self.bad_links[source_rc].keys()):
@@ -152,7 +152,6 @@ class TnConverter(object):
                 bad_links += "{0}\n".format(str)
         save_file = os.path.join(self.output_dir, '{0}_bad_links.txt'.format(self.id))
         write_file(save_file, bad_links)
-        _print(bad_links)
         _print('BAD LINKS file can be found at {0}'.format(save_file))
 
     def get_resource_git_url(self, resource):
