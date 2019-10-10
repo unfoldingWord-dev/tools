@@ -438,10 +438,11 @@ class TnConverter(object):
                                         header.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
                                         header.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
                                         header.replace("'", '’').replace('"', '“'),
-                                        header.replace('“', '"'), header.replace('"', '“'),
-                                        header.replace('”', '"'), header.replace('"', '”'),
-                                        header.replace('’', "'"), header.replace("'", '’'),
-                                        header.replace('‘', "'"), header.replace("'", '‘')]
+                                        header.replace('“', '"').replace('”', '"'),
+                                        header.replace('"', '”').replace('”', '“', 1),
+                                        header.replace("'", '’').replace('’', '‘', 1),
+                                        header.replace('’', "'"),
+                                        header.replace('‘', "'")]
                                 for alt in alts:
                                     if alt in orig_text:
                                         text = text.replace(alt, '<b>{0}</b>'.format(alt))
