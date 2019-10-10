@@ -112,6 +112,7 @@ class TnConverter(object):
             if not os.path.isdir(self.html_dir):
                 os.makedirs(self.html_dir)
             self.bad_links = {}
+            self.bad_text = {}
             self.resource_data = {}
             self.rc_references = {}
             self.generate_tn_content()
@@ -129,6 +130,7 @@ class TnConverter(object):
             shutil.copy2(style_file, self.html_dir)
             self.save_resource_data()
             self.save_bad_links()
+            self.save_bad_text()
         if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.pdf'.format(self.filename_base))):
             self.logger.info("Generating PDF {0}...".format(self.output_dir, '{0}.pdf'.format(self.filename_base)))
             self.generate_tn_pdf()
@@ -160,6 +162,15 @@ class TnConverter(object):
         save_file = os.path.join(self.output_dir, '{0}_bad_links.txt'.format(self.id))
         write_file(save_file, bad_links)
         self.logger.info('BAD LINKS file can be found at {0}'.format(save_file))
+
+    def save_bad_text(self):
+        bad_text = "<html><body><p>BAD TEXT:</p><ul>"
+        for text in sorted(self.bad_text.keys()):
+            bad_text += '<li>{0} - not found in {1}</li>'.format(text, self.bad_text[text].join(', '))
+        bad_text += "</u></html>"
+        save_file = os.path.join(self.output_dir, '{0}_bad_text.html'.format(self.id))
+        write_file(save_file, bad_text)
+        self.logger.info('BAD TEXT file can be found at {0}'.format(save_file))
 
     def get_resource_git_url(self, resource):
         return 'https://git.door43.org/unfoldingWord/{0}_{1}.git'.format(self.lang_code, resource)
@@ -241,6 +252,8 @@ class TnConverter(object):
         write_file(save_file, self.rc_references)
         save_file = os.path.join(save_dir, '{0}_bad_links.json'.format(self.id))
         write_file(save_file, self.bad_links)
+        save_file = os.path.join(save_dir, '{0}_bad_text.json'.format(self.id))
+        write_file(save_file, self.bad_text)
         save_file = os.path.join(save_dir, '{0}_info.json'.format(self.id))
         write_file(save_file, self.generation_info)
 
@@ -394,8 +407,11 @@ class TnConverter(object):
                     content += '<div id="{0}" class="frame">\n'.format(id)
                     content += '<h2>{0}-{1}</h2>\n'.format(chapter, frame)
                     text = ''
+                    orig_text = text
+                    text_to_highlight = []
                     if frame_idx > 0:
                         text = frames[frame_idx-1]
+                        orig_text = text
                     frame_html = markdown2.markdown_path(frame_file)
                     frame_html = frame_html.replace('h1>', 'h3>')
                     frame_html = re.sub(r'href="(\d+)/(\d+)"', r'href="#obs-tn-\1-\2"', frame_html)
@@ -403,8 +419,17 @@ class TnConverter(object):
                         soup = BeautifulSoup(frame_html, 'html.parser')
                         headers = soup.find_all('h3')
                         for header in headers:
-                            if len(header.text) <= 60:
-                                text = text.replace(header.text, '<b>{0}</b>'.format(header.text))
+                            parts = re.split(r"\s*…\s*|\s*\.\.\.\s*", header.text)
+                            for part in parts:
+                                text_to_highlight.append(part)
+                        text_to_highlight.sort(lambda x,y: cmp(len(y), len(x)))
+                        for header in text_to_highlight:
+                            if len(header) <= 60:
+                                text = text.replace(header, '<b>{0}</b>'.format(header))
+                                if header not in orig_text:
+                                    if header not in self.bad_text:
+                                        self.bad_text[header] = []
+                                    self.bad_text[header].append('{0}-{1}'.format(chapter, frame))
                     content += '<div id="{0}-text" class="frame-text">\n{1}\n</div>\n'.format(id, text)
                     content += frame_html
                     content += '</div>\n\n'
