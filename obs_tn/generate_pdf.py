@@ -166,8 +166,11 @@ class TnConverter(object):
     def save_bad_text(self):
         bad_text = '<!DOCTYPE html><html lang="en-US"><head data-suburl=""><meta charset="utf-8"></head><body><p>BAD TEXT:</p><ul>'
         for text in sorted(self.bad_text.keys()):
-            bad_text += '<li>{0} - not found in {1}</li>'.format(text, ', '.join(self.bad_text[text]))
-        bad_text += "</u></html>"
+            links = []
+            for ref in self.bad_text[text]:
+                links.append('<a href="https://git.door43.org/unfoldingWord/{0}_obs/src/branch/master/content/{1}.md">{2}</a>'.format(self.lang_code, ref.split('-')[0], ref))
+            bad_text += '<li>{0} - not found in {1}</li>'.format(text, ', '.join(links))
+        bad_text += "</u></body></html>"
         save_file = os.path.join(self.output_dir, '{0}_bad_text.html'.format(self.id))
         write_file(save_file, bad_text)
         self.logger.info('BAD TEXT file can be found at {0}'.format(save_file))
