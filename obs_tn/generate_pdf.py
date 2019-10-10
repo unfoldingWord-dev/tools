@@ -438,17 +438,23 @@ class TnConverter(object):
             fix = None
             if not os.path.isfile(file_path):
                 if resource == 'tw':
-                    if path.startswith('bible/other/'):
-                        path2 = re.sub(r'^bible/other/', r'bible/kt/', path)
-                    else:
-                        path2 = re.sub(r'^bible/kt/', r'bible/other/', path)
-                    fix = 'rc://*/tw/dict/{0}'.format(path2)
-                    anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
-                    link = '#{0}'.format(anchor_id)
-                    file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
-                                                '{0}.md'.format(path2))
+                    for category in ['kt', 'other', 'names']:
+                        path2 = re.sub(r'^bible/([^/]+)/', r'bible/{0}/'.format(category), path.lower())
+                        fix = 'rc://*/tw/dict/{0}'.format(path2)
+                        anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
+                        link = '#{0}'.format(anchor_id)
+                        file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
+                                                 '{0}.md'.format(path2))
+                        if os.path.isfile(file_path):
+                            break
                 elif resource == 'ta':
-                    path2 = path
+                    bad_names = {
+                        'figs-abstractnoun': 'translate/figs-abstractnouns'
+                    }
+                    if parts[3] in bad_names:
+                        path2 = bad_names[parts[3]]
+                    else:
+                        path2 = path
                     fix = 'rc://*/ta/man/{0}'.format(path2)
                     anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
                     link = '#{0}'.format(anchor_id)
@@ -546,8 +552,8 @@ class TnConverter(object):
 
     def replace_rc_links(self, text):
         # Change rc://... rc links, 
-        # 1st: [[rc://en/tw/help/bible/kt/word]] => <a href="#tw-kt-word">God's Word</a>
-        # 2nd: rc://en/tw/help/bible/kt/word => #tw-kt-word (used in links that are already formed)
+        # 1st: [[rc://*/tw/help/bible/kt/word]] => <a href="#tw-kt-word">God's Word</a>
+        # 2nd: rc://*/tw/help/bible/kt/word => #tw-kt-word (used in links that are already formed)
         for rc, info in self.resource_data.iteritems():
             parts = rc[5:].split('/')
             tail = '/'.join(parts[1:])
