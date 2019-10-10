@@ -369,7 +369,8 @@ class TnConverter(object):
                         soup = BeautifulSoup(frame_html, 'html.parser')
                         headers = soup.find_all('h3')
                         for header in headers:
-                            text = text.replace(header.text, '<b>{0}</b>'.format(header.text))
+                            if len(header.text) <= 30:
+                                text = text.replace(header.text, '<b>{0}</b>'.format(header.text))
                     content += '<div id="{0}-text" class="frame-text">\n{1}\n</div>\n'.format(id, text)
                     content += frame_html
                     content += '</div>\n\n'
