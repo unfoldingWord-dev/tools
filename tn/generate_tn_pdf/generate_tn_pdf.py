@@ -245,11 +245,10 @@ class TnConverter(object):
             self.logger.debug('finished.')
 
     def populate_chunks_text(self):
-        save_dir = os.path.join(self.working_dir, 'chunks_text')
+        save_dir = os.path.join(self.output_dir, '{0}_tn_chunks_text'.format(self.lang_code))
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         save_file = os.path.join(save_dir, '{0}.json'.format(self.book_id))
-
         if os.path.isfile(save_file):
             self.chunks_text = load_json_object(save_file)
             return
@@ -288,33 +287,33 @@ class TnConverter(object):
             return ''
 
     def save_resource_data(self):
-        save_dir = os.path.join(self.working_dir, 'resource_data')
+        save_dir = os.path.join(self.output_dir, '{0}_tn_resource_data'.format(self.lang_code))
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        save_file = os.path.join(save_dir, '{0}.json'.format(self.book_id))
+        save_file = os.path.join(save_dir, '{0}_tn.json'.format(self.lang_code))
         write_file(save_file, self.resource_data)
-        save_file = os.path.join(save_dir, '{0}_references.json'.format(self.book_id))
+        save_file = os.path.join(save_dir, '{0}_tn_references.json'.format(self.lang_code))
         write_file(save_file, self.rc_references)
-        save_file = os.path.join(save_dir, 'bad_links.json')
+        save_file = os.path.join(save_dir, '{0}_tn_bad_links.json'.format(self.lang_code))
         write_file(save_file, self.bad_links)
 
     def load_bad_links(self):
-        save_dir = os.path.join(self.working_dir, 'resource_data')
-        save_file = os.path.join(save_dir, 'bad_links.json')
+        save_dir = os.path.join(self.output_dir, '{0}_tn_resource_data'.format(self.lang_code))
+        save_file = os.path.join(save_dir, '{0}_tn_bad_links.json'.format(self.lang_code))
         if os.path.isfile(save_file):
             self.bad_links = load_json_object(save_file)
 
     def load_resource_data(self):
-        save_dir = os.path.join(self.working_dir, 'resource_data')
+        save_dir = os.path.join(self.output_dir, '{0}_tn_resource_data')
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        save_file = os.path.join(save_dir, '{0}.json'.format(self.book_id))
+        save_file = os.path.join(save_dir, '{0}_tn.json'.format(self.lang_code))
         if os.path.isfile(save_file):
             self.resource_data = load_json_object(save_file)
-        save_file = os.path.join(save_dir, '{0}_references.json'.format(self.book_id))
+        save_file = os.path.join(save_dir, '{0}_tn_references.json'.format(self.lang_code))
         if os.path.isfile(save_file):
             self.rc_references = load_json_object(save_file)
-
+            
     def generate_body_html(self):
         self.load_resource_data()
         tn_html = self.get_tn_html()

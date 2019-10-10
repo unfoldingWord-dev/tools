@@ -68,7 +68,7 @@ class TnConverter(object):
         self.logger.addHandler(ch)
 
         if not self.working_dir:
-            self.working_dir = tempfile.mkdtemp(prefix='tn-')
+            self.working_dir = tempfile.mkdtemp(prefix='obs-tn-')
         if not self.output_dir:
             self.output_dir = self.working_dir
 
@@ -88,7 +88,7 @@ class TnConverter(object):
         self.ta_text = ''
         self.rc_references = {}
         self.resource_data = {}
-        self.tn_content = {}
+        self.tn_content = ''
         self.tw_words_data = {}
         self.bad_links = {}
         self.version = None
@@ -111,8 +111,10 @@ class TnConverter(object):
         self.logger.info('Creating OBS tN')
         if not os.path.isdir(self.html_dir):
            os.makedirs(self.html_dir)
-        if not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
+        if True or not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
+           self.load_resource_data()
            self.generate_tn_content()
+           self.save_resource_data()
            self.logger.info("Generating Body HTML...")
            self.generate_body_html()
            self.logger.info("Generating Cover HTML...")
@@ -125,7 +127,7 @@ class TnConverter(object):
            self.logger.info("Copying style sheet file...")
            style_file = os.path.join(self.my_path, 'style.css')
            shutil.copy2(style_file, self.html_dir)
-        if not os.path.exists(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))):
+        if True or not os.path.exists(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))):
            self.logger.info("Generating PDF {0}...".format(self.pdf_dir, '{0}.pdf'.format(self.filename_base)))
            self.generate_tn_pdf()
         self.show_bad_links()
@@ -192,37 +194,35 @@ class TnConverter(object):
             return ''
 
     def save_resource_data(self):
-        save_dir = os.path.join(self.working_dir, 'resource_data')
+        save_dir = os.path.join(self.output_dir, '{0}_obs-tn_resource_data'.format(self.lang_code))
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        save_file = os.path.join(save_dir, 'obs_tn.json')
+        save_file = os.path.join(save_dir, '{0}_obs-tn.json'.format(self.lang_code))
         write_file(save_file, self.resource_data)
-        save_file = os.path.join(save_dir, 'obs_tn_references.json')
+        save_file = os.path.join(save_dir, '{0}_obs-tn_references.json'.format(self.lang_code))
         write_file(save_file, self.rc_references)
-        save_file = os.path.join(save_dir, 'bad_links.json')
+        save_file = os.path.join(save_dir, '{0}_obs-tn_bad_links.json'.format(self.lang_code))
         write_file(save_file, self.bad_links)
 
     def load_bad_links(self):
-        save_dir = os.path.join(self.working_dir, 'resource_data')
-        save_file = os.path.join(save_dir, 'bad_links.json')
+        save_dir = os.path.join(self.output_dir, '{0}_obs-tn_resource_data'.format(self.lang_code))
+        save_file = os.path.join(save_dir, '{0}_obs-tn_bad_links.json'.format(self.lang_code))
         if os.path.isfile(save_file):
             self.bad_links = load_json_object(save_file)
 
     def load_resource_data(self):
-        save_dir = os.path.join(self.working_dir, 'resource_data')
+        save_dir = os.path.join(self.output_dir, '{0}_obs-tn_resource_data')
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        save_file = os.path.join(save_dir, 'obs_tn.json')
+        save_file = os.path.join(save_dir, '{0}_obs-tn.json'.format(self.lang_code))
         if os.path.isfile(save_file):
             self.resource_data = load_json_object(save_file)
-        save_file = os.path.join(save_dir, 'obs_tn_references.json')
+        save_file = os.path.join(save_dir, '{0}_obs-tn_references.json'.format(self.lang_code))
         if os.path.isfile(save_file):
             self.rc_references = load_json_object(save_file)
 
     def generate_body_html(self):
-        self.load_resource_data()
         tn_html = self.tn_content
-        self.save_resource_data()
         ta_html = self.get_ta_html()
         tw_html = self.get_tw_html()
         contributors_html = self.get_contributors_html()
@@ -365,7 +365,7 @@ class TnConverter(object):
                     self.get_resource_data_from_rc_links(frame_html, rc)
                 content += '</div>\n\n'
         self.tn_content = content
-        write_file(os.path.join(self.output_dir, 'tn_content_orig.html'), BeautifulSoup(content, 'html.parser').prettify())
+        write_file(os.path.join(self.html_dir, '{0}_obs-tn_tn_content.html'.format(self.lang_code)), BeautifulSoup(content, 'html.parser').prettify())
 
     def get_tw_html(self):
         tw_html = '<div id="tw" class="resource-title-page">\n<h1 class="section-header">Translation Words</h1>\n</div>\n\n'
@@ -404,7 +404,7 @@ class TnConverter(object):
         for reference in self.rc_references[rc]:
             if '/tn/' in reference and reference not in done:
                 parts = reference[5:].split('/')
-                id = 'tn-{0}-{1}'.format(parts[4], parts[5])
+                id = 'obs-tn-{0}-{1}'.format(parts[4], parts[5])
                 text = '{0}:{1}'.format(parts[4].lstrip('0'), parts[5].lstrip('0'))
                 references.append('<a href="#{0}">{1}</a>'.format(id, text))
                 done[reference] = True
@@ -413,7 +413,8 @@ class TnConverter(object):
         return uses
 
     def get_resource_data_from_rc_links(self, text, source_rc):
-        for rc in re.findall(r'rc://[A-Z0-9/_\*-]+', text, flags=re.IGNORECASE | re.MULTILINE):
+        rcs = re.findall(r'rc://[A-Z0-9/_\*-]+', text, flags=re.IGNORECASE | re.MULTILINE)
+        for rc in rcs:
             parts = rc[5:].split('/')
             rc = 'rc://*/{0}'.format('/'.join(parts[1:]))
             resource = parts[1]
@@ -606,7 +607,7 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--lang', dest='lang_code', default='en', required=False, help="Language Code")
     parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help="Working Directory")
     parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False, help="Output Directory")
-    parser.add_argument('--obs-tn-tag', dest='tn', default='v6', required=False, help="OBS tN Tag")
+    parser.add_argument('--obs-tn-tag', dest='obs_tn', default='v6', required=False, help="OBS tN Tag")
     parser.add_argument('--obs-tag', dest='obs', required=False, help="OBS Tag")
     parser.add_argument('--ta-tag', dest='ta', default='v10', required=False, help="tA Tag")
     parser.add_argument('--tw-tag', dest='tw', default='v10', required=False, help="tW Tag")
@@ -614,5 +615,5 @@ if __name__ == '__main__':
     args = parser.parse_args(sys.argv[1:])
     obs = args.obs
     if not obs:
-      obs = args.tn
-    main(args.tn, obs, args.tw, args.ta, args.lang_code, args.working_dir, args.output_dir)
+      obs = args.obs_tn
+    main(args.obs_tn, obs, args.tw, args.ta, args.lang_code, args.working_dir, args.output_dir)
