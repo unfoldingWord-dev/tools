@@ -391,7 +391,8 @@ class TnConverter(object):
         ignore = ['A Bible story from', 'Connecting Statement', 'Connecting Statement:',
                   'General Information', 'General Note', 'Information générale',
                   'Termes Importants', 'Une histoire biblique tirée de', 'Une histoire de la Bible tirée de',
-                  'Une histoire de la Bible à partir', 'Une histoire de la Bible à partir de']
+                  'Une histoire de la Bible à partir', 'Une histoire de la Bible à partir de',
+                  'Mots de Traduction']
         content = ''
         chapter_dirs = sorted(glob(os.path.join(self.tn_dir, 'content', '*')))
         for chapter_dir in chapter_dirs:
