@@ -171,7 +171,7 @@ class TnConverter(object):
         g.checkout(self.tn_tag)
         g.pull()
         self.hash = g.rev_parse(self.tn_tag, short=10)
-        self.id = '{0}_{1}_{2}'.format(self.id, self.tn_tag, self.hash)
+        self.id = '{0}_obs-tn_{1}_{2}'.format(self.lang_code, self.tn_tag, self.hash)
         if not os.path.isdir(self.obs_dir):
             git.Git(self.working_dir).clone(self.get_resource_git_url('obs'))
         g = git.Git(self.obs_dir)
