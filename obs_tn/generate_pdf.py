@@ -56,7 +56,6 @@ class TnConverter(object):
         self.lang_code = lang_code
         self.regenerate = regenerate
 
-        self.hash = tn_tag
         self.id = '{0}_obs-tn_{1}'.format(lang_code, tn_tag)
         self.title = 'unfoldingWord® Open Bible Stories Translation Notes'
         self.logger = logging.getLogger()
@@ -73,47 +72,49 @@ class TnConverter(object):
         if not self.output_dir:
             self.output_dir = self.working_dir
 
-        self.logger.debug('WORKING DIR IS {0}'.format(self.working_dir))
+        self.logger.info('WORKING DIR IS {0}'.format(self.working_dir))
         self.tn_dir = os.path.join(self.working_dir, '{0}_obs-tn'.format(lang_code))
         self.obs_dir = os.path.join(self.working_dir, '{0}_obs'.format(lang_code))
         self.tw_dir = os.path.join(self.working_dir, '{0}_tw'.format(lang_code))
         self.ta_dir = os.path.join(self.working_dir, '{0}_ta'.format(lang_code))
-        self.setup_resource_files()
 
-        self.html_dir = os.path.join(self.output_dir, '{0}_html'.format(self.id))
-
+        self.html_dir = None
         self.manifest = None
         self.tn_text = ''
         self.tw_text = ''
         self.ta_text = ''
-        self.rc_references = {}
-        self.resource_data = {}
-        self.tn_content = ''
-        self.tw_words_data = {}
         self.bad_links = {}
+        self.resource_data = {}
+        self.rc_references = {}
+        self.tn_content = ''
         self.version = None
         self.publisher = None
         self.contributors = None
         self.issued = None
         self.filename_base = None
         self.my_path = os.path.dirname(os.path.realpath(__file__))
+        self.generation_info = {}
 
     def run(self):
+        self.load_resource_data()
+        self.setup_resource_files()
+        self.determine_if_regeneration_needed()
+        self.html_dir = os.path.join(self.output_dir, '{0}_html'.format(self.id))
         self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
         self.version = self.manifest['dublin_core']['version']
         self.title = self.manifest['dublin_core']['title']
         self.contributors = '; '.join(self.manifest['dublin_core']['contributor'])
         self.publisher = self.manifest['dublin_core']['publisher']
         self.issued = self.manifest['dublin_core']['issued']
-        self.load_bad_links()
         self.filename_base = self.id
-        self.logger.info('Creating OBS tN')
         if self.regenerate or not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
+            self.logger.info('Creating OBS tN HTML files')
             if not os.path.isdir(self.html_dir):
                 os.makedirs(self.html_dir)
-            self.load_resource_data()
+            self.bad_links = {}
+            self.resource_data = {}
+            self.rc_references = {}
             self.generate_tn_content()
-            self.save_resource_data()
             self.logger.info("Generating Body HTML...")
             self.generate_body_html()
             self.logger.info("Generating Cover HTML...")
@@ -129,7 +130,10 @@ class TnConverter(object):
         if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.pdf'.format(self.filename_base))):
             self.logger.info("Generating PDF {0}...".format(self.output_dir, '{0}.pdf'.format(self.filename_base)))
             self.generate_tn_pdf()
-        _print('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.filename_base))
+        else:
+            self.logger.info("No PDF generation needed.")
+        self.save_resource_data()
+        self.logger.info('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.filename_base))
         self.save_bad_links()
 
     def save_bad_links(self):
@@ -155,7 +159,7 @@ class TnConverter(object):
                 bad_links += "{0}\n".format(str)
         save_file = os.path.join(self.output_dir, '{0}_bad_links.txt'.format(self.id))
         write_file(save_file, bad_links)
-        _print('BAD LINKS file can be found at {0}'.format(save_file))
+        self.logger.info('BAD LINKS file can be found at {0}'.format(save_file))
 
     def get_resource_git_url(self, resource):
         return 'https://git.door43.org/unfoldingWord/{0}_{1}.git'.format(self.lang_code, resource)
@@ -167,42 +171,59 @@ class TnConverter(object):
         g.checkout(self.tn_tag)
         if self.tn_tag == 'master':
             g.pull()
-        self.hash = g.rev_parse(self.tn_tag, short=10)
-        self.id = '{0}_obs-tn_{1}_{2}'.format(self.lang_code, self.tn_tag, self.hash)
+        commit = g.rev_parse(self.tn_tag, short=10)
+
+        self.generation_info['tn'] = {'tag': self.tn_tag, 'commit': commit}
+        self.id = '{0}_obs-tn_{1}_{2}'.format(self.lang_code, self.tn_tag, commit)
+
         if not os.path.isdir(self.obs_dir):
             git.Git(self.working_dir).clone(self.get_resource_git_url('obs'))
         g = git.Git(self.obs_dir)
         g.checkout(self.obs_tag)
         if self.obs_tag == 'master':
             g.pull()
+        commit = g.rev_parse(self.obs_tag, short=10)
+        self.generation_info['obs'] = {'tag': self.obs_tag, 'commit': commit}
+
         if not os.path.isdir(self.tw_dir):
             git.Git(self.working_dir).clone(self.get_resource_git_url('tw'))
         g = git.Git(self.tw_dir)
         g.checkout(self.tw_tag)
         if self.tw_tag == 'master':
             g.pull()
+        commit = g.rev_parse(self.tw_tag, short=10)
+        self.generation_info['tw'] = {'tag': self.tw_tag, 'commit': commit}
+
         if not os.path.isdir(self.ta_dir):
             git.Git(self.working_dir).clone(self.get_resource_git_url('ta'))
         g = git.Git(self.ta_dir)
         g.checkout(self.ta_tag)
         if self.ta_tag == 'master':
             g.pull()
+        commit = g.rev_parse(self.ta_tag, short=10)
+        self.generation_info['ta'] = {'tag': self.ta_tag, 'commit': commit}
+
         if not os.path.isfile(os.path.join(self.working_dir, 'icon-obs-tn.png')):
             command = 'curl -o {0}/icon-obs-tn.png https://cdn.door43.org/assets/uw-icons/logo-obs-256.png'.format(self.working_dir)
             subprocess.call(command, shell=True)
 
-    def extract_files_from_url(self, url):
-        zip_file = os.path.join(self.working_dir, url.rpartition('/')[2])
-        try:
-            self.logger.debug('Downloading {0}...'.format(url))
-            download_file(url, zip_file)
-        finally:
-            self.logger.debug('finished.')
-        try:
-            self.logger.debug('Unzipping {0}...'.format(zip_file))
-            unzip(zip_file, self.working_dir)
-        finally:
-            self.logger.debug('finished.')
+    def determine_if_regeneration_needed(self):
+        # check if any commit hashes have changed
+        if not self.regenerate:
+            old_info = self.get_previous_generation_info()
+            if not old_info:
+                self.logger.info('Looks like this is a new commit of {0}. Generating PDF.'.format(self.id))
+                self.regenerate = True
+            else:
+                for resource in self.generation_info:
+                    if not old_info or resource not in old_info \
+                            or old_info[resource]['tag'] != self.generation_info[resource]['tag'] \
+                            or old_info[resource]['commit'] != self.generation_info[resource]['commit']:
+                        self.logger.info('Resource {0} has changed: {1} => {2}, {3} => {4}. REGENERATING PDF.'.format(
+                            resource, old_info[resource]['tag'], self.generation_info[resource]['tag'],
+                            old_info[resource]['commit'], self.generation_info[resource]['commit']
+                        ))
+                        self.regenerate = True
 
     def get_contributors_html(self):
         if self.contributors and len(self.contributors):
@@ -220,23 +241,33 @@ class TnConverter(object):
         write_file(save_file, self.rc_references)
         save_file = os.path.join(save_dir, '{0}_bad_links.json'.format(self.id))
         write_file(save_file, self.bad_links)
+        save_file = os.path.join(save_dir, '{0}_info.json'.format(self.id))
+        write_file(save_file, self.generation_info)
 
-    def load_bad_links(self):
+    def get_previous_generation_info(self):
         save_dir = os.path.join(self.output_dir, '{0}_resource_data'.format(self.id))
-        save_file = os.path.join(save_dir, '{0}_bad_links.json'.format(self.id))
+        save_file = os.path.join(save_dir, '{0}_info.json'.format(self.id))
         if os.path.isfile(save_file):
-            self.bad_links = load_json_object(save_file)
+            return load_json_object(save_file)
+        else:
+            return {}
 
     def load_resource_data(self):
         save_dir = os.path.join(self.output_dir, '{0}_resource_data'.format(self.id))
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
+
         save_file = os.path.join(save_dir, '{0}.json'.format(self.id))
         if os.path.isfile(save_file):
             self.resource_data = load_json_object(save_file)
+
         save_file = os.path.join(save_dir, '{0}_references.json'.format(self.id))
         if os.path.isfile(save_file):
             self.rc_references = load_json_object(save_file)
+
+        save_file = os.path.join(save_dir, '{0}_bad_links.json'.format(self.id))
+        if os.path.isfile(save_file):
+            self.bad_links = load_json_object(save_file)
 
     def generate_body_html(self):
         tn_html = self.tn_content
