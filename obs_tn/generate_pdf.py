@@ -388,6 +388,10 @@ class TnConverter(object):
         subprocess.call(command, shell=True)
 
     def generate_tn_content(self):
+        ignore = ['A Bible story from', 'Connecting Statement', 'Connecting Statement:',
+                  'General Information', 'General Note', 'Information générale',
+                  'Termes Importants', 'Une histoire biblique tirée de', 'Une histoire de la Bible tirée de',
+                  'Une histoire de la Bible à partir', 'Une histoire de la Bible à partir de']
         content = ''
         chapter_dirs = sorted(glob(os.path.join(self.tn_dir, 'content', '*')))
         for chapter_dir in chapter_dirs:
@@ -424,7 +428,8 @@ class TnConverter(object):
                         for header in headers:
                             parts = re.split(r"\s*…\s*|\s*\.\.\.\s*", header.text)
                             for part in parts:
-                                text_to_highlight.append(part.strip())
+                                if part.strip() not in ignore:
+                                    text_to_highlight.append(part.strip())
                         text_to_highlight.sort(lambda x,y: cmp(len(y), len(x)))
                         for header in text_to_highlight:
                             if len(header) <= 60:
@@ -439,13 +444,7 @@ class TnConverter(object):
                                         text = text.replace(alt, '<b>{0}</b>'.format(alt))
                                         found = True
                                         break
-                                ignore = ['A Bible story from', 'Connecting Statement', 'Connecting Statement:',
-                                          'General Information', 'General Note', 'Information générale',
-                                          'Termes Importants', 'Une histoire biblique tirée de',
-                                          'Une histoire de la Bible tirée de',
-                                          'Une histoire de la Bible à partir',
-                                          'Une histoire de la Bible à partir de']
-                                if not found and header not in ignore:
+                                if not found:
                                     if header not in self.bad_text:
                                         self.bad_text[header] = []
                                     self.bad_text[header].append('{0}-{1}'.format(chapter, frame))
