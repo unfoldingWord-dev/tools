@@ -219,42 +219,48 @@ class TnConverter(object):
             git.Git(self.working_dir).clone(self.get_resource_git_url('tn'))
         g = git.Git(self.tn_dir)
         g.checkout(self.tn_tag)
-        g.pull()
+        if self.tn_tag == 'master':
+            g.pull()
         self.hash = g.rev_parse(self.tn_tag, short=10)
         self.id = '{0}_tn_{1}_{2}'.format(self.lang_code, self.tn_tag, self.hash)
         if not os.path.isdir(self.tw_dir):
             git.Git(self.working_dir).clone(self.get_resource_git_url('tw'))
         g = git.Git(self.tw_dir)
         g.checkout(self.tw_tag)
-        g.pull()
+        if self.tw_tag == 'master':
+            g.pull()
         if not os.path.isdir(self.ta_dir):
             git.Git(self.working_dir).clone(self.get_resource_git_url('ta'))
         g = git.Git(self.ta_dir)
         g.checkout(self.ta_tag)
-        g.pull()
+        if self.ta_tag == 'master':
+            g.pull()
         if not os.path.isdir(self.ust_dir):
             git.Git(self.working_dir).clone(self.get_resource_git_url('ust'))
         g = git.Git(self.ust_dir)
         g.checkout(self.ust_tag)
-        g.pull()
+        if self.ust_tag == 'master':
+            g.pull()
         if not os.path.isdir(self.ult_dir):
             git.Git(self.working_dir).clone(self.get_resource_git_url('ult'))
         g = git.Git(self.ult_dir)
         g.checkout(self.ult_tag)
-        g.pull()
+        if self.ult_tag == 'master':
+            g.pull()
         if not os.path.isdir(self.ugnt_dir):
             git.Git(self.working_dir).clone('https://git.door43.org/unfoldingWord/UGNT.git')
         g = git.Git(self.ugnt_dir)
         g.checkout(self.ugnt_tag)
-        g.pull()
-        if not os.path.isfile(os.path.join(self.working_dir, 'icon-tn.png')):
-            command = 'curl -o {0}/icon-tn.png https://cdn.door43.org/assets/uw-icons/logo-utn-256.png'.format(self.working_dir)
-            subprocess.call(command, shell=True)
+        if self.ugnt_tag == 'master':
+            g.pull()
         if not os.path.isdir(self.versification_dir):
             git.Git(self.working_dir).clone('https://git.door43.org/Door43-Catalog/versification.git')
         g = git.Git(self.versification_dir)
         g.checkout('master')
         g.pull()
+        if not os.path.isfile(os.path.join(self.working_dir, 'icon-tn.png')):
+            command = 'curl -o {0}/icon-tn.png https://cdn.door43.org/assets/uw-icons/logo-utn-256.png'.format(self.working_dir)
+            subprocess.call(command, shell=True)
 
     def extract_files_from_url(self, url):
         zip_file = os.path.join(self.working_dir, url.rpartition('/')[2])

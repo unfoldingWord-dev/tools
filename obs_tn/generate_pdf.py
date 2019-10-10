@@ -170,24 +170,28 @@ class TnConverter(object):
             git.Git(self.working_dir).clone(self.get_resource_git_url('obs-tn'))
         g = git.Git(self.tn_dir)
         g.checkout(self.tn_tag)
-        g.pull()
+        if self.tn_tag == 'master':
+            g.pull()
         self.hash = g.rev_parse(self.tn_tag, short=10)
         self.id = '{0}_obs-tn_{1}_{2}'.format(self.lang_code, self.tn_tag, self.hash)
         if not os.path.isdir(self.obs_dir):
             git.Git(self.working_dir).clone(self.get_resource_git_url('obs'))
         g = git.Git(self.obs_dir)
         g.checkout(self.obs_tag)
-        g.pull()
+        if self.obs_tag == 'master':
+            g.pull()
         if not os.path.isdir(self.tw_dir):
             git.Git(self.working_dir).clone(self.get_resource_git_url('tw'))
         g = git.Git(self.tw_dir)
         g.checkout(self.tw_tag)
-        g.pull()
+        if self.tw_tag == 'master':
+            g.pull()
         if not os.path.isdir(self.ta_dir):
             git.Git(self.working_dir).clone(self.get_resource_git_url('ta'))
         g = git.Git(self.ta_dir)
         g.checkout(self.ta_tag)
-        g.pull()
+        if self.ta_tag == 'master':
+            g.pull()
         if not os.path.isfile(os.path.join(self.working_dir, 'icon-obs-tn.png')):
             command = 'curl -o {0}/icon-obs-tn.png https://cdn.door43.org/assets/uw-icons/logo-obs-256.png'.format(self.working_dir)
             subprocess.call(command, shell=True)
