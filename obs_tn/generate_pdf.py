@@ -361,7 +361,7 @@ class TnConverter(object):
                     content += '<h2>{0}-{1}</h2>\n'.format(chapter, frame)
                     text = ''
                     if frame_idx > 0:
-                        text = '<div id="{0}-text" class="frame-text">\n{1}\n</div>\n'.format(id, frames[frame_idx-1])
+                        text = frames[frame_idx-1]
                     frame_html = markdown2.markdown_path(frame_file)
                     frame_html = frame_html.replace('h1>', 'h3>')
                     frame_html = re.sub(r'href="(\d+)/(\d+)"', r'href="#obs-tn-\1-\2"', frame_html)
@@ -370,8 +370,7 @@ class TnConverter(object):
                         headers = soup.find_all('h3')
                         for header in headers:
                             text = text.replace(header.text, '<b>{0}</b>'.format(header.text))
-                        _print(text)
-                        exit(1)
+                    content += '<div id="{0}-text" class="frame-text">\n{1}\n</div>\n'.format(id, text)
                     content += frame_html
                     content += '</div>\n\n'
                     # HANDLE RC LINKS
