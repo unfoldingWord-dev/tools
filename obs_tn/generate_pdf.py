@@ -110,7 +110,7 @@ class TnConverter(object):
         self.publisher = self.manifest['dublin_core']['publisher']
         self.issued = self.manifest['dublin_core']['issued']
         self.load_bad_links()
-        self.filename_base = '{0}'.format(self.id)
+        self.filename_base = self.id
         self.logger.info('Creating OBS tN')
         if not os.path.isdir(self.html_dir):
            os.makedirs(self.html_dir)
@@ -134,8 +134,7 @@ class TnConverter(object):
             self.logger.info("Generating PDF {0}...".format(self.output_dir, '{0}.pdf'.format(self.filename_base)))
             self.generate_tn_pdf()
         self.show_bad_links()
-        _print('PDF file can be found at {0}/{1}_bad_links.txt'.format(self.output_dir, self.id))
-        _print('BAD LINKS file can be found at {0}/{1}.pdf'.format(self.output_dir, self.id))
+        _print('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.filename_base))
 
     def show_bad_links(self):
         bad_links = "BAD LINKS:\n"
@@ -161,6 +160,7 @@ class TnConverter(object):
         save_file = os.path.join(self.output_dir, '{0}_bad_links.txt'.format(self.id))
         write_file(save_file, bad_links)
         _print(bad_links)
+        _print('BAD LINKS file can be found at {0}'.format(save_file))
 
     def get_resource_git_url(self, resource):
         return 'https://git.door43.org/unfoldingWord/{0}_{1}.git'.format(self.lang_code, resource)
