@@ -435,9 +435,7 @@ class TnConverter(object):
                             found = False
                             alts = [header,
                                     header.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
-                                    header.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“',
-                                                                                                            1),
-                                    header.replace("'", '’').replace('"', '“'),
+                                    header.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
                                     header.replace('“', '"').replace('”', '"'),
                                     header.replace('"', '”').replace('”', '“', 1),
                                     header.replace("'", '’').replace('’', '‘', 1),
