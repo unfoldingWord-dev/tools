@@ -164,11 +164,11 @@ class TnConverter(object):
         self.logger.info('BAD LINKS file can be found at {0}'.format(save_file))
 
     def save_bad_text(self):
-        bad_text = '<!DOCTYPE html><html lang="en-US"><head data-suburl=""><meta charset="utf-8"><link rel=”stylesheet” href=”https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css”></head><body><p>BAD NOTE TEXT:</p><ul>'
+        bad_text = '<!DOCTYPE html><html lang="en-US"><head data-suburl=""><meta charset="utf-8"></head><body><p>BAD NOTE TEXT:</p><ul>'
         for text in sorted(self.bad_text.keys()):
             links = []
             for ref in self.bad_text[text]:
-                links.append('<a href="https://git.door43.org/unfoldingWord/{0}_obs-tn/src/branch/master/content/{1}/{2}.md">{3}<i class=”fa fa-sticky-note” aria-hidden=”true”></a><a href="https://git.door43.org/unfoldingWord/{0}_obs/src/branch/master/content/{1}.md"><i class=”fa fa-images” aria-hidden=”true”></a>'.format(self.lang_code, ref.split('-')[0], ref.split('-')[1], ref))
+                links.append('<a href="https://git.door43.org/unfoldingWord/{0}_obs-tn/src/branch/master/content/{1}/{2}.md">{3}</a><a href="https://git.door43.org/unfoldingWord/{0}_obs/src/branch/master/content/{1}.md" style="text-decoration:none"><img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-128.png" width="12"></a>'.format(self.lang_code, ref.split('-')[0], ref.split('-')[1], ref))
             bad_text += '<li>{0} - not found in {1}</li>'.format(text, ', '.join(links))
         bad_text += "</u></body></html>"
         save_file = os.path.join(self.output_dir, '{0}_bad_text.html'.format(self.id))
