@@ -130,7 +130,7 @@ class TnConverter(object):
             self.logger.info("Copying style sheet file...")
             style_file = os.path.join(self.my_path, 'style.css')
             shutil.copy2(style_file, self.html_dir)
-        if not os.path.exists(os.path.join(self.working_dir, '{0}.pdf'.format(self.filename_base))):
+        if not os.path.exists(os.path.join(self.output_dir, '{0}.pdf'.format(self.filename_base))):
             self.logger.info("Generating PDF {0}...".format(self.output_dir, '{0}.pdf'.format(self.filename_base)))
             self.generate_tn_pdf()
         self.show_bad_links()
@@ -318,7 +318,7 @@ class TnConverter(object):
         license_file = os.path.join(self.html_dir, 'license.html')
         header_file = os.path.join(self.html_dir, 'header.html')
         body_file = os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))
-        output_file = os.path.join(self.working_dir, '{0}.pdf'.format(self.filename_base))
+        output_file = os.path.join(self.output_dir, '{0}.pdf'.format(self.filename_base))
         template_file = os.path.join(self.my_path, 'toc_template.xsl')
         command = '''wkhtmltopdf 
                         --javascript-delay 2000 
