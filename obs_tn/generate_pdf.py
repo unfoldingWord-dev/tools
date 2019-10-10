@@ -169,7 +169,7 @@ class TnConverter(object):
             links = []
             for ref in self.bad_text[text]:
                 links.append('<a href="{0}_html/{0}.html#obs-tn-{1}" target="obs-tn-html">{1}</a><a href="https://git.door43.org/unfoldingWord/{2}_obs-tn/src/branch/master/content/{3}/{4}.md" style="text-decoration:none" target="obs-tn-git"><img src="http://www.myiconfinder.com/uploads/iconsets/16-16-65222a067a7152473c9cc51c05b85695-note.png"></a><a href="https://git.door43.org/unfoldingWord/{2}_obs/src/branch/master/content/{3}.md" style="text-decoration:none" target="obs-git"><img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-16.png"></a>'.format(self.id, ref, self.lang_code, ref.split('-')[0], ref.split('-')[1]))
-            bad_text += "<li>{0} - not found in<br/>\n{1}\n</li>\n"".format(text, ', '.join(links))
+            bad_text += "<li>{0} --- not found in:<br/>\n{1}\n</li>\n"".format(text, ', '.join(links))
         bad_text += "</u></body></html>"
         save_file = os.path.join(self.output_dir, '{0}_bad_text.html'.format(self.id))
         write_file(save_file, bad_text)
