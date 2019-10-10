@@ -369,7 +369,7 @@ class TnConverter(object):
                         soup = BeautifulSoup(frame_html, 'html.parser')
                         headers = soup.find_all('h3')
                         for header in headers:
-                            if len(header.text) <= 30:
+                            if len(header.text) <= 50:
                                 text = text.replace(header.text, '<b>{0}</b>'.format(header.text))
                     content += '<div id="{0}-text" class="frame-text">\n{1}\n</div>\n'.format(id, text)
                     content += frame_html
@@ -388,7 +388,7 @@ class TnConverter(object):
         write_file(os.path.join(self.html_dir, '{0}_tn_content.html'.format(self.id)), BeautifulSoup(content, 'html.parser').prettify())
 
     def get_tw_html(self):
-        tw_html = '<div id="tw" class="resource-title-page">\n<h1 class="section-header">Translation Words</h1>\n</div>\n\n'
+        tw_html = ''
         sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
         for rc in sorted_rcs:
             if '/tw/' not in rc:
@@ -402,6 +402,8 @@ class TnConverter(object):
             else:
                 html = '<h2 class="section-header">{0}</h2>\n{1}{2}'.format(title, self.get_reference_text(rc), html)
             tw_html += '<div id="{0}" class="article">\n{1}\n</div>\n\n'.format(self.resource_data[rc]['id'], html)
+        if tw_html:
+            tw_html = '<div id="tw" class="resource-title-page">\n<h1 class="section-header">Translation Words</h1>\n</div>\n\n' + tw_html
         return tw_html
 
     def get_ta_html(self):
