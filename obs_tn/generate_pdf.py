@@ -168,7 +168,7 @@ class TnConverter(object):
         for text in sorted(self.bad_text.keys()):
             links = []
             for ref in self.bad_text[text]:
-                links.append('<a href="{0}_html/{0}.html#obs-tn-{1}" target="_new">{1}</a><a href="https://git.door43.org/unfoldingWord/{2}_obs/src/branch/master/content/{3}.md" style="text-decoration:none" target="_new"><img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-128.png" width="12"></a>'.format(self.id, ref, self.lang_code, ref.split('-')[0]))
+                links.append('<a href="{0}_html/{0}.html#obs-tn-{1}" target="obs-tn-html">{1}</a><a href="https://git.door43.org/unfoldingWord/{2}_obs/src/branch/master/content/{3}.md" style="text-decoration:none" target="_new"><img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-128.png" width="12"></a>'.format(self.id, ref, self.lang_code, ref.split('-')[0]))
             bad_text += '<li>{0} - not found in {1}</li>'.format(text, ', '.join(links))
         bad_text += "</u></body></html>"
         save_file = os.path.join(self.output_dir, '{0}_bad_text.html'.format(self.id))
