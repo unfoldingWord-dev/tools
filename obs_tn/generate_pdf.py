@@ -430,8 +430,9 @@ class TnConverter(object):
                             if len(header) <= 60:
                                 found = False
                                 alts = [header, header.replace("'", '’').replace('"', '“'),
-                                        header.replace('’', "'").replace('“', '"'),
+                                        header.replace('’', "'").replace('“', '"').replace('”', '"'),
                                         header.replace('“', '"'), header.replace('"', '“'),
+                                        header.replace('”', '"'), header.replace('"', '”'),
                                         header.replace('’', "'"), header.replace("'", '’')]
                                 for alt in alts:
                                     if alt in orig_text:
