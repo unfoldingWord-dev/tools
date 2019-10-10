@@ -301,6 +301,8 @@ class TnConverter(object):
                         if resource != 'ust' or verse in self.verse_usfm[resource][chapter]:
                             versesInChunk.append(self.verse_usfm[resource][chapter][verse])
                     chunk_usfm = '\n'.join(versesInChunk)
+                    if not chunks_text[str(chapter)][str(first_verse)][resource]:
+                        chunks_text[str(chapter)][str(first_verse)][resource] = {}
                     chunks_text[str(chapter)][str(first_verse)][resource] = {
                         'usfm': chunk_usfm,
                         'html': self.get_chunk_html(chunk_usfm, resource, chapter, first_verse)
