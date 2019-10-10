@@ -164,7 +164,7 @@ class TnConverter(object):
         self.logger.info('BAD LINKS file can be found at {0}'.format(save_file))
 
     def save_bad_text(self):
-        bad_text = '<!DOCTYPE html><html lang="en-US"><head data-suburl=""><meta charset="utf-8"></head><body><p>BAD TEXT:</p><ul>'
+        bad_text = '<!DOCTYPE html><html lang="en-US"><head data-suburl=""><meta charset="utf-8"></head><body><p>BAD NOTE TEXT:</p><ul>'
         for text in sorted(self.bad_text.keys()):
             links = []
             for ref in self.bad_text[text]:
@@ -173,7 +173,7 @@ class TnConverter(object):
         bad_text += "</u></body></html>"
         save_file = os.path.join(self.output_dir, '{0}_bad_text.html'.format(self.id))
         write_file(save_file, bad_text)
-        self.logger.info('BAD TEXT file can be found at {0}'.format(save_file))
+        self.logger.info('BAD NOTE TEXT file can be found at {0}'.format(save_file))
 
     def get_resource_git_url(self, resource):
         return 'https://git.door43.org/unfoldingWord/{0}_{1}.git'.format(self.lang_code, resource)
