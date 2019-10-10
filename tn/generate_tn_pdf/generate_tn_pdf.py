@@ -15,7 +15,6 @@ from __future__ import unicode_literals, print_function
 import os
 import sys
 import re
-import pprint
 import logging
 import argparse
 import tempfile
@@ -299,7 +298,6 @@ class TnConverter(object):
                 for resource in ['ult', 'ust']:
                     versesInChunk = []
                     for verse in range(first_verse, last_verse+1):
-                        print(self.verse_usfm)
                         if resource != 'ust' or verse in self.verse_usfm[resource][chapter]:
                             versesInChunk.append(self.verse_usfm[resource][chapter][verse])
                     chunk_usfm = '\n'.join(versesInChunk)
@@ -498,10 +496,6 @@ class TnConverter(object):
                     self.nextFollowsQuote = True 
             elif obj['type'] == 'section':  
                 obj['text'] = obj['text'].replace('\n', '').strip() if 'text' in obj else ''
-                if len(obj['text']):
-                    print("Section with text: {0}:{1}:".format(chapter, verse))
-                    print(obj)
-                    exit(1)
             elif obj['type'] == 'paragraph':
                 obj['text'] = obj['text'].replace('\n', '').strip() if 'text' in obj else ''
                 if idx == len(verseObjects) - 1 and not obj['text']:
@@ -510,10 +504,6 @@ class TnConverter(object):
                     usfm += '\n\\{0}{1}\n'.format(obj['tag'], obj['text'])
             elif obj['type'] == 'footnote':
                 obj['text'] = obj['text'].replace('\n', '').strip() if 'text' in obj else ''
-                if len(obj['text']):
-                    print("Footnote with text: {0}:{1}:".format(chapter, verse))
-                    print(obj)
-                    exit(1)
                 usfm += ' \{0} {1} \{0}*'.format(obj['tag'], obj['content'])
             else:
                 print("ERROR! Not sure what to do with this in {0}:{1} in {2}: ".format(chapter, verse, chapter_file))
@@ -1136,7 +1126,6 @@ class TnConverter(object):
         return text
 
     def get_chunk_html(self, usfm, resource, chapter, verse):
-        # print("html: {0}-{3}-{1}-{2}".format(resource, chapter, verse, self.book_id))
         path = os.path.join(self.working_dir, 'usfm_chunks', 'usfm-{0}-{1}-{2}-{3}-{4}'.
                                 format(self.lang_code, resource, self.book_id, chapter, verse))
         filename_base = '{0}-{1}-{2}-{3}'.format(resource, self.book_id, chapter, verse)
