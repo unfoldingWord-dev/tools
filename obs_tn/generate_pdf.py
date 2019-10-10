@@ -351,6 +351,7 @@ class TnConverter(object):
                         content += '<div id="{0}-text" class="frame-text">\n{1}\n</div>\n'.format(id, frames[frame_idx-1])
                     frame_html = markdown2.markdown_path(frame_file)
                     frame_html = frame_html.replace('h1>', 'h3>')
+                    frame_html = re.sub(r'href="(\d+)/(\d+)"', r'href="#obs-tn-\1-\2"', frame_html)
                     content += frame_html
                     content += '</div>\n\n'
                     # HANDLE RC LINKS
@@ -363,8 +364,8 @@ class TnConverter(object):
                     }
                     self.get_resource_data_from_rc_links(frame_html, rc)
                 content += '</div>\n\n'
-        self.tn_content = BeautifulSoup(content, 'html.parser').prettify()
-        write_file(os.path.join(self.output_dir, 'tn_content_orig.html'), self.tn_content)
+        self.tn_content = content
+        write_file(os.path.join(self.output_dir, 'tn_content_orig.html'), BeautifulSoup(content, 'html.parser').prettify())
 
     def get_tw_html(self):
         tw_html = '<div id="tw" class="resource-title-page">\n<h1 class="section-header">Translation Words</h1>\n</div>\n\n'
