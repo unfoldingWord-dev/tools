@@ -433,7 +433,7 @@ class TnConverter(object):
                                     text_to_highlight.append(part.strip())
                         text_to_highlight.sort(lambda x,y: cmp(len(y), len(x)))
                         for header in text_to_highlight:
-                            if len(header) <= 60:
+                            if len(header) <= 600:
                                 found = False
                                 alts = [header, header.replace("'", '’').replace('"', '“'),
                                         header.replace('’', "'").replace('“', '"').replace('”', '"'),
