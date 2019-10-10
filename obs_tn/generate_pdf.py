@@ -169,7 +169,7 @@ class TnConverter(object):
             links = []
             for ref in self.bad_text[text]:
                 links.append('<a href="{0}_html/{0}.html#obs-tn-{1}" title="See in the OBS tN Docs (HTML)" target="obs-tn-html">{1}</a><a href="https://git.door43.org/unfoldingWord/{2}_obs-tn/src/branch/master/content/{3}/{4}.md" style="text-decoration:none" target="obs-tn-git"><img src="http://www.myiconfinder.com/uploads/iconsets/16-16-65222a067a7152473c9cc51c05b85695-note.png" title="See OBS UTN note on DCS"></a><a href="https://git.door43.org/unfoldingWord/{2}_obs/src/branch/master/content/{3}.md" style="text-decoration:none" target="obs-git"><img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-16.png" title="See OBS story on DCS"></a>'.format(self.id, ref, self.lang_code, ref.split('-')[0], ref.split('-')[1]))
-            bad_text += "<li>{0} --- not found in:<br/>\n<span style=\"white-space: nowrap\">{1}</span>\n</li>\n".format(text, '</span>, <span style="white-space: nowrap">'.join(links))
+            bad_text += "<li><b><i>{0}</i></b> --- not found in:<br/>\n<span style=\"white-space: nowrap\">{1}</span>\n</li>\n".format(text, '</span>, <span style="white-space: nowrap">'.join(links))
         bad_text += "</u></body></html>"
         save_file = os.path.join(self.output_dir, '{0}_bad_text.html'.format(self.id))
         write_file(save_file, bad_text)
