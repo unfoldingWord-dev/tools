@@ -293,7 +293,7 @@ class TnConverter(object):
         html = '\n'.join([tn_html, tw_html, ta_html, contributors_html])
         html = self.replace_rc_links(html)
         html = self.fix_links(html)
-        html = '<head><title>{0} - v{1}</title></head>\n'.format(self.title, self.version) + html
+        html = '<!DOCTYPE html><html lang="en-US"><head data-suburl=""><meta charset="utf-8"><title>{0} - v{1}</title></head><body>{2}</body></html>\n'.format(self.title, self.version, html)
         soup = BeautifulSoup(html, 'html.parser')
 
         # Make all headers that have a header right before them non-break
