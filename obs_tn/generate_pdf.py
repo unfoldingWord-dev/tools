@@ -428,8 +428,14 @@ class TnConverter(object):
                         text_to_highlight.sort(lambda x,y: cmp(len(y), len(x)))
                         for header in text_to_highlight:
                             if len(header) <= 60:
-                                text = text.replace(header, '<b>{0}</b>'.format(header))
-                                if header not in orig_text:
+                                alts = [header, header.replace('“', '"'), header.replace('"', '“'),
+                                        header.replace('’', "'"), header.replace("'", "’")]
+                                before_replace = text
+                                for alt in alts:
+                                    if alt in orig_text:
+                                        text = text.replace(alt, '<b>{0}</b>'.format(alt))
+                                        break
+                                if before_replace == text:
                                     if header not in self.bad_text:
                                         self.bad_text[header] = []
                                     self.bad_text[header].append('{0}-{1}'.format(chapter, frame))
