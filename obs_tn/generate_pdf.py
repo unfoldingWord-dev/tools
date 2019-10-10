@@ -35,7 +35,8 @@ def print(obj):
 
 class TnConverter(object):
 
-    def __init__(self, tn_tag=None, obs_tag=None, tw_tag=None, ta_tag=None, working_dir=None, output_dir=None, lang_code='en'):
+    def __init__(self, tn_tag=None, obs_tag=None, tw_tag=None, ta_tag=None, working_dir=None, output_dir=None,
+                 lang_code='en', regenerate=False):
         """
         :param tn_tag:
         :param obs_tag:
@@ -44,6 +45,7 @@ class TnConverter(object):
         :param working_dir:
         :param output_dir:
         :param lang_code:
+        :param regenerate:
         """
         self.tn_tag = tn_tag
         self.obs_tag = obs_tag
@@ -52,10 +54,11 @@ class TnConverter(object):
         self.working_dir = working_dir
         self.output_dir = output_dir
         self.lang_code = lang_code
+        self.regenerate = regenerate
+
         self.hash = tn_tag
         self.id = '{0}_obs-tn_{1}'.format(lang_code, tn_tag)
         self.title = 'unfoldingWord® Open Bible Stories Translation Notes'
-
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.DEBUG)
         ch = logging.StreamHandler()
@@ -105,9 +108,9 @@ class TnConverter(object):
         self.load_bad_links()
         self.filename_base = self.id
         self.logger.info('Creating OBS tN')
-        if not os.path.isdir(self.html_dir):
-           os.makedirs(self.html_dir)
-        if not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
+        if self.regenerate or not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
+            if not os.path.isdir(self.html_dir):
+                os.makedirs(self.html_dir)
             self.load_resource_data()
             self.generate_tn_content()
             self.save_resource_data()
@@ -123,7 +126,7 @@ class TnConverter(object):
             self.logger.info("Copying style sheet file...")
             style_file = os.path.join(self.my_path, 'style.css')
             shutil.copy2(style_file, self.html_dir)
-        if not os.path.exists(os.path.join(self.output_dir, '{0}.pdf'.format(self.filename_base))):
+        if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.pdf'.format(self.filename_base))):
             self.logger.info("Generating PDF {0}...".format(self.output_dir, '{0}.pdf'.format(self.filename_base)))
             self.generate_tn_pdf()
         _print('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.filename_base))
@@ -610,7 +613,7 @@ class TnConverter(object):
 
         return text
 
-def main(tn_tag, obs_tag, tw_tag, ta_tag, lang_code, working_dir, output_dir):
+def main(tn_tag, obs_tag, tw_tag, ta_tag, lang_code, working_dir, output_dir, regenerate):
     """
     :param tn_tag:
     :param obs_tag:
@@ -619,9 +622,10 @@ def main(tn_tag, obs_tag, tw_tag, ta_tag, lang_code, working_dir, output_dir):
     :param lang_code:
     :param working_dir:
     :param output_dir:
+    :param regenerate:
     :return:
     """
-    tn_converter = TnConverter(tn_tag, obs_tag, tw_tag, ta_tag, working_dir, output_dir, lang_code)
+    tn_converter = TnConverter(tn_tag, obs_tag, tw_tag, ta_tag, working_dir, output_dir, lang_code, regeberate)
     tn_converter.run()
 
 if __name__ == '__main__':
@@ -634,9 +638,10 @@ if __name__ == '__main__':
     parser.add_argument('--obs-tag', dest='obs', required=False, help="OBS Tag")
     parser.add_argument('--ta-tag', dest='ta', default='v10', required=False, help="tA Tag")
     parser.add_argument('--tw-tag', dest='tw', default='v10', required=False, help="tW Tag")
+    parser.add_argument('-r', '--regenerate', dest='regenerate', action='store_true', help="Regenerate PDF even if exists")
 
     args = parser.parse_args(sys.argv[1:])
     obs = args.obs
     if not obs:
       obs = args.obs_tn
-    main(args.obs_tn, obs, args.tw, args.ta, args.lang_code, args.working_dir, args.output_dir)
+    main(args.obs_tn, obs, args.tw, args.ta, args.lang_code, args.working_dir, args.output_dir, args.regenerate)
