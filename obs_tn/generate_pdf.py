@@ -434,7 +434,9 @@ class TnConverter(object):
                         for header in text_to_highlight:
                             if len(header) <= 600:
                                 found = False
-                                alts = [header, header.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
+                                alts = [header,
+                                        header.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
+                                        header.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
                                         header.replace("'", '’').replace('"', '“'),
                                         header.replace('“', '"'), header.replace('"', '“'),
                                         header.replace('”', '"'), header.replace('"', '”'),
