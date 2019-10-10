@@ -92,13 +92,12 @@ class TnConverter(object):
         self.ust_dir = os.path.join(self.working_dir, '{0}_ust'.format(lang_code))
         self.ult_dir = os.path.join(self.working_dir, '{0}_ult'.format(lang_code))
         self.ugnt_dir = os.path.join(self.working_dir, 'UGNT')
+        self.versification_dir = os.path.join(self.working_dir, 'versification', 'bible', 'ufw', 'chunks')
         self.setup_resource_files()
 
         self.html_dir = os.path.join(self.output_dir, '{0}_html'.format(self.id))
-        self.versification_dir = os.path.join(self.working_dir, 'versification', 'bible', 'ufw', 'chunks')
 
         self.manifest = None
-
         self.book_id = None
         self.book_title = None
         self.book_number = None

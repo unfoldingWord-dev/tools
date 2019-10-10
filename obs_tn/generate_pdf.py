@@ -15,24 +15,18 @@ from __future__ import unicode_literals, print_function
 import os
 import sys
 import re
-import pprint
 import logging
 import argparse
 import tempfile
 import markdown2
 import shutil
 import subprocess
-import csv
-import codecs
 import json
 import git
 from glob import glob
 from bs4 import BeautifulSoup
-from usfm_tools.transform import UsfmTransform
-from StringIO import StringIO
 from ..general_tools.file_utils import write_file, read_file, load_json_object, unzip, load_yaml_object
 from ..general_tools.url_utils import download_file
-from ..general_tools.usfm_utils import usfm3_to_usfm2
 
 _print = print
 
@@ -86,7 +80,6 @@ class TnConverter(object):
         self.html_dir = os.path.join(self.output_dir, '{0}_html'.format(self.id))
 
         self.manifest = None
-
         self.tn_text = ''
         self.tw_text = ''
         self.ta_text = ''
