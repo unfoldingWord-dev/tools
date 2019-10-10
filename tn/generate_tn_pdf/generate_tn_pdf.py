@@ -19,12 +19,13 @@ import pprint
 import logging
 import argparse
 import tempfile
-import markdown
+import markdown2
 import shutil
 import subprocess
 import csv
 import codecs
 import json
+import git
 from glob import glob
 from bs4 import BeautifulSoup
 from usfm_tools.transform import UsfmTransform
@@ -65,6 +66,8 @@ class TnConverter(object):
         self.output_dir = output_dir
         self.lang_code = lang_code
         self.books = books
+        self.hash = tn_tag
+        self.id = '{0}_tn_{1}'.format(lang_code, tn_tag)
 
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.DEBUG)
@@ -81,14 +84,17 @@ class TnConverter(object):
             self.output_dir = self.working_dir
 
         self.logger.debug('TEMP DIR IS {0}'.format(self.working_dir))
+
         self.tn_dir = os.path.join(self.working_dir, '{0}_tn'.format(lang_code))
         self.tw_dir = os.path.join(self.working_dir, '{0}_tw'.format(lang_code))
         self.ta_dir = os.path.join(self.working_dir, '{0}_ta'.format(lang_code))
         self.ust_dir = os.path.join(self.working_dir, '{0}_ust'.format(lang_code))
         self.ult_dir = os.path.join(self.working_dir, '{0}_ult'.format(lang_code))
         self.ugnt_dir = os.path.join(self.working_dir, 'UGNT')
-        self.html_dir = os.path.join(self.output_dir, '{0}_tn_html'.format(self.lang_code))
-        self.pdf_dir = os.path.join(self.output_dir, '{0}_tn_pdf'.format(self.lang_code))
+        self.setup_resource_files()
+
+        self.html_dir = os.path.join(self.output_dir, '{0}_html'.format(self.id))
+        self.pdf_dir = os.path.join(self.output_dir, '{0}_pdf'.format(self.id))
         self.versification_dir = os.path.join(self.working_dir, 'versification', 'bible', 'ufw', 'chunks')
         self.title = 'Translation Notes'
 
@@ -123,7 +129,6 @@ class TnConverter(object):
         self.nextFollowsQuote = False
 
     def run(self):
-        self.setup_resource_files()
         self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
         self.version = self.manifest['dublin_core']['version']
         self.title = self.manifest['dublin_core']['title']
@@ -139,7 +144,7 @@ class TnConverter(object):
             self.book_number = BOOK_NUMBERS[self.book_id]
             if int(self.book_number) < 41:
                 continue
-            self.filename_base = '{0}_tn_{1}-{2}_v{3}'.format(self.lang_code, self.book_number.zfill(2), self.book_id.upper(), self.version)
+            self.filename_base = '{0}_{1}-{2}'.format(self.id, self.book_number.zfill(2), self.book_id.upper())
             self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number, self.book_id))
             if not os.path.isdir(self.html_dir):
                 os.makedirs(self.html_dir)
@@ -206,15 +211,23 @@ class TnConverter(object):
         return 'https://git.door43.org/unfoldingWord/{0}_{1}/archive/{2}.zip'.format(self.lang_code, resource, tag)
 
     def setup_resource_files(self):
-        if not os.path.isdir(os.path.join(self.working_dir, '{0}_tn'.format(self.lang_code))):
-            tn_url = self.get_resource_url('tn', self.tn_tag)
-            self.extract_files_from_url(tn_url)
-        if not os.path.isdir(os.path.join(self.working_dir, '{0}_tw'.format(self.lang_code))):
-            tw_url = self.get_resource_url('tw', self.tw_tag)
-            self.extract_files_from_url(tw_url)
-        if not os.path.isdir(os.path.join(self.working_dir, '{0}_ta'.format(self.lang_code))):
-            ta_url = self.get_resource_url('ta', self.ta_tag)
-            self.extract_files_from_url(ta_url)
+        if not os.path.isdir(self.tn_dir):
+            git.Git(self.working_dir).clone(self.get_resource_git_url('tn'))
+        g = git.Git(self.tn_dir)
+        g.checkout(self.tn_tag)
+        g.pull()
+        self.hash = g.rev_parse(self.tn_tag, short=10)
+        self.id = '{0}_tn_{1}_{2}'.format(self.lang_code, self.tn_tag, self.hash)
+        if not os.path.isdir(self.tw_dir):
+            git.Git(self.working_dir).clone(self.get_resource_git_url('tw'))
+        g = git.Git(self.tw_dir)
+        g.checkout(self.tw_tag)
+        g.pull()
+        if not os.path.isdir(self.ta_dir):
+            git.Git(self.working_dir).clone(self.get_resource_git_url('ta'))
+        g = git.Git(self.ta_dir)
+        g.checkout(self.ta_tag)
+        g.pull()
         if not os.path.isdir(os.path.join(self.working_dir, '{0}_ust'.format(self.lang_code))):
             ust_url = self.get_resource_url('ust', self.ust_tag)
             self.extract_files_from_url(ust_url)
@@ -245,7 +258,7 @@ class TnConverter(object):
             self.logger.debug('finished.')
 
     def populate_chunks_text(self):
-        save_dir = os.path.join(self.output_dir, '{0}_tn_chunks_text'.format(self.lang_code))
+        save_dir = os.path.join(self.output_dir, '{0}_chunks_text'.format(self.id))
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         save_file = os.path.join(save_dir, '{0}.json'.format(self.book_id))
@@ -287,19 +300,19 @@ class TnConverter(object):
             return ''
 
     def save_resource_data(self):
-        save_dir = os.path.join(self.output_dir, '{0}_tn_resource_data'.format(self.lang_code))
+        save_dir = os.path.join(self.output_dir, '{0}_resource_data'.format(self.id))
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        save_file = os.path.join(save_dir, '{0}_tn.json'.format(self.lang_code))
+        save_file = os.path.join(save_dir, '{0}.json'.format(self.id))
         write_file(save_file, self.resource_data)
-        save_file = os.path.join(save_dir, '{0}_tn_references.json'.format(self.lang_code))
+        save_file = os.path.join(save_dir, '{0}_references.json'.format(self.id))
         write_file(save_file, self.rc_references)
-        save_file = os.path.join(save_dir, '{0}_tn_bad_links.json'.format(self.lang_code))
+        save_file = os.path.join(save_dir, '{0}_bad_links.json'.format(self.id))
         write_file(save_file, self.bad_links)
 
     def load_bad_links(self):
-        save_dir = os.path.join(self.output_dir, '{0}_tn_resource_data'.format(self.lang_code))
-        save_file = os.path.join(save_dir, '{0}_tn_bad_links.json'.format(self.lang_code))
+        save_dir = os.path.join(self.output_dir, '{0}_resource_data'.format(self.id))
+        save_file = os.path.join(save_dir, '{0}_bad_links.json'.format(self.id))
         if os.path.isfile(save_file):
             self.bad_links = load_json_object(save_file)
 
@@ -307,10 +320,10 @@ class TnConverter(object):
         save_dir = os.path.join(self.output_dir, '{0}_tn_resource_data')
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        save_file = os.path.join(save_dir, '{0}_tn.json'.format(self.lang_code))
+        save_file = os.path.join(save_dir, '{0}.json'.format(self.id))
         if os.path.isfile(save_file):
             self.resource_data = load_json_object(save_file)
-        save_file = os.path.join(save_dir, '{0}_tn_references.json'.format(self.lang_code))
+        save_file = os.path.join(save_dir, '{0}_references.json'.format(self.id))
         if os.path.isfile(save_file):
             self.rc_references = load_json_object(save_file)
             
@@ -368,7 +381,7 @@ class TnConverter(object):
 
     def generate_license_html(self):
         license_file = os.path.join(self.tn_dir, 'LICENSE.md')
-        license = markdown.markdown(read_file(license_file))
+        license = markdown2.markdown_dir(license_file)
         license_html = '''
 <!DOCTYPE html>
 <html>
@@ -593,7 +606,7 @@ class TnConverter(object):
     def get_tn_html(self):
         tn_html = '<div id="tn-{0}" class="resource-title-page">\n<h1 class="section-header">{1}</h1>\n</div>'.format(self.book_id, self.title)
         if 'front' in self.tn_book_data and 'intro' in self.tn_book_data['front']:
-            intro = markdown.markdown(self.tn_book_data['front']['intro'][0]['OccurrenceNote'].decode('utf-8').replace('<br>', '\n'))
+            intro = markdown2.markdown(self.tn_book_data['front']['intro'][0]['OccurrenceNote'].decode('utf-8').replace('<br>', '\n'))
             title = self.get_first_header(intro)
             intro = self.fix_tn_links(intro, 'intro')
             intro = self.increase_headers(intro)
@@ -615,7 +628,7 @@ class TnConverter(object):
             chapter = str(chapter_verses['chapter'])
             print('Chapter {0}...'.format(chapter))
             if 'intro' in self.tn_book_data[chapter]:
-                intro = markdown.markdown(self.tn_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>',"\n"))
+                intro = markdown2.markdown(self.tn_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>',"\n"))
                 intro = re.sub(r'<h(\d)>([^>]+) 0+([1-9])', r'<h\1>\2 \3', intro, 1, flags=re.MULTILINE | re.IGNORECASE)
                 title = self.get_first_header(intro)
                 intro = self.fix_tn_links(intro, chapter)
@@ -667,7 +680,7 @@ class TnConverter(object):
                         for data in self.tn_book_data[chapter][str(verse)]:
                             title = data['GLQuote']
                             verseNotes += '<b>' + title.decode('utf-8') + (' -' if not title.decode('utf-8').endswith(':') else '') + ' </b>'
-                            verseNotes += markdown.markdown(data['OccurrenceNote'].decode('utf-8').replace('<br>',"\n")).replace('<p>', '').replace('</p>', '')
+                            verseNotes += markdown2.markdown(data['OccurrenceNote'].decode('utf-8').replace('<br>',"\n")).replace('<p>', '').replace('</p>', '')
                             verseNotes += '\n<br><br>\n'
                         rc = 'rc://*/tn/help/{0}/{1}/{2}'.format(self.book_id, self.pad(chapter), self.pad(verse))
                         self.get_resource_data_from_rc_links(verseNotes, rc)
@@ -988,7 +1001,7 @@ class TnConverter(object):
                         self.bad_links[source_rc] = {} 
                     self.bad_links[source_rc][rc] = fix
                 if not rc in self.resource_data:
-                    t = markdown.markdown(read_file(file_path))
+                    t = markdown2.markdown_dir(file_path)
                     alt_title = ''
                     if resource == 'ta':
                         title_file = os.path.join(os.path.dirname(file_path), 'title.md')

@@ -25,6 +25,7 @@ import subprocess
 import csv
 import codecs
 import json
+import git
 from glob import glob
 from bs4 import BeautifulSoup
 from usfm_tools.transform import UsfmTransform
@@ -57,6 +58,9 @@ class TnConverter(object):
         self.working_dir = working_dir
         self.output_dir = output_dir
         self.lang_code = lang_code
+        self.hash = tn_tag
+        self.id = '{0}_obs-tn_{1}'.format(lang_code, tn_tag)
+        self.title = 'unfoldingWord® Open Bible Stories Translation Notes'
 
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.DEBUG)
@@ -77,9 +81,10 @@ class TnConverter(object):
         self.obs_dir = os.path.join(self.working_dir, '{0}_obs'.format(lang_code))
         self.tw_dir = os.path.join(self.working_dir, '{0}_tw'.format(lang_code))
         self.ta_dir = os.path.join(self.working_dir, '{0}_ta'.format(lang_code))
-        self.html_dir = os.path.join(self.output_dir, '{0}_obs-tn_html'.format(self.lang_code))
-        self.pdf_dir = os.path.join(self.output_dir, '{0}_obs-tn_pdf'.format(self.lang_code))
-        self.title = 'unfoldingWord® Open Bible Stories Translation Notes'
+        self.setup_resource_files()
+
+        self.html_dir = os.path.join(self.output_dir, '{0}_html'.format(self.id))
+        self.pdf_dir = os.path.join(self.output_dir, '{0}_pdf'.format(self.id))
 
         self.manifest = None
 
@@ -99,7 +104,6 @@ class TnConverter(object):
         self.my_path = os.path.dirname(os.path.realpath(__file__))
 
     def run(self):
-        self.setup_resource_files()
         self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
         self.version = self.manifest['dublin_core']['version']
         self.title = self.manifest['dublin_core']['title']
@@ -107,11 +111,11 @@ class TnConverter(object):
         self.publisher = self.manifest['dublin_core']['publisher']
         self.issued = self.manifest['dublin_core']['issued']
         self.load_bad_links()
-        self.filename_base = '{0}_obs-tn_v{1}'.format(self.lang_code, self.version)
+        self.filename_base = '{0}'.format(self.id)
         self.logger.info('Creating OBS tN')
         if not os.path.isdir(self.html_dir):
            os.makedirs(self.html_dir)
-        if True or not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
+        if not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
            self.load_resource_data()
            self.generate_tn_content()
            self.save_resource_data()
@@ -157,19 +161,32 @@ class TnConverter(object):
     def get_resource_url(self, resource, tag):
         return 'https://git.door43.org/unfoldingWord/{0}_{1}/archive/{2}.zip'.format(self.lang_code, resource, tag)
 
+    def get_resource_git_url(self, resource):
+        return 'https://git.door43.org/unfoldingWord/{0}_{1}.git'.format(self.lang_code, resource)
+
     def setup_resource_files(self):
-        if not os.path.isdir(os.path.join(self.working_dir, '{0}_obs-tn'.format(self.lang_code))):
-            tn_url = self.get_resource_url('obs-tn', self.tn_tag)
-            self.extract_files_from_url(tn_url)
-        if not os.path.isdir(os.path.join(self.working_dir, '{0}_obs'.format(self.lang_code))):
-            obs_url = self.get_resource_url('obs', self.obs_tag)
-            self.extract_files_from_url(obs_url)
-        if not os.path.isdir(os.path.join(self.working_dir, '{0}_tw'.format(self.lang_code))):
-            tw_url = self.get_resource_url('tw', self.tw_tag)
-            self.extract_files_from_url(tw_url)
-        if not os.path.isdir(os.path.join(self.working_dir, '{0}_ta'.format(self.lang_code))):
-            ta_url = self.get_resource_url('ta', self.ta_tag)
-            self.extract_files_from_url(ta_url)
+        if not os.path.isdir(os.path.join(self.tn_dir)):
+            git.Git(self.working_dir).clone(self.get_resource_git_url('obs-tn'))
+        g = git.Git(self.tn_dir)
+        g.checkout(self.tn_tag)
+        g.pull()
+        self.hash = g.rev_parse(self.tn_tag, short=10)
+        self.id = '{0}_{1}_{2}'.format(self.id, self.tn_tag, self.hash)
+        if not os.path.isdir(self.obs_dir):
+            git.Git(self.working_dir).clone(self.get_resource_git_url('obs'))
+        g = git.Git(self.obs_dir)
+        g.checkout(self.obs_tag)
+        g.pull()
+        if not os.path.isdir(self.tw_dir):
+            git.Git(self.working_dir).clone(self.get_resource_git_url('tw'))
+        g = git.Git(self.tw_dir)
+        g.checkout(self.tw_tag)
+        g.pull()
+        if not os.path.isdir(self.ta_dir):
+            git.Git(self.working_dir).clone(self.get_resource_git_url('ta'))
+        g = git.Git(self.ta_dir)
+        g.checkout(self.ta_tag)
+        g.pull()
         if not os.path.isfile(os.path.join(self.working_dir, 'icon-obs-tn.png')):
             command = 'curl -o {0}/icon-obs-tn.png https://cdn.door43.org/assets/uw-icons/logo-obs-256.png'.format(self.working_dir)
             subprocess.call(command, shell=True)
@@ -194,30 +211,30 @@ class TnConverter(object):
             return ''
 
     def save_resource_data(self):
-        save_dir = os.path.join(self.output_dir, '{0}_obs-tn_resource_data'.format(self.lang_code))
+        save_dir = os.path.join(self.output_dir, '{0}_resource_data'.format(self.id))
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        save_file = os.path.join(save_dir, '{0}_obs-tn.json'.format(self.lang_code))
+        save_file = os.path.join(save_dir, '{0}.json'.format(self.id))
         write_file(save_file, self.resource_data)
-        save_file = os.path.join(save_dir, '{0}_obs-tn_references.json'.format(self.lang_code))
+        save_file = os.path.join(save_dir, '{0}_references.json'.format(self.id))
         write_file(save_file, self.rc_references)
-        save_file = os.path.join(save_dir, '{0}_obs-tn_bad_links.json'.format(self.lang_code))
+        save_file = os.path.join(save_dir, '{0}_bad_links.json'.format(self.id))
         write_file(save_file, self.bad_links)
 
     def load_bad_links(self):
-        save_dir = os.path.join(self.output_dir, '{0}_obs-tn_resource_data'.format(self.lang_code))
-        save_file = os.path.join(save_dir, '{0}_obs-tn_bad_links.json'.format(self.lang_code))
+        save_dir = os.path.join(self.output_dir, '{0}_resource_data'.format(self.id))
+        save_file = os.path.join(save_dir, '{0}_bad_links.json'.format(self.id))
         if os.path.isfile(save_file):
             self.bad_links = load_json_object(save_file)
 
     def load_resource_data(self):
-        save_dir = os.path.join(self.output_dir, '{0}_obs-tn_resource_data')
+        save_dir = os.path.join(self.output_dir, '{0}_resource_data'.format(self.id))
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        save_file = os.path.join(save_dir, '{0}_obs-tn.json'.format(self.lang_code))
+        save_file = os.path.join(save_dir, '{0}.json'.format(self.id))
         if os.path.isfile(save_file):
             self.resource_data = load_json_object(save_file)
-        save_file = os.path.join(save_dir, '{0}_obs-tn_references.json'.format(self.lang_code))
+        save_file = os.path.join(save_dir, '{0}_references.json'.format(self.id))
         if os.path.isfile(save_file):
             self.rc_references = load_json_object(save_file)
 
@@ -365,7 +382,7 @@ class TnConverter(object):
                     self.get_resource_data_from_rc_links(frame_html, rc)
                 content += '</div>\n\n'
         self.tn_content = content
-        write_file(os.path.join(self.html_dir, '{0}_obs-tn_tn_content.html'.format(self.lang_code)), BeautifulSoup(content, 'html.parser').prettify())
+        write_file(os.path.join(self.html_dir, '{0}_tn_content.html'.format(self.id)), BeautifulSoup(content, 'html.parser').prettify())
 
     def get_tw_html(self):
         tw_html = '<div id="tw" class="resource-title-page">\n<h1 class="section-header">Translation Words</h1>\n</div>\n\n'

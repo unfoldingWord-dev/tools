@@ -50,8 +50,7 @@ git checkout "${TAG}"
 if ! [[ $TAG =~ ^v[0-9] ]]; then
   git pull
 fi
-hash=`git rev-parse ${TAG}`
-hash=${hash:0:10}
+hash=`git rev-parse --short=10 ${TAG}`
 
 echo "Checked out repo files:"
 ls

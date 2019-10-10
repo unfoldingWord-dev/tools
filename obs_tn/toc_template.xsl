@@ -20,8 +20,8 @@
 
                     * {
                         text-align: left;
-                        font-size: 10pt;
-                        line-height: 14pt;
+                        font-size: 14pt;
+                        line-height: 16pt;
                         font-family: Segoe UI;
                     }
                     .toclink {
