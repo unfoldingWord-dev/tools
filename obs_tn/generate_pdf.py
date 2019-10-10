@@ -432,26 +432,28 @@ class TnConverter(object):
                                     text_to_highlight.append(part.strip())
                         text_to_highlight.sort(lambda x,y: cmp(len(y), len(x)))
                         for header in text_to_highlight:
-                            if len(header) <= 600:
-                                found = False
-                                alts = [header,
-                                        header.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
-                                        header.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
-                                        header.replace("'", '’').replace('"', '“'),
-                                        header.replace('“', '"').replace('”', '"'),
-                                        header.replace('"', '”').replace('”', '“', 1),
-                                        header.replace("'", '’').replace('’', '‘', 1),
-                                        header.replace('’', "'"),
-                                        header.replace('‘', "'")]
-                                for alt in alts:
-                                    if alt in orig_text:
+                            found = False
+                            alts = [header,
+                                    header.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
+                                    header.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“',
+                                                                                                            1),
+                                    header.replace("'", '’').replace('"', '“'),
+                                    header.replace('“', '"').replace('”', '"'),
+                                    header.replace('"', '”').replace('”', '“', 1),
+                                    header.replace("'", '’').replace('’', '‘', 1),
+                                    header.replace('’', "'"),
+                                    header.replace('‘', "'")]
+                            for alt in alts:
+                                if alt in orig_text:
+                                    if len(alt) <= 60:
                                         text = text.replace(alt, '<b>{0}</b>'.format(alt))
-                                        found = True
-                                        break
-                                if not found:
-                                    if header not in self.bad_text:
-                                        self.bad_text[header] = []
-                                    self.bad_text[header].append('{0}-{1}'.format(chapter, frame))
+                                    found = True
+                                    break
+                            if not found:
+                                if header not in self.bad_text:
+                                    self.bad_text[header] = []
+                                self.bad_text[header].append('{0}-{1}'.format(chapter, frame))
+
                     content += '<div id="{0}-text" class="frame-text">\n{1}\n</div>\n'.format(id, text)
                     content += frame_html
                     content += '</div>\n\n'
