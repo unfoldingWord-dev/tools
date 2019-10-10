@@ -116,28 +116,28 @@ class TnConverter(object):
         if not os.path.isdir(self.html_dir):
            os.makedirs(self.html_dir)
         if not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
-           self.load_resource_data()
-           self.generate_tn_content()
-           self.save_resource_data()
-           self.logger.info("Generating Body HTML...")
-           self.generate_body_html()
-           self.logger.info("Generating Cover HTML...")
-           self.generate_cover_html()
-           self.logger.info("Generating License HTML...")
-           self.generate_license_html()
-           self.logger.info("Copying header file...")
-           header_file = os.path.join(self.my_path, 'header.html')
-           shutil.copy2(header_file, self.html_dir)
-           self.logger.info("Copying style sheet file...")
-           style_file = os.path.join(self.my_path, 'style.css')
-           shutil.copy2(style_file, self.html_dir)
-        if True or not os.path.exists(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))):
-           self.logger.info("Generating PDF {0}...".format(self.pdf_dir, '{0}.pdf'.format(self.filename_base)))
-           self.generate_tn_pdf()
+            self.load_resource_data()
+            self.generate_tn_content()
+            self.save_resource_data()
+            self.logger.info("Generating Body HTML...")
+            self.generate_body_html()
+            self.logger.info("Generating Cover HTML...")
+            self.generate_cover_html()
+            self.logger.info("Generating License HTML...")
+            self.generate_license_html()
+            self.logger.info("Copying header file...")
+            header_file = os.path.join(self.my_path, 'header.html')
+            shutil.copy2(header_file, self.html_dir)
+            self.logger.info("Copying style sheet file...")
+            style_file = os.path.join(self.my_path, 'style.css')
+            shutil.copy2(style_file, self.html_dir)
+        if not os.path.exists(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))):
+            self.logger.info("Generating PDF {0}...".format(self.pdf_dir, '{0}.pdf'.format(self.filename_base)))
+            self.generate_tn_pdf()
         self.show_bad_links()
 
     def show_bad_links(self):
-        _print("BAD LINKS:")
+        bad_links = "BAD LINKS:\n"
         for source_rc in sorted(self.bad_links.keys()):
             for rc in sorted(self.bad_links[source_rc].keys()):
                 source = source_rc[5:].split('/')
@@ -156,10 +156,10 @@ class TnConverter(object):
                     str += ': BAD RC - `{0}`'.format(rc)
                     if self.bad_links[source_rc][rc]:
                         str += ' - change to `{0}`'.format(self.bad_links[source_rc][rc])
-                _print(str)
-
-    def get_resource_url(self, resource, tag):
-        return 'https://git.door43.org/unfoldingWord/{0}_{1}/archive/{2}.zip'.format(self.lang_code, resource, tag)
+                bad_links += "{0}\n".format(str)
+        save_file = os.path.join(self.output_dir, '{0}_bad_links.txt'.format(self.id))
+        write_file(save_file, bad_links)
+        _print(bad_links)
 
     def get_resource_git_url(self, resource):
         return 'https://git.door43.org/unfoldingWord/{0}_{1}.git'.format(self.lang_code, resource)

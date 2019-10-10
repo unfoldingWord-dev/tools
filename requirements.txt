@@ -5,4 +5,5 @@ gogs-client
 PyYAML
 markdown2
 bs4
-pythongit
+gitpython
+

@@ -174,7 +174,7 @@ class TnConverter(object):
         self.show_bad_links()
 
     def show_bad_links(self):
-        _print("BAD LINKS:")
+        bad_links = "BAD LINKS:\n"
         for source_rc in sorted(self.bad_links.keys()):
             for rc in sorted(self.bad_links[source_rc].keys()):
                 source = source_rc[5:].split('/')
@@ -189,12 +189,14 @@ class TnConverter(object):
                             str = '  tN'
                         str += ' {0} {1}:{2}'.format(source[3].upper(), source[4], source[5])
                     else:
-                        str = '  t{0} {1}'.format(source[1][1].upper(), '/'.join(source[3:]))
+                        str = '  {0} {1}'.format(source[1], '/'.join(source[3:]))
                     str += ': BAD RC - `{0}`'.format(rc)
                     if self.bad_links[source_rc][rc]:
                         str += ' - change to `{0}`'.format(self.bad_links[source_rc][rc])
-                _print(str)
-
+                bad_links += "{0}\n".format(str)
+        save_file = os.path.join(self.output_dir, '{0}_bad_links.txt'.format(self.id))
+        write_file(save_file, bad_links)
+        _print(bad_links)
 
     def get_book_projects(self):
         projects = []
@@ -207,8 +209,8 @@ class TnConverter(object):
                 projects.append(p)
         return sorted(projects, key=lambda k: k['sort'])
 
-    def get_resource_url(self, resource, tag):
-        return 'https://git.door43.org/unfoldingWord/{0}_{1}/archive/{2}.zip'.format(self.lang_code, resource, tag)
+    def get_resource_git_url(self, resource):
+        return 'https://git.door43.org/unfoldingWord/{0}_{1}.git'.format(self.lang_code, resource)
 
     def setup_resource_files(self):
         if not os.path.isdir(self.tn_dir):
@@ -228,21 +230,29 @@ class TnConverter(object):
         g = git.Git(self.ta_dir)
         g.checkout(self.ta_tag)
         g.pull()
-        if not os.path.isdir(os.path.join(self.working_dir, '{0}_ust'.format(self.lang_code))):
-            ust_url = self.get_resource_url('ust', self.ust_tag)
-            self.extract_files_from_url(ust_url)
-        if not os.path.isdir(os.path.join(self.working_dir, '{0}_ult'.format(self.lang_code))):
-            ult_url = self.get_resource_url('ult', self.ult_tag)
-            self.extract_files_from_url(ult_url)
-        if not os.path.isdir(os.path.join(self.working_dir, 'ugnt')):
-            ugnt_url = 'https://git.door43.org/unfoldingWord/UGNT/archive/{0}.zip'.format(self.ugnt_tag)
-            self.extract_files_from_url(ugnt_url)
+        if not os.path.isdir(self.ust_dir):
+            git.Git(self.working_dir).clone(self.get_resource_git_url('ust'))
+        g = git.Git(self.ust_dir)
+        g.checkout(self.ust_tag)
+        g.pull()
+        if not os.path.isdir(self.ult_dir):
+            git.Git(self.working_dir).clone(self.get_resource_git_url('ult'))
+        g = git.Git(self.ult_dir)
+        g.checkout(self.ult_tag)
+        g.pull()
+        if not os.path.isdir(self.ugnt_dir):
+            git.Git(self.working_dir).clone('https://git.door43.org/unfoldingWord/UGNT.git')
+        g = git.Git(self.ugnt_dir)
+        g.checkout(self.ugnt_tag)
+        g.pull()
         if not os.path.isfile(os.path.join(self.working_dir, 'icon-tn.png')):
             command = 'curl -o {0}/icon-tn.png https://cdn.door43.org/assets/uw-icons/logo-utn-256.png'.format(self.working_dir)
             subprocess.call(command, shell=True)
-        if not os.path.isdir(os.path.join(self.working_dir, 'versification')):
-            versification_url = 'https://git.door43.org/Door43-Catalog/versification/archive/master.zip'
-            self.extract_files_from_url(versification_url)
+        if not os.path.isdir(self.versification_dir):
+            git.Git(self.working_dir).clone('https://git.door43.org/Door43-Catalog/versification.git')
+        g = git.Git(self.versification_dir)
+        g.checkout('master')
+        g.pull()
 
     def extract_files_from_url(self, url):
         zip_file = os.path.join(self.working_dir, url.rpartition('/')[2])
