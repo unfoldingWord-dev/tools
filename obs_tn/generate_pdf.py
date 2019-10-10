@@ -625,7 +625,7 @@ def main(tn_tag, obs_tag, tw_tag, ta_tag, lang_code, working_dir, output_dir, re
     :param regenerate:
     :return:
     """
-    tn_converter = TnConverter(tn_tag, obs_tag, tw_tag, ta_tag, working_dir, output_dir, lang_code, regeberate)
+    tn_converter = TnConverter(tn_tag, obs_tag, tw_tag, ta_tag, working_dir, output_dir, lang_code, regenerate)
     tn_converter.run()
 
 if __name__ == '__main__':
