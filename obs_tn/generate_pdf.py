@@ -440,8 +440,9 @@ class TnConverter(object):
                                     note.replace('‘', "'")]
                             for idx, alt in enumerate(alt_notes):
                                 if alt in orig_text:
-                                    if idx == 0 and len(alt) <= 60:
-                                        text = text.replace(alt, '<b>{0}</b>'.format(alt))
+                                    if idx == 0:
+                                        if len(alt) <= 60:
+                                            text = text.replace(alt, '<b>{0}</b>'.format(alt))
                                         found = True
                                     else:
                                         note = '{0} (QUOTES: {1})'.format(note, alt)
