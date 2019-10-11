@@ -26,7 +26,6 @@ import git
 from glob import glob
 from bs4 import BeautifulSoup
 from ..general_tools.file_utils import write_file, read_file, load_json_object, unzip, load_yaml_object
-from ..general_tools.url_utils import download_file
 
 _print = print
 
@@ -36,7 +35,7 @@ def print(obj):
 class TnConverter(object):
 
     def __init__(self, tn_tag=None, obs_tag=None, tw_tag=None, ta_tag=None, working_dir=None, output_dir=None,
-                 lang_code='en', regenerate=False):
+                 lang_code='en', regenerate=False, logger=None):
         """
         :param tn_tag:
         :param obs_tag:
@@ -46,6 +45,7 @@ class TnConverter(object):
         :param output_dir:
         :param lang_code:
         :param regenerate:
+        :param logger:
         """
         self.tn_tag = tn_tag
         self.obs_tag = obs_tag
@@ -55,24 +55,18 @@ class TnConverter(object):
         self.output_dir = output_dir
         self.lang_code = lang_code
         self.regenerate = regenerate
+        self.logger = logger
 
         self.id = '{0}_obs-tn_{1}'.format(lang_code, tn_tag)
         self.title = 'unfoldingWord® Open Bible Stories Translation Notes'
-        self.logger = logging.getLogger()
-        self.logger.setLevel(logging.DEBUG)
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.DEBUG)
-        formatter = logging.Formatter(
-            '%(levelname)s - %(message)s')
-        ch.setFormatter(formatter)
-        self.logger.addHandler(ch)
 
         if not self.working_dir:
             self.working_dir = tempfile.mkdtemp(prefix='obs-tn-')
         if not self.output_dir:
             self.output_dir = self.working_dir
 
-        self.logger.info('WORKING DIR IS {0}'.format(self.working_dir))
+        self.logger.info('WORKING DIR IS {0} FOR {1}'.format(self.working_dir, self.lang_code))
+
         self.tn_dir = os.path.join(self.working_dir, '{0}_obs-tn'.format(lang_code))
         self.obs_dir = os.path.join(self.working_dir, '{0}_obs'.format(lang_code))
         self.tw_dir = os.path.join(self.working_dir, '{0}_tw'.format(lang_code))
@@ -96,6 +90,7 @@ class TnConverter(object):
         self.generation_info = {}
 
     def run(self):
+        _print('IN RUN FOR {0}'.format(self.lang_code))
         self.load_resource_data()
         self.setup_resource_files()
         self.determine_if_regeneration_needed()
@@ -108,7 +103,7 @@ class TnConverter(object):
         self.issued = self.manifest['dublin_core']['issued']
         self.filename_base = self.id
         if self.regenerate or not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
-            self.logger.info('Creating OBS tN HTML files')
+            self.logger.info('Creating OBS tN HTML files for {0}...'.format(self.lang_code))
             if not os.path.isdir(self.html_dir):
                 os.makedirs(self.html_dir)
             self.bad_links = {}
@@ -116,26 +111,26 @@ class TnConverter(object):
             self.resource_data = {}
             self.rc_references = {}
             self.generate_tn_content()
-            self.logger.info("Generating Body HTML...")
+            self.logger.info('Generating Body HTML for {0}...'.format(self.lang_code))
             self.generate_body_html()
-            self.logger.info("Generating Cover HTML...")
+            self.logger.info('Generating Cover HTML for {0}...'.format(self.lang_code))
             self.generate_cover_html()
-            self.logger.info("Generating License HTML...")
+            self.logger.info('Generating License HTML for {0}...'.format(self.lang_code))
             self.generate_license_html()
-            self.logger.info("Copying header file...")
+            self.logger.info('Copying header file... for {0}...'.format(self.lang_code))
             header_file = os.path.join(self.my_path, 'header.html')
             shutil.copy2(header_file, self.html_dir)
-            self.logger.info("Copying style sheet file...")
+            self.logger.info('Copying style sheet file for {0}...'.format(self.lang_code))
             style_file = os.path.join(self.my_path, 'style.css')
             shutil.copy2(style_file, self.html_dir)
             self.save_resource_data()
             self.save_bad_links()
             self.save_bad_notes()
         if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.pdf'.format(self.filename_base))):
-            self.logger.info("Generating PDF {0}...".format(self.output_dir, '{0}.pdf'.format(self.filename_base)))
+            self.logger.info('Generating PDF {0}/{1}.pdf...'.format(self.output_dir, self.filename_base))
             self.generate_tn_pdf()
         else:
-            self.logger.info("No PDF generation needed.")
+            self.logger.info('No PDF generation needed for {0}.'.format(self.lang_code))
         self.logger.info('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.filename_base))
 
     def save_bad_links(self):
@@ -692,7 +687,8 @@ class TnConverter(object):
 
         return text
 
-def main(tn_tag, obs_tag, tw_tag, ta_tag, lang_code, working_dir, output_dir, regenerate):
+
+def main(tn_tag, obs_tag, tw_tag, ta_tag, lang_code, working_dir, output_dir, regenerate, logger):
     """
     :param tn_tag:
     :param obs_tag:
@@ -702,25 +698,43 @@ def main(tn_tag, obs_tag, tw_tag, ta_tag, lang_code, working_dir, output_dir, re
     :param working_dir:
     :param output_dir:
     :param regenerate:
+    :param logger:
     :return:
     """
-    tn_converter = TnConverter(tn_tag, obs_tag, tw_tag, ta_tag, working_dir, output_dir, lang_code, regenerate)
+    _print('Starting TN Converter for {0}...'.format(lang_code))
+    tn_converter = TnConverter(tn_tag, obs_tag, tw_tag, ta_tag, working_dir, output_dir, lang_code, regenerate, logger)
     tn_converter.run()
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__,
                                         formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('-l', '--lang', dest='lang_code', default='en', required=False, help="Language Code")
-    parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help="Working Directory")
-    parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False, help="Output Directory")
-    parser.add_argument('--obs-tn-tag', dest='obs_tn', default='v6', required=False, help="OBS tN Tag")
-    parser.add_argument('--obs-tag', dest='obs', required=False, help="OBS Tag")
-    parser.add_argument('--ta-tag', dest='ta', default='v10', required=False, help="tA Tag")
-    parser.add_argument('--tw-tag', dest='tw', default='v10', required=False, help="tW Tag")
-    parser.add_argument('-r', '--regenerate', dest='regenerate', action='store_true', help="Regenerate PDF even if exists")
+    parser.add_argument('-l', '--lang', dest='lang_codes', required=False, help='Language Code(s)', action='append')
+    parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help='Working Directory')
+    parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False, help='Output Directory')
+    parser.add_argument('--obs-tn-tag', dest='obs_tn', default='v6', required=False, help='OBS tN Tag')
+    parser.add_argument('--obs-tag', dest='obs', required=False, help='OBS Tag')
+    parser.add_argument('--ta-tag', dest='ta', default='v10', required=False, help='tA Tag')
+    parser.add_argument('--tw-tag', dest='tw', default='v10', required=False, help='tW Tag')
+    parser.add_argument('-r', '--regenerate', dest='regenerate', action='store_true', help='Regenerate PDF even if exists')
 
     args = parser.parse_args(sys.argv[1:])
     obs = args.obs
     if not obs:
       obs = args.obs_tn
-    main(args.obs_tn, obs, args.tw, args.ta, args.lang_code, args.working_dir, args.output_dir, args.regenerate)
+    lang_codes = args.lang_codes
+    if not lang_codes:
+        lang_codes = ['en']
+    print(lang_codes)
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(
+        '%(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    for lang_code in lang_codes:
+        main(args.obs_tn, obs, args.tw, args.ta, lang_code, args.working_dir, args.output_dir, args.regenerate, logger)
