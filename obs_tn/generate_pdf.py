@@ -472,7 +472,6 @@ class TnConverter(object):
                                 for alt_note in alt_notes:
                                     if alt_note in orig_text:
                                         bad_note[note] = alt_note
-                                        self.bad_notes[cf]['text'] = self.highlight_text(self.bad_notes[cf]['text'], alt_note)
                                         break
                                 self.bad_notes[cf]['notes'].append(bad_note)
                     content += '<div id="{0}-text" class="frame-text">\n{1}\n</div>\n'.format(id, text)
