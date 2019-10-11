@@ -440,9 +440,10 @@ class TnConverter(object):
                                     note.replace('‘', "'")]
                             for alt in alt_notes:
                                 if alt in orig_text:
-                                    if len(alt) <= 60:
-                                        text = text.replace(alt, '<b>{0}</b>'.format(alt))
-                                    found = True
+                                    # if len(alt) <= 60:
+                                    #     text = text.replace(alt, '<b>{0}</b>'.format(alt))
+                                    # found = True
+                                    note = note + ' (QUOTES DO NOT MATCH)'
                                     break
                             if not found:
                                 if note not in self.bad_notes:
