@@ -167,3 +167,11 @@ popd
 
 echo "PDF located at https://dw.door43.org/output/pdf/${repo_id}.pdf"
 
+  "Baal's prophets",
+  "Baal's prophets",
+  "Baal‘s prophets",
+  "Baal's prophets",
+  "Baal's prophets",
+  "Baal‘s prophets",
+  "Baal's prophets",
+  "Baal's prophets"

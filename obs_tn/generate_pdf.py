@@ -112,7 +112,7 @@ class TnConverter(object):
             if not os.path.isdir(self.html_dir):
                 os.makedirs(self.html_dir)
             self.bad_links = {}
-            self.bad_text = {}
+            self.bad_notes = {}
             self.resource_data = {}
             self.rc_references = {}
             self.generate_tn_content()
@@ -130,7 +130,7 @@ class TnConverter(object):
             shutil.copy2(style_file, self.html_dir)
             self.save_resource_data()
             self.save_bad_links()
-            self.save_bad_text()
+            self.save_bad_notes()
         if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.pdf'.format(self.filename_base))):
             self.logger.info("Generating PDF {0}...".format(self.output_dir, '{0}.pdf'.format(self.filename_base)))
             self.generate_tn_pdf()
@@ -163,17 +163,17 @@ class TnConverter(object):
         write_file(save_file, bad_links)
         self.logger.info('BAD LINKS file can be found at {0}'.format(save_file))
 
-    def save_bad_text(self):
-        bad_text = '<!DOCTYPE html><html lang="en-US"><head data-suburl=""><title>NON-MATCHING NOTES</title><meta charset="utf-8"></head><body><p>NON-MATCHING NOTES (i.e. not found in the frame text as written):</p><ul>'
-        for text in sorted(self.bad_text.keys(), key=lambda s: s.lower()):
+    def save_bad_notes(self):
+        bad_notes = '<!DOCTYPE html><html lang="en-US"><head data-suburl=""><title>NON-MATCHING NOTES</title><meta charset="utf-8"></head><body><p>NON-MATCHING NOTES (i.e. not found in the frame text as written):</p><ul>'
+        for text in sorted(self.bad_notes.keys(), key=lambda s: s.lower()):
             links = []
-            for ref in self.bad_text[text]:
+            for ref in self.bad_notes[text]:
                 links.append('<a href="{0}_html/{0}.html#obs-tn-{1}" title="See in the OBS tN Docs (HTML)" target="obs-tn-html">{1}</a><a href="https://git.door43.org/unfoldingWord/{2}_obs-tn/src/branch/master/content/{3}/{4}.md" style="text-decoration:none" target="obs-tn-git"><img src="http://www.myiconfinder.com/uploads/iconsets/16-16-65222a067a7152473c9cc51c05b85695-note.png" title="See OBS UTN note on DCS"></a><a href="https://git.door43.org/unfoldingWord/{2}_obs/src/branch/master/content/{3}.md" style="text-decoration:none" target="obs-git"><img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-16.png" title="See OBS story on DCS"></a>'.format(self.id, ref, self.lang_code, ref.split('-')[0], ref.split('-')[1]))
-            bad_text += "<li><b><i>{0}</i></b> --- not found in:<br/>\n<span style=\"white-space: nowrap\">{1}</span>\n</li>\n".format(text, '</span>, <span style="white-space: nowrap">'.join(links))
-        bad_text += "</u></body></html>"
-        save_file = os.path.join(self.output_dir, '{0}_bad_text.html'.format(self.id))
-        write_file(save_file, bad_text)
-        self.logger.info('BAD NOTE TEXT file can be found at {0}'.format(save_file))
+            bad_notes += "<li><b><i>{0}</i></b> --- not found in:<br/>\n<span style=\"white-space: nowrap\">{1}</span>\n</li>\n".format(text, '</span>, <span style="white-space: nowrap">'.join(links))
+        bad_notes += "</u></body></html>"
+        save_file = os.path.join(self.output_dir, '{0}_bad_notes.html'.format(self.id))
+        write_file(save_file, bad_notes)
+        self.logger.info('BAD NOTES file can be found at {0}'.format(save_file))
 
     def get_resource_git_url(self, resource):
         return 'https://git.door43.org/unfoldingWord/{0}_{1}.git'.format(self.lang_code, resource)
@@ -254,8 +254,8 @@ class TnConverter(object):
         write_file(save_file, self.rc_references)
         save_file = os.path.join(save_dir, '{0}_bad_links.json'.format(self.id))
         write_file(save_file, self.bad_links)
-        save_file = os.path.join(save_dir, '{0}_bad_text.json'.format(self.id))
-        write_file(save_file, self.bad_text)
+        save_file = os.path.join(save_dir, '{0}_bad_notes.json'.format(self.id))
+        write_file(save_file, self.bad_notes)
         save_file = os.path.join(save_dir, '{0}_info.json'.format(self.id))
         write_file(save_file, self.generation_info)
 
@@ -415,7 +415,6 @@ class TnConverter(object):
                     content += '<h2>{0}-{1}</h2>\n'.format(chapter, frame)
                     text = ''
                     orig_text = text
-                    text_to_highlight = []
                     if frame_idx > 0:
                         text = frames[frame_idx-1]
                         orig_text = text
@@ -423,34 +422,36 @@ class TnConverter(object):
                     frame_html = frame_html.replace('h1>', 'h3>')
                     frame_html = re.sub(r'href="(\d+)/(\d+)"', r'href="#obs-tn-\1-\2"', frame_html)
                     if text:
+                        notes_to_highlight = []
                         soup = BeautifulSoup(frame_html, 'html.parser')
                         headers = soup.find_all('h3')
                         for header in headers:
                             parts = re.split(r"\s*…\s*|\s*\.\.\.\s*", header.text)
                             for part in parts:
                                 if part.strip() not in ignore:
-                                    text_to_highlight.append(part.strip())
-                        text_to_highlight.sort(lambda x,y: cmp(len(y), len(x)))
-                        for header in text_to_highlight:
+                                    notes_to_highlight.append(part.strip())
+                        notes_to_highlight.sort(lambda x, y: cmp(len(y), len(x)))
+                        for note in notes_to_highlight:
                             found = False
-                            alts = [header,
-                                    header.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
-                                    header.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
-                                    header.replace('“', '"').replace('”', '"'),
-                                    header.replace('"', '”').replace('”', '“', 1),
-                                    header.replace("'", '’').replace('’', '‘', 1),
-                                    header.replace('’', "'"),
-                                    header.replace('‘', "'")]
-                            for alt in alts:
+                            alt_notes = [note,
+                                    note.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
+                                    note.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
+                                    note.replace('“', '"').replace('”', '"'),
+                                    note.replace('"', '”').replace('”', '“', 1),
+                                    note.replace("'", '’').replace('’', '‘', 1),
+                                    note.replace("'", '’'),
+                                    note.replace('’', "'"),
+                                    note.replace('‘', "'")]
+                            for alt in alt_notes:
                                 if alt in orig_text:
                                     if len(alt) <= 60:
                                         text = text.replace(alt, '<b>{0}</b>'.format(alt))
                                     found = True
                                     break
                             if not found:
-                                if header not in self.bad_text:
-                                    self.bad_text[header] = []
-                                self.bad_text[header].append('{0}-{1}'.format(chapter, frame))
+                                if note not in self.bad_notes:
+                                    self.bad_notes[note] = []
+                                self.bad_notes[note].append('{0}-{1}'.format(chapter, frame))
 
                     content += '<div id="{0}-text" class="frame-text">\n{1}\n</div>\n'.format(id, text)
                     content += frame_html
