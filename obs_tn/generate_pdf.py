@@ -164,11 +164,14 @@ class TnConverter(object):
     def save_bad_notes(self):
         bad_notes = '<!DOCTYPE html><html lang="en-US"><head data-suburl=""><title>NON-MATCHING NOTES</title><meta charset="utf-8"></head><body><p>NON-MATCHING NOTES (i.e. not found in the frame text as written):</p><ul>'
         for cf in sorted(self.bad_notes.keys()):
-            notes = []
-            bad_notes += '<li><a href="{0}_html/{0}.html#obs-tn-{1}" title="See in the OBS tN Docs (HTML)" target="obs-tn-html">{1}</a><a href="https://git.door43.org/unfoldingWord/{2}_obs-tn/src/branch/master/content/{3}/{4}.md" style="text-decoration:none" target="obs-tn-git"><img src="http://www.myiconfinder.com/uploads/iconsets/16-16-65222a067a7152473c9cc51c05b85695-note.png" title="See OBS UTN note on DCS"></a><a href="https://git.door43.org/unfoldingWord/{2}_obs/src/branch/master/content/{3}.md" style="text-decoration:none" target="obs-git"><img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-16.png" title="See OBS story on DCS"></a><ul>'.format(
-                self.id, cf, self.lang_code, cf.split('-')[0], cf.split('-')[1])
-            for note in self.bad_notes[cf]:
-                bad_notes += '<li><b><i>{0}</i></b></li>'.format(note)
+            bad_notes += '<li><a href="{0}_html/{0}.html#obs-tn-{1}" title="See in the OBS tN Docs (HTML)" target="obs-tn-html">{1}</a><a href="https://git.door43.org/unfoldingWord/{2}_obs-tn/src/branch/master/content/{3}/{4}.md" style="text-decoration:none" target="obs-tn-git"><img src="http://www.myiconfinder.com/uploads/iconsets/16-16-65222a067a7152473c9cc51c05b85695-note.png" title="See OBS UTN note on DCS"></a><a href="https://git.door43.org/unfoldingWord/{2}_obs/src/branch/master/content/{3}.md" style="text-decoration:none" target="obs-git"><img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-16.png" title="See OBS story on DCS"></a>:<br/><i>{5}</i><br/><ul>'.format(
+                self.id, cf, self.lang_code, cf.split('-')[0], cf.split('-')[1], self.bad_notes[cf]['text'])
+            for note in self.bad_notes[cf]['notes']:
+                for key in note.keys():
+                    if note[key]:
+                        bad_notes += '<li><b><i>{0}</i></b><br/>{1} (QUOTE ISSUE)</li>'.format(key, note[key])
+                    else:
+                        bad_notes += '<li><b><i>{0}</i></b></li>'.format(key)
             bad_notes += '</ul></li>'
         bad_notes += "</u></body></html>"
         save_file = os.path.join(self.output_dir, '{0}_bad_notes.html'.format(self.id))
@@ -389,6 +392,16 @@ class TnConverter(object):
         self.logger.info(command)
         subprocess.call(command, shell=True)
 
+    def highlight_text(self, text, note):
+        parts = re.split(r"\s*…\s*|\s*\.\.\.\s*", note)
+        rep = {}
+        for part in parts:
+            rep[part] = '<b>{0}</b>'.format(part)
+        rep = dict((re.escape(k), v) for k, v in rep.iteritems())
+        pattern = re.compile("|".join(rep.keys()))
+        new_text = pattern.sub(lambda m: rep[re.escape(m.group(0))], text)
+        return new_text
+
     def generate_tn_content(self):
         ignore = ['A Bible story from', 'Connecting Statement', 'Connecting Statement:',
                   'General Information', 'General Note', 'Information générale',
@@ -431,17 +444,20 @@ class TnConverter(object):
                         soup = BeautifulSoup(frame_html, 'html.parser')
                         headers = soup.find_all('h3')
                         for header in headers:
-                            parts = re.split(r"\s*…\s*|\s*\.\.\.\s*", header.text)
-                            for part in parts:
-                                part = re.sub(r'[\n\s]+', ' ', part, flags=re.MULTILINE)
-                                if part.strip() not in ignore:
-                                    notes_to_highlight.append(part.strip())
+                            notes_to_highlight.append(header.text)
                         notes_to_highlight.sort(lambda x, y: cmp(len(y), len(x)))
                         for note in notes_to_highlight:
-                            if note in orig_text:
+                            if self.highlight_text(orig_text, note) != orig_text:
                                 if len(note) <= 60:
-                                    text = text.replace(note, '<b>{0}</b>'.format(note))
+                                    text = self.highlight_text(text, note)
                             else:
+                                cf = '{0}-{1}'.format(chapter, frame)
+                                if cf not in self.bad_notes:
+                                    self.bad_notes[cf] = {
+                                        'text': orig_text,
+                                        'notes': []
+                                    }
+                                bad_note = {note: None}
                                 alt_notes = [
                                     note.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
                                     note.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
@@ -455,13 +471,10 @@ class TnConverter(object):
                                     note.replace('‘', "'")]
                                 for alt_note in alt_notes:
                                     if alt_note in orig_text:
-                                        note = '{0}<br/>(QUOTES: {1})'.format(note, alt_note)
+                                        bad_note[note] = alt_note
+                                        self.bad_notes[cf]['text'] = self.highlight_text(self.bad_notes[cf]['text'], alt_note)
                                         break
-                                cf = '{0}-{1}'.format(chapter, frame)
-                                if cf not in self.bad_notes:
-                                    self.bad_notes[cf] = []
-                                self.bad_notes[cf].append(note)
-
+                                self.bad_notes[cf]['notes'].append(bad_note)
                     content += '<div id="{0}-text" class="frame-text">\n{1}\n</div>\n'.format(id, text)
                     content += frame_html
                     content += '</div>\n\n'
