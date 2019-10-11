@@ -166,12 +166,3 @@ wkhtmltopdf --encoding utf-8 --outline-depth 3 -O portrait -L 15 -R 15 -T 15 -B 
 popd
 
 echo "PDF located at https://dw.door43.org/output/pdf/${repo_id}.pdf"
-
-  "Baal's prophets",
-  "Baal's prophets",
-  "Baal‘s prophets",
-  "Baal's prophets",
-  "Baal's prophets",
-  "Baal‘s prophets",
-  "Baal's prophets",
-  "Baal's prophets"

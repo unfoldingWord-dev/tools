@@ -29,8 +29,10 @@ from ..general_tools.file_utils import write_file, read_file, load_json_object, 
 
 _print = print
 
+
 def print(obj):
     _print(json.dumps(obj, ensure_ascii=False, indent=2).encode('utf-8'))
+
 
 class TnConverter(object):
 
@@ -140,7 +142,8 @@ class TnConverter(object):
                 source = source_rc[5:].split('/')
                 parts = rc[5:].split('/')
                 if source[1] == 'ult':
-                    str = '  ULT {0} {1}:{2}: English ULT alignment not found for `{3}` (greek: `{4}`, occurrence: {5})'.format(source[3].upper(), source[4], source[5], self.bad_links[source_rc][rc], parts[3], parts[4])
+                    str = '  ULT {0} {1}:{2}: English ULT alignment not found for `{3}` (greek: `{4}`, occurrence: {5})'.format(
+                        source[3].upper(), source[4], source[5], self.bad_links[source_rc][rc], parts[3], parts[4])
                 else:
                     if source[1] == 'tn':
                         if parts[1] == 'tw':
@@ -160,11 +163,13 @@ class TnConverter(object):
 
     def save_bad_notes(self):
         bad_notes = '<!DOCTYPE html><html lang="en-US"><head data-suburl=""><title>NON-MATCHING NOTES</title><meta charset="utf-8"></head><body><p>NON-MATCHING NOTES (i.e. not found in the frame text as written):</p><ul>'
-        for text in sorted(self.bad_notes.keys(), key=lambda s: s.lower()):
-            links = []
-            for ref in self.bad_notes[text]:
-                links.append('<a href="{0}_html/{0}.html#obs-tn-{1}" title="See in the OBS tN Docs (HTML)" target="obs-tn-html">{1}</a><a href="https://git.door43.org/unfoldingWord/{2}_obs-tn/src/branch/master/content/{3}/{4}.md" style="text-decoration:none" target="obs-tn-git"><img src="http://www.myiconfinder.com/uploads/iconsets/16-16-65222a067a7152473c9cc51c05b85695-note.png" title="See OBS UTN note on DCS"></a><a href="https://git.door43.org/unfoldingWord/{2}_obs/src/branch/master/content/{3}.md" style="text-decoration:none" target="obs-git"><img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-16.png" title="See OBS story on DCS"></a>'.format(self.id, ref, self.lang_code, ref.split('-')[0], ref.split('-')[1]))
-            bad_notes += "<li><b><i>{0}</i></b> --- not found in:<br/>\n<span style=\"white-space: nowrap\">{1}</span>\n</li>\n".format(text, '</span>, <span style="white-space: nowrap">'.join(links))
+        for cf in sorted(self.bad_notes.keys()):
+            notes = []
+            bad_notes += '<li><a href="{0}_html/{0}.html#obs-tn-{1}" title="See in the OBS tN Docs (HTML)" target="obs-tn-html">{1}</a><a href="https://git.door43.org/unfoldingWord/{2}_obs-tn/src/branch/master/content/{3}/{4}.md" style="text-decoration:none" target="obs-tn-git"><img src="http://www.myiconfinder.com/uploads/iconsets/16-16-65222a067a7152473c9cc51c05b85695-note.png" title="See OBS UTN note on DCS"></a><a href="https://git.door43.org/unfoldingWord/{2}_obs/src/branch/master/content/{3}.md" style="text-decoration:none" target="obs-git"><img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-16.png" title="See OBS story on DCS"></a><ul>'.format(
+                self.id, cf, self.lang_code, cf.split('-')[0], cf.split('-')[1])
+            for note in self.bad_notes[cf]:
+                bad_notes += '<li><b><i>{0}</i></b></li>'.format(note)
+            bad_notes += '</ul></li>'
         bad_notes += "</u></body></html>"
         save_file = os.path.join(self.output_dir, '{0}_bad_notes.html'.format(self.id))
         write_file(save_file, bad_notes)
@@ -213,7 +218,8 @@ class TnConverter(object):
         self.generation_info['ta'] = {'tag': self.ta_tag, 'commit': commit}
 
         if not os.path.isfile(os.path.join(self.working_dir, 'icon-obs-tn.png')):
-            command = 'curl -o {0}/icon-obs-tn.png https://cdn.door43.org/assets/uw-icons/logo-obs-256.png'.format(self.working_dir)
+            command = 'curl -o {0}/icon-obs-tn.png https://cdn.door43.org/assets/uw-icons/logo-obs-256.png'.format(
+                self.working_dir)
             subprocess.call(command, shell=True)
 
     def determine_if_regeneration_needed(self):
@@ -235,7 +241,8 @@ class TnConverter(object):
 
     def get_contributors_html(self):
         if self.contributors and len(self.contributors):
-            return '<div id="contributors" class="article">\n<h1 class="section-header">Contributors</h1>\n<p>{0}</p></div>'.format(self.contributors)
+            return '<div id="contributors" class="article">\n<h1 class="section-header">Contributors</h1>\n<p>{0}</p></div>'.format(
+                self.contributors)
         else:
             return ''
 
@@ -287,16 +294,17 @@ class TnConverter(object):
         html = '\n'.join([tn_html, tw_html, ta_html, contributors_html])
         html = self.replace_rc_links(html)
         html = self.fix_links(html)
-        html = '<!DOCTYPE html><html lang="en-US"><head data-suburl=""><meta charset="utf-8"><title>{0} - v{1}</title></head><body>{2}</body></html>\n'.format(self.title, self.version, html)
+        html = '<!DOCTYPE html><html lang="en-US"><head data-suburl=""><meta charset="utf-8"><title>{0} - v{1}</title></head><body>{2}</body></html>\n'.format(
+            self.title, self.version, html)
         soup = BeautifulSoup(html, 'html.parser')
 
         # Make all headers that have a header right before them non-break
-        for h in soup.find_all(['h2','h3', 'h4', 'h5', 'h6']):
+        for h in soup.find_all(['h2', 'h3', 'h4', 'h5', 'h6']):
             prev = h.find_previous_sibling()
             if prev and re.match('^h[2-6]$', prev.name):
-                h['class'] = h.get('class', []) + ['no-break'] 
+                h['class'] = h.get('class', []) + ['no-break']
 
-        # Make all headers within the page content to just be span tags with h# classes
+                # Make all headers within the page content to just be span tags with h# classes
         for h in soup.find_all(['h3', 'h4', 'h5', 'h6']):
             if not h.get('class') or 'section-header' not in h['class']:
                 h['class'] = h.get('class', []) + [h.name]
@@ -392,13 +400,15 @@ class TnConverter(object):
         for chapter_dir in chapter_dirs:
             if os.path.isdir(chapter_dir):
                 chapter = os.path.basename(chapter_dir)
-                soup = BeautifulSoup(markdown2.markdown_path(os.path.join(self.obs_dir, 'content', '{0}.md'.format(chapter))), 'html.parser')
+                soup = BeautifulSoup(
+                    markdown2.markdown_path(os.path.join(self.obs_dir, 'content', '{0}.md'.format(chapter))),
+                    'html.parser')
                 title = soup.h1.text
                 paragraphs = soup.find_all('p')
                 frames = []
                 for idx, p in enumerate(paragraphs):  # iterate over loop [above sections]
                     if idx % 2:
-                      frames.append(p.text)
+                        frames.append(p.text)
                 content += '<div id="chapter-{0}" class="chapter break">\n\n'.format(chapter)
                 content += '<h1>{0}</h1>\n'.format(title)
                 frame_files = sorted(glob(os.path.join(chapter_dir, '*.md')))
@@ -411,7 +421,7 @@ class TnConverter(object):
                     text = ''
                     orig_text = ''
                     if frame_idx > 0:
-                        text = re.sub(r'[\n\s]+', ' ', frames[frame_idx-1], flags=re.MULTILINE)
+                        text = re.sub(r'[\n\s]+', ' ', frames[frame_idx - 1], flags=re.MULTILINE)
                         orig_text = text
                     frame_html = markdown2.markdown_path(frame_file)
                     frame_html = frame_html.replace('h1>', 'h3>')
@@ -428,8 +438,13 @@ class TnConverter(object):
                                     notes_to_highlight.append(part.strip())
                         notes_to_highlight.sort(lambda x, y: cmp(len(y), len(x)))
                         for note in notes_to_highlight:
-                            found = False
-                            alt_notes = [note,
+                            if note in orig_text:
+                                if len(note) <= 60:
+                                    text = text.replace(note, '<b>{0}</b>'.format(note))
+                            else:
+                                alt_notes = [
+                                    note.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
+                                    note.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
                                     note.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
                                     note.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
                                     note.replace('“', '"').replace('”', '"'),
@@ -438,19 +453,13 @@ class TnConverter(object):
                                     note.replace("'", '’'),
                                     note.replace('’', "'"),
                                     note.replace('‘', "'")]
-                            for idx, alt in enumerate(alt_notes):
-                                if alt in orig_text:
-                                    if idx == 0:
-                                        if len(alt) <= 60:
-                                            text = text.replace(alt, '<b>{0}</b>'.format(alt))
-                                        found = True
-                                    else:
-                                        note = '{0} (QUOTES: {1})'.format(note, alt)
-                                    break
-                            if not found:
-                                if note not in self.bad_notes:
-                                    self.bad_notes[note] = []
-                                self.bad_notes[note].append('{0}-{1}'.format(chapter, frame))
+                                for alt_note in alt_notes:
+                                    if alt_note in orig_text:
+                                        note = '{0} (QUOTES: {1})'.format(note, alt_note)
+                                cf = '{0}-{1}'.format(chapter, frame)
+                                if cf not in self.bad_notes:
+                                    self.bad_notes[cf] = []
+                                self.bad_notes[cf].append(note)
 
                     content += '<div id="{0}-text" class="frame-text">\n{1}\n</div>\n'.format(id, text)
                     content += frame_html
@@ -466,7 +475,8 @@ class TnConverter(object):
                     self.get_resource_data_from_rc_links(frame_html, rc)
                 content += '</div>\n\n'
         self.tn_content = content
-        write_file(os.path.join(self.html_dir, '{0}_tn_content.html'.format(self.id)), BeautifulSoup(content, 'html.parser').prettify())
+        write_file(os.path.join(self.html_dir, '{0}_tn_content.html'.format(self.id)),
+                   BeautifulSoup(content, 'html.parser').prettify())
 
     def get_tw_html(self):
         tw_html = ''
@@ -479,14 +489,17 @@ class TnConverter(object):
             title = self.resource_data[rc]['title']
             alt_title = self.resource_data[rc]['alt_title']
             if alt_title:
-                html = '<h2 class="hidden">{0}</h2><span class="h2 section-header">{1}</span>\n{2}{3}'.format(alt_title, title, self.get_reference_text(rc), html)
+                html = '<h2 class="hidden">{0}</h2><span class="h2 section-header">{1}</span>\n{2}{3}'.format(alt_title,
+                                                                                                              title,
+                                                                                                              self.get_reference_text(
+                                                                                                                  rc),
+                                                                                                              html)
             else:
                 html = '<h2 class="section-header">{0}</h2>\n{1}{2}'.format(title, self.get_reference_text(rc), html)
             tw_html += '<div id="{0}" class="article">\n{1}\n</div>\n\n'.format(self.resource_data[rc]['id'], html)
         if tw_html:
             tw_html = '<div id="tw" class="resource-title-page">\n<h1 class="section-header">Translation Words</h1>\n</div>\n\n' + tw_html
         return tw_html
-
 
     def get_ta_html(self):
         ta_html = '<div id="ta" class="resource-title-page">\n<h1 class="section-header">Translation Academy</h1>\n</div>\n\n'
@@ -497,7 +510,9 @@ class TnConverter(object):
             if self.resource_data[rc]['text']:
                 html = self.resource_data[rc]['text']
                 html = self.increase_headers(html)
-                html = '<h2 class="section-header">{0}</h2>\n{1}<b>{2}</b>\n<br>{3}\n'.format(self.resource_data[rc]['title'], self.get_reference_text(rc), self.resource_data[rc]['alt_title'], html)
+                html = '<h2 class="section-header">{0}</h2>\n{1}<b>{2}</b>\n<br>{3}\n'.format(
+                    self.resource_data[rc]['title'], self.get_reference_text(rc), self.resource_data[rc]['alt_title'],
+                    html)
                 ta_html += '<div id="{0}" class="article">\n{1}\n</div>\n\n'.format(self.resource_data[rc]['id'], html)
         return ta_html
 
@@ -536,10 +551,10 @@ class TnConverter(object):
             anchor_id = '{0}-{1}'.format(resource, path.replace('/', '-'))
             link = '#{0}'.format(anchor_id)
             file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
-                                        '{0}.md'.format(path))
+                                     '{0}.md'.format(path))
             if not os.path.isfile(file_path):
                 file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
-                                            '{0}/01.md'.format(path))
+                                         '{0}/01.md'.format(path))
             fix = None
             if not os.path.isfile(file_path):
                 if resource == 'tw':
@@ -564,12 +579,12 @@ class TnConverter(object):
                     anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
                     link = '#{0}'.format(anchor_id)
                     file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
-                                                '{0}/01.md'.format(path2))
+                                             '{0}/01.md'.format(path2))
 
             if os.path.isfile(file_path):
                 if fix:
                     if source_rc not in self.bad_links:
-                        self.bad_links[source_rc] = {} 
+                        self.bad_links[source_rc] = {}
                     self.bad_links[source_rc][rc] = fix
                 if not rc in self.resource_data:
                     t = markdown2.markdown_path(file_path)
@@ -581,17 +596,20 @@ class TnConverter(object):
                             title = read_file(title_file)
                         else:
                             title = self.get_first_header(t)
-                            t = re.sub(r'\s*\n*\s*<h\d>[^<]+</h\d>\s*\n*', r'', t, 1, flags=re.IGNORECASE | re.MULTILINE) # removes the header
+                            t = re.sub(r'\s*\n*\s*<h\d>[^<]+</h\d>\s*\n*', r'', t, 1,
+                                       flags=re.IGNORECASE | re.MULTILINE)  # removes the header
                         if os.path.isfile(question_file):
                             question = read_file(question_file)
                             alt_title = 'This page answers the question: <i>{0}</i>'.format(question)
                         t = self.fix_ta_links(t, path.split('/')[0])
                     elif resource == 'tw':
                         title = self.get_first_header(t)
-                        t = re.sub(r'\s*\n*\s*<h\d>[^<]+</h\d>\s*\n*', r'', t, 1, flags=re.IGNORECASE | re.MULTILINE) # removes the header
+                        t = re.sub(r'\s*\n*\s*<h\d>[^<]+</h\d>\s*\n*', r'', t, 1,
+                                   flags=re.IGNORECASE | re.MULTILINE)  # removes the header
                         if len(title) > 70:
                             alt_title = ','.join(title[:70].split(',')[:-1]) + ', ...'
-                        t = re.sub(r'\n*\s*\(See [^\n]*\)\s*\n*', '\n\n', t, flags=re.IGNORECASE | re.MULTILINE) # removes the See also line
+                        t = re.sub(r'\n*\s*\(See [^\n]*\)\s*\n*', '\n\n', t,
+                                   flags=re.IGNORECASE | re.MULTILINE)  # removes the See also line
                         t = self.fix_tw_links(t, path.split('/')[1])
                     self.resource_data[rc] = {
                         'rc': rc,
@@ -615,15 +633,18 @@ class TnConverter(object):
     @staticmethod
     def increase_headers(text, increase_depth=1):
         if text:
-            for num in range(5,0,-1):
-                text = re.sub(r'<h{0}>\s*(.+?)\s*</h{0}>'.format(num), r'<h{0}>\1</h{0}>'.format(num+increase_depth), text, flags=re.MULTILINE)
+            for num in range(5, 0, -1):
+                text = re.sub(r'<h{0}>\s*(.+?)\s*</h{0}>'.format(num), r'<h{0}>\1</h{0}>'.format(num + increase_depth),
+                              text, flags=re.MULTILINE)
         return text
 
     @staticmethod
     def decrease_headers(text, minimum_header=1, decrease=1):
         if text:
-            for num in range(minimum_header, minimum_header+10):
-                text = re.sub(r'<h{0}>\s*(.+?)\s*</h{0}>'.format(num), r'<h{0}>\1</h{0}>'.format(num-decrease if (num-decrease) <= 5 else 5), text, flags=re.MULTILINE)
+            for num in range(minimum_header, minimum_header + 10):
+                text = re.sub(r'<h{0}>\s*(.+?)\s*</h{0}>'.format(num),
+                              r'<h{0}>\1</h{0}>'.format(num - decrease if (num - decrease) <= 5 else 5), text,
+                              flags=re.MULTILINE)
         return text
 
     @staticmethod
@@ -638,21 +659,28 @@ class TnConverter(object):
 
     def fix_tn_links(self, text, chapter):
         text = re.sub(r'<a href="\.\./\.\./([^"]+)">([^<]+)</a>', r'\2', text, flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'href="\.\./([^"]+?)/([^"]+?)(\.md)*"', r'href="#tn-\1-\2"', text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="\.\./([^"]+?)/([^"]+?)(\.md)*"', r'href="#tn-\1-\2"', text,
+                      flags=re.IGNORECASE | re.MULTILINE)
         text = re.sub(r'href="\.\./([^"]+?)(\.md)*"', r'href="#tn-\1"', text, flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'href="\./([^"]+?)(\.md)*"', r'href="#tn-{1}-\1"'.format(self.pad(chapter)), text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="\./([^"]+?)(\.md)*"', r'href="#tn-{1}-\1"'.format(self.pad(chapter)), text,
+                      flags=re.IGNORECASE | re.MULTILINE)
         text = re.sub(r'\n__.*\|.*', r'', text, flags=re.IGNORECASE | re.MULTILINE)
         return text
 
     def fix_tw_links(self, text, group):
-        text = re.sub(r'href="\.\./([^/)]+?)(\.md)*"', r'href="rc://*/tw/dict/bible/{0}/\1"'.format(group), text, flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'hrefp="\.\./([^)]+?)(\.md)*"', r'href="rc://*/tw/dict/bible/\1"', text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="\.\./([^/)]+?)(\.md)*"', r'href="rc://*/tw/dict/bible/{0}/\1"'.format(group), text,
+                      flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'hrefp="\.\./([^)]+?)(\.md)*"', r'href="rc://*/tw/dict/bible/\1"', text,
+                      flags=re.IGNORECASE | re.MULTILINE)
         return text
 
     def fix_ta_links(self, text, manual):
-        text = re.sub(r'href="\.\./([^/"]+)/01\.md"', r'href="rc://*/ta/man/{0}/\1"'.format(manual), text, flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'href="\.\./\.\./([^/"]+)/([^/"]+)/01\.md"', r'href="rc://*/ta/man/\1/\2"', text, flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'href="([^# :/"]+)"', r'href="rc://*/ta/man/{0}/\1"'.format(manual), text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="\.\./([^/"]+)/01\.md"', r'href="rc://*/ta/man/{0}/\1"'.format(manual), text,
+                      flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="\.\./\.\./([^/"]+)/([^/"]+)/01\.md"', r'href="rc://*/ta/man/\1/\2"', text,
+                      flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="([^# :/"]+)"', r'href="rc://*/ta/man/{0}/\1"'.format(manual), text,
+                      flags=re.IGNORECASE | re.MULTILINE)
         return text
 
     def replace_rc_links(self, text):
@@ -670,7 +698,7 @@ class TnConverter(object):
             pattern = r'rc://[^/]+/{0}'.format(re.escape(tail))
             replace = info['link']
             text = re.sub(pattern, replace, text, flags=re.IGNORECASE | re.MULTILINE)
-        
+
         # Remove other scripture reference not in this tN
         text = re.sub(r'<a[^>]+rc://[^>]+>([^>]+)</a>', r'\1', text, flags=re.IGNORECASE | re.MULTILINE)
 
@@ -681,10 +709,12 @@ class TnConverter(object):
         text = re.sub(r'\[\[http([^\]]+)\]\]', r'<a href="http\1">http\1</a>', text, flags=re.IGNORECASE)
 
         # convert URLs to links if not already
-        text = re.sub(r'([^">])((http|https|ftp)://[A-Za-z0-9\/\?&_\.:=#-]+[A-Za-z0-9\/\?&_:=#-])', r'\1<a href="\2">\2</a>', text, flags=re.IGNORECASE)
+        text = re.sub(r'([^">])((http|https|ftp)://[A-Za-z0-9\/\?&_\.:=#-]+[A-Za-z0-9\/\?&_:=#-])',
+                      r'\1<a href="\2">\2</a>', text, flags=re.IGNORECASE)
 
         # URLS wth just www at the start, no http
-        text = re.sub(r'([^\/])(www\.[A-Za-z0-9\/\?&_\.:=#-]+[A-Za-z0-9\/\?&_:=#-])', r'\1<a href="http://\2">\2</a>', text, flags=re.IGNORECASE)
+        text = re.sub(r'([^\/])(www\.[A-Za-z0-9\/\?&_\.:=#-]+[A-Za-z0-9\/\?&_:=#-])', r'\1<a href="http://\2">\2</a>',
+                      text, flags=re.IGNORECASE)
 
         # Removes leading 0s from verse references
         text = re.sub(r' 0*(\d+):0*(\d+)(-*)0*(\d*)', r' \1:\2\3\4', text, flags=re.IGNORECASE | re.MULTILINE)
@@ -712,7 +742,7 @@ def main(tn_tag, obs_tag, tw_tag, ta_tag, lang_code, working_dir, output_dir, re
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__,
-                                        formatter_class=argparse.RawDescriptionHelpFormatter)
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-l', '--lang', dest='lang_codes', required=False, help='Language Code(s)', action='append')
     parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help='Working Directory')
     parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False, help='Output Directory')
@@ -720,12 +750,13 @@ if __name__ == '__main__':
     parser.add_argument('--obs-tag', dest='obs', required=False, help='OBS Tag')
     parser.add_argument('--ta-tag', dest='ta', default='v10', required=False, help='tA Tag')
     parser.add_argument('--tw-tag', dest='tw', default='v10', required=False, help='tW Tag')
-    parser.add_argument('-r', '--regenerate', dest='regenerate', action='store_true', help='Regenerate PDF even if exists')
+    parser.add_argument('-r', '--regenerate', dest='regenerate', action='store_true',
+                        help='Regenerate PDF even if exists')
 
     args = parser.parse_args(sys.argv[1:])
     obs = args.obs
     if not obs:
-      obs = args.obs_tn
+        obs = args.obs_tn
     lang_codes = args.lang_codes
     if not lang_codes:
         lang_codes = ['en']
