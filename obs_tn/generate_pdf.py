@@ -456,6 +456,7 @@ class TnConverter(object):
                                 for alt_note in alt_notes:
                                     if alt_note in orig_text:
                                         note = "{0}\n(QUOTES: {1})".format(note, alt_note)
+                                        break
                                 cf = '{0}-{1}'.format(chapter, frame)
                                 if cf not in self.bad_notes:
                                     self.bad_notes[cf] = []
