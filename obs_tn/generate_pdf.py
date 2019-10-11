@@ -725,7 +725,6 @@ if __name__ == '__main__':
     lang_codes = args.lang_codes
     if not lang_codes:
         lang_codes = ['en']
-    print(lang_codes)
 
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
