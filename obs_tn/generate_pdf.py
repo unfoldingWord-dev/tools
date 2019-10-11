@@ -409,9 +409,9 @@ class TnConverter(object):
                     content += '<div id="{0}" class="frame">\n'.format(id)
                     content += '<h2>{0}-{1}</h2>\n'.format(chapter, frame)
                     text = ''
-                    orig_text = text
+                    orig_text = ''
                     if frame_idx > 0:
-                        text = frames[frame_idx-1]
+                        text = re.sub(r'[\n\s]+', ' ', frames[frame_idx-1], flags=re.MULTILINE)
                         orig_text = text
                     frame_html = markdown2.markdown_path(frame_file)
                     frame_html = frame_html.replace('h1>', 'h3>')
@@ -423,6 +423,7 @@ class TnConverter(object):
                         for header in headers:
                             parts = re.split(r"\s*…\s*|\s*\.\.\.\s*", header.text)
                             for part in parts:
+                                part = re.sub(r'[\n\s]+', ' ', part, flags=re.MULTILINE)
                                 if part.strip() not in ignore:
                                     notes_to_highlight.append(part.strip())
                         notes_to_highlight.sort(lambda x, y: cmp(len(y), len(x)))
