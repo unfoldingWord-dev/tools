@@ -450,7 +450,7 @@ class TnConverter(object):
                             if self.highlight_text(orig_text, note) != orig_text:
                                 if len(note) <= 60:
                                     text = self.highlight_text(text, note)
-                            else:
+                            elif note not in ignore:
                                 cf = '{0}-{1}'.format(chapter, frame)
                                 if cf not in self.bad_notes:
                                     self.bad_notes[cf] = {
