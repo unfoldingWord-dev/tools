@@ -474,7 +474,7 @@ class TnConverter(object):
                                     note.replace('’', "'"),
                                     note.replace('‘', "'")]
                                 for alt_note in alt_notes:
-                                    if alt_note in orig_text:
+                                    if orig_text != self.highlight_text(orig_text, alt_note):
                                         bad_note[note] = alt_note
                                         break
                                 self.bad_notes[cf]['notes'].append(bad_note)
