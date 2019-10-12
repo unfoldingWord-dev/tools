@@ -28,16 +28,18 @@ from bs4 import BeautifulSoup
 from ..general_tools.file_utils import write_file, read_file, load_json_object, unzip, load_yaml_object
 
 _print = print
+DEFAULT_LANG = 'en'
+DEFAULT_OWNER = 'unfoldingWord'
+DEFAULT_TAG = 'master'
 
+OWNERS = [DEFAULT_OWNER, 'STR', 'Door43-Catalog']
 
 def print(obj):
     _print(json.dumps(obj, ensure_ascii=False, indent=2).encode('utf-8'))
 
-
 class TnConverter(object):
-
     def __init__(self, tn_tag=None, obs_tag=None, tw_tag=None, ta_tag=None, working_dir=None, output_dir=None,
-                 lang_code='en', regenerate=False, logger=None):
+                 lang_code=DEFAULT_LANG, owner=DEFAULT_OWNER, regenerate=False, logger=None):
         """
         :param tn_tag:
         :param obs_tag:
@@ -46,6 +48,7 @@ class TnConverter(object):
         :param working_dir:
         :param output_dir:
         :param lang_code:
+        :param owner:
         :param regenerate:
         :param logger:
         """
@@ -56,6 +59,7 @@ class TnConverter(object):
         self.working_dir = working_dir
         self.output_dir = output_dir
         self.lang_code = lang_code
+        self.owner = owner
         self.regenerate = regenerate
         self.logger = logger
 
@@ -92,9 +96,9 @@ class TnConverter(object):
         self.generation_info = {}
 
     def run(self):
-        _print('IN RUN FOR {0}'.format(self.lang_code))
         self.load_resource_data()
         self.setup_resource_files()
+        self.id = '{0}_obs-tn_{1}_{2}'.format(self.lang_code, self.tn_tag, self.generation_info['obs-tn']['tag'])
         self.determine_if_regeneration_needed()
         self.html_dir = os.path.join(self.output_dir, '{0}_html'.format(self.id))
         self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
@@ -164,8 +168,8 @@ class TnConverter(object):
     def save_bad_notes(self):
         bad_notes = '<!DOCTYPE html><html lang="en-US"><head data-suburl=""><title>NON-MATCHING NOTES</title><meta charset="utf-8"></head><body><p>NON-MATCHING NOTES (i.e. not found in the frame text as written):</p><ul>'
         for cf in sorted(self.bad_notes.keys()):
-            bad_notes += '<li><a href="{0}_html/{0}.html#obs-tn-{1}" title="See in the OBS tN Docs (HTML)" target="obs-tn-html">{1}</a><a href="https://git.door43.org/unfoldingWord/{2}_obs-tn/src/branch/master/content/{3}/{4}.md" style="text-decoration:none" target="obs-tn-git"><img src="http://www.myiconfinder.com/uploads/iconsets/16-16-65222a067a7152473c9cc51c05b85695-note.png" title="See OBS UTN note on DCS"></a><a href="https://git.door43.org/unfoldingWord/{2}_obs/src/branch/master/content/{3}.md" style="text-decoration:none" target="obs-git"><img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-16.png" title="See OBS story on DCS"></a>:<br/><i>{5}</i><br/><ul>'.format(
-                self.id, cf, self.lang_code, cf.split('-')[0], cf.split('-')[1], self.bad_notes[cf]['text'])
+            bad_notes += '<li><a href="{0}_html/{0}.html#obs-tn-{1}" title="See in the OBS tN Docs (HTML)" target="obs-tn-html">{1}</a><a href="https://git.door43.org/{6}/{2}_obs-tn/src/branch/{7}/content/{3}/{4}.md" style="text-decoration:none" target="obs-tn-git"><img src="http://www.myiconfinder.com/uploads/iconsets/16-16-65222a067a7152473c9cc51c05b85695-note.png" title="See OBS UTN note on DCS"></a><a href="https://git.door43.org/{6}/{2}_obs/src/branch/master/content/{3}.md" style="text-decoration:none" target="obs-git"><img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-16.png" title="See OBS story on DCS"></a>:<br/><i>{5}</i><br/><ul>'.format(
+                self.id, cf, self.lang_code, cf.split('-')[0], cf.split('-')[1], self.bad_notes[cf]['text'], self.owner, DEFAULT_TAG)
             for note in self.bad_notes[cf]['notes']:
                 for key in note.keys():
                     if note[key]:
@@ -178,48 +182,39 @@ class TnConverter(object):
         write_file(save_file, bad_notes)
         self.logger.info('BAD NOTES file can be found at {0}'.format(save_file))
 
-    def get_resource_git_url(self, resource):
-        return 'https://git.door43.org/unfoldingWord/{0}_{1}.git'.format(self.lang_code, resource)
+    def get_resource_git_url(self, resource, lang, owner):
+        return 'https://git.door43.org/{0}/{1}_{2}.git'.format(owner, lang, resource)
+
+    def clone_resource(self, resource, tag=DEFAULT_TAG, url=None):
+        if not url:
+            url = self.get_resource_git_url(resource, self.lang_code, self.owner)
+        repo_dir = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource))
+        owners = OWNERS
+        owners.insert(0, self.owner)
+        languages = [self.lang_code, DEFAULT_LANG]
+        if not os.path.isdir(repo_dir):
+            for lang in languages:
+                for owner in owners:
+                    url = self.get_resource_git_url(resource, lang, owner)
+                    try:
+                        git.Repo.clone_from(url, repo_dir)
+                    except git.GitCommandError:
+                        continue
+                    break
+                if os.path.isdir(repo_dir):
+                    break
+        g = git.Git(repo_dir)
+        g.checkout(tag)
+        if tag == DEFAULT_TAG:
+            g.pull()
+        commit = g.rev_parse('HEAD', short=10)
+        self.generation_info[resource] = {'tag': tag, 'commit': commit}
 
     def setup_resource_files(self):
-        if not os.path.isdir(os.path.join(self.tn_dir)):
-            git.Git(self.working_dir).clone(self.get_resource_git_url('obs-tn'))
-        g = git.Git(self.tn_dir)
-        g.checkout(self.tn_tag)
-        if self.tn_tag == 'master':
-            g.pull()
-        commit = g.rev_parse(self.tn_tag, short=10)
-
-        self.generation_info['tn'] = {'tag': self.tn_tag, 'commit': commit}
-        self.id = '{0}_obs-tn_{1}_{2}'.format(self.lang_code, self.tn_tag, commit)
-
-        if not os.path.isdir(self.obs_dir):
-            git.Git(self.working_dir).clone(self.get_resource_git_url('obs'))
-        g = git.Git(self.obs_dir)
-        g.checkout(self.obs_tag)
-        if self.obs_tag == 'master':
-            g.pull()
-        commit = g.rev_parse(self.obs_tag, short=10)
-        self.generation_info['obs'] = {'tag': self.obs_tag, 'commit': commit}
-
-        if not os.path.isdir(self.tw_dir):
-            git.Git(self.working_dir).clone(self.get_resource_git_url('tw'))
-        g = git.Git(self.tw_dir)
-        g.checkout(self.tw_tag)
-        if self.tw_tag == 'master':
-            g.pull()
-        commit = g.rev_parse(self.tw_tag, short=10)
-        self.generation_info['tw'] = {'tag': self.tw_tag, 'commit': commit}
-
-        if not os.path.isdir(self.ta_dir):
-            git.Git(self.working_dir).clone(self.get_resource_git_url('ta'))
-        g = git.Git(self.ta_dir)
-        g.checkout(self.ta_tag)
-        if self.ta_tag == 'master':
-            g.pull()
-        commit = g.rev_parse(self.ta_tag, short=10)
-        self.generation_info['ta'] = {'tag': self.ta_tag, 'commit': commit}
-
+        self.clone_resource('obs-tn', self.tn_tag)
+        self.clone_resource('obs', self.obs_tag)
+        self.clone_resource('tw', self.tw_tag)
+        self.clone_resource('ta', self.ta_tag)
         if not os.path.isfile(os.path.join(self.working_dir, 'icon-obs-tn.png')):
             command = 'curl -o {0}/icon-obs-tn.png https://cdn.door43.org/assets/uw-icons/logo-obs-256.png'.format(
                 self.working_dir)
@@ -739,7 +734,7 @@ class TnConverter(object):
         return text
 
 
-def main(tn_tag, obs_tag, tw_tag, ta_tag, lang_code, working_dir, output_dir, regenerate, logger):
+def main(tn_tag, obs_tag, tw_tag, ta_tag, lang_code, working_dir, output_dir, owner, regenerate, logger):
     """
     :param tn_tag:
     :param obs_tag:
@@ -748,12 +743,13 @@ def main(tn_tag, obs_tag, tw_tag, ta_tag, lang_code, working_dir, output_dir, re
     :param lang_code:
     :param working_dir:
     :param output_dir:
+    :param owner:
     :param regenerate:
     :param logger:
     :return:
     """
     _print('Starting TN Converter for {0}...'.format(lang_code))
-    tn_converter = TnConverter(tn_tag, obs_tag, tw_tag, ta_tag, working_dir, output_dir, lang_code, regenerate, logger)
+    tn_converter = TnConverter(tn_tag, obs_tag, tw_tag, ta_tag, working_dir, output_dir, lang_code, owner, regenerate, logger)
     tn_converter.run()
 
 
@@ -763,10 +759,11 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--lang', dest='lang_codes', required=False, help='Language Code(s)', action='append')
     parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help='Working Directory')
     parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False, help='Output Directory')
-    parser.add_argument('--obs-tn-tag', dest='obs_tn', default='v6', required=False, help='OBS tN Tag')
-    parser.add_argument('--obs-tag', dest='obs', required=False, help='OBS Tag')
-    parser.add_argument('--ta-tag', dest='ta', default='v10', required=False, help='tA Tag')
-    parser.add_argument('--tw-tag', dest='tw', default='v10', required=False, help='tW Tag')
+    parser.add_argument('--owner', dest='owner', default=DEFAULT_OWNER, required=False, help='Owner')
+    parser.add_argument('--obs-tn-tag', dest='obs_tn', default=DEFAULT_TAG, required=False, help='OBS tN Tag')
+    parser.add_argument('--obs-tag', dest='obs', default=DEFAULT_TAG, required=False, help='OBS Tag')
+    parser.add_argument('--ta-tag', dest='ta', default=DEFAULT_TAG, required=False, help='tA Tag')
+    parser.add_argument('--tw-tag', dest='tw', default=DEFAULT_TAG, required=False, help='tW Tag')
     parser.add_argument('-r', '--regenerate', dest='regenerate', action='store_true',
                         help='Regenerate PDF even if exists')
 
@@ -788,4 +785,5 @@ if __name__ == '__main__':
     logger.addHandler(ch)
 
     for lang_code in lang_codes:
-        main(args.obs_tn, obs, args.tw, args.ta, lang_code, args.working_dir, args.output_dir, args.regenerate, logger)
+        main(args.obs_tn, obs, args.tw, args.ta, lang_code, args.working_dir, args.output_dir, args.owner,
+             args.regenerate, logger)
