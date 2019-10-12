@@ -392,14 +392,18 @@ class TnConverter(object):
         self.logger.info(command)
         subprocess.call(command, shell=True)
 
-    def highlight_text(self, text, note):
+    @staticmethod
+    def highlight_text(text, note):
         parts = re.split(r"\s*…\s*|\s*\.\.\.\s*", note)
-        rep = {}
-        for part in parts:
-            rep[part] = '<b>{0}</b>'.format(part)
-        rep = dict((re.escape(k), v) for k, v in rep.iteritems())
-        pattern = re.compile("|".join(rep.keys()))
-        new_text = pattern.sub(lambda m: rep[re.escape(m.group(0))], text)
+        pattern = ''
+        replace = ''
+        for idx, part in enumerate(parts):
+            if idx > 0:
+                pattern += '(.*?)'
+                replace += r'\{0}'.format(idx)
+            pattern += re.escape(part)
+            replace += r'<b>{0}</b>'.format(part)
+        new_text = re.sub(pattern, replace, text)
         return new_text
 
     def generate_tn_content(self):
