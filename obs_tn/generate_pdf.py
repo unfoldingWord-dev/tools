@@ -227,18 +227,15 @@ class TnConverter(object):
             self.logger.info('Looks like this is a new commit of {0}. Generating PDF.'.format(self.id))
             self.regenerate = True
         else:
+            print(old_info)
+            print(self.generation_info)
             for resource in self.generation_info:
-                if not old_info or resource not in old_info \
+                if resource not in old_info \
                         or old_info[resource]['tag'] != self.generation_info[resource]['tag'] \
                         or old_info[resource]['commit'] != self.generation_info[resource]['commit']:
-                    if old_info:
                         self.logger.info('Resource {0} has changed: {1} => {2}, {3} => {4}. REGENERATING PDF.'.format(
                             resource, old_info[resource]['tag'], self.generation_info[resource]['tag'],
                             old_info[resource]['commit'], self.generation_info[resource]['commit']
-                        ))
-                    else:
-                        self.logger.info('Resource {0} has is new: {1} - {2}. REGENERATING PDF.'.format(
-                            resource, self.generation_info[resource]['tag'], self.generation_info[resource]['commit']
                         ))
                     self.regenerate = True
 
