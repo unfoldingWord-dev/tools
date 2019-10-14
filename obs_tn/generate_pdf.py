@@ -233,10 +233,10 @@ class TnConverter(object):
                 if resource not in old_info \
                         or old_info[resource]['tag'] != self.generation_info[resource]['tag'] \
                         or old_info[resource]['commit'] != self.generation_info[resource]['commit']:
-                        self.logger.info('Resource {0} has changed: {1} => {2}, {3} => {4}. REGENERATING PDF.'.format(
-                            resource, old_info[resource]['tag'], self.generation_info[resource]['tag'],
-                            old_info[resource]['commit'], self.generation_info[resource]['commit']
-                        ))
+                    self.logger.info('Resource {0} has changed: {1} => {2}, {3} => {4}. REGENERATING PDF.'.format(
+                        resource, old_info[resource]['tag'], self.generation_info[resource]['tag'],
+                        old_info[resource]['commit'], self.generation_info[resource]['commit']
+                    ))
                     self.regenerate = True
 
     def get_contributors_html(self):
