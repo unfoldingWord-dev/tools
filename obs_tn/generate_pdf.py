@@ -228,9 +228,9 @@ class TnConverter(object):
             self.regenerate = True
         else:
             for resource in self.generation_info:
-                if resource not in old_info \
-                        or old_info[resource]['tag'] != self.generation_info[resource]['tag'] \
-                        or old_info[resource]['commit'] != self.generation_info[resource]['commit']:
+                if resource in old_info and resource in self.generation_info \
+                        and (old_info[resource]['tag'] != self.generation_info[resource]['tag']
+                             or old_info[resource]['commit'] != self.generation_info[resource]['commit']):
                     self.logger.info('Resource {0} has changed: {1} => {2}, {3} => {4}. REGENERATING PDF.'.format(
                         resource, old_info[resource]['tag'], self.generation_info[resource]['tag'],
                         old_info[resource]['commit'], self.generation_info[resource]['commit']
