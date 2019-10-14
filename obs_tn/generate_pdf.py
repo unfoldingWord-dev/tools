@@ -149,7 +149,7 @@ class TnConverter(object):
                     str = '  ULT {0} {1}:{2}: English ULT alignment not found for `{3}` (greek: `{4}`, occurrence: {5})'.format(
                         source[3].upper(), source[4], source[5], self.bad_links[source_rc][rc], parts[3], parts[4])
                 else:
-                    if source[1] == 'tn':
+                    if source[1] == 'obn-tn':
                         if parts[1] == 'tw':
                             str = '  UGNT'
                         else:
@@ -227,8 +227,6 @@ class TnConverter(object):
             self.logger.info('Looks like this is a new commit of {0}. Generating PDF.'.format(self.id))
             self.regenerate = True
         else:
-            print(old_info)
-            print(self.generation_info)
             for resource in self.generation_info:
                 if resource not in old_info \
                         or old_info[resource]['tag'] != self.generation_info[resource]['tag'] \
