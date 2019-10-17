@@ -286,7 +286,7 @@ class TnConverter(object):
                 for resource in ['ult', 'ust']:
                     versesInChunk = []
                     for verse in range(first_verse, last_verse+1):
-                        if resource != 'ust' or verse in self.verse_usfm[resource][chapter]:
+                        if resource != 'ust' and verse in self.verse_usfm[resource][chapter]:
                             versesInChunk.append(self.verse_usfm[resource][chapter][verse])
                     chunk_usfm = '\n'.join(versesInChunk)
                     if not chunks_text[str(chapter)][str(first_verse)][resource]:
