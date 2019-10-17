@@ -118,7 +118,7 @@ class TnConverter(object):
     def run(self):
         self.load_resource_data()
         self.setup_resource_files()
-        self.id = '{0}_obs-tn_{1}_{2}'.format(self.lang_code, self.tn_tag, self.generation_info['obs-tn']['commit'])
+        self.id = '{0}_tn_{1}_{2}'.format(self.lang_code, self.tn_tag, self.generation_info['tn']['commit'])
         self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
         self.determine_if_regeneration_needed()
         self.html_dir = os.path.join(self.output_dir, '{0}_html'.format(self.id))
