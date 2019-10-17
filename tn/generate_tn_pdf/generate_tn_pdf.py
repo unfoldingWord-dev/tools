@@ -719,7 +719,8 @@ class TnConverter(object):
                         for data in self.tn_book_data[chapter][str(verse)]:
                             title = data['GLQuote']
                             verseNotes += '<b>' + title + (' -' if not title.endswith(':') else '') + ' </b>'
-                            verseNotes += markdown.markdown(data['OccurrenceNote'].replace('<br>',"\n")).replace('<p>', '').replace('</p>', '')
+                            verseNotes += markdown.markdown(data['OccurrenceNote'].replace('<br>', "\n")).\
+                                replace('<p>', '').replace('</p>', '')
                             verseNotes += '\n<br><br>\n'
                         rc = 'rc://*/tn/help/{0}/{1}/{2}'.format(self.book_id, self.pad(chapter), self.pad(verse))
                         self.get_resource_data_from_rc_links(verseNotes, rc)
