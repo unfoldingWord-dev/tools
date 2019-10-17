@@ -565,7 +565,7 @@ class TnConverter(object):
 
     def populate_verse_usfm_ult(self):
         bookData = {}
-        chapter_files_path = 'tools/tn/generate_tn_pdf/en/bibles/ult/v2/{0}/*.json'.format(self.book_id)
+        chapter_files_path = 'tools/tn/generate_tn_pdf/en/bibles/ult/v5/{0}/*.json'.format(self.book_id)
         chapter_files = sorted(glob(chapter_files_path))
         for chapter_file in chapter_files:
             try:
@@ -799,7 +799,7 @@ class TnConverter(object):
         return newHtml
 
     def get_all_words_to_match(self, resource, chapter, verse):
-        path = 'tools/tn/generate_tn_pdf/en/bibles/{0}/v2/{1}/{2}.json'.format(resource, self.book_id, chapter)
+        path = 'tools/tn/generate_tn_pdf/en/bibles/{0}/v5/{1}/{2}.json'.format(resource, self.book_id, chapter)
         words = []
         data = load_json_object(path)
         chapter = int(chapter)
