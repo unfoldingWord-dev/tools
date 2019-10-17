@@ -662,7 +662,7 @@ class TnConverter(object):
             chapter = str(chapter_verses['chapter'])
             print('Chapter {0}...'.format(chapter))
             if 'intro' in self.tn_book_data[chapter]:
-                write_file('test.txt', self.tn_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>',"\n"))
+                write_file('/tmp/test.txt', self.tn_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>',"\n"))
                 intro = markdown.markdown(self.tn_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>',"\n"))
                 intro = re.sub(r'<h(\d)>([^>]+) 0+([1-9])', r'<h\1>\2 \3', intro, 1, flags=re.MULTILINE | re.IGNORECASE)
                 title = self.get_first_header(intro)
