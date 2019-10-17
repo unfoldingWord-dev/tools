@@ -546,6 +546,8 @@ class TnConverter(object):
         book_file = os.path.join(self.ust_dir, '{0}-{1}.usfm'.format(self.book_number, self.book_id.upper()))
         usfm3 = read_file(book_file)
         usfm2 = usfm3_to_usfm2(usfm3)
+        _print(usfm2)
+        exit(1)
         chapters = usfm2.split('\\c ')
         for chapterUsfm in chapters[1:]:
             chapter = int(re.findall('(\d+)', chapterUsfm)[0])
