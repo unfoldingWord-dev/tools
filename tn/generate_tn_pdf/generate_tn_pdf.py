@@ -129,7 +129,6 @@ class TnConverter(object):
         self.publisher = self.manifest['dublin_core']['publisher']
         self.issued = self.manifest['dublin_core']['issued']
         projects = self.get_book_projects()
-        self.load_bad_links()
         for p in projects:
             self.project = p
             self.book_id = p['identifier'].lower()
