@@ -1209,8 +1209,8 @@ if __name__ == '__main__':
     parser.add_argument('--ult-tag', dest='ult', default=DEFAULT_TAG, required=False, help="ULT Tag")
     parser.add_argument('--ugnt-tag', dest='ugnt', default=DEFAULT_TAG, required=False, help="UGNT Tag")
     parser.add_argument('--owner', dest='owner', default=DEFAULT_OWNER, required=False, help='Owner')
-    parser.add_argument('-r', '--regenerate', dest='regenerate', action='store_true',
-                        help='Regenerate PDF even if exists')
+    parser.add_argument('-r', '--regenerate', dest='regenerate', default=False, action='store_true',
+                        help='Regenerate even if exists')
 
     args = parser.parse_args(sys.argv[1:])
     lang_codes = args.lang_codes
