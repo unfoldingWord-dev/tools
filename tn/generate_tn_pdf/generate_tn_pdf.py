@@ -1218,7 +1218,7 @@ def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_code, books, w
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__,
                                         formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('-l', '--lang', dest='lang_code', default='en', required=False, help="Language Code")
+    parser.add_argument('-l', '--lang', dest='lang_codes', required=False, help='Language Code(s)', action='append')
     parser.add_argument('-b', '--book_id', dest='books', nargs='+', default=None, required=False, help="Bible Book(s)")
     parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help="Working Directory")
     parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False, help="Output Directory")
