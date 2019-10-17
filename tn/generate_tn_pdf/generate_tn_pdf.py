@@ -46,8 +46,8 @@ def print(obj):
 
 class TnConverter(object):
 
-    def __init__(self, ta_tag=None, tn_tag=None, tw_tag=None, ust_tag=None, ult_tag=None, ugnt_tag=None, working_dir=None, 
-                    output_dir=None, lang_code=DEFAULT_LANG, books=None, regenerate=False, logger=None):
+    def __init__(self, ta_tag=None, tn_tag=None, tw_tag=None, ust_tag=None, ult_tag=None, ugnt_tag=None,
+                 working_dir=None, output_dir=None, lang_code=DEFAULT_LANG, books=None, regenerate=False, logger=None):
         """
         :param ta_tag:
         :param tn_tag:
@@ -127,11 +127,12 @@ class TnConverter(object):
         self.generation_info = {}
 
     def run(self):
-        self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
         self.load_resource_data()
         self.setup_resource_files()
+        self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
         self.determine_if_regeneration_needed()
         self.html_dir = os.path.join(self.output_dir, '{0}_html'.format(self.id))
+        self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
         self.version = self.manifest['dublin_core']['version']
         self.title = self.manifest['dublin_core']['title']
         self.contributors = '; '.join(self.manifest['dublin_core']['contributor'])
@@ -1195,6 +1196,7 @@ class TnConverter(object):
         write_file(html_file, html)
         return html
 
+
 def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_code, books, working_dir, output_dir, regenerate, logger):
     """
     :param ta_tag:
@@ -1211,13 +1213,13 @@ def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_code, books, w
     :param logger:
     :return:
     """
-    tn_converter = TnConverter(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, working_dir, output_dir, 
-                                lang_code, books, regenerate, logger)
+    tn_converter = TnConverter(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, working_dir, output_dir, lang_code,
+                               books, regenerate, logger)
     tn_converter.run()
 
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__,
-                                        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-l', '--lang', dest='lang_codes', required=False, help='Language Code(s)', action='append')
     parser.add_argument('-b', '--book_id', dest='books', nargs='+', default=None, required=False, help="Bible Book(s)")
     parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help="Working Directory")

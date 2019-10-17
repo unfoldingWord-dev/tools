@@ -755,8 +755,7 @@ def main(tn_tag, obs_tag, tw_tag, ta_tag, lang_code, working_dir, output_dir, ow
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-l', '--lang', dest='lang_codes', required=False, help='Language Code(s)', action='append')
     parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help='Working Directory')
     parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False, help='Output Directory')
