@@ -610,10 +610,9 @@ class TnConverter(object):
             return
         book_data = {}
         with io.open(book_file, "r+", encoding="utf-8") as f:
-            content = f.read().encode('utf-8')
-            _print(content)
-            write_file('/tmp/test2.txt', content)
-            rd = csv.reader(content, delimiter=str("\t"), quotechar=str('"'))
+            content = f.read()
+            s = StringIO(content)
+            rd = csv.reader(s, delimiter=str("\t"), quotechar=str('"'))
             header = next(rd)
             for row in rd:
                 data = {}
