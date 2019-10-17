@@ -192,7 +192,7 @@ class TnConverter(object):
                 bad_links += "{0}\n".format(str)
         save_file = os.path.join(self.output_dir, '{0}_bad_links.txt'.format(self.id))
         write_file(save_file, bad_links)
-        _print('BAD LINKS file can be found at {0}'.format(self.save_file))
+        _print('BAD LINKS file can be found at {0}'.format(save_file))
 
     def get_book_projects(self):
         projects = []
