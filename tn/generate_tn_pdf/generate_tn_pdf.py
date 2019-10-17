@@ -193,7 +193,6 @@ class TnConverter(object):
         write_file(save_file, bad_links)
         _print('BAD LINKS file can be found at {0}'.format(self.save_file))
 
-
     def get_book_projects(self):
         projects = []
         if not self.manifest or 'projects' not in self.manifest or not self.manifest['projects']:
@@ -205,8 +204,9 @@ class TnConverter(object):
                 projects.append(p)
         return sorted(projects, key=lambda k: k['sort'])
 
-    def get_resource_git_url(self, resource):
-        return 'https://git.door43.org/unfoldingWord/{0}_{1}.git'.format(self.lang_code, resource)
+    @staticmethod
+    def get_resource_git_url(resource, lang, owner):
+        return 'https://git.door43.org/{0}/{1}_{2}.git'.format(owner, lang, resource)
 
     def clone_resource(self, resource, tag=DEFAULT_TAG, url=None):
         if not url:

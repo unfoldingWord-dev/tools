@@ -169,7 +169,8 @@ class TnConverter(object):
         write_file(save_file, bad_notes)
         self.logger.info('BAD NOTES file can be found at {0}'.format(save_file))
 
-    def get_resource_git_url(self, resource, lang, owner):
+    @staticmethod
+    def get_resource_git_url(resource, lang, owner):
         return 'https://git.door43.org/{0}/{1}_{2}.git'.format(owner, lang, resource)
 
     def clone_resource(self, resource, tag=DEFAULT_TAG, url=None):
