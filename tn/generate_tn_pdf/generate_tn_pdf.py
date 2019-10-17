@@ -548,7 +548,7 @@ class TnConverter(object):
                 obj['text'] = obj['text'].replace('\n', '').strip() if 'text' in obj else ''
                 usfm += ' \{0} {1} \{0}*'.format(obj['tag'], obj['content'])
             else:
-                print("ERROR! Not sure what to do with this in {0}:{1} in {2}: ".format(chapter, verse, chapter_file))
+                self.logger.error("ERROR! Not sure what to do with this:")
                 print(obj)
                 exit(1)
         return usfm
