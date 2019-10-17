@@ -639,14 +639,12 @@ class TnConverter(object):
             if not verse in book_data[chapter]:
                 book_data[chapter][verse] = []
             book_data[str(chapter)][str(verse)].append(data)
-            write_file('/tmp/data.txt', data)
         self.tn_book_data = book_data
-        write_file('/tmp/out.json', self.tn_book_data)
 
     def get_tn_html(self):
         tn_html = '<div id="tn-{0}" class="resource-title-page">\n<h1 class="section-header">{1}</h1>\n</div>'.format(self.book_id, self.title)
         if 'front' in self.tn_book_data and 'intro' in self.tn_book_data['front']:
-            intro = markdown.markdown(self.tn_book_data['front']['intro'][0]['OccurrenceNote'].decode('utf-8'))
+            intro = markdown.markdown(self.tn_book_data['front']['intro'][0]['OccurrenceNote'].replace('<br>', '\n'))
             title = self.get_first_header(intro)
             intro = self.fix_tn_links(intro, 'intro')
             intro = self.increase_headers(intro)
@@ -720,8 +718,8 @@ class TnConverter(object):
                         verseNotes = ''
                         for data in self.tn_book_data[chapter][str(verse)]:
                             title = data['GLQuote']
-                            verseNotes += '<b>' + title.decode('utf-8') + (' -' if not title.decode('utf-8').endswith(':') else '') + ' </b>'
-                            verseNotes += markdown.markdown(data['OccurrenceNote'].decode('utf-8').replace('<br>',"\n")).replace('<p>', '').replace('</p>', '')
+                            verseNotes += '<b>' + title + (' -' if not title.endswith(':') else '') + ' </b>'
+                            verseNotes += markdown.markdown(data['OccurrenceNote'].replace('<br>',"\n")).replace('<p>', '').replace('</p>', '')
                             verseNotes += '\n<br><br>\n'
                         rc = 'rc://*/tn/help/{0}/{1}/{2}'.format(self.book_id, self.pad(chapter), self.pad(verse))
                         self.get_resource_data_from_rc_links(verseNotes, rc)
