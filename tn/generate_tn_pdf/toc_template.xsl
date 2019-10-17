@@ -15,6 +15,7 @@
                     #toc {
                         text-align: center;
                         font-size: 18pt;
+                        line-height: 20pt;
                         font-family: arial;
                     }
 
