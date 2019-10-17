@@ -63,9 +63,6 @@ class TnConverter(object):
         self.regenerate = regenerate
         self.logger = logger
 
-        self.id = '{0}_obs-tn_{1}'.format(lang_code, tn_tag)
-        self.title = 'unfoldingWord® Open Bible Stories Translation Notes'
-
         if not self.working_dir:
             self.working_dir = tempfile.mkdtemp(prefix='obs-tn-')
         if not self.output_dir:
@@ -94,6 +91,8 @@ class TnConverter(object):
         self.id = None
         self.my_path = os.path.dirname(os.path.realpath(__file__))
         self.generation_info = {}
+        self.id = '{0}_obs-tn_{1}'.format(lang_code, tn_tag)
+        self.title = 'unfoldingWord® Open Bible Stories Translation Notes'
 
     def run(self):
         self.load_resource_data()

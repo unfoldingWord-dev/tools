@@ -117,7 +117,8 @@ class TnConverter(object):
         self.publisher = None
         self.contributors = None
         self.issued = None
-        self.id = None
+        self.id = '{0}_tn_{1}'.format(lang_code, tn_tag)
+        self.title = 'unfoldingWord® Translation Notes'
         self.my_path = os.path.dirname(os.path.realpath(__file__))
 
         self.lastEndedWithQuoteTag = False
@@ -129,6 +130,7 @@ class TnConverter(object):
     def run(self):
         self.load_resource_data()
         self.setup_resource_files()
+        self.id = '{0}_obs-tn_{1}_{2}'.format(self.lang_code, self.tn_tag, self.generation_info['obs-tn']['commit'])
         self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
         self.determine_if_regeneration_needed()
         self.html_dir = os.path.join(self.output_dir, '{0}_html'.format(self.id))
@@ -254,22 +256,6 @@ class TnConverter(object):
         if not os.path.isfile(os.path.join(self.working_dir, 'icon-tn.png')):
             command = 'curl -o {0}/icon-tn.png https://cdn.door43.org/assets/uw-icons/logo-tn-256.png'.format(
                 self.working_dir)
-            subprocess.call(command, shell=True)
-
-    def setup_resource_files(self):
-        if not os.path.isdir(self.ugnt_dir):
-            git.Git(self.working_dir).clone('https://git.door43.org/unfoldingWord/UGNT.git')
-        g = git.Git(self.ugnt_dir)
-        g.checkout(self.ugnt_tag)
-        if self.ugnt_tag == 'master':
-            g.pull()
-        if not os.path.isdir(self.versification_dir):
-            git.Git(self.working_dir).clone('https://git.door43.org/Door43-Catalog/versification.git')
-        g = git.Git(self.versification_dir)
-        g.checkout('master')
-        g.pull()
-        if not os.path.isfile(os.path.join(self.working_dir, 'icon-tn.png')):
-            command = 'curl -o {0}/icon-tn.png https://cdn.door43.org/assets/uw-icons/logo-utn-256.png'.format(self.working_dir)
             subprocess.call(command, shell=True)
 
     def extract_files_from_url(self, url):
