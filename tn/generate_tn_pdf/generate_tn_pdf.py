@@ -425,7 +425,7 @@ class TnConverter(object):
 
     def generate_license_html(self):
         license_file = os.path.join(self.tn_dir, 'LICENSE.md')
-        license = markdown2.markdown_dir(license_file)
+        license = markdown2.markdown_path(license_file)
         license_html = '''
 <!DOCTYPE html>
 <html>
@@ -1035,7 +1035,7 @@ class TnConverter(object):
                         self.bad_links[source_rc] = {} 
                     self.bad_links[source_rc][rc] = fix
                 if not rc in self.resource_data:
-                    t = markdown2.markdown_dir(file_path)
+                    t = markdown2.markdown_path(file_path)
                     alt_title = ''
                     if resource == 'ta':
                         title_file = os.path.join(os.path.dirname(file_path), 'title.md')
