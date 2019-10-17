@@ -60,6 +60,7 @@ class TnConverter(object):
         self.lang_code = lang_code
         self.books = books
         self.hash = tn_tag
+        self.owner = owner
         self.regenerate = regenerate
         self.logger = logger
 
