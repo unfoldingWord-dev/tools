@@ -559,6 +559,8 @@ class TnConverter(object):
                     verseUsfm = ''
                 bookData[chapter][verse] = verseUsfm
         self.verse_usfm['ust'] = bookData
+        print(self.verse_usfm['ust'])
+        exit(1)
 
     def populate_verse_usfm_ult(self):
         bookData = {}
