@@ -147,7 +147,7 @@ class TnConverter(object):
             if int(self.book_number) < 41:
                 continue
             self.id = '{0}_tn_{1}_{2}_{3}-{4}'.format(self.lang_code, self.tn_tag,
-                                                      self.generation_info['obs-tn']['commit'],
+                                                      self.generation_info['tn']['commit'],
                                                       self.book_number.zfill(2), self.book_id.upper())
             self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number, self.book_id))
             if not os.path.isdir(self.html_dir):
@@ -250,8 +250,8 @@ class TnConverter(object):
         self.clone_resource('ult', self.ult_tag)
         self.clone_resource('ust', self.ust_tag)
         self.clone_resource('UGNT', self.ugnt_tag, 'https://git.door43.org/unfoldingWord/UGNT.git')
-        if not os.path.isfile(os.path.join(self.working_dir, 'icon-obs-tn.png')):
-            command = 'curl -o {0}/icon-obs-tn.png https://cdn.door43.org/assets/uw-icons/logo-obs-256.png'.format(
+        if not os.path.isfile(os.path.join(self.working_dir, 'icon-tn.png')):
+            command = 'curl -o {0}/icon-tn.png https://cdn.door43.org/assets/uw-icons/logo-tn-256.png'.format(
                 self.working_dir)
             subprocess.call(command, shell=True)
 
