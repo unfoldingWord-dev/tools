@@ -611,8 +611,9 @@ class TnConverter(object):
         book_data = {}
         with io.open(book_file, "r+", encoding="utf-8") as f:
             content = f.read().encode('utf-8')
-            s = StringIO(content)
-            rd = csv.reader(s, delimiter=str("\t"), quotechar=str('"'))
+            _print(content)
+            write_file('/tmp/test2.txt', content)
+            rd = csv.reader(content, delimiter=str("\t"), quotechar=str('"'))
             header = next(rd)
             for row in rd:
                 data = {}
