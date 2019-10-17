@@ -299,7 +299,7 @@ class TnConverter(object):
                                 exit(1)
                             versesInChunk.append(self.verse_usfm[resource][chapter][verse])
                     chunk_usfm = '\n'.join(versesInChunk)
-                    if not chunks_text[str(chapter)][str(first_verse)][resource]:
+                    if resource not in chunks_text[str(chapter)][str(first_verse)]:
                         chunks_text[str(chapter)][str(first_verse)][resource] = {}
                     chunks_text[str(chapter)][str(first_verse)][resource] = {
                         'usfm': chunk_usfm,
