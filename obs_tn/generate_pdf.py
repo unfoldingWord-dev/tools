@@ -177,20 +177,23 @@ class TnConverter(object):
         if not url:
             url = self.get_resource_git_url(resource, self.lang_code, self.owner)
         repo_dir = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource))
-        owners = OWNERS
-        owners.insert(0, self.owner)
-        languages = [self.lang_code, DEFAULT_LANG]
-        if not os.path.isdir(repo_dir):
-            for lang in languages:
-                for owner in owners:
-                    url = self.get_resource_git_url(resource, lang, owner)
-                    try:
-                        git.Repo.clone_from(url, repo_dir)
-                    except git.GitCommandError:
-                        continue
-                    break
-                if os.path.isdir(repo_dir):
-                    break
+        try:
+            git.Repo.clone_from(url, repo_dir)
+        except git.GitCommandError:
+            owners = OWNERS
+            owners.insert(0, self.owner)
+            languages = [self.lang_code, DEFAULT_LANG]
+            if not os.path.isdir(repo_dir):
+                for lang in languages:
+                    for owner in owners:
+                        url = self.get_resource_git_url(resource, lang, owner)
+                        try:
+                            git.Repo.clone_from(url, repo_dir)
+                        except git.GitCommandError:
+                            continue
+                        break
+                    if os.path.isdir(repo_dir):
+                        break
         g = git.Git(repo_dir)
         g.checkout(tag)
         if tag == DEFAULT_TAG:
