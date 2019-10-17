@@ -19,7 +19,6 @@ import logging
 import argparse
 import tempfile
 import markdown
-import markdown2
 import shutil
 import subprocess
 import csv
@@ -426,7 +425,7 @@ class TnConverter(object):
 
     def generate_license_html(self):
         license_file = os.path.join(self.tn_dir, 'LICENSE.md')
-        license = markdown2.markdown_path(license_file)
+        license = markdown.markdown(read_file(license_file))
         license_html = '''
 <!DOCTYPE html>
 <html>
@@ -641,7 +640,7 @@ class TnConverter(object):
     def get_tn_html(self):
         tn_html = '<div id="tn-{0}" class="resource-title-page">\n<h1 class="section-header">{1}</h1>\n</div>'.format(self.book_id, self.title)
         if 'front' in self.tn_book_data and 'intro' in self.tn_book_data['front']:
-            intro = markdown2.markdown(self.tn_book_data['front']['intro'][0]['OccurrenceNote'].decode('utf-8').replace('<br>', '\n'))
+            intro = markdown.markdown(self.tn_book_data['front']['intro'][0]['OccurrenceNote'].decode('utf-8').replace('<br>', '\n'))
             title = self.get_first_header(intro)
             intro = self.fix_tn_links(intro, 'intro')
             intro = self.increase_headers(intro)
@@ -663,7 +662,7 @@ class TnConverter(object):
             chapter = str(chapter_verses['chapter'])
             print('Chapter {0}...'.format(chapter))
             if 'intro' in self.tn_book_data[chapter]:
-                intro = markdown2.markdown(self.tn_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>',"\n"))
+                intro = markdown.markdown(self.tn_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>',"\n"))
                 intro = re.sub(r'<h(\d)>([^>]+) 0+([1-9])', r'<h\1>\2 \3', intro, 1, flags=re.MULTILINE | re.IGNORECASE)
                 title = self.get_first_header(intro)
                 intro = self.fix_tn_links(intro, chapter)
@@ -715,7 +714,7 @@ class TnConverter(object):
                         for data in self.tn_book_data[chapter][str(verse)]:
                             title = data['GLQuote']
                             verseNotes += '<b>' + title.decode('utf-8') + (' -' if not title.decode('utf-8').endswith(':') else '') + ' </b>'
-                            verseNotes += markdown2.markdown(data['OccurrenceNote'].decode('utf-8').replace('<br>',"\n")).replace('<p>', '').replace('</p>', '')
+                            verseNotes += markdown.markdown(data['OccurrenceNote'].decode('utf-8').replace('<br>',"\n")).replace('<p>', '').replace('</p>', '')
                             verseNotes += '\n<br><br>\n'
                         rc = 'rc://*/tn/help/{0}/{1}/{2}'.format(self.book_id, self.pad(chapter), self.pad(verse))
                         self.get_resource_data_from_rc_links(verseNotes, rc)
@@ -1036,7 +1035,7 @@ class TnConverter(object):
                         self.bad_links[source_rc] = {} 
                     self.bad_links[source_rc][rc] = fix
                 if not rc in self.resource_data:
-                    t = markdown2.markdown_path(file_path)
+                    t = markdown.markdown(read_file(file_path))
                     alt_title = ''
                     if resource == 'ta':
                         title_file = os.path.join(os.path.dirname(file_path), 'title.md')
