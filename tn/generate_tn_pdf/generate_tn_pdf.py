@@ -47,21 +47,8 @@ def print(obj):
 class TnConverter(object):
 
     def __init__(self, ta_tag=None, tn_tag=None, tw_tag=None, ust_tag=None, ult_tag=None, ugnt_tag=None,
-                 working_dir=None, output_dir=None, lang_code=DEFAULT_LANG, books=None, regenerate=False, logger=None):
-        """
-        :param ta_tag:
-        :param tn_tag:
-        :param tw_tag:
-        :param ust_tag:
-        :param ult_tag:
-        :param ugnt_tag:
-        :param working_dir:
-        :param output_dir:
-        :param lang_code:
-        :param books:
-        :param regenerate:
-        :param logger:
-        """
+                 working_dir=None, output_dir=None, lang_code=DEFAULT_LANG, books=None, owner=DEFAULT_OWNER,
+                 regenerate=False, logger=None):
         self.ta_tag = ta_tag
         self.tn_tag = tn_tag
         self.tw_tag = tw_tag
@@ -1183,24 +1170,10 @@ class TnConverter(object):
         return html
 
 
-def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_code, books, working_dir, output_dir, regenerate, logger):
-    """
-    :param ta_tag:
-    :param tn_tag:
-    :param tw_tag:
-    :param ust_tag:
-    :param ult_tag:
-    :param ugnt_tag:
-    :param lang_code:
-    :param books:
-    :param working_dir:
-    :param output_dir:
-    :param regenerate:
-    :param logger:
-    :return:
-    """
+def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_code, books, working_dir, output_dir, owner,
+         regenerate, logger):
     tn_converter = TnConverter(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, working_dir, output_dir, lang_code,
-                               books, regenerate, logger)
+                               books, owner, regenerate, logger)
     tn_converter.run()
 
 
@@ -1235,4 +1208,5 @@ if __name__ == '__main__':
     logger.addHandler(ch)
 
     for lang_code in lang_codes:
-        main(args.ta, args.tn, args.tw, args.ust, args.ult, args.ugnt, lang_code, args.books, args.working_dir, args.output_dir, args.regenerate, logger)
+        main(args.ta, args.tn, args.tw, args.ust, args.ult, args.ugnt, lang_code, args.books, args.working_dir,
+             args.output_dir, args.owner, args.regenerate, logger)

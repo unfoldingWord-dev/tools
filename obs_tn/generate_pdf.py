@@ -40,18 +40,6 @@ def print(obj):
 class TnConverter(object):
     def __init__(self, tn_tag=None, obs_tag=None, tw_tag=None, ta_tag=None, working_dir=None, output_dir=None,
                  lang_code=DEFAULT_LANG, owner=DEFAULT_OWNER, regenerate=False, logger=None):
-        """
-        :param tn_tag:
-        :param obs_tag:
-        :param tw_tag:
-        :param ta_tag:
-        :param working_dir:
-        :param output_dir:
-        :param lang_code:
-        :param owner:
-        :param regenerate:
-        :param logger:
-        """
         self.tn_tag = tn_tag
         self.obs_tag = obs_tag
         self.tw_tag = tw_tag
@@ -735,19 +723,6 @@ class TnConverter(object):
 
 
 def main(tn_tag, obs_tag, tw_tag, ta_tag, lang_code, working_dir, output_dir, owner, regenerate, logger):
-    """
-    :param tn_tag:
-    :param obs_tag:
-    :param tw_tag:
-    :param ta_tag:
-    :param lang_code:
-    :param working_dir:
-    :param output_dir:
-    :param owner:
-    :param regenerate:
-    :param logger:
-    :return:
-    """
     _print('Starting TN Converter for {0}...'.format(lang_code))
     tn_converter = TnConverter(tn_tag, obs_tag, tw_tag, ta_tag, working_dir, output_dir, lang_code, owner, regenerate, logger)
     tn_converter.run()
