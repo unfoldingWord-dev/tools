@@ -603,41 +603,42 @@ class TnConverter(object):
         if os.path.isfile(versification_file):
             self.chapters_and_verses = load_json_object(versification_file)
 
+    @staticmethod
+    def unicode_csv_reader(utf8_data, dialect=csv.excel, **kwargs):
+        csv_reader = csv.reader(utf8_data, dialect=dialect, delimiter=str("\t"), quotechar=str('"'), **kwargs)
+        for row in csv_reader:
+            yield [unicode(cell, 'utf-8') for cell in row]
+
     def populate_tn_book_data(self):
         book_file = os.path.join(self.tn_dir, 'en_tn_{0}-{1}.tsv'.format(self.book_number, self.book_id.upper()))
         self.tn_book_data = {}
         if not os.path.isfile(book_file):
             return
         book_data = {}
-        with io.open(book_file, "r+", encoding="utf-8") as f:
-            content = f.read()
-            _print(content)
-            write_file('/tmp/content.txt', content)
-            s = StringIO(content)
-            rd = csv.reader(s, delimiter=str("\t"), quotechar=str('"'))
-            header = next(rd)
-            for row in rd:
-                data = {}
-                found = False
-                for idx, field in enumerate(header):
-                    field = field.strip()
-                    if idx >= len(row):
-                        print('ERROR: {0} is malformed'.format(book_file))
-                        found = False
-                        break
-                    else:
-                        found = True
-                        data[field] = row[idx].decode('utf-8').encode('utf-8')
-                if not found:
+        reader = self.unicode_csv_reader(open(book_file))
+        header = next(reader)
+        for row in reader:
+            data = {}
+            found = False
+            for idx, field in enumerate(header):
+                field = field.strip()
+                if idx >= len(row):
+                    print('ERROR: {0} is malformed'.format(book_file))
+                    found = False
                     break
-                print('{0} {1}:{2}:{3}'.format(data['Book'], data['Chapter'], data['Verse'], data['ID']))
-                chapter = data['Chapter'].lstrip('0')
-                verse = data['Verse'].lstrip('0')
-                if not chapter in book_data:
-                    book_data[chapter] = {}
-                if not verse in book_data[chapter]:
-                    book_data[chapter][verse] = []
-                book_data[str(chapter)][str(verse)].append(data)
+                else:
+                    found = True
+                    data[field] = row[idx].decode('utf-8').encode('utf-8')
+            if not found:
+                break
+            print('{0} {1}:{2}:{3}'.format(data['Book'], data['Chapter'], data['Verse'], data['ID']))
+            chapter = data['Chapter'].lstrip('0')
+            verse = data['Verse'].lstrip('0')
+            if not chapter in book_data:
+                book_data[chapter] = {}
+            if not verse in book_data[chapter]:
+                book_data[chapter][verse] = []
+            book_data[str(chapter)][str(verse)].append(data)
         self.tn_book_data = book_data
 
     def get_tn_html(self):
