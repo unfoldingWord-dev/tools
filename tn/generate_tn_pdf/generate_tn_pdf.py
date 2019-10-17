@@ -18,6 +18,7 @@ import re
 import logging
 import argparse
 import tempfile
+import markdown
 import markdown2
 import shutil
 import subprocess
