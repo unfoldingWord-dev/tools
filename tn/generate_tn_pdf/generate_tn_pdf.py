@@ -641,6 +641,7 @@ class TnConverter(object):
             book_data[str(chapter)][str(verse)].append(data)
             write_file('/tmp/data.txt', data)
         self.tn_book_data = book_data
+        write_file('/tmp/out.json', self.tn_book_datas)
 
     def get_tn_html(self):
         tn_html = '<div id="tn-{0}" class="resource-title-page">\n<h1 class="section-header">{1}</h1>\n</div>'.format(self.book_id, self.title)
