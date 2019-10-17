@@ -609,7 +609,7 @@ class TnConverter(object):
         if not os.path.isfile(book_file):
             return
         book_data = {}
-        with io.open("my_utf8_file.txt", "r+", encoding="utf-8") as f:
+        with io.open(book_file, "r+", encoding="utf-8") as f:
             content = f.read().encode('utf-8')
             s = StringIO(content)
             rd = csv.reader(s, delimiter=str("\t"), quotechar=str('"'))
