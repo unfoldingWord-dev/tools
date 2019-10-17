@@ -91,7 +91,7 @@ class TnConverter(object):
         self.publisher = None
         self.contributors = None
         self.issued = None
-        self.filename_base = None
+        self.id = None
         self.my_path = os.path.dirname(os.path.realpath(__file__))
         self.generation_info = {}
 
@@ -107,8 +107,8 @@ class TnConverter(object):
         self.contributors = '; '.join(self.manifest['dublin_core']['contributor'])
         self.publisher = self.manifest['dublin_core']['publisher']
         self.issued = self.manifest['dublin_core']['issued']
-        self.filename_base = self.id
-        if self.regenerate or not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
+        self.id = self.id
+        if self.regenerate or not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.id))):
             self.logger.info('Creating OBS tN HTML files for {0}...'.format(self.lang_code))
             if not os.path.isdir(self.html_dir):
                 os.makedirs(self.html_dir)
@@ -132,12 +132,12 @@ class TnConverter(object):
             self.save_resource_data()
             self.save_bad_links()
             self.save_bad_notes()
-        if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.pdf'.format(self.filename_base))):
-            self.logger.info('Generating PDF {0}/{1}.pdf...'.format(self.output_dir, self.filename_base))
+        if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.pdf'.format(self.id))):
+            self.logger.info('Generating PDF {0}/{1}.pdf...'.format(self.output_dir, self.id))
             self.generate_tn_pdf()
         else:
             self.logger.info('No PDF generation needed for {0}.'.format(self.lang_code))
-        self.logger.info('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.filename_base))
+        self.logger.info('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.id))
 
     def save_bad_links(self):
         bad_links = "BAD LINKS:\n"
@@ -310,7 +310,7 @@ class TnConverter(object):
 
         soup.head.append(soup.new_tag('link', href="style.css", rel="stylesheet"))
 
-        html_file = os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))
+        html_file = os.path.join(self.html_dir, '{0}.html'.format(self.id))
         write_file(html_file, unicode(soup))
         self.logger.info('Wrote HTML to {0}'.format(html_file))
 
@@ -331,7 +331,7 @@ class TnConverter(object):
 </body>
 </html>
 '''.format(self.title, self.version)
-        html_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.filename_base))
+        html_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.id))
         write_file(html_file, cover_html)
 
     def generate_license_html(self):
@@ -360,11 +360,11 @@ class TnConverter(object):
         write_file(html_file, license_html)
 
     def generate_tn_pdf(self):
-        cover_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.filename_base))
+        cover_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.id))
         license_file = os.path.join(self.html_dir, 'license.html')
         header_file = os.path.join(self.html_dir, 'header.html')
-        body_file = os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))
-        output_file = os.path.join(self.output_dir, '{0}.pdf'.format(self.filename_base))
+        body_file = os.path.join(self.html_dir, '{0}.html'.format(self.id))
+        output_file = os.path.join(self.output_dir, '{0}.pdf'.format(self.id))
         template_file = os.path.join(self.my_path, 'toc_template.xsl')
         command = '''wkhtmltopdf 
                         --javascript-delay 2000 

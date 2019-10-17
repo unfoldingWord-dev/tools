@@ -35,6 +35,11 @@ from ...general_tools.bible_books import BOOK_NUMBERS, BOOK_CHAPTER_VERSES
 from ...general_tools.usfm_utils import usfm3_to_usfm2
 
 _print = print
+DEFAULT_LANG = 'en'
+DEFAULT_OWNER = 'unfoldingWord'
+DEFAULT_TAG = 'master'
+
+OWNERS = [DEFAULT_OWNER, 'STR', 'Door43-Catalog']
 
 def print(obj):
     _print(json.dumps(obj, ensure_ascii=False, indent=2).encode('utf-8'))
@@ -42,7 +47,7 @@ def print(obj):
 class TnConverter(object):
 
     def __init__(self, ta_tag=None, tn_tag=None, tw_tag=None, ust_tag=None, ult_tag=None, ugnt_tag=None, working_dir=None, 
-                    output_dir=None, lang_code='en', books=None):
+                    output_dir=None, lang_code=DEFAULT_LANG, books=None, regenerate=False, logger=None):
         """
         :param ta_tag:
         :param tn_tag:
@@ -54,6 +59,8 @@ class TnConverter(object):
         :param output_dir:
         :param lang_code:
         :param books:
+        :param regenerate:
+        :param logger:
         """
         self.ta_tag = ta_tag
         self.tn_tag = tn_tag
@@ -66,17 +73,11 @@ class TnConverter(object):
         self.lang_code = lang_code
         self.books = books
         self.hash = tn_tag
+        self.regenerate = regenerate
+        self.logger = logger
+
         self.id = '{0}_tn_{1}'.format(lang_code, tn_tag)
         self.title = 'unfoldingWord® Translation Notes'
-
-        self.logger = logging.getLogger()
-        self.logger.setLevel(logging.DEBUG)
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.DEBUG)
-        formatter = logging.Formatter(
-            '%(levelname)s - %(message)s')
-        ch.setFormatter(formatter)
-        self.logger.addHandler(ch)
 
         if not self.working_dir:
             self.working_dir = tempfile.mkdtemp(prefix='tn-')
@@ -92,10 +93,8 @@ class TnConverter(object):
         self.ult_dir = os.path.join(self.working_dir, '{0}_ult'.format(lang_code))
         self.ugnt_dir = os.path.join(self.working_dir, 'UGNT')
         self.versification_dir = os.path.join(self.working_dir, 'versification', 'bible', 'ufw', 'chunks')
-        self.setup_resource_files()
 
-        self.html_dir = os.path.join(self.output_dir, '{0}_html'.format(self.id))
-
+        self.html_dir = None
         self.manifest = None
         self.book_id = None
         self.book_title = None
@@ -112,21 +111,27 @@ class TnConverter(object):
         self.tn_book_data = {}
         self.tw_words_data = {}
         self.bad_links = {}
+        self.bad_notes = {}
         self.usfm_chunks = {}
         self.version = None
         self.publisher = None
         self.contributors = None
         self.issued = None
-        self.filename_base = None
+        self.id = None
         self.my_path = os.path.dirname(os.path.realpath(__file__))
 
         self.lastEndedWithQuoteTag = False
         self.lastEndedWithParagraphTag = False
         self.openQuote = False
         self.nextFollowsQuote = False
+        self.generation_info = {}
 
     def run(self):
         self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
+        self.load_resource_data()
+        self.setup_resource_files()
+        self.determine_if_regeneration_needed()
+        self.html_dir = os.path.join(self.output_dir, '{0}_html'.format(self.id))
         self.version = self.manifest['dublin_core']['version']
         self.title = self.manifest['dublin_core']['title']
         self.contributors = '; '.join(self.manifest['dublin_core']['contributor'])
@@ -141,11 +146,13 @@ class TnConverter(object):
             self.book_number = BOOK_NUMBERS[self.book_id]
             if int(self.book_number) < 41:
                 continue
-            self.filename_base = '{0}_{1}-{2}'.format(self.id, self.book_number.zfill(2), self.book_id.upper())
+            self.id = '{0}_tn_{1}_{2}_{3}-{4}'.format(self.lang_code, self.tn_tag,
+                                                      self.generation_info['obs-tn']['commit'],
+                                                      self.book_number.zfill(2), self.book_id.upper())
             self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number, self.book_id))
             if not os.path.isdir(self.html_dir):
                 os.makedirs(self.html_dir)
-            if not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
+            if self.regenerate or not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.id))):
                 self.resource_data = {}
                 self.rc_references = {}
                 self.populate_tn_book_data()
@@ -165,11 +172,11 @@ class TnConverter(object):
                 self.logger.info("Copying style sheet file...")
                 style_file = os.path.join(self.my_path, 'style.css')
                 shutil.copy2(style_file, self.html_dir)
-            if not os.path.exists(os.path.join(self.output_dir, '{0}.pdf'.format(self.filename_base))):
-                self.logger.info("Generating PDF {0}...".format(self.output_dir, '{0}.pdf'.format(self.filename_base)))
+                self.save_bad_links()
+            if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.pdf'.format(self.id))):
+                self.logger.info("Generating PDF {0}...".format(self.output_dir, '{0}.pdf'.format(self.id)))
                 self.generate_tn_pdf()
-            _print('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.filename_base))
-        self.save_bad_links()
+            _print('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.id))
 
     def save_bad_links(self):
         bad_links = "BAD LINKS:\n"
@@ -192,7 +199,7 @@ class TnConverter(object):
                     if self.bad_links[source_rc][rc]:
                         str += ' - change to `{0}`'.format(self.bad_links[source_rc][rc])
                 bad_links += "{0}\n".format(str)
-        save_file = os.path.join(self.output_dir, '{0}_bad_links.txt'.format(self.filename_base))
+        save_file = os.path.join(self.output_dir, '{0}_bad_links.txt'.format(self.id))
         write_file(save_file, bad_links)
         _print('BAD LINKS file can be found at {0}'.format(self.save_file))
 
@@ -211,39 +218,44 @@ class TnConverter(object):
     def get_resource_git_url(self, resource):
         return 'https://git.door43.org/unfoldingWord/{0}_{1}.git'.format(self.lang_code, resource)
 
+    def clone_resource(self, resource, tag=DEFAULT_TAG, url=None):
+        if not url:
+            url = self.get_resource_git_url(resource, self.lang_code, self.owner)
+        repo_dir = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource))
+        owners = OWNERS
+        owners.insert(0, self.owner)
+        languages = [self.lang_code, DEFAULT_LANG]
+        if not os.path.isdir(repo_dir):
+            for lang in languages:
+                for owner in owners:
+                    url = self.get_resource_git_url(resource, lang, owner)
+                    try:
+                        git.Repo.clone_from(url, repo_dir)
+                    except git.GitCommandError:
+                        continue
+                    break
+                if os.path.isdir(repo_dir):
+                    break
+        g = git.Git(repo_dir)
+        g.checkout(tag)
+        if tag == DEFAULT_TAG:
+            g.pull()
+        commit = g.rev_parse('HEAD', short=10)
+        self.generation_info[resource] = {'tag': tag, 'commit': commit}
+
     def setup_resource_files(self):
-        if not os.path.isdir(self.tn_dir):
-            git.Git(self.working_dir).clone(self.get_resource_git_url('tn'))
-        g = git.Git(self.tn_dir)
-        g.checkout(self.tn_tag)
-        if self.tn_tag == 'master':
-            g.pull()
-        self.hash = g.rev_parse(self.tn_tag, short=10)
-        self.id = '{0}_tn_{1}_{2}'.format(self.lang_code, self.tn_tag, self.hash)
-        if not os.path.isdir(self.tw_dir):
-            git.Git(self.working_dir).clone(self.get_resource_git_url('tw'))
-        g = git.Git(self.tw_dir)
-        g.checkout(self.tw_tag)
-        if self.tw_tag == 'master':
-            g.pull()
-        if not os.path.isdir(self.ta_dir):
-            git.Git(self.working_dir).clone(self.get_resource_git_url('ta'))
-        g = git.Git(self.ta_dir)
-        g.checkout(self.ta_tag)
-        if self.ta_tag == 'master':
-            g.pull()
-        if not os.path.isdir(self.ust_dir):
-            git.Git(self.working_dir).clone(self.get_resource_git_url('ust'))
-        g = git.Git(self.ust_dir)
-        g.checkout(self.ust_tag)
-        if self.ust_tag == 'master':
-            g.pull()
-        if not os.path.isdir(self.ult_dir):
-            git.Git(self.working_dir).clone(self.get_resource_git_url('ult'))
-        g = git.Git(self.ult_dir)
-        g.checkout(self.ult_tag)
-        if self.ult_tag == 'master':
-            g.pull()
+        self.clone_resource('tn', self.tn_tag)
+        self.clone_resource('tw', self.tw_tag)
+        self.clone_resource('ta', self.ta_tag)
+        self.clone_resource('ult', self.ult_tag)
+        self.clone_resource('ust', self.ust_tag)
+        self.clone_resource('UGNT', self.ugnt_tag, 'https://git.door43.org/unfoldingWord/UGNT.git')
+        if not os.path.isfile(os.path.join(self.working_dir, 'icon-obs-tn.png')):
+            command = 'curl -o {0}/icon-obs-tn.png https://cdn.door43.org/assets/uw-icons/logo-obs-256.png'.format(
+                self.working_dir)
+            subprocess.call(command, shell=True)
+
+    def setup_resource_files(self):
         if not os.path.isdir(self.ugnt_dir):
             git.Git(self.working_dir).clone('https://git.door43.org/unfoldingWord/UGNT.git')
         g = git.Git(self.ugnt_dir)
@@ -309,6 +321,23 @@ class TnConverter(object):
             write_file(save_file, chunks_text)
         self.chunks_text = chunks_text
 
+    def determine_if_regeneration_needed(self):
+        # check if any commit hashes have changed
+        old_info = self.get_previous_generation_info()
+        if not old_info:
+            self.logger.info('Looks like this is a new commit of {0}. Generating PDF.'.format(self.id))
+            self.regenerate = True
+        else:
+            for resource in self.generation_info:
+                if resource in old_info and resource in self.generation_info \
+                        and (old_info[resource]['tag'] != self.generation_info[resource]['tag']
+                             or old_info[resource]['commit'] != self.generation_info[resource]['commit']):
+                    self.logger.info('Resource {0} has changed: {1} => {2}, {3} => {4}. REGENERATING PDF.'.format(
+                        resource, old_info[resource]['tag'], self.generation_info[resource]['tag'],
+                        old_info[resource]['commit'], self.generation_info[resource]['commit']
+                    ))
+                    self.regenerate = True
+
     def get_contributors_html(self):
         if self.contributors and len(self.contributors):
             return '<div id="contributors" class="article">\n<h1 class="section-header">Contributors</h1>\n<p>{0}</p></div>'.format(self.contributors)
@@ -325,24 +354,36 @@ class TnConverter(object):
         write_file(save_file, self.rc_references)
         save_file = os.path.join(save_dir, '{0}_bad_links.json'.format(self.id))
         write_file(save_file, self.bad_links)
+        save_file = os.path.join(save_dir, '{0}_bad_notes.json'.format(self.id))
+        write_file(save_file, self.bad_notes)
+        save_file = os.path.join(save_dir, '{0}_info.json'.format(self.id))
+        write_file(save_file, self.generation_info)
 
-    def load_bad_links(self):
+    def get_previous_generation_info(self):
         save_dir = os.path.join(self.output_dir, '{0}_resource_data'.format(self.id))
+        save_file = os.path.join(save_dir, '{0}_info.json'.format(self.id))
+        if os.path.isfile(save_file):
+            return load_json_object(save_file)
+        else:
+            return {}
+
+    def load_resource_data(self):
+        save_dir = os.path.join(self.output_dir, '{0}_resource_data'.format(self.id))
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+
+        save_file = os.path.join(save_dir, '{0}.json'.format(self.id))
+        if os.path.isfile(save_file):
+            self.resource_data = load_json_object(save_file)
+
+        save_file = os.path.join(save_dir, '{0}_references.json'.format(self.id))
+        if os.path.isfile(save_file):
+            self.rc_references = load_json_object(save_file)
+
         save_file = os.path.join(save_dir, '{0}_bad_links.json'.format(self.id))
         if os.path.isfile(save_file):
             self.bad_links = load_json_object(save_file)
 
-    def load_resource_data(self):
-        save_dir = os.path.join(self.output_dir, '{0}_tn_resource_data')
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-        save_file = os.path.join(save_dir, '{0}.json'.format(self.id))
-        if os.path.isfile(save_file):
-            self.resource_data = load_json_object(save_file)
-        save_file = os.path.join(save_dir, '{0}_references.json'.format(self.id))
-        if os.path.isfile(save_file):
-            self.rc_references = load_json_object(save_file)
-            
     def generate_body_html(self):
         self.load_resource_data()
         tn_html = self.get_tn_html()
@@ -370,7 +411,7 @@ class TnConverter(object):
 
         soup.head.append(soup.new_tag('link', href="style.css", rel="stylesheet"))
 
-        html_file = os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))
+        html_file = os.path.join(self.html_dir, '{0}.html'.format(self.id))
         write_file(html_file, unicode(soup))
         self.logger.info('Wrote HTML to {0}'.format(html_file))
 
@@ -392,7 +433,7 @@ class TnConverter(object):
 </body>
 </html>
 '''.format(self.title, self.book_title, self.version)
-        html_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.filename_base))
+        html_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.id))
         write_file(html_file, cover_html)
 
     def generate_license_html(self):
@@ -421,11 +462,11 @@ class TnConverter(object):
         write_file(html_file, license_html)
 
     def generate_tn_pdf(self):
-        cover_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.filename_base))
+        cover_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.id))
         license_file = os.path.join(self.html_dir, 'license.html')
         header_file = os.path.join(self.html_dir, 'header.html')
-        body_file = os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))
-        output_file = os.path.join(self.output_dir, '{0}.pdf'.format(self.filename_base))
+        body_file = os.path.join(self.html_dir, '{0}.html'.format(self.id))
+        output_file = os.path.join(self.output_dir, '{0}.pdf'.format(self.id))
         template_file = os.path.join(self.my_path, 'toc_template.xsl')
         command = '''wkhtmltopdf 
                         --javascript-delay 2000 
@@ -1154,7 +1195,7 @@ class TnConverter(object):
         write_file(html_file, html)
         return html
 
-def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_code, books, working_dir, output_dir):
+def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_code, books, working_dir, output_dir, regenerate, logger):
     """
     :param ta_tag:
     :param tn_tag:
@@ -1166,10 +1207,12 @@ def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_code, books, w
     :param books:
     :param working_dir:
     :param output_dir:
+    :param regenerate:
+    :param logger:
     :return:
     """
     tn_converter = TnConverter(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, working_dir, output_dir, 
-                                lang_code, books)
+                                lang_code, books, regenerate, logger)
     tn_converter.run()
 
 if __name__ == '__main__':
@@ -1179,12 +1222,29 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--book_id', dest='books', nargs='+', default=None, required=False, help="Bible Book(s)")
     parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help="Working Directory")
     parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False, help="Output Directory")
-    parser.add_argument('--ta-tag', dest='ta', default='v10', required=False, help="tA Tag")
-    parser.add_argument('--tn-tag', dest='tn', default='v15', required=False, help="tN Tag")
-    parser.add_argument('--tw-tag', dest='tw', default='v10', required=False, help="tW Tag")
-    parser.add_argument('--ust-tag', dest='ust', default='master', required=False, help="UST Tag")
-    parser.add_argument('--ult-tag', dest='ult', default='master', required=False, help="ULT Tag")
-    parser.add_argument('--ugnt-tag', dest='ugnt', default='v0.6', required=False, help="UGNT Tag")
+    parser.add_argument('--tn-tag', dest='tn', default=DEFAULT_TAG, required=False, help='tN Tag')
+    parser.add_argument('--ta-tag', dest='ta', default=DEFAULT_TAG, required=False, help='tA Tag')
+    parser.add_argument('--tw-tag', dest='tw', default=DEFAULT_TAG, required=False, help='tW Tag')
+    parser.add_argument('--ust-tag', dest='ust', default=DEFAULT_TAG, required=False, help="UST Tag")
+    parser.add_argument('--ult-tag', dest='ult', default=DEFAULT_TAG, required=False, help="ULT Tag")
+    parser.add_argument('--ugnt-tag', dest='ugnt', default=DEFAULT_TAG, required=False, help="UGNT Tag")
+    parser.add_argument('--owner', dest='owner', default=DEFAULT_OWNER, required=False, help='Owner')
+    parser.add_argument('-r', '--regenerate', dest='regenerate', action='store_true',
+                        help='Regenerate PDF even if exists')
 
     args = parser.parse_args(sys.argv[1:])
-    main(args.ta, args.tn, args.tw, args.ust, args.ult, args.ugnt, args.lang_code, args.books, args.working_dir, args.output_dir)
+    lang_codes = args.lang_codes
+    if not lang_codes:
+        lang_codes = ['en']
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(
+        '%(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    for lang_code in lang_codes:
+        main(args.ta, args.tn, args.tw, args.ust, args.ult, args.ugnt, lang_code, args.books, args.working_dir, args.output_dir, args.regenerate, logger)
