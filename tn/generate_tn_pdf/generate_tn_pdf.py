@@ -286,7 +286,14 @@ class TnConverter(object):
                 for resource in ['ult', 'ust']:
                     versesInChunk = []
                     for verse in range(first_verse, last_verse+1):
-                        if resource != 'ust' and verse in self.verse_usfm[resource][chapter]:
+                        if resource != 'ust':
+                            if resource not in self.verse_usfm:
+                                logger.error('{0} not in verse_usfm!!!'.format(resource))
+                                print(self.verse_usfm)
+                                exit(1)
+                            if chapter not in self.verse_usfm[resource]:
+                                logger.error('Chapter {0} not in {1}!!!'.format(chapter, resource))
+                                exit(1)
                             if verse not in self.verse_usfm[resource][chapter]:
                                 logger.error('{0}:{1} not in {2}!!!'.format(chapter, verse, resource))
                                 exit(1)
