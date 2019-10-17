@@ -628,7 +628,7 @@ class TnConverter(object):
                     break
                 else:
                     found = True
-                    data[field] = row[idx].decode('utf-8').encode('utf-8')
+                    data[field] = row[idx]
             if not found:
                 break
             print('{0} {1}:{2}:{3}'.format(data['Book'], data['Chapter'], data['Verse'], data['ID']))
