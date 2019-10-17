@@ -639,6 +639,7 @@ class TnConverter(object):
             if not verse in book_data[chapter]:
                 book_data[chapter][verse] = []
             book_data[str(chapter)][str(verse)].append(data)
+            write_file('/tmp/data.txt', data)
         self.tn_book_data = book_data
 
     def get_tn_html(self):
