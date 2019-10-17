@@ -119,9 +119,6 @@ class TnConverter(object):
     def run(self):
         self.load_resource_data()
         self.setup_resource_files()
-        self.id = '{0}_tn_{1}_{2}'.format(self.lang_code, self.tn_tag, self.generation_info['tn']['commit'])
-        self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
-        self.determine_if_regeneration_needed()
         self.html_dir = os.path.join(self.output_dir, '{0}_html'.format(self.id))
         self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
         self.version = self.manifest['dublin_core']['version']
@@ -140,7 +137,8 @@ class TnConverter(object):
             self.id = '{0}_tn_{1}_{2}_{3}-{4}'.format(self.lang_code, self.tn_tag,
                                                       self.generation_info['tn']['commit'],
                                                       self.book_number.zfill(2), self.book_id.upper())
-            self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number, self.book_id))
+            self.logger.info('Creating tN for {0}...'.format(self.id))
+            self.determine_if_regeneration_needed()
             if self.regenerate or not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.id))):
                 if not os.path.isdir(self.html_dir):
                     os.makedirs(self.html_dir)
@@ -373,7 +371,6 @@ class TnConverter(object):
             self.bad_links = load_json_object(save_file)
 
     def generate_body_html(self):
-        self.load_resource_data()
         tn_html = self.get_tn_html()
         self.save_resource_data()
         ta_html = self.get_ta_html()
