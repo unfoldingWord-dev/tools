@@ -141,9 +141,9 @@ class TnConverter(object):
                                                       self.generation_info['tn']['commit'],
                                                       self.book_number.zfill(2), self.book_id.upper())
             self.logger.info('Creating tN for {0} ({1}-{2})...'.format(self.book_title, self.book_number, self.book_id))
-            if not os.path.isdir(self.html_dir):
-                os.makedirs(self.html_dir)
             if self.regenerate or not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.id))):
+                if not os.path.isdir(self.html_dir):
+                    os.makedirs(self.html_dir)
                 self.resource_data = {}
                 self.rc_references = {}
                 self.populate_tn_book_data()
@@ -165,7 +165,7 @@ class TnConverter(object):
                 shutil.copy2(style_file, self.html_dir)
                 self.save_bad_links()
             if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.pdf'.format(self.id))):
-                self.logger.info("Generating PDF {0}...".format(self.output_dir, '{0}.pdf'.format(self.id)))
+                self.logger.info("Generating PDF {0}...".format(os.path.join(self.output_dir, '{0}.pdf'.format(self.id))))
                 self.generate_tn_pdf()
             _print('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.id))
 
