@@ -407,7 +407,7 @@ class TnConverter(object):
                   'Termes Importants', 'Une histoire biblique tirée de', 'Une histoire de la Bible tirée de',
                   'Une histoire de la Bible à partir', 'Une histoire de la Bible à partir de',
                   'Mots de Traduction', 'Nota geral', 'Déclaration de connexion', 'Cette histoire biblique est tirée',
-                  'Une histoire biblique tirée de', 'Informations générales', 'Information Générale']
+                  'Une histoire biblique tirée de:', 'Informations générales', 'Information Générale']
         content = ''
         chapter_dirs = sorted(glob(os.path.join(self.tn_dir, 'content', '*')))
         for chapter_dir in chapter_dirs:
