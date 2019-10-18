@@ -29,7 +29,6 @@ import git
 from glob import glob
 from bs4 import BeautifulSoup
 from usfm_tools.transform import UsfmTransform
-from StringIO import StringIO
 from ...general_tools.file_utils import write_file, read_file, load_json_object, unzip, load_yaml_object
 from ...general_tools.url_utils import download_file
 from ...general_tools.bible_books import BOOK_NUMBERS, BOOK_CHAPTER_VERSES

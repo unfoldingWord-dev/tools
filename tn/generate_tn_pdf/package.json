@@ -12,6 +12,7 @@
     "babel-polyfill": "^6.26.0",
     "fs-extra": "^7.0.0",
     "path-extra": "^4.2.1",
-    "tc-source-content-updater": "^0.2.16"
+    "tc-source-content-updater": "^0.2.16",
+    "usfm-js": "^2.0.2"
   }
 }

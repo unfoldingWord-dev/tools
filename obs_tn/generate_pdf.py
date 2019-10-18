@@ -688,20 +688,30 @@ class TnConverter(object):
         return text
 
     def replace_rc_links(self, text):
-        # Change rc://... rc links, 
+        # Change rc://... rc links,
         # 1st: [[rc://*/tw/help/bible/kt/word]] => <a href="#tw-kt-word">God's Word</a>
         # 2nd: rc://*/tw/help/bible/kt/word => #tw-kt-word (used in links that are already formed)
         for rc, info in self.resource_data.iteritems():
             parts = rc[5:].split('/')
             tail = '/'.join(parts[1:])
 
-            pattern = r'\[\[rc://[^/]+/{0}\]\]'.format(re.escape(tail))
+            pattern = r'\[\[rc:\/\/[^/]+\/{0}\]\]'.format(re.escape(tail))
             replace = r'<a href="{0}">{1}</a>'.format(info['link'], info['title'])
-            text = re.sub(pattern, replace, text, flags=re.IGNORECASE | re.MULTILINE)
-
-            pattern = r'rc://[^/]+/{0}'.format(re.escape(tail))
+            orig = text
+            text = re.sub(pattern, replace, text, flags=re.IGNORECASE | re.MULTILINE | re.UNICODE)
+            if 'holyspirit' in tail and orig != text:
+                _print(tail)
+                _print(pattern)
+                _print(replace)
+            pattern = r'rc:\/\/[^/]+\/{0}'.format(re.escape(tail))
             replace = info['link']
-            text = re.sub(pattern, replace, text, flags=re.IGNORECASE | re.MULTILINE)
+            text = re.sub(pattern, replace, text, flags=re.IGNORECASE | re.MULTILINE | re.UNICODE)
+            if 'holyspirit' in tail and text != orig:
+                _print(tail)
+                _print(pattern)
+                _print(replace)
+            write_file(os.path.join(self.html_dir, '{0}_tn_content_rc.html'.format(self.id)),
+                       BeautifulSoup(text, 'html.parser').prettify())
 
         # Remove other scripture reference not in this tN
         text = re.sub(r'<a[^>]+rc://[^>]+>([^>]+)</a>', r'\1', text, flags=re.IGNORECASE | re.MULTILINE)
