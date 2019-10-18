@@ -699,13 +699,17 @@ class TnConverter(object):
             parts = rc[5:].split('/')
             tail = '/'.join(parts[1:])
             pattern = r'\[\[rc://[^/]+/{0}\]\]'.format(tail)
-            replace = r'<a href="{0}">{1}</a>'.format(info['link'], info['title'])
+            replace = '<a href="{0}">{1}</a>'.format(info['link'], info['title'])
             repl1[pattern] = replace
             pattern = r'rc://[^/]+/{0}'.format(tail)
             replace = info['link']
             repl2[pattern] = replace
-        text = re.sub(r'\b('+'|'.join(repl1.keys())+r')\b', lambda m: repl1[m.group()], text, flags=re.IGNORECASE)
-        text = re.sub(r'\b('+'|'.join(repl2.keys())+r')\b', lambda m: repl2[m.group()], text, flags=re.IGNORECASE)
+
+        def rep(m, repl):
+            key = re.sub(r'rc://[^/]+', 'rc://[^/]+', m.group())
+            return repl[key]
+        text = re.sub(r'\b('+'|'.join(repl1.keys())+r')\b', lambda m: rep(m, repl1), text, flags=re.IGNORECASE)
+        text = re.sub(r'\b('+'|'.join(repl2.keys())+r')\b', lambda m: rep(m, repl2), text, flags=re.IGNORECASE)
         write_file(os.path.join(self.html_dir, '{0}_tn_content_rc2.html'.format(self.id)),
                    BeautifulSoup(text, 'html.parser').prettify())
         # Remove other scripture reference not in this tN
