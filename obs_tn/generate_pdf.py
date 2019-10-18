@@ -698,7 +698,7 @@ class TnConverter(object):
         if self.lang_code != DEFAULT_LANG:
             text = re.sub('rc://en', 'rc://{0}'.format(self.lang_code), text, flags=re.IGNORECASE)
         joined = '|'.join(map(re.escape, self.resource_data.keys()))
-        pattern = '(\[\[|\(|"| |)(' + joined + r')(\]\]|\)|"|)'
+        pattern = '(\[\[|\(|"| |)(' + joined + r')(\]\]|\)|"|)(?!\]\)")'
         def replace(m):
             before = m.group(1)
             rc = m.group(2)
