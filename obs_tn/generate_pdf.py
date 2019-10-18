@@ -34,8 +34,10 @@ DEFAULT_TAG = 'master'
 
 OWNERS = [DEFAULT_OWNER, 'STR', 'Door43-Catalog']
 
+
 def print(obj):
     _print(json.dumps(obj, ensure_ascii=False, indent=2).encode('utf-8'))
+
 
 class TnConverter(object):
     def __init__(self, tn_tag=None, obs_tag=None, tw_tag=None, ta_tag=None, working_dir=None, output_dir=None,
@@ -696,28 +698,17 @@ class TnConverter(object):
         repl1 = {}
         repl2 = {}
         for rc, info in self.resource_data.iteritems():
-            parts = rc[5:].split('/')
-            tail = '/'.join(parts[1:])
-            pattern = r'\[\[rc://[^/]+/{0}\]\]'.format(tail)
+            pattern = '[[{0}]]'.format(rc)
             replace = '<a href="{0}">{1}</a>'.format(info['link'], info['title'])
             repl1[pattern] = replace
-            pattern = r'rc://[^/]+/{0}'.format(tail)
-            replace = info['link']
-            repl2[pattern] = replace
+            repl2[rc] = info['link']
 
-        def rep(m, repl):
-            key = re.sub(r'rc://[^/]+', 'rc://[^/]+', m.group())
-            _print("HERE: "+m.group+" "+repl+" "+key+" "+repl[key])
-            return repl[key]
-        _print(r'\b('+'|'.join(repl1.keys())+r')\b')
-        text = re.sub(r'\b('+'|'.join(repl1.keys())+r')\b', lambda m: rep(m, repl1), text, flags=re.IGNORECASE)
-        # text = re.sub(r'\b('+'|'.join(repl2.keys())+r')\b', lambda m: rep(m, repl2), text, flags=re.IGNORECASE)
-        write_file(os.path.join(self.html_dir, '{0}_tn_content_rc2.html'.format(self.id)),
-                   BeautifulSoup(text, 'html.parser').prettify())
-        exit(1)
+        text = re.sub('|'.join(map(re.escape, repl1.keys())), lambda m: repl1[m.group()], text, flags=re.IGNORECASE)
+        text = re.sub('|'.join(map(re.escape, repl2.keys())), lambda m: repl2[m.group()], text, flags=re.IGNORECASE)
         # Remove other scripture reference not in this tN
         text = re.sub(r'<a[^>]+rc://[^>]+>([^>]+)</a>', r'\1', text, flags=re.IGNORECASE | re.MULTILINE)
-
+        write_file(os.path.join(self.html_dir, '{0}_tn_content_rc2.html'.format(self.id)),
+                   BeautifulSoup(text, 'html.parser').prettify())
         return text
 
     def fix_links(self, text):
