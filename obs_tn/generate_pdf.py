@@ -691,6 +691,20 @@ class TnConverter(object):
                       flags=re.IGNORECASE | re.MULTILINE)
         return text
 
+    def replace(self, m):
+        before = m.group(1)
+        rc = m.group(2)
+        after = m.group(3)
+        if rc not in self.resource_data:
+            return m.group()
+        info = self.resource_data[rc]
+        if (before == '[[' and after == ']]') or (before == '(' and after == ')') or before == ' ':
+            return '<a href="{0}">{1}</a>'.format(info['link'], info['title'])
+        if (before == '"' and after == '"') or (before == "'" and after == "'"):
+            return info['link']
+        self.logger.error("FOUND SOME MALFORMED RC LINKS: {0}".format(m.group()))
+        return m.group()
+
     def replace_rc_links(self, text):
         # Change rc://... rc links to proper HTML links based on that links title and link to its article
         write_file(os.path.join(self.html_dir, '{0}_tn_content_rc1.html'.format(self.id)),
@@ -698,21 +712,9 @@ class TnConverter(object):
         if self.lang_code != DEFAULT_LANG:
             text = re.sub('rc://en', 'rc://{0}'.format(self.lang_code), text, flags=re.IGNORECASE)
         joined = '|'.join(map(re.escape, self.resource_data.keys()))
-        pattern = r'(\[\[|\(|"| |)\b(' + joined + r')\b(\]\]|\)|"|)(?!\]\)")'
-        def replace(m):
-            before = m.group(1)
-            rc = m.group(2)
-            after = m.group(3)
-            if rc not in self.resource_data:
-                return m.group()
-            info = self.resource_data[rc]
-            if (before == '[[' and after == ']]') or (before == '(' and after == ')') or before == ' ':
-                return '<a href="{0}">{1}</a>'.format(info['link'], info['title'])
-            if before == '"' and after == '"':
-                return info['link']
-            print("SOMETHING ELSE!!! {0}".format(m.group()))
-            return m.group()
-        text = re.sub(pattern, replace, text, flags=re.IGNORECASE)
+        pattern = r'(\[\[|\(|["\']| |)\b(' + joined + r')\b(\]\]|\)|["\']|)(?!\]\)")'
+
+        text = re.sub(pattern, self.replace, text, flags=re.IGNORECASE)
         # Remove other scripture reference not in this tN
         text = re.sub(r'<a[^>]+rc://[^>]+>([^>]+)</a>', r'\1', text, flags=re.IGNORECASE | re.MULTILINE)
         write_file(os.path.join(self.html_dir, '{0}_tn_content_rc2.html'.format(self.id)),
