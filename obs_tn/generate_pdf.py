@@ -693,25 +693,22 @@ class TnConverter(object):
         # Change rc://... rc links,
         # 1st: [[rc://*/tw/help/bible/kt/word]] => <a href="#tw-kt-word">God's Word</a>
         # 2nd: rc://*/tw/help/bible/kt/word => #tw-kt-word (used in links that are already formed)
+        repl1 = {}
+        repl2 = {}
         for rc, info in self.resource_data.iteritems():
             parts = rc[5:].split('/')
             tail = '/'.join(parts[1:])
 
-            pattern = r'\[\[rc:\/\/[^/]+\/{0}\]\]'.format(re.escape(tail))
+            pattern = r'\[\[rc://[^/]+/{0}\]\]'.format(tail)
             replace = r'<a href="{0}">{1}</a>'.format(info['link'], info['title'])
-            orig = text
-            text = re.sub(pattern, replace, text, flags=re.IGNORECASE | re.MULTILINE | re.UNICODE)
-            if 'holyspirit' in tail and orig != text:
-                _print(tail)
-                _print(pattern)
-                _print(replace)
-            pattern = r'rc:\/\/[^/]+\/{0}'.format(re.escape(tail))
+            repl1[pattern] = replace
+            pattern = r'rc://[^/]+/{0}'.format(tail)
             replace = info['link']
-            text = re.sub(pattern, replace, text, flags=re.IGNORECASE | re.MULTILINE | re.UNICODE)
-            if 'holyspirit' in tail and text != orig:
-                _print(tail)
-                _print(pattern)
-                _print(replace)
+            repl2[pattern] = replace
+
+            orig = text
+            text = re.sub('|'.join(repl1.keys()), lambda m: repl1[m.group()], text, flags=re.IGNORECASE)
+            text = re.sub('|'.join(repl2.keys()), lambda m: repl2[m.group()], text, flags=re.IGNORECASE)
             write_file(os.path.join(self.html_dir, '{0}_tn_content_rc2.html'.format(self.id)),
                        BeautifulSoup(text, 'html.parser').prettify())
 
