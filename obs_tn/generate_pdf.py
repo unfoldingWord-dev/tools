@@ -700,6 +700,8 @@ class TnConverter(object):
         repl1 = {}
         repl2 = {}
         for rc, info in self.resource_data.iteritems():
+            pattern = r'(["\[\( ]*){0}(["\]\)]+)'.format(re.escape(rc))
+            repl[rc] =
             pattern = '[[{0}]]'.format(rc)
             replace = '<a href="{0}">{1}</a>'.format(info['link'], info['title'])
             repl1[pattern] = replace
@@ -710,8 +712,21 @@ class TnConverter(object):
 
         if self.lang_code != DEFAULT_LANG:
             text = re.sub('rc://en', 'rc://{0}'.format(self.lang_code), text, flags=re.IGNORECASE)
-        text = re.sub('|'.join(map(re.escape, repl1.keys())), lambda m: repl1[m.group()], text, flags=re.IGNORECASE)
-        text = re.sub('|'.join(map(re.escape, repl2.keys())), lambda m: repl2[m.group()], text, flags=re.IGNORECASE)
+        def replace(m):
+            before = m.group(1)
+            rc = m.group(2)
+            after = m.group(3)
+            if rc not in self.resource_data:
+                return m.group()
+            info = self.resource_data[rc]
+            if (before == '[[' and after == ']]') or (before == '(' and after == ')') or before == ' ':
+                return '<a href="{0}">{1}</a>'.format(info['link'], info['title'])
+            if before == '"' and after == '"':
+                return info['link']
+            print("SOMETHING ELSE!!! {0}".format(m.group()))
+            return m.group()
+        joined = '|'.join(map(re.escape, self.resource_data.keys()))
+        text = re.sub('(\[\[|\(|"| |)(' + joined + r')(\]\]|\)|"|)', replace, text, flags=re.IGNORECASE)
         # Remove other scripture reference not in this tN
         text = re.sub(r'<a[^>]+rc://[^>]+>([^>]+)</a>', r'\1', text, flags=re.IGNORECASE | re.MULTILINE)
         write_file(os.path.join(self.html_dir, '{0}_tn_content_rc2.html'.format(self.id)),
