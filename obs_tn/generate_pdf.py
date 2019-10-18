@@ -677,7 +677,7 @@ class TnConverter(object):
                       format(self.lang_code, group), text, flags=re.IGNORECASE | re.MULTILINE)
         text = re.sub(r'href="\.\./([^)]+?)(\.md)*"', r'href="rc://{0}/tw/dict/bible/\1"'.format(self.lang_code),
                       text, flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'\((\.\.\/)*(kt|names|other)/([^\)]+?)(\.md)*\)(?!\[)', '[[rc://{0}/tw/dict/bible/{1}/\1]]',
+        text = re.sub(r'\((\.\./)*(kt|names|other)/([^)]+?)(\.md)*\)(?!\[)', '[[rc://{0}/tw/dict/bible/{1}/\3]]',
                       text, flags=re.IGNORECASE | re.MULTILINE)
         return text
 
