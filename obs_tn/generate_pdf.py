@@ -692,26 +692,13 @@ class TnConverter(object):
         return text
 
     def replace_rc_links(self, text):
+        # Change rc://... rc links to proper HTML links based on that links title and link to its article
         write_file(os.path.join(self.html_dir, '{0}_tn_content_rc1.html'.format(self.id)),
                    BeautifulSoup(text, 'html.parser').prettify())
-        # Change rc://... rc links,
-        # 1st: [[rc://<lang>/tw/help/bible/kt/word]] => <a href="#tw-kt-word">God's Word</a>
-        # 2nd: rc://<lang>/tw/help/bible/kt/word => #tw-kt-word (used in links that are already formed)
-        repl1 = {}
-        repl2 = {}
-        for rc, info in self.resource_data.iteritems():
-            pattern = r'(["\[\( ]*){0}(["\]\)]+)'.format(re.escape(rc))
-            repl[rc] =
-            pattern = '[[{0}]]'.format(rc)
-            replace = '<a href="{0}">{1}</a>'.format(info['link'], info['title'])
-            repl1[pattern] = replace
-            pattern = r'({0})'.format(rc)
-            replace = '<a href="{0}">{1}</a>'.format(info['link'], info['title'])
-            repl1[pattern] = replace
-            repl2[rc] = info['link']
-
         if self.lang_code != DEFAULT_LANG:
             text = re.sub('rc://en', 'rc://{0}'.format(self.lang_code), text, flags=re.IGNORECASE)
+        joined = '|'.join(map(re.escape, self.resource_data.keys()))
+        pattern = '(\[\[|\(|"| |)(' + joined + r')(\]\]|\)|"|)'
         def replace(m):
             before = m.group(1)
             rc = m.group(2)
@@ -725,8 +712,7 @@ class TnConverter(object):
                 return info['link']
             print("SOMETHING ELSE!!! {0}".format(m.group()))
             return m.group()
-        joined = '|'.join(map(re.escape, self.resource_data.keys()))
-        text = re.sub('(\[\[|\(|"| |)(' + joined + r')(\]\]|\)|"|)', replace, text, flags=re.IGNORECASE)
+        text = re.sub(pattern, replace, text, flags=re.IGNORECASE)
         # Remove other scripture reference not in this tN
         text = re.sub(r'<a[^>]+rc://[^>]+>([^>]+)</a>', r'\1', text, flags=re.IGNORECASE | re.MULTILINE)
         write_file(os.path.join(self.html_dir, '{0}_tn_content_rc2.html'.format(self.id)),
