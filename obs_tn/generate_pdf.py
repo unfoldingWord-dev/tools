@@ -179,23 +179,24 @@ class TnConverter(object):
         if not url:
             url = self.get_resource_git_url(resource, self.lang_code, self.owner)
         repo_dir = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource))
-        try:
-            git.Repo.clone_from(url, repo_dir)
-        except git.GitCommandError:
-            owners = OWNERS
-            owners.insert(0, self.owner)
-            languages = [self.lang_code, DEFAULT_LANG]
-            if not os.path.isdir(repo_dir):
-                for lang in languages:
-                    for owner in owners:
-                        url = self.get_resource_git_url(resource, lang, owner)
-                        try:
-                            git.Repo.clone_from(url, repo_dir)
-                        except git.GitCommandError:
-                            continue
-                        break
-                    if os.path.isdir(repo_dir):
-                        break
+        if not os.path.isdir(repo_dir):
+            try:
+                git.Repo.clone_from(url, repo_dir)
+            except git.GitCommandError:
+                owners = OWNERS
+                owners.insert(0, self.owner)
+                languages = [self.lang_code, DEFAULT_LANG]
+                if not os.path.isdir(repo_dir):
+                    for lang in languages:
+                        for owner in owners:
+                            url = self.get_resource_git_url(resource, lang, owner)
+                            try:
+                                git.Repo.clone_from(url, repo_dir)
+                            except git.GitCommandError:
+                                continue
+                            break
+                        if os.path.isdir(repo_dir):
+                            break
         g = git.Git(repo_dir)
         g.checkout(tag)
         if tag == DEFAULT_TAG:
@@ -538,6 +539,8 @@ class TnConverter(object):
         return uses
 
     def get_resource_data_from_rc_links(self, text, source_rc):
+        if source_rc not in self.bad_links:
+            self.bad_links[source_rc] = {}
         rcs = re.findall(r'rc://[A-Z0-9/_\*-]+', text, flags=re.IGNORECASE | re.MULTILINE)
         for rc in rcs:
             parts = rc[5:].split('/')
@@ -588,8 +591,6 @@ class TnConverter(object):
 
             if os.path.isfile(file_path):
                 if fix:
-                    if source_rc not in self.bad_links:
-                        self.bad_links[source_rc] = {}
                     self.bad_links[source_rc][rc] = fix
                 if not rc in self.resource_data:
                     t = markdown2.markdown_path(file_path)
@@ -630,10 +631,25 @@ class TnConverter(object):
                     if source_rc not in self.resource_data[rc]['references']:
                         self.resource_data[rc]['references'].append(source_rc)
             else:
-                if source_rc not in self.bad_links:
-                    self.bad_links[source_rc] = {}
                 if rc not in self.bad_links[source_rc]:
                     self.bad_links[source_rc][rc] = None
+        rcs = re.findall(r'(?<=\()\.+/[^\)]+(?=\))', text, flags=re.IGNORECASE | re.MULTILINE)
+        for rc in rcs:
+            fix = re.sub(r'(\.\./)+(kt|names|other)/([^)]+?)(\.md)*', r'rc://{0}/tw/dict/bible/\2/\3'.
+                         format(self.lang_code), rc, flags=re.IGNORECASE)
+            if fix != rc:
+                self.bad_links[source_rc][rc] = fix
+            else:
+                self.bad_links[source_rc][rc] = None
+        rcs = re.findall(r'(?<=\()\.[^ \)]+(?=\))', text, flags=re.IGNORECASE | re.MULTILINE)
+        for rc in rcs:
+            fix = None
+            if '/kt/' in rc or '/names/' in rc or '/other/' in rc:
+                new_rc = re.sub(r'(\.\./)+(kt|names|other)/([^)]+?)(\.md)*', r'rc://{0}/tw/dict/bible/\2/\3'.
+                                format(self.lang_code), rc, flags=re.IGNORECASE)
+                if new_rc != rc:
+                    fix = new_rc
+            self.bad_links[source_rc][rc] = fix
 
     @staticmethod
     def increase_headers(text, increase_depth=1):
