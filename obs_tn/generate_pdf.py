@@ -688,6 +688,8 @@ class TnConverter(object):
         return text
 
     def replace_rc_links(self, text):
+        write_file(os.path.join(self.html_dir, '{0}_tn_content_rc1.html'.format(self.id)),
+                   BeautifulSoup(text, 'html.parser').prettify())
         # Change rc://... rc links,
         # 1st: [[rc://*/tw/help/bible/kt/word]] => <a href="#tw-kt-word">God's Word</a>
         # 2nd: rc://*/tw/help/bible/kt/word => #tw-kt-word (used in links that are already formed)
@@ -710,7 +712,7 @@ class TnConverter(object):
                 _print(tail)
                 _print(pattern)
                 _print(replace)
-            write_file(os.path.join(self.html_dir, '{0}_tn_content_rc.html'.format(self.id)),
+            write_file(os.path.join(self.html_dir, '{0}_tn_content_rc2.html'.format(self.id)),
                        BeautifulSoup(text, 'html.parser').prettify())
 
         # Remove other scripture reference not in this tN
