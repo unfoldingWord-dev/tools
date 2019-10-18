@@ -703,6 +703,9 @@ class TnConverter(object):
             pattern = '[[{0}]]'.format(rc)
             replace = '<a href="{0}">{1}</a>'.format(info['link'], info['title'])
             repl1[pattern] = replace
+            pattern = r'({0})'.format(rc)
+            replace = '<a href="{0}">{1}</a>'.format(info['link'], info['title'])
+            repl1[pattern] = replace
             repl2[rc] = info['link']
 
         if self.lang_code != DEFAULT_LANG:
