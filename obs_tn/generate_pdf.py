@@ -96,7 +96,7 @@ class TnConverter(object):
         self.issued = self.manifest['dublin_core']['issued']
         self.id = self.id
         if self.regenerate or not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.id))):
-            self.logger.info('Creating OBS tN HTML files for {0}...'.format(self.lang_code))
+            self.logger.info('Creating OBS tN HTML files for {0}...'.format(self.id))
             if not os.path.isdir(self.html_dir):
                 os.makedirs(self.html_dir)
             self.bad_links = {}
@@ -104,16 +104,16 @@ class TnConverter(object):
             self.resource_data = {}
             self.rc_references = {}
             self.generate_tn_content()
-            self.logger.info('Generating Body HTML for {0}...'.format(self.lang_code))
+            self.logger.info('Generating Body HTML for {0}...'.format(self.id))
             self.generate_body_html()
-            self.logger.info('Generating Cover HTML for {0}...'.format(self.lang_code))
+            self.logger.info('Generating Cover HTML for {0}...'.format(self.id))
             self.generate_cover_html()
-            self.logger.info('Generating License HTML for {0}...'.format(self.lang_code))
+            self.logger.info('Generating License HTML for {0}...'.format(self.id))
             self.generate_license_html()
-            self.logger.info('Copying header file... for {0}...'.format(self.lang_code))
+            self.logger.info('Copying header file... for {0}...'.format(self.id))
             header_file = os.path.join(self.my_path, 'header.html')
             shutil.copy2(header_file, self.html_dir)
-            self.logger.info('Copying style sheet file for {0}...'.format(self.lang_code))
+            self.logger.info('Copying style sheet file for {0}...'.format(self.id))
             style_file = os.path.join(self.my_path, 'style.css')
             shutil.copy2(style_file, self.html_dir)
             self.save_resource_data()
@@ -123,7 +123,7 @@ class TnConverter(object):
             self.logger.info('Generating PDF {0}/{1}.pdf...'.format(self.output_dir, self.id))
             self.generate_tn_pdf()
         else:
-            self.logger.info('No PDF generation needed for {0}.'.format(self.lang_code))
+            self.logger.info('No PDF generation needed for {0}.'.format(self.id))
         self.logger.info('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.id))
 
     def save_bad_links(self):
