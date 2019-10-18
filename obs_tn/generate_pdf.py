@@ -471,7 +471,7 @@ class TnConverter(object):
                     content += frame_html
                     content += '</div>\n\n'
                     # HANDLE RC LINKS
-                    rc = 'rc://*/obs-tn/help/{0}/{1}'.format(chapter, frame)
+                    rc = 'rc://{0}/obs-tn/help/{1}/{2}'.format(self.lang_code, chapter, frame)
                     self.resource_data[rc] = {
                         'rc': rc,
                         'id': id,
@@ -541,7 +541,6 @@ class TnConverter(object):
         rcs = re.findall(r'rc://[A-Z0-9/_\*-]+', text, flags=re.IGNORECASE | re.MULTILINE)
         for rc in rcs:
             parts = rc[5:].split('/')
-            rc = 'rc://*/{0}'.format('/'.join(parts[1:]))
             resource = parts[1]
             path = '/'.join(parts[3:])
 
@@ -566,7 +565,7 @@ class TnConverter(object):
                 if resource == 'tw':
                     for category in ['kt', 'other', 'names']:
                         path2 = re.sub(r'^bible/([^/]+)/', r'bible/{0}/'.format(category), path.lower())
-                        fix = 'rc://*/tw/dict/{0}'.format(path2)
+                        fix = 'rc://{0}/tw/dict/{1}'.format(self.lang_code, path2)
                         anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
                         link = '#{0}'.format(anchor_id)
                         file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
@@ -581,7 +580,7 @@ class TnConverter(object):
                         path2 = bad_names[parts[3]]
                     else:
                         path2 = path
-                    fix = 'rc://*/ta/man/{0}'.format(path2)
+                    fix = 'rc://{0}/ta/man/{1}'.format(self.lang_code, path2)
                     anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
                     link = '#{0}'.format(anchor_id)
                     file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
@@ -674,18 +673,18 @@ class TnConverter(object):
         return text
 
     def fix_tw_links(self, text, group):
-        text = re.sub(r'href="\.\./([^/)]+?)(\.md)*"', r'href="rc://*/tw/dict/bible/{0}/\1"'.format(group), text,
-                      flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'hrefp="\.\./([^)]+?)(\.md)*"', r'href="rc://*/tw/dict/bible/\1"', text,
-                      flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="\.\./([^/)]+?)(\.md)*"', r'href="rc://{0}/tw/dict/bible/{1}/\1"'.
+                      format(self.lang_code, group), text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="\.\./([^)]+?)(\.md)*"', r'href="rc://{0}/tw/dict/bible/\1"'.format(self.lang_code),
+                      text, flags=re.IGNORECASE | re.MULTILINE)
         return text
 
     def fix_ta_links(self, text, manual):
-        text = re.sub(r'href="\.\./([^/"]+)/01\.md"', r'href="rc://*/ta/man/{0}/\1"'.format(manual), text,
-                      flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'href="\.\./\.\./([^/"]+)/([^/"]+)/01\.md"', r'href="rc://*/ta/man/\1/\2"', text,
-                      flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'href="([^# :/"]+)"', r'href="rc://*/ta/man/{0}/\1"'.format(manual), text,
+        text = re.sub(r'href="\.\./([^/"]+)/01\.md"', r'href="rc://{0}/ta/man/{1}/\1"'.format(self.lang_code, manual),
+                      text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="\.\./\.\./([^/"]+)/([^/"]+)/01\.md"', r'href="rc://{0}/ta/man/\1/\2"'.
+                      format(self.lang_code), text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="([^# :/"]+)"', r'href="rc://{0}/ta/man/{1}/\1"'.format(self.lang_code, manual), text,
                       flags=re.IGNORECASE | re.MULTILINE)
         return text
 
@@ -693,8 +692,8 @@ class TnConverter(object):
         write_file(os.path.join(self.html_dir, '{0}_tn_content_rc1.html'.format(self.id)),
                    BeautifulSoup(text, 'html.parser').prettify())
         # Change rc://... rc links,
-        # 1st: [[rc://*/tw/help/bible/kt/word]] => <a href="#tw-kt-word">God's Word</a>
-        # 2nd: rc://*/tw/help/bible/kt/word => #tw-kt-word (used in links that are already formed)
+        # 1st: [[rc://<lang>/tw/help/bible/kt/word]] => <a href="#tw-kt-word">God's Word</a>
+        # 2nd: rc://<lang>/tw/help/bible/kt/word => #tw-kt-word (used in links that are already formed)
         repl1 = {}
         repl2 = {}
         for rc, info in self.resource_data.iteritems():
