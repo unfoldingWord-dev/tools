@@ -706,7 +706,7 @@ class TnConverter(object):
             repl2[rc] = info['link']
 
         if self.lang_code != DEFAULT_LANG:
-            text = re.sub('rc://en', 'rc//{0}'.format(self.lang_code), text, flags=re.IGNORECASE)
+            text = re.sub('rc://en', 'rc://{0}'.format(self.lang_code), text, flags=re.IGNORECASE)
         text = re.sub('|'.join(map(re.escape, repl1.keys())), lambda m: repl1[m.group()], text, flags=re.IGNORECASE)
         text = re.sub('|'.join(map(re.escape, repl2.keys())), lambda m: repl2[m.group()], text, flags=re.IGNORECASE)
         # Remove other scripture reference not in this tN
