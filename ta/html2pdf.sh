@@ -15,6 +15,9 @@ set -e # die if errors
 
 : ${DEBUG:=false}
 
+# If running in DEBUG mode, output information about every command being run
+$DEBUG && set -x
+
 : ${MY_DIR:=$(cd $(dirname "$0") && pwd)} # Tools dir relative to this script
 : ${RESOURCE:='ta'}
 : ${LANGUAGE:="en"}
@@ -30,14 +33,11 @@ fi
 
 pushd "$OUTPUT_DIR"
 
-# If running in DEBUG mode, output information about every command being run
-$DEBUG && set -x
-
 mkdir -p "./html"
 mkdir -p "./pdf"
 
 repo="${LANGUAGE}_${RESOURCE}"
-repo_dir="${repo}_${TAG}"
+repo_dir="${WORKING_DIR}/${repo}"
 repo_url="https://git.door43.org/${OWNER}/${repo}"
 
 if ! [ -d "${repo_dir}" ]; then
@@ -55,17 +55,18 @@ hash=`git rev-parse --short=10 ${TAG}`
 echo "Checked out repo files:"
 ls
 
+manifest=`sed -e '1!b' -e '/---/d' manifest.yaml`
 license=$(markdown2 "LICENSE.md")
-version=`yaml2json "manifest.yaml" | jq -r '.dublin_core.version'`
-issued_date=`yaml2json "manifest.yaml" | jq -r '.dublin_core.issued'`
-title=`yaml2json "manifest.yaml" | jq -r '.dublin_core.title'`
-checking_level=`yaml2json "manifest.yaml" | jq -r '.checking.checking_level'`
-publisher=`yaml2json "manifest.yaml" | jq -r '.dublin_core.publisher'`
-contributors=$(echo `js-yaml "manifest.yaml" | jq -c '.dublin_core.contributor[]'`)
+version=`echo $manifest | yaml2json | jq -r '.dublin_core.version'`
+issued_date=`echo $manifest | yaml2json | jq -r '.dublin_core.issued'`
+title=`echo $manifest | yaml2json | jq -r '.dublin_core.title'`
+checking_level=`echo $manifest | yaml2json | jq -r '.checking.checking_level'`
+publisher=`echo $manifest | yaml2json | jq -r '.dublin_core.publisher'`
+contributors=`echo $manifest | yaml2json | jq -c '.dublin_core.contributor[]'`
 contributors=${contributors//\" \"/; }
 contributors=${contributors//\"/}
 
-repo_id="${repo_dir}_${hash}"
+repo_id="${repo}_${hash}"
 print_url="https://api.door43.org/tx/print?id=${OWNER}/${repo}/${hash}"
 
 echo "Current '${repo_id}' print page is at: ${print_url}"
@@ -74,6 +75,9 @@ echo "Current '${repo_id}' Publisher is: ${publisher}"
 echo "Current '${repo_id}' Contributors are: ${contributors}"
 
 popd
+popd
+
+cd "${OUTPUT_DIR}"
 
 cdn_url=$(wget -qO- $print_url)
 echo $cdn_url
