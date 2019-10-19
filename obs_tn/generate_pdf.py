@@ -67,10 +67,14 @@ class TnConverter(object):
 
         self.html_dir = None
         self.manifest = None
+        self.tw_manifest = None
+        self.ta_manifest = None
         self.tn_text = ''
         self.tw_text = ''
         self.ta_text = ''
+        self.tw_cat = {}
         self.bad_links = {}
+        self.bad_notes = {}
         self.resource_data = {}
         self.rc_references = {}
         self.tn_content = ''
@@ -83,28 +87,33 @@ class TnConverter(object):
         self.generation_info = {}
         self.id = '{0}_obs-tn_{1}'.format(lang_code, tn_tag)
         self.title = 'unfoldingWord® Open Bible Stories Translation Notes'
+        self.tw_title = 'Translation Words'
+        self.ta_title = 'Translation Academy'
 
     def run(self):
-        self.load_resource_data()
+        # self.load_resource_data()
         self.setup_resource_files()
         self.id = '{0}_obs-tn_{1}_{2}'.format(self.lang_code, self.tn_tag, self.generation_info['obs-tn']['commit'])
         self.determine_if_regeneration_needed()
-        self.html_dir = os.path.join(self.output_dir, '{0}_html'.format(self.id))
+        self.html_dir = os.path.join(self.output_dir, 'html'.format(self.id))
         self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
+        self.tw_manifest = load_yaml_object(os.path.join(self.tw_dir, 'manifest.yaml'))
+        self.ta_manifest = load_yaml_object(os.path.join(self.ta_dir, 'manifest.yaml'))
         self.version = self.manifest['dublin_core']['version']
         self.title = self.manifest['dublin_core']['title']
+        if 'subject' in self.tw_manifest['dublin_core']:
+            self.tw_title = self.tw_manifest['dublin_core']['subject']
+        if 'subject' in self.ta_manifest['dublin_core']:
+            self.ta_title = self.ta_manifest['dublin_core']['subject']
         self.contributors = '; '.join(self.manifest['dublin_core']['contributor'])
         self.publisher = self.manifest['dublin_core']['publisher']
         self.issued = self.manifest['dublin_core']['issued']
         self.id = self.id
-        if self.regenerate or not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.id))):
+        if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.html'.format(self.id))):
+            self.load_tw_cat()
             self.logger.info('Creating OBS tN HTML files for {0}...'.format(self.id))
             if not os.path.isdir(self.html_dir):
                 os.makedirs(self.html_dir)
-            self.bad_links = {}
-            self.bad_notes = {}
-            self.resource_data = {}
-            self.rc_references = {}
             self.generate_tn_content()
             self.logger.info('Generating Body HTML for {0}...'.format(self.id))
             self.generate_body_html()
@@ -113,10 +122,10 @@ class TnConverter(object):
             self.logger.info('Generating License HTML for {0}...'.format(self.id))
             self.generate_license_html()
             self.logger.info('Copying header file... for {0}...'.format(self.id))
-            header_file = os.path.join(self.my_path, 'header.html')
+            header_file = os.path.join(self.my_path, 'obs_tn_header.html'.format(self.id))
             shutil.copy2(header_file, self.html_dir)
             self.logger.info('Copying style sheet file for {0}...'.format(self.id))
-            style_file = os.path.join(self.my_path, 'style.css')
+            style_file = os.path.join(self.my_path, 'obs_tn_style.css')
             shutil.copy2(style_file, self.html_dir)
             self.save_resource_data()
             self.save_bad_links()
@@ -145,7 +154,7 @@ class TnConverter(object):
                             str = '  tN'
                         str += ' {0} {1}:{2}'.format(source[3].upper(), source[4], source[5])
                     else:
-                        str = '  {0} {1}'.format(source[1], '/'.join(source[3:]))
+                        str = '  {0}'.format(source_rc)
                     str += ': BAD RC - `{0}`'.format(rc)
                     if self.bad_links[source_rc][rc]:
                         str += ' - change to `{0}`'.format(self.bad_links[source_rc][rc])
@@ -199,8 +208,8 @@ class TnConverter(object):
                             break
         g = git.Git(repo_dir)
         g.checkout(tag)
-        if tag == DEFAULT_TAG:
-            g.pull()
+        # if tag == DEFAULT_TAG:
+        #     g.pull()
         commit = g.rev_parse('HEAD', short=10)
         self.generation_info[resource] = {'tag': tag, 'commit': commit}
 
@@ -213,6 +222,50 @@ class TnConverter(object):
             command = 'curl -o {0}/icon-obs-tn.png https://cdn.door43.org/assets/uw-icons/logo-obs-256.png'.format(
                 self.working_dir)
             subprocess.call(command, shell=True)
+
+    def load_tw_cat(self):
+        mapping = {
+            'idol': 'falsegod',
+            'witness': 'testimony',
+            'newcovenant': 'covenant',
+            'taxcollector': 'tax',
+            'believer': 'believe'
+        }
+        tw_cat_file = os.path.join(self.working_dir, 'tw_cat.json')
+        if not os.path.isfile(tw_cat_file):
+            command = 'curl -o {0} https://cdn.door43.org/v2/ts/obs/en/tw_cat.json'.format(
+                tw_cat_file)
+            subprocess.call(command, shell=True)
+        tw_cat = load_json_object(tw_cat_file)
+        for chapter in tw_cat['chapters']:
+            self.tw_cat[chapter['id']] = {}
+            for frame in chapter['frames']:
+                self.tw_cat[chapter['id']][frame['id']] = []
+                for item in frame['items']:
+                    term = item['id']
+                    category = None
+                    for c in ['kt', 'names', 'other']:
+                        if os.path.exists(os.path.join(self.tw_dir, 'bible', c, '{0}.md'.format(term))):
+                            category = c
+                            break
+                    if not category and term in mapping:
+                        category = None
+                        for c in ['kt', 'names', 'other']:
+                            if os.path.exists(os.path.join(self.tw_dir, 'bible', c, '{0}.md'.format(mapping[term]))):
+                                category = c
+                                term = mapping[term]
+                                break
+                    if category:
+                        self.tw_cat[chapter['id']][frame['id']].append('rc://{0}/tw/dict/bible/{1}/{2}'.format(
+                            self.lang_code, category, term))
+                    if not category or term != item['id']:
+                        fix = None
+                        if term != item['id']:
+                            fix = term
+                        source_rc = 'tw_cat.json {0}/{1}'.format(chapter['id'], frame['id'])
+                        if source_rc not in self.bad_links:
+                            self.bad_links[source_rc] = {}
+                        self.bad_links[source_rc][item['id']] = fix
 
     def determine_if_regeneration_needed(self):
         # check if any commit hashes have changed
@@ -239,10 +292,10 @@ class TnConverter(object):
             return ''
 
     def save_resource_data(self):
-        save_dir = os.path.join(self.output_dir, '{0}_resource_data'.format(self.id))
+        save_dir = os.path.join(self.output_dir, 'save')
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        save_file = os.path.join(save_dir, '{0}.json'.format(self.id))
+        save_file = os.path.join(save_dir, '{0}_resource_data.json'.format(self.id))
         write_file(save_file, self.resource_data)
         save_file = os.path.join(save_dir, '{0}_references.json'.format(self.id))
         write_file(save_file, self.rc_references)
@@ -250,23 +303,23 @@ class TnConverter(object):
         write_file(save_file, self.bad_links)
         save_file = os.path.join(save_dir, '{0}_bad_notes.json'.format(self.id))
         write_file(save_file, self.bad_notes)
-        save_file = os.path.join(save_dir, '{0}_info.json'.format(self.id))
+        save_file = os.path.join(save_dir, '{0}_generation_info.json'.format(self.id))
         write_file(save_file, self.generation_info)
 
     def get_previous_generation_info(self):
-        save_dir = os.path.join(self.output_dir, '{0}_resource_data'.format(self.id))
-        save_file = os.path.join(save_dir, '{0}_info.json'.format(self.id))
+        save_dir = os.path.join(self.output_dir, 'save')
+        save_file = os.path.join(save_dir, '{0}_generation_info.json'.format(self.id))
         if os.path.isfile(save_file):
             return load_json_object(save_file)
         else:
             return {}
 
     def load_resource_data(self):
-        save_dir = os.path.join(self.output_dir, '{0}_resource_data'.format(self.id))
+        save_dir = os.path.join(self.output_dir, 'save')
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
 
-        save_file = os.path.join(save_dir, '{0}.json'.format(self.id))
+        save_file = os.path.join(save_dir, '{0}_resource_data.json'.format(self.id))
         if os.path.isfile(save_file):
             self.resource_data = load_json_object(save_file)
 
@@ -302,9 +355,9 @@ class TnConverter(object):
                 h['class'] = h.get('class', []) + [h.name]
                 h.name = 'span'
 
-        soup.head.append(soup.new_tag('link', href="style.css", rel="stylesheet"))
+        soup.head.append(soup.new_tag('link', href="html/obs_tn_style.css", rel="stylesheet"))
 
-        html_file = os.path.join(self.html_dir, '{0}.html'.format(self.id))
+        html_file = os.path.join(self.output_dir, '{0}.html'.format(self.id))
         write_file(html_file, unicode(soup))
         self.logger.info('Wrote HTML to {0}'.format(html_file))
 
@@ -314,7 +367,7 @@ class TnConverter(object):
 <html>
 <head>
   <meta charset="UTF-8" />
-  <link href="style.css" rel="stylesheet"/>
+  <link href="obs_tn_style.css" rel="stylesheet"/>
 </head>
 <body>
   <div style="text-align:center;padding-top:200px" class="break" id="cover">
@@ -336,7 +389,7 @@ class TnConverter(object):
 <html>
 <head>
   <meta charset="UTF-8" />
-  <link href="style.css" rel="stylesheet"/>
+  <link href="obs_tn_style.css" rel="stylesheet"/>
 </head>
 <body>
   <div class="break">
@@ -350,14 +403,14 @@ class TnConverter(object):
   </div>
 </body>
 </html>'''.format(self.issued, self.version, self.publisher, license)
-        html_file = os.path.join(self.html_dir, 'license.html')
+        html_file = os.path.join(self.html_dir, '{0}_license.html'.format(self.id))
         write_file(html_file, license_html)
 
     def generate_tn_pdf(self):
         cover_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.id))
-        license_file = os.path.join(self.html_dir, 'license.html')
-        header_file = os.path.join(self.html_dir, 'header.html')
-        body_file = os.path.join(self.html_dir, '{0}.html'.format(self.id))
+        license_file = os.path.join(self.html_dir, '{0}_license.html'.format(self.id))
+        header_file = os.path.join(self.html_dir, 'obs_tn_header.html')
+        body_file = os.path.join(self.output_dir, '{0}.html'.format(self.id))
         output_file = os.path.join(self.output_dir, '{0}.pdf'.format(self.id))
         template_file = os.path.join(self.my_path, 'toc_template.xsl')
         command = '''wkhtmltopdf 
@@ -395,13 +448,50 @@ class TnConverter(object):
         new_text = re.sub(pattern, replace, text)
         return new_text
 
-    def generate_tn_content(self):
+    def highlight_text_with_frame(self, orig_text, frame_html, cf):
         ignore = ['A Bible story from', 'Connecting Statement', 'Connecting Statement:',
                   'General Information', 'General Note', 'Information générale',
                   'Termes Importants', 'Une histoire biblique tirée de', 'Une histoire de la Bible tirée de',
                   'Une histoire de la Bible à partir', 'Une histoire de la Bible à partir de',
                   'Mots de Traduction', 'Nota geral', 'Déclaration de connexion', 'Cette histoire biblique est tirée',
                   'Une histoire biblique tirée de:', 'Informations générales', 'Information Générale']
+        highlighted_text = orig_text
+        notes_to_highlight = []
+        soup = BeautifulSoup(frame_html, 'html.parser')
+        headers = soup.find_all('h3')
+        for header in headers:
+            notes_to_highlight.append(header.text)
+        notes_to_highlight.sort(lambda x, y: cmp(len(y), len(x)))
+        for note in notes_to_highlight:
+            if self.highlight_text(orig_text, note) != orig_text:
+                if len(note) <= 60:
+                    highlighted_text = self.highlight_text(highlighted_text, note)
+            elif note not in ignore:
+                if cf not in self.bad_notes:
+                    self.bad_notes[cf] = {
+                        'text': orig_text,
+                        'notes': []
+                    }
+                bad_note = {note: None}
+                alt_notes = [
+                    note.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
+                    note.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
+                    note.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
+                    note.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
+                    note.replace('“', '"').replace('”', '"'),
+                    note.replace('"', '”').replace('”', '“', 1),
+                    note.replace("'", '’').replace('’', '‘', 1),
+                    note.replace("'", '’'),
+                    note.replace('’', "'"),
+                    note.replace('‘', "'")]
+                for alt_note in alt_notes:
+                    if orig_text != self.highlight_text(orig_text, alt_note):
+                        bad_note[note] = alt_note
+                        break
+                self.bad_notes[cf]['notes'].append(bad_note)
+        return highlighted_text
+
+    def generate_tn_content(self):
         content = ''
         chapter_dirs = sorted(glob(os.path.join(self.tn_dir, 'content', '*')))
         for chapter_dir in chapter_dirs:
@@ -426,48 +516,19 @@ class TnConverter(object):
                     content += '<div id="{0}" class="frame">\n'.format(id)
                     content += '<h2>{0}-{1}</h2>\n'.format(chapter, frame)
                     text = ''
-                    orig_text = ''
                     if frame_idx > 0:
                         text = re.sub(r'[\n\s]+', ' ', frames[frame_idx - 1], flags=re.MULTILINE)
-                        orig_text = text
                     frame_html = markdown2.markdown_path(frame_file)
                     frame_html = frame_html.replace('h1>', 'h3>')
                     frame_html = re.sub(r'href="(\d+)/(\d+)"', r'href="#obs-tn-\1-\2"', frame_html)
                     if text:
-                        notes_to_highlight = []
-                        soup = BeautifulSoup(frame_html, 'html.parser')
-                        headers = soup.find_all('h3')
-                        for header in headers:
-                            notes_to_highlight.append(header.text)
-                        notes_to_highlight.sort(lambda x, y: cmp(len(y), len(x)))
-                        for note in notes_to_highlight:
-                            if self.highlight_text(orig_text, note) != orig_text:
-                                if len(note) <= 60:
-                                    text = self.highlight_text(text, note)
-                            elif note not in ignore:
-                                cf = '{0}-{1}'.format(chapter, frame)
-                                if cf not in self.bad_notes:
-                                    self.bad_notes[cf] = {
-                                        'text': orig_text,
-                                        'notes': []
-                                    }
-                                bad_note = {note: None}
-                                alt_notes = [
-                                    note.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
-                                    note.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
-                                    note.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
-                                    note.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
-                                    note.replace('“', '"').replace('”', '"'),
-                                    note.replace('"', '”').replace('”', '“', 1),
-                                    note.replace("'", '’').replace('’', '‘', 1),
-                                    note.replace("'", '’'),
-                                    note.replace('’', "'"),
-                                    note.replace('‘', "'")]
-                                for alt_note in alt_notes:
-                                    if orig_text != self.highlight_text(orig_text, alt_note):
-                                        bad_note[note] = alt_note
-                                        break
-                                self.bad_notes[cf]['notes'].append(bad_note)
+                        text = self.highlight_text_with_frame(text, frame_html, '{0}-{1}'.format(chapter, frame))
+                    if '/tw/' not in frame_html and chapter in self.tw_cat and frame in self.tw_cat[chapter]\
+                            and len(self.tw_cat[chapter][frame]):
+                        frame_html += "<h3>{0}</h3>\n<ul>".format(self.tw_title)
+                        for rc in self.tw_cat[chapter][frame]:
+                            frame_html += '<li>[[{0}]]</li>'.format(rc)
+                        frame_html += '</ul>'
                     content += '<div id="{0}-text" class="frame-text">\n{1}\n</div>\n'.format(id, text)
                     content += frame_html
                     content += '</div>\n\n'
@@ -496,20 +557,18 @@ class TnConverter(object):
             title = self.resource_data[rc]['title']
             alt_title = self.resource_data[rc]['alt_title']
             if alt_title:
-                html = '<h2 class="hidden">{0}</h2><span class="h2 section-header">{1}</span>\n{2}{3}'.format(alt_title,
-                                                                                                              title,
-                                                                                                              self.get_reference_text(
-                                                                                                                  rc),
-                                                                                                              html)
+                html = '<h2 class="hidden">{0}</h2><span class="h2 section-header">{1}</span>\n{2}{3}'.\
+                    format(alt_title, title, self.get_reference_text(rc), html)
             else:
                 html = '<h2 class="section-header">{0}</h2>\n{1}{2}'.format(title, self.get_reference_text(rc), html)
             tw_html += '<div id="{0}" class="article">\n{1}\n</div>\n\n'.format(self.resource_data[rc]['id'], html)
         if tw_html:
-            tw_html = '<div id="tw" class="resource-title-page">\n<h1 class="section-header">Translation Words</h1>\n</div>\n\n' + tw_html
+            tw_html = '<div id="tw" class="resource-title-page">\n<h1 class="section-header">{0}</h1>\n</div>\n\n{1}'.\
+                format(self.tw_title, tw_html)
         return tw_html
 
     def get_ta_html(self):
-        ta_html = '<div id="ta" class="resource-title-page">\n<h1 class="section-header">Translation Academy</h1>\n</div>\n\n'
+        ta_html = ''
         sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
         for rc in sorted_rcs:
             if '/ta/' not in rc:
@@ -521,6 +580,9 @@ class TnConverter(object):
                     self.resource_data[rc]['title'], self.get_reference_text(rc), self.resource_data[rc]['alt_title'],
                     html)
                 ta_html += '<div id="{0}" class="article">\n{1}\n</div>\n\n'.format(self.resource_data[rc]['id'], html)
+        if ta_html:
+            ta_html = '<div id="ta" class="resource-title-page">\n<h1 class="section-header">{0}</h1>\n</div>\n\n{1}'.\
+                format(self.ta_title, ta_html)
         return ta_html
 
     def get_reference_text(self, rc):
@@ -714,7 +776,8 @@ class TnConverter(object):
         if rc not in self.resource_data:
             return m.group()
         info = self.resource_data[rc]
-        if (before == '[[' and after == ']]') or (before == '(' and after == ')') or before == ' ':
+        if (before == '[[' and after == ']]') or (before == '(' and after == ')') or before == ' ' \
+                or (before == '>' and after == '<'):
             return '<a href="{0}">{1}</a>'.format(info['link'], info['title'])
         if (before == '"' and after == '"') or (before == "'" and after == "'"):
             return info['link']
@@ -728,7 +791,7 @@ class TnConverter(object):
         if self.lang_code != DEFAULT_LANG:
             text = re.sub('rc://en', 'rc://{0}'.format(self.lang_code), text, flags=re.IGNORECASE)
         joined = '|'.join(map(re.escape, self.resource_data.keys()))
-        pattern = r'(\[\[|\(|["\']| |)\b(' + joined + r')\b(\]\]|\)|["\']|)(?!\]\)")'
+        pattern = r'(\[\[|\(|["\']| |>|)\b(' + joined + r')\b(\]\]|\)|["\']|<|)(?!\]\)")'
 
         text = re.sub(pattern, self.replace, text, flags=re.IGNORECASE)
         # Remove other scripture reference not in this tN
