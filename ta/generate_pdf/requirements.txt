@@ -1,0 +1,15 @@
+backports-abc==0.5
+beautifulsoup4==4.6.3
+bs4==0.0.1
+future==0.16.0
+futures==3.2.0
+markdown2==2.3.6
+pyparsing==2.1.10
+python-dateutil==2.3
+PyYAML==3.13
+singledispatch==3.4.0.3
+six==1.11.0
+tornado==5.1.1
+usfm-tools==0.0.22
+gitpython
+

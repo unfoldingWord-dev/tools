@@ -31,6 +31,8 @@ else
   TAG=$1
 fi
 
+source "${MY_DIR}/../general_tools/yaml2struct.bash"
+
 pushd "$OUTPUT_DIR"
 
 mkdir -p "./html"
@@ -55,8 +57,10 @@ hash=`git rev-parse --short=10 ${TAG}`
 echo "Checked out repo files:"
 ls
 
-manifest=`sed -e '1!b' -e '/---/d' manifest.yaml`
 license=$(markdown2 "LICENSE.md")
+
+declare -A manifest
+yaml2struct manifest manifest.yaml
 version=`echo $manifest | yaml2json | jq -r '.dublin_core.version'`
 issued_date=`echo $manifest | yaml2json | jq -r '.dublin_core.issued'`
 title=`echo $manifest | yaml2json | jq -r '.dublin_core.title'`

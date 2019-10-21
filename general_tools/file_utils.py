@@ -97,7 +97,7 @@ def load_yaml_object(file_name, default=None):
     if not os.path.isfile(file_name):
         return default
     # return a deserialized object
-    return yaml.load(read_file(file_name), Loader=yaml.FullLoader)
+    return yaml.load(read_file(file_name))
 
 
 def read_file(file_name, encoding='utf-8'):
@@ -141,21 +141,24 @@ def get_mime_type(path):
         mime_type = "text/{0}".format(os.path.splitext(path)[1])
     return mime_type
 
-
-def get_files(dir, relative_paths=False, include_directories=False, topdown=False):
+def get_files(dir, relative_paths=False, include_directories=False, topdown=False, extensions=None, exclude=None):
     file_list = []
     for root, dirs, files in os.walk(dir, topdown=topdown):
+        if exclude and (os.path.basename(root) in exclude or os.path.basename(root).lower() in exclude):
+            continue
         if relative_paths:
             path = root[len(dir)+1:]
         else:
             path = root
         for filename in files:
-            file_list.append(os.path.join(path, filename))
+            if (not exclude or (filename not in exclude and filename.lower() not in exclude)) and \
+                    (not extensions or os.path.splitext(filename)[1] in extensions
+                     or os.path.splitext(filename)[1].lower() in extensions):
+                file_list.append(os.path.join(path, filename))
         if include_directories:
-            for dirname in dirs:
-                file_list.append(os.path.join(path, dirname))
+            for dir_name in dirs:
+                file_list.append(os.path.join(path, dir_name))
     return file_list
-
 
 def get_subdirs(dir, relative_paths=False, topdown=False):
     dir_list = []

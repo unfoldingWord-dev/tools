@@ -8,5 +8,6 @@
 #  Contributors:
 #  Richard Mahn <richard_mahn@wyciffeassociates.org>
 
-cd $(dirname "$0")/../..
-python -m tools.obs_tn.generate_pdf $@
+cd $(dirname "$0")/../../..
+pwd
+python -m tools.ta.generate_pdf.generate_pdf $@

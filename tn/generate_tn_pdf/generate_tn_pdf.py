@@ -1239,7 +1239,7 @@ if __name__ == '__main__':
     args = parser.parse_args(sys.argv[1:])
     lang_codes = args.lang_codes
     if not lang_codes:
-        lang_codes = ['en']
+        lang_codes = [DEFAULT_LANG]
 
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)

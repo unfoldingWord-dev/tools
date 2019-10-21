@@ -39,7 +39,8 @@ def print(obj):
     _print(json.dumps(obj, ensure_ascii=False, indent=2).encode('utf-8'))
 
 
-class TnConverter(object):
+class ObsTnConverter(object):
+
     def __init__(self, tn_tag=None, obs_tag=None, tw_tag=None, ta_tag=None, working_dir=None, output_dir=None,
                  lang_code=DEFAULT_LANG, owner=DEFAULT_OWNER, regenerate=False, logger=None):
         self.tn_tag = tn_tag
@@ -64,8 +65,10 @@ class TnConverter(object):
         self.obs_dir = os.path.join(self.working_dir, '{0}_obs'.format(lang_code))
         self.tw_dir = os.path.join(self.working_dir, '{0}_tw'.format(lang_code))
         self.ta_dir = os.path.join(self.working_dir, '{0}_ta'.format(lang_code))
+        self.html_dir = os.path.join(self.output_dir, 'html')
+        if not os.path.isdir(self.html_dir):
+            os.makedirs(self.html_dir)
 
-        self.html_dir = None
         self.manifest = None
         self.tw_manifest = None
         self.ta_manifest = None
@@ -82,10 +85,9 @@ class TnConverter(object):
         self.publisher = None
         self.contributors = None
         self.issued = None
-        self.id = None
+        self.file_id = None
         self.my_path = os.path.dirname(os.path.realpath(__file__))
         self.generation_info = {}
-        self.id = '{0}_obs-tn_{1}'.format(lang_code, tn_tag)
         self.title = 'unfoldingWord® Open Bible Stories Translation Notes'
         self.tw_title = 'Translation Words'
         self.ta_title = 'Translation Academy'
@@ -93,9 +95,8 @@ class TnConverter(object):
     def run(self):
         # self.load_resource_data()
         self.setup_resource_files()
-        self.id = '{0}_obs-tn_{1}_{2}'.format(self.lang_code, self.tn_tag, self.generation_info['obs-tn']['commit'])
+        self.file_id = '{0}_obs-tn_{1}_{2}'.format(self.lang_code, self.tn_tag, self.generation_info['obs-tn']['commit'])
         self.determine_if_regeneration_needed()
-        self.html_dir = os.path.join(self.output_dir, 'html'.format(self.id))
         self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
         self.tw_manifest = load_yaml_object(os.path.join(self.tw_dir, 'manifest.yaml'))
         self.ta_manifest = load_yaml_object(os.path.join(self.ta_dir, 'manifest.yaml'))
@@ -108,34 +109,32 @@ class TnConverter(object):
         self.contributors = '; '.join(self.manifest['dublin_core']['contributor'])
         self.publisher = self.manifest['dublin_core']['publisher']
         self.issued = self.manifest['dublin_core']['issued']
-        self.id = self.id
-        if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.html'.format(self.id))):
+        self.file_id = self.file_id
+        if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.html'.format(self.file_id))):
             self.load_tw_cat()
-            self.logger.info('Creating OBS tN HTML files for {0}...'.format(self.id))
-            if not os.path.isdir(self.html_dir):
-                os.makedirs(self.html_dir)
+            self.logger.info('Creating OBS tN HTML files for {0}...'.format(self.file_id))
             self.generate_tn_content()
-            self.logger.info('Generating Body HTML for {0}...'.format(self.id))
+            self.logger.info('Generating Body HTML for {0}...'.format(self.file_id))
             self.generate_body_html()
-            self.logger.info('Generating Cover HTML for {0}...'.format(self.id))
+            self.logger.info('Generating Cover HTML for {0}...'.format(self.file_id))
             self.generate_cover_html()
-            self.logger.info('Generating License HTML for {0}...'.format(self.id))
+            self.logger.info('Generating License HTML for {0}...'.format(self.file_id))
             self.generate_license_html()
-            self.logger.info('Copying header file... for {0}...'.format(self.id))
-            header_file = os.path.join(self.my_path, 'obs_tn_header.html'.format(self.id))
+            self.logger.info('Copying header file... for {0}...'.format(self.file_id))
+            header_file = os.path.join(self.my_path, 'obs_tn_header.html'.format(self.file_id))
             shutil.copy2(header_file, self.html_dir)
-            self.logger.info('Copying style sheet file for {0}...'.format(self.id))
+            self.logger.info('Copying style sheet file for {0}...'.format(self.file_id))
             style_file = os.path.join(self.my_path, 'obs_tn_style.css')
             shutil.copy2(style_file, self.html_dir)
             self.save_resource_data()
             self.save_bad_links()
             self.save_bad_notes()
-        if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.pdf'.format(self.id))):
-            self.logger.info('Generating PDF {0}/{1}.pdf...'.format(self.output_dir, self.id))
+        if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.pdf'.format(self.file_id))):
+            self.logger.info('Generating PDF {0}/{1}.pdf...'.format(self.output_dir, self.file_id))
             self.generate_tn_pdf()
         else:
-            self.logger.info('No PDF generation needed for {0}.'.format(self.id))
-        self.logger.info('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.id))
+            self.logger.info('No PDF generation needed for {0}.'.format(self.file_id))
+        self.logger.info('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.file_id))
 
     def save_bad_links(self):
         bad_links = "BAD LINKS:\n"
@@ -159,7 +158,7 @@ class TnConverter(object):
                     if self.bad_links[source_rc][rc]:
                         str += ' - change to `{0}`'.format(self.bad_links[source_rc][rc])
                 bad_links += "{0}\n".format(str)
-        save_file = os.path.join(self.output_dir, '{0}_bad_links.txt'.format(self.id))
+        save_file = os.path.join(self.output_dir, '{0}_bad_links.txt'.format(self.file_id))
         write_file(save_file, bad_links)
         self.logger.info('BAD LINKS file can be found at {0}'.format(save_file))
 
@@ -167,7 +166,7 @@ class TnConverter(object):
         bad_notes = '<!DOCTYPE html><html lang="en-US"><head data-suburl=""><title>NON-MATCHING NOTES</title><meta charset="utf-8"></head><body><p>NON-MATCHING NOTES (i.e. not found in the frame text as written):</p><ul>'
         for cf in sorted(self.bad_notes.keys()):
             bad_notes += '<li><a href="{0}_html/{0}.html#obs-tn-{1}" title="See in the OBS tN Docs (HTML)" target="obs-tn-html">{1}</a><a href="https://git.door43.org/{6}/{2}_obs-tn/src/branch/{7}/content/{3}/{4}.md" style="text-decoration:none" target="obs-tn-git"><img src="http://www.myiconfinder.com/uploads/iconsets/16-16-65222a067a7152473c9cc51c05b85695-note.png" title="See OBS UTN note on DCS"></a><a href="https://git.door43.org/{6}/{2}_obs/src/branch/master/content/{3}.md" style="text-decoration:none" target="obs-git"><img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-16.png" title="See OBS story on DCS"></a>:<br/><i>{5}</i><br/><ul>'.format(
-                self.id, cf, self.lang_code, cf.split('-')[0], cf.split('-')[1], self.bad_notes[cf]['text'], self.owner, DEFAULT_TAG)
+                self.file_id, cf, self.lang_code, cf.split('-')[0], cf.split('-')[1], self.bad_notes[cf]['text'], self.owner, DEFAULT_TAG)
             for note in self.bad_notes[cf]['notes']:
                 for key in note.keys():
                     if note[key]:
@@ -176,7 +175,7 @@ class TnConverter(object):
                         bad_notes += '<li><b><i>{0}</i></b></li>'.format(key)
             bad_notes += '</ul></li>'
         bad_notes += "</u></body></html>"
-        save_file = os.path.join(self.output_dir, '{0}_bad_notes.html'.format(self.id))
+        save_file = os.path.join(self.output_dir, '{0}_bad_notes.html'.format(self.file_id))
         write_file(save_file, bad_notes)
         self.logger.info('BAD NOTES file can be found at {0}'.format(save_file))
 
@@ -218,9 +217,9 @@ class TnConverter(object):
         self.clone_resource('obs', self.obs_tag)
         self.clone_resource('tw', self.tw_tag)
         self.clone_resource('ta', self.ta_tag)
-        if not os.path.isfile(os.path.join(self.working_dir, 'icon-obs-tn.png')):
-            command = 'curl -o {0}/icon-obs-tn.png https://cdn.door43.org/assets/uw-icons/logo-obs-256.png'.format(
-                self.working_dir)
+        if not os.path.isfile(os.path.join(self.html_dir, 'logo-obs-tn.png')):
+            command = 'curl -o {0}/logo-obs-tn.png https://cdn.door43.org/assets/uw-icons/logo-obs-256.png'.format(
+                self.html_dir)
             subprocess.call(command, shell=True)
 
     def load_tw_cat(self):
@@ -271,7 +270,7 @@ class TnConverter(object):
         # check if any commit hashes have changed
         old_info = self.get_previous_generation_info()
         if not old_info:
-            self.logger.info('Looks like this is a new commit of {0}. Generating PDF.'.format(self.id))
+            self.logger.info('Looks like this is a new commit of {0}. Generating PDF.'.format(self.file_id))
             self.regenerate = True
         else:
             for resource in self.generation_info:
@@ -295,20 +294,20 @@ class TnConverter(object):
         save_dir = os.path.join(self.output_dir, 'save')
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        save_file = os.path.join(save_dir, '{0}_resource_data.json'.format(self.id))
+        save_file = os.path.join(save_dir, '{0}_resource_data.json'.format(self.file_id))
         write_file(save_file, self.resource_data)
-        save_file = os.path.join(save_dir, '{0}_references.json'.format(self.id))
+        save_file = os.path.join(save_dir, '{0}_references.json'.format(self.file_id))
         write_file(save_file, self.rc_references)
-        save_file = os.path.join(save_dir, '{0}_bad_links.json'.format(self.id))
+        save_file = os.path.join(save_dir, '{0}_bad_links.json'.format(self.file_id))
         write_file(save_file, self.bad_links)
-        save_file = os.path.join(save_dir, '{0}_bad_notes.json'.format(self.id))
+        save_file = os.path.join(save_dir, '{0}_bad_notes.json'.format(self.file_id))
         write_file(save_file, self.bad_notes)
-        save_file = os.path.join(save_dir, '{0}_generation_info.json'.format(self.id))
+        save_file = os.path.join(save_dir, '{0}_generation_info.json'.format(self.file_id))
         write_file(save_file, self.generation_info)
 
     def get_previous_generation_info(self):
         save_dir = os.path.join(self.output_dir, 'save')
-        save_file = os.path.join(save_dir, '{0}_generation_info.json'.format(self.id))
+        save_file = os.path.join(save_dir, '{0}_generation_info.json'.format(self.file_id))
         if os.path.isfile(save_file):
             return load_json_object(save_file)
         else:
@@ -319,15 +318,15 @@ class TnConverter(object):
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
 
-        save_file = os.path.join(save_dir, '{0}_resource_data.json'.format(self.id))
+        save_file = os.path.join(save_dir, '{0}_resource_data.json'.format(self.file_id))
         if os.path.isfile(save_file):
             self.resource_data = load_json_object(save_file)
 
-        save_file = os.path.join(save_dir, '{0}_references.json'.format(self.id))
+        save_file = os.path.join(save_dir, '{0}_references.json'.format(self.file_id))
         if os.path.isfile(save_file):
             self.rc_references = load_json_object(save_file)
 
-        save_file = os.path.join(save_dir, '{0}_bad_links.json'.format(self.id))
+        save_file = os.path.join(save_dir, '{0}_bad_links.json'.format(self.file_id))
         if os.path.isfile(save_file):
             self.bad_links = load_json_object(save_file)
 
@@ -357,7 +356,7 @@ class TnConverter(object):
 
         soup.head.append(soup.new_tag('link', href="html/obs_tn_style.css", rel="stylesheet"))
 
-        html_file = os.path.join(self.output_dir, '{0}.html'.format(self.id))
+        html_file = os.path.join(self.output_dir, '{0}.html'.format(self.file_id))
         write_file(html_file, unicode(soup))
         self.logger.info('Wrote HTML to {0}'.format(html_file))
 
@@ -371,14 +370,14 @@ class TnConverter(object):
 </head>
 <body>
   <div style="text-align:center;padding-top:200px" class="break" id="cover">
-    <img src="https://cdn.door43.org/assets/uw-icons/logo-obs-256.png" width="120">
+    <img src="html/logo-obs-tn.png" width="120">
     <span class="h1">{0}</span>
     <span class="h3">Version {1}</span>
   </div>
 </body>
 </html>
 '''.format(self.title, self.version)
-        html_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.id))
+        html_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.file_id))
         write_file(html_file, cover_html)
 
     def generate_license_html(self):
@@ -403,15 +402,15 @@ class TnConverter(object):
   </div>
 </body>
 </html>'''.format(self.issued, self.version, self.publisher, license)
-        html_file = os.path.join(self.html_dir, '{0}_license.html'.format(self.id))
+        html_file = os.path.join(self.html_dir, '{0}_license.html'.format(self.file_id))
         write_file(html_file, license_html)
 
     def generate_tn_pdf(self):
-        cover_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.id))
-        license_file = os.path.join(self.html_dir, '{0}_license.html'.format(self.id))
+        cover_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.file_id))
+        license_file = os.path.join(self.html_dir, '{0}_license.html'.format(self.file_id))
         header_file = os.path.join(self.html_dir, 'obs_tn_header.html')
-        body_file = os.path.join(self.output_dir, '{0}.html'.format(self.id))
-        output_file = os.path.join(self.output_dir, '{0}.pdf'.format(self.id))
+        body_file = os.path.join(self.output_dir, '{0}.html'.format(self.file_id))
+        output_file = os.path.join(self.output_dir, '{0}.pdf'.format(self.file_id))
         template_file = os.path.join(self.my_path, 'toc_template.xsl')
         command = '''wkhtmltopdf 
                         --javascript-delay 2000 
@@ -543,7 +542,7 @@ class TnConverter(object):
                     self.get_resource_data_from_rc_links(frame_html, rc)
                 content += '</div>\n\n'
         self.tn_content = content
-        write_file(os.path.join(self.html_dir, '{0}_tn_content.html'.format(self.id)),
+        write_file(os.path.join(self.html_dir, '{0}_tn_content.html'.format(self.file_id)),
                    BeautifulSoup(content, 'html.parser').prettify())
 
     def get_tw_html(self):
@@ -786,7 +785,7 @@ class TnConverter(object):
 
     def replace_rc_links(self, text):
         # Change rc://... rc links to proper HTML links based on that links title and link to its article
-        write_file(os.path.join(self.html_dir, '{0}_tn_content_rc1.html'.format(self.id)),
+        write_file(os.path.join(self.html_dir, '{0}_tn_content_rc1.html'.format(self.file_id)),
                    BeautifulSoup(text, 'html.parser').prettify())
         if self.lang_code != DEFAULT_LANG:
             text = re.sub('rc://en', 'rc://{0}'.format(self.lang_code), text, flags=re.IGNORECASE)
@@ -796,7 +795,7 @@ class TnConverter(object):
         text = re.sub(pattern, self.replace, text, flags=re.IGNORECASE)
         # Remove other scripture reference not in this tN
         text = re.sub(r'<a[^>]+rc://[^>]+>([^>]+)</a>', r'\1', text, flags=re.IGNORECASE | re.MULTILINE)
-        write_file(os.path.join(self.html_dir, '{0}_tn_content_rc2.html'.format(self.id)),
+        write_file(os.path.join(self.html_dir, '{0}_tn_content_rc2.html'.format(self.file_id)),
                    BeautifulSoup(text, 'html.parser').prettify())
         return text
 
@@ -820,8 +819,8 @@ class TnConverter(object):
 
 def main(tn_tag, obs_tag, tw_tag, ta_tag, lang_code, working_dir, output_dir, owner, regenerate, logger):
     _print('Starting TN Converter for {0}...'.format(lang_code))
-    tn_converter = TnConverter(tn_tag, obs_tag, tw_tag, ta_tag, working_dir, output_dir, lang_code, owner, regenerate, logger)
-    tn_converter.run()
+    obs_tn_converter = ObsTnConverter(tn_tag, obs_tag, tw_tag, ta_tag, working_dir, output_dir, lang_code, owner, regenerate, logger)
+    obs_tn_converter.run()
 
 
 if __name__ == '__main__':
@@ -843,7 +842,7 @@ if __name__ == '__main__':
         obs = args.obs_tn
     lang_codes = args.lang_codes
     if not lang_codes:
-        lang_codes = ['en']
+        lang_codes = [DEFAULT_LANG]
 
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
