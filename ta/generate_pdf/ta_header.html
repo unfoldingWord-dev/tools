@@ -16,10 +16,7 @@
             for (var i in replaceClasses) {
                 var hits = document.getElementsByClassName(replaceClasses[i]);
                 for (var j = 0; j < hits.length; j++) {
-                    if (replaceClasses[i] === 'subsection' && vars['subsubsection'])
-                        hits[j].textContent = vars['subsubsection'];
-                    else
-                        hits[j].textContent = vars[replaceClasses[i]];
+                    hits[j].textContent = vars[replaceClasses[i]];
                 }
             }
         }
