@@ -12,10 +12,10 @@
         <title>Table of Contents</title>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <style>
-        @import url('https://fonts.googleapis.com/css?family=Noto+Sans');
-        @import url('https://fonts.googleapis.com/css?family=Noto+Serif');
+          @import url('https://fonts.googleapis.com/css?family=Noto+Sans');
+          @import url('https://fonts.googleapis.com/css?family=Noto+Serif');
 
-        body {
+          body {
             font-family: 'Noto Serif', 'Noto Sans', sans-serif, arial;
             font-size: 16px;
           }
@@ -27,9 +27,8 @@
           span {float: right;}
           a {float: left;}
           li {list-style: none;}
-          ul {padding-left: 0em; font-size: 1em}
-          ul ul {padding-left: 1em; font-size: .9em}
-          ul ul ul {font-size: .8em; }
+          ul {padding-left: 0em}
+          ul ul {padding-left: 1em}
           a {text-decoration:none; color: black;}
           .title, .page {
             margin-bottom: 1px;
