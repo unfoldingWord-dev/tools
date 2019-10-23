@@ -12,7 +12,7 @@
         <title>Table of Contents</title>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <style>
-          @import url('https://fonts.googleapis.com/css?family=Noto+Serif:400,400i,700,700i');
+          @import url('https://fonts.googleapis.com/css?family=Noto+Serif:400,700');
 
           body {
             font-family: 'Noto Serif', sans-serif;
