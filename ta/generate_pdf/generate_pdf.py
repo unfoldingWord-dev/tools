@@ -548,6 +548,9 @@ class TaConverter(object):
         output_file = os.path.join(self.output_dir, '{0}.pdf'.format(self.file_id))
         template_file = os.path.join(self.my_path, 'toc_template.xsl')
         command = '''wkhtmltopdf 
+                        --javascript-delay 2000
+                        --debug-javascript
+                        --cache-dir "{6}"
                         --run-script "setInterval(function(){{if(document.readyState=='complete') setTimeout(function() {{window.status='done';}}, 100);}},200)"
                         --window-status done
                         --encoding utf-8
@@ -564,7 +567,7 @@ class TaConverter(object):
                         --xsl-style-sheet "{3}"
                         "{4}" 
                         "{5}"
-                    '''.format(header_file, cover_file, license_file, template_file, body_file, output_file)
+                    '''.format(header_file, cover_file, license_file, template_file, body_file, output_file, os.path.join(self.working_dir, 'wkhtmltopdf'))
         command = re.sub(r'\s+', ' ', command, flags=re.MULTILINE)
         self.logger.info(command)
         subprocess.call(command, shell=True)
