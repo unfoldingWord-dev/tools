@@ -27,13 +27,9 @@
           span {float: right;}
           a {float: left;}
           li {list-style: none;}
-          ul {
-            font-size: 1em;
-          }
-          ul ul {font-size: .8em; }
-          ul ul ul {font-size: .7em; }
-          ul {padding-left: 0em;}
-          ul ul {padding-left: 1em;}
+          ul {padding-left: 0em; font-size: 1em}
+          ul ul {padding-left: 1em; font-size: .9em}
+          ul ul ul {font-size: .8em; }
           a {text-decoration:none; color: black;}
           .title, .page {
             margin-bottom: 1px;
