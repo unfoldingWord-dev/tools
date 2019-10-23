@@ -26,22 +26,23 @@
           span {float: right;}
           a {float: left;}
           li {list-style: none;}
-          ul {padding-left: 0em}
-          ul ul {padding-left: 1em}
-          a {text-decoration:none; color: black;}
+          ul {padding-left: 0em; font-family: 'Noto Serif', sans-serif; font-weight: bold;}
+          ul ul {padding-left: 1em; font-size: 15px; font-weight: normal;}
+          ul ul ul {font-size: 14px}
+          a {text-decoration: none; color: black;}
           .title, .page {
             margin-bottom: 1px;
             background-color: white;
             overflow: auto;
             white-space: nowrap;
           }
-          .title {margin-right: 3px}
-          .page {margin-left: 3px}
+          .title {padding-right: 3px}
+          .page {padding-left: 3px}
         </style>
       </head>
       <body>
         <h1>Table of Contents</h1>
-        <ul><xsl:apply-templates select="outline:item/outline:item"/></ul>
+        <ul id="top-ul"><xsl:apply-templates select="outline:item/outline:item"/></ul>
       </body>
     </html>
   </xsl:template>
