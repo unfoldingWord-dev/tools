@@ -548,7 +548,8 @@ class TaConverter(object):
         output_file = os.path.join(self.output_dir, '{0}.pdf'.format(self.file_id))
         template_file = os.path.join(self.my_path, 'toc_template.xsl')
         command = '''wkhtmltopdf 
-                        --javascript-delay 2000
+                        --run-script "setInterval(function(){{if(document.readyState=='complete') setTimeout(function() {{window.status='done';}}, 100);}},200)"
+                        --window-status done
                         --encoding utf-8
                         --outline-depth 3
                         --orientation portrait -L 15 -R 15 -T 15 -B 15
