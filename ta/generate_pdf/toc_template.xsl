@@ -13,9 +13,10 @@
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <style>
           @import url('https://fonts.googleapis.com/css?family=Noto+Serif');
+          @import url('https://fonts.googleapis.com/css?family=Raleway:400|Nunito:300');
 
           body {
-            font-family: 'Noto Serif', sans-serif, arial;
+            font-family: 'Raleway', 'Noto Serif', sans-serif;
             font-size: 16px;
           }
           h1 {
