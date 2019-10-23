@@ -264,7 +264,10 @@ class TaConverter(object):
 
         self.ta_dir = os.path.join(self.working_dir, '{0}_ta'.format(lang_code))
 
-        self.html_dir =  os.path.join(self.output_dir, 'html')
+        self.html_dir = os.path.join(self.output_dir, 'html')
+        if not os.path.isdir(self.html_dir):
+            os.makedirs(self.html_dir)
+
         self.manifest = None
         self.ta_html = ''
         self.version = None
@@ -288,8 +291,6 @@ class TaConverter(object):
         self.file_id = self.file_id
         if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.html'.format(self.file_id))):
             self.logger.info('Creating TA HTML files for {0}...'.format(self.file_id))
-            if not os.path.isdir(self.html_dir):
-                os.makedirs(self.html_dir)
             self.generate_ta_html()
             self.logger.info('Generating Cover HTML for {0}...'.format(self.file_id))
             self.generate_cover_html()
