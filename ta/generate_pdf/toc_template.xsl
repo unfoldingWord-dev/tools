@@ -12,69 +12,35 @@
         <title>Table of Contents</title>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <style>
+        @import url('https://fonts.googleapis.com/css?family=Noto+Sans');
+        @import url('https://fonts.googleapis.com/css?family=Noto+Serif');
+
+        body {
+            font-family: 'Noto Serif', 'Noto Sans', sans-serif, arial;
+            font-size: 16px;
+          }
           h1 {
             text-align: center;
-            font-size: 20px;
-            font-family: arial;
+            font-size: 2em;
           }
-          div {border-bottom: 1px dashed rgb(200,200,200);}
+          div {border-bottom: 1px dashed rgb(200,200,200); clear:both; height: 1em;}
           span {float: right;}
+          a {float: left;}
           li {list-style: none;}
           ul {
-            font-size: 20px;
-            font-family: arial;
+            font-size: 1em;
           }
-          ul ul {font-size: 80%; }
+          ul ul {font-size: .8em; }
+          ul ul ul {font-size: .7em; }
           ul {padding-left: 0em;}
           ul ul {padding-left: 1em;}
           a {text-decoration:none; color: black;}
-
-                              #toc {
-                        text-align: center;
-                        font-size: 18pt;
-                        font-family: arial;
-                    }
-
-                    * {
-                        text-align: left;
-                        font-size: 14pt;
-                        line-height: 16pt;
-                        font-family: Segoe UI;
-                    }
-                    .toclink {
-                        text-decoration:none;
-                        color: black;
-                    }
-                    .before {
-                        padding-right: 0.33em;
-                        background: white;
-                    }
-                    .after {
-                        float:right;
-                        padding-left: 0.33em;
-                        background: white;
-                    }
-                    <xsl:if test="not((@type)='xhtml')">
-                    .before:before{
-                        float: left;
-                        width: 0;
-                        font-size: 6pt;
-                        white-space: nowrap;
-                        content:
-                        ". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . "
-                    }
-                    </xsl:if>
-                    #top {
-                        width:97%;
-                        overflow:hidden;
-                    }
-                    .toc ul {
-                        list-style: none outside none;
-                        padding-left:1.3em;
-                    }
-                    ul ul ul ul {
-                        display: none;
-                    }
+          .title, .page {
+            margin-bottom: 1px;
+            background-color: white;
+            overflow: auto;
+            white-space: nowrap;
+          }
         </style>
       </head>
       <body>
@@ -87,16 +53,16 @@
     <li>
       <xsl:if test="@title!=''">
         <div>
-          <a>
+          <a class="title">
             <xsl:if test="@link">
               <xsl:attribute name="href"><xsl:value-of select="@link"/></xsl:attribute>
             </xsl:if>
             <xsl:if test="@backLink">
               <xsl:attribute name="name"><xsl:value-of select="@backLink"/></xsl:attribute>
             </xsl:if>
-            <xsl:value-of select="@title" /> 
+            <xsl:value-of select="@title" />
           </a>
-          <span> <xsl:value-of select="@page" /> </span>
+          <span class="page"> <xsl:value-of select="@page" /> </span>
         </div>
       </xsl:if>
       <ul>

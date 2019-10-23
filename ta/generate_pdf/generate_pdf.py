@@ -63,11 +63,9 @@ class TaProcessor:
         self.rc = rc
         self.source_dir = source_dir  # Local directory
         self.output_dir = output_dir  # Local directory
-
-        # Write out the new manifest file based on the resource container
-        write_file(os.path.join(self.output_dir, 'manifest.yaml'), self.rc.as_dict())
-
         self.section_container_id = 1
+        self.titles = {}
+        self.bad_links = {}
 
     def run(self):
         for idx, project in enumerate(self.rc.projects):
@@ -131,7 +129,8 @@ class TaProcessor:
         else:
             link = 'section-container-{0}'.format(self.section_container_id)
             self.section_container_id = self.section_container_id + 1
-        markdown = '{0} <a id="{1}"/>{2}\n\n'.format('#' * level, link, self.get_title(project, link, section['title']))
+        title = self.get_title(project, link, section['title'])
+        markdown = '{0} <a id="{1}"/>{2}\n\n'.format('#' * level, link, title)
         if 'link' in section:
             top_box = ""
             bottom_box = ""
@@ -155,6 +154,18 @@ class TaProcessor:
             content = self.get_content(project, link)
             if content:
                 markdown += '{0}\n\n'.format(content)
+            else:
+                bad_link = '{0}/{1}'.format(project.identifier, link)
+                content_file = os.path.join(self.source_dir, project.identifier, link, '01.md')
+                if os.path.isdir(os.path.join(self.source_dir, bad_link)):
+                    if not os.path.isfile(content_file):
+                        self.bad_links[bad_link] = '[dir exists but no 01.md file]'
+                    elif len(read_file(content_file)):
+                        self.bad_links[bad_link] = '[01.md file exists but no content]'
+                elif 'title' in section and section['title'] in self.titles:
+                    self.bad_links[bad_link] = ' or '.join(self.titles[section['title']])
+                else:
+                    self.bad_links[bad_link] = '[no corresponding article found]'
             if bottom_box:
                 markdown += '<div class="bottom-box box" markdown="1">\n{0}\n</div>\n\n'.format(bottom_box)
             markdown += '---\n\n'  # horizontal rule
@@ -163,8 +174,20 @@ class TaProcessor:
                 markdown += self.compile_section(project, subsection, level + 1)
         return markdown
 
+    def get_titles(self, project):
+        titles = {}
+        project_path = os.path.join(self.source_dir, project)
+        for dirname in sorted(glob(os.path.join(project_path, '*'))):
+            if (os.path.isdir(dirname) and os.path.isfile(os.path.join(dirname, 'title.md'))):
+                title = read_file(os.path.join(dirname, 'title.md'))
+                if title not in titles:
+                    titles[title] = []
+                titles[title].append(os.path.basename(dirname))
+        return titles
+
     def run(self):
         for idx, project in enumerate(self.rc.projects):
+            self.titles = self.get_titles(project.identifier)
             self.section_container_id = 1
             toc = self.rc.toc(project.identifier)
             if project.identifier in self.manual_title_map:
@@ -186,9 +209,14 @@ class TaProcessor:
                                                                                        project.identifier)))
             config_file = os.path.join(self.source_dir, project.path, 'config.yaml')
             if os.path.isfile(config_file):
-                copy(config_file, os.path.join(self.output_dir, '{0}-{1}-config.yaml'.format(str(idx+1).zfill(2),
-                                                                                             project.identifier)))
+                copy(config_file, os.path.join(self.output_dir, '{0}-{1}-config.yaml'.format(str(idx+1).zfill(2), project.identifier)))
+        self.print_bad_links()
         return True
+
+    def print_bad_links(self):
+        for link in sorted(self.bad_links.keys()):
+            if self.bad_links[link]:
+                _print("{0} => {1}".format(link, self.bad_links[link]))
 
     def fix_links(self, content):
         # convert RC links, e.g. rc://en/tn/help/1sa/16/02 => https://git.door43.org/Door43/en_tn/1sa/16/02.md
@@ -265,7 +293,7 @@ class TaConverter(object):
             self.generate_ta_html()
             self.logger.info('Generating Cover HTML for {0}...'.format(self.file_id))
             self.generate_cover_html()
-            self.logger.info('Generating License HTML for {0}...'.format(self.file_id))
+            self.logger.info('Generating Licensbe HTML for {0}...'.format(self.file_id))
             self.generate_license_html()
             self.logger.info('Copying style sheet file for {0}...'.format(self.file_id))
             style_file = os.path.join(self.my_path, 'ta_style.css')
