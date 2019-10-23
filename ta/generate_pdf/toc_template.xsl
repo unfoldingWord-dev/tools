@@ -12,7 +12,7 @@
         <title>Table of Contents</title>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <style>
-          @import url('https://fonts.googleapis.com/css?family=Noto+Serif:400,400i,700,700i');
+          @import url('https://fonts.googleapis.com/css?family=Noto+Serif');
 
           body {
             font-family: 'Noto Serif', sans-serif, arial;
@@ -35,6 +35,8 @@
             overflow: auto;
             white-space: nowrap;
           }
+          .title {margin-right: 3px}
+          .page {margin-left: 3px}
         </style>
       </head>
       <body>
