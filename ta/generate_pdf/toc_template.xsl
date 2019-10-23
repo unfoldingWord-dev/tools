@@ -12,11 +12,10 @@
         <title>Table of Contents</title>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <style>
-          @import url('https://fonts.googleapis.com/css?family=Noto+Serif');
-          @import url('https://fonts.googleapis.com/css?family=Raleway:400|Nunito:300');
+          @import url('https://fonts.googleapis.com/css?family=Noto+Serif:400,400i,700,700i');
 
           body {
-            font-family: 'Raleway', 'Noto Serif', sans-serif;
+            font-family: 'Noto Serif', sans-serif;
             font-size: 16px;
           }
           h1 {
