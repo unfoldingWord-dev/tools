@@ -528,8 +528,6 @@ class ObsSnConverter(object):
 
     def replace_rc_links(self, text):
         # Change rc://... rc links to proper HTML links based on that links title and link to its article
-        write_file(os.path.join(self.html_dir, '{0}_obs-sn_content_rc1.html'.format(self.file_id)),
-                   BeautifulSoup(text, 'html.parser').prettify())
         if self.lang_code != DEFAULT_LANG:
             text = re.sub('rc://en', 'rc://{0}'.format(self.lang_code), text, flags=re.IGNORECASE)
         joined = '|'.join(map(re.escape, self.resource_data.keys()))
@@ -538,8 +536,6 @@ class ObsSnConverter(object):
         text = re.sub(pattern, self.replace, text, flags=re.IGNORECASE)
         # Remove other scripture reference not in this SN
         text = re.sub(r'<a[^>]+rc://[^>]+>([^>]+)</a>', r'\1', text, flags=re.IGNORECASE | re.MULTILINE)
-        write_file(os.path.join(self.html_dir, '{0}_obs-sn_content_rc2.html'.format(self.file_id)),
-                   BeautifulSoup(text, 'html.parser').prettify())
         return text
 
     @staticmethod
