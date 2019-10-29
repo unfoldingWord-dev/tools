@@ -19,7 +19,6 @@ h1, h2, h3, h4, h5, h6,
 
 .section-header {
     display: block;
-    font-size: 1.5em;
     -webkit-margin-before: 0.83em;
     -webkit-margin-after: 0.83em;
     -webkit-margin-start:0;
@@ -133,7 +132,7 @@ ul li li:last-child {
 
 .h1 {
     display: block;
-    font-size: 2em;
+    font-size: 1.6em;
     -webkit-margin-before: 0.67em;
     -webkit-margin-after: 0.67em;
     -webkit-margin-start:0;
@@ -143,7 +142,7 @@ ul li li:last-child {
 
 .h2 {
     display: block;
-    font-size: 1.5em;
+    font-size: 1.4em;
     -webkit-margin-before: 0.83em;
     -webkit-margin-after: 0.83em;
     -webkit-margin-start:0;
@@ -153,7 +152,7 @@ ul li li:last-child {
 
 .h3 {
     display: block;
-    font-size: 1.17em;
+    font-size: 1.2em;
     -webkit-margin-before: 1em;
     -webkit-margin-after: 1em;
     -webkit-margin-start:0;
@@ -163,6 +162,7 @@ ul li li:last-child {
 
 .h4 {
     display: block;
+    font-size: 1.15em;
     -webkit-margin-before: 1.33em;
     -webkit-margin-after: 1.33em;
     -webkit-margin-start:0;
@@ -172,7 +172,7 @@ ul li li:last-child {
 
 .h5 {
     display: block;
-    font-size: 0.83em;
+    font-size: 1.1em;
     -webkit-margin-before: 1.67em;
     -webkit-margin-after: 1.67em;
     -webkit-margin-start:0;
@@ -182,7 +182,7 @@ ul li li:last-child {
 
 .h6 {
     display: block;
-    font-size: 0.75em;
+    font-size: 1em;
     -webkit-margin-before: 2em;
     -webkit-margin-after: 2em;
     -webkit-margin-start:0;
@@ -271,4 +271,26 @@ table.tn-notes-table {
 .col1 p {
     padding: 0;
     margin: 0;
+}
+
+
+.obs-img-and-text {
+    display: table;
+    margin: 0 auto;
+}
+
+.obs-text {
+    display: table-caption;
+    text-align: left;
+    font-style: italic;
+    caption-side: bottom;
+}
+
+#cover {
+    text-align: center;
+    padding-top: 200px;
+}
+
+.obs-sn-phrase-and-note {
+    page-break-inside: avoid;
 }

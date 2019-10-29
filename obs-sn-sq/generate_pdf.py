@@ -23,9 +23,7 @@ import shutil
 import subprocess
 import json
 import git
-from glob import glob
 from bs4 import BeautifulSoup
-from weasyprint import HTML
 from ..general_tools.file_utils import write_file, read_file, load_json_object, unzip, load_yaml_object
 from ..general_tools.url_utils import download_file
 
@@ -69,15 +67,13 @@ class ObsSnSqConverter(object):
         if not os.path.isdir(self.html_dir):
             os.makedirs(self.html_dir)
 
-        self.manifest = None
+        self.obs_manifest = None
+        self.obs_sn_manifest = None
+        self.obs_sq_manifest = None
         self.obs_sn_sq_text = ''
         self.bad_notes = {}
         self.resource_data = {}
         self.rc_references = {}
-        self.version = None
-        self.publisher = None
-        self.contributors = None
-        self.issued = None
         self.file_id = None
         self.my_path = os.path.dirname(os.path.realpath(__file__))
         self.generation_info = {}
@@ -88,12 +84,9 @@ class ObsSnSqConverter(object):
         self.setup_resource_files()
         self.file_id = '{0}_obs-sn-sq_{1}_{2}'.format(self.lang_code, self.obs_sn_tag, self.generation_info['obs-sn']['commit'])
         self.determine_if_regeneration_needed()
-        self.manifest = load_yaml_object(os.path.join(self.obs_sn_dir, 'manifest.yaml'))
-        self.version = self.manifest['dublin_core']['version']
-        self.title = self.manifest['dublin_core']['title']
-        self.contributors = '<br/>'.join(self.manifest['dublin_core']['contributor'])
-        self.publisher = self.manifest['dublin_core']['publisher']
-        self.issued = self.manifest['dublin_core']['issued']
+        self.obs_manifest = load_yaml_object(os.path.join(self.obs_dir, 'manifest.yaml'))
+        self.obs_sn_manifest = load_yaml_object(os.path.join(self.obs_sn_dir, 'manifest.yaml'))
+        self.obs_sq_manifest = load_yaml_object(os.path.join(self.obs_sq_dir, 'manifest.yaml'))
         self.file_id = self.file_id
         self.logger.info('Creating OBS SN & SQ HTML files for {0}...'.format(self.file_id))
         if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.html'.format(self.file_id))):
@@ -110,7 +103,7 @@ class ObsSnSqConverter(object):
         self.save_resource_data()
         # self.save_bad_notes()
         self.logger.info('Generating PDF {0}/{1}.pdf...'.format(self.output_dir, self.file_id))
-        self.generate_obs_sn_pdf()
+        self.generate_obs_sn_sq_pdf()
         self.logger.info('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.file_id))
 
     @staticmethod
@@ -174,16 +167,26 @@ class ObsSnSqConverter(object):
                     self.regenerate = True
 
     def get_contributors_html(self):
-        if self.contributors and len(self.contributors):
-            return '''
+        obs_title = self.obs_manifest['dublin_core']['title']
+        obs_sn_title = self.obs_sn_manifest['dublin_core']['title']
+        obs_sq_title = self.obs_sq_manifest['dublin_core']['title']
+
+        obs_contributors = '<br/>'.join(self.obs_manifest['dublin_core']['contributor'])
+        obs_sn_contributors = '<br/>'.join(self.obs_sn_manifest['dublin_core']['contributor'])
+        obs_sq_contributors = '<br/>'.join(self.obs_sq_manifest['dublin_core']['contributor'])
+
+        contributors_html = '''
 <div id="contributors" class="article">
   <h1 class="section-header">Contributors</h1>
-  <p>
-    {0}
-  </p>
-</div>'''.format(self.contributors)
-        else:
-            return ''
+'''
+        if obs_contributors and len(obs_contributors):
+            contributors_html += '<h2>{0} Contributors</h2>\n<p>{1}</p>'.format(obs_title, obs_contributors)
+        if obs_sn_contributors and len(obs_sn_contributors):
+            contributors_html += '<h2>{0} Contributors</h2>\n<p>{1}</p>'.format(obs_sn_title, obs_sn_contributors)
+        if obs_sq_contributors and len(obs_sq_contributors):
+            contributors_html += '<h2>{0} Contributors</h2>\n<p>{1}</p>'.format(obs_sq_title, obs_sq_contributors)
+        contributors_html += '</div>'
+        return contributors_html
 
     def save_resource_data(self):
         save_dir = os.path.join(self.output_dir, 'save')
@@ -226,20 +229,23 @@ class ObsSnSqConverter(object):
     def generate_body_html(self):
         obs_sn_sq_html = self.obs_sn_sq_text
         contributors_html = self.get_contributors_html()
+        obs_sn_title = self.obs_sn_manifest['dublin_core']['title']
+        obs_sn_version = self.obs_sn_manifest['dublin_core']['version']
+        obs_sq_title = self.obs_sn_manifest['dublin_core']['title']
         html = '\n'.join([obs_sn_sq_html, contributors_html])
-        html = self.replace_rc_links(html)
         html = self.fix_links(html)
+        html = self.replace_rc_links(html)
         html = '''<!DOCTYPE html>
 <html lang="en-US">
   <head data-suburl="">
     <meta charset="utf-8"/>
-    <title>{0} - v{1}</title>
+    <title>{0} & {1} - v{2}</title>
   </head>
   <body>
-{2}
+{3}
   </body>
 </html>
-'''.format(self.title, self.version, html)
+'''.format(obs_sn_title, obs_sq_title, obs_sn_version, html)
         soup = BeautifulSoup(html, 'html.parser')
         # Make all headers that have a header right before them non-break
         for h in soup.find_all(['h2', 'h3', 'h4', 'h5', 'h6']):
@@ -255,12 +261,15 @@ class ObsSnSqConverter(object):
 
         soup.head.append(soup.new_tag('link', href="html/style.css", rel="stylesheet"))
 
-        html = str(soup)
+        html = unicode(soup)
         html_file = os.path.join(self.output_dir, '{0}.html'.format(self.file_id))
         write_file(html_file, html)
         self.logger.info('Wrote HTML to {0}'.format(html_file))
 
     def generate_cover_html(self):
+        obs_sn_title = self.obs_sn_manifest['dublin_core']['title']
+        obs_sn_version = self.obs_sn_manifest['dublin_core']['version']
+        obs_sq_title = self.obs_sq_manifest['dublin_core']['title']
         cover_html = '''
 <!DOCTYPE html>
 <html>
@@ -269,20 +278,36 @@ class ObsSnSqConverter(object):
   <link href="style.css" rel="stylesheet"/>
 </head>
 <body>
-  <div style="text-align:center;padding-top:200px" class="break" id="cover">
+  <div class="break" id="cover">
     <img src="logo-obs-sn-sq.png" width="120">
-    <span class="h1">{0}</span>
-    <span class="h3">Version {1}</span>
+    <span class="h1">{0}<br/>&<br/>{1}</span>
+    <span class="h3">Version {2}</span>
   </div>
 </body>
 </html>
-'''.format(self.title, self.version)
+'''.format(obs_sn_title, obs_sq_title, obs_sn_version)
         html_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.file_id))
         write_file(html_file, cover_html)
 
     def generate_license_html(self):
-        license_file = os.path.join(self.obs_sn_dir, 'LICENSE.md')
-        license = markdown2.markdown_path(license_file)
+        obs_sn_license_file = os.path.join(self.obs_sn_dir, 'LICENSE.md')
+        obs_sn_license = markdown2.markdown_path(obs_sn_license_file)
+
+        obs_title = self.obs_manifest['dublin_core']['title']
+        obs_version = self.obs_manifest['dublin_core']['version']
+        obs_publisher = self.obs_manifest['dublin_core']['publisher']
+        obs_issued = self.obs_manifest['dublin_core']['issued']
+
+        obs_sn_title = self.obs_sn_manifest['dublin_core']['title']
+        obs_sn_version = self.obs_sn_manifest['dublin_core']['version']
+        obs_sn_publisher = self.obs_sn_manifest['dublin_core']['publisher']
+        obs_sn_issued = self.obs_sn_manifest['dublin_core']['issued']
+
+        obs_sq_title = self.obs_sq_manifest['dublin_core']['title']
+        obs_sq_version = self.obs_sq_manifest['dublin_core']['version']
+        obs_sq_publisher = self.obs_sq_manifest['dublin_core']['publisher']
+        obs_sq_issued = self.obs_sq_manifest['dublin_core']['issued']
+
         license_html = '''
 <!DOCTYPE html>
 <html>
@@ -294,18 +319,34 @@ class ObsSnSqConverter(object):
   <div class="break">
     <span class="h1">Copyrights & Licensing</span>
     <p>
-      <strong>Date:</strong> {0}<br/>
-      <strong>Version:</strong> {1}<br/>
-      <strong>Published by:</strong> {2}<br/>
+      <string>{0}</strong><br/>
+      <strong>Date:</strong> {1}<br/>
+      <strong>Version:</strong> {2}<br/>
+      <strong>Published by:</strong> {3}<br/>
     </p>
-    {3}
+    <p>
+      <string>{4}</strong><br/>
+      <strong>Date:</strong> {5}<br/>
+      <strong>Version:</strong> {6}<br/>
+      <strong>Published by:</strong> {7}<br/>
+    </p>
+    <p>
+      <string>{8}</strong><br/>      
+      <strong>Date:</strong> {9}<br/>
+      <strong>Version:</strong> {10}<br/>
+      <strong>Published by:</strong> {11}<br/>
+    </p>
+    {12}
   </div>
 </body>
-</html>'''.format(self.issued, self.version, self.publisher, license)
+</html>'''.format(obs_title, obs_issued, obs_version, obs_publisher,
+                  obs_sn_title, obs_sn_issued, obs_sn_version, obs_sn_publisher,
+                  obs_sq_title, obs_sq_issued, obs_sq_version, obs_sq_publisher,
+                  obs_sn_license)
         html_file = os.path.join(self.html_dir, '{0}_license.html'.format(self.file_id))
         write_file(html_file, license_html)
 
-    def generate_obs_sn_pdf(self):
+    def generate_obs_sn_sq_pdf(self):
         cover_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.file_id))
         license_file = os.path.join(self.html_dir, '{0}_license.html'.format(self.file_id))
         header_file = os.path.join(self.my_path, 'header.html')
@@ -353,51 +394,47 @@ class ObsSnSqConverter(object):
         new_text = re.sub(pattern, replace, text)
         return new_text
 
-    def highlight_text_with_frame(self, orig_text, frame_html, cf):
+    def highlight_text_with_phrases(self, orig_text, phrases, cf):
         ignore = []
         highlighted_text = orig_text
-        notes_to_highlight = []
-        soup = BeautifulSoup(frame_html, 'html.parser')
-        headers = soup.find_all('h4')
-        for header in headers:
-            notes_to_highlight.append(header.text)
-        notes_to_highlight.sort(key=len, reverse=True)
-        for note in notes_to_highlight:
-            if self.highlight_text(orig_text, note) != orig_text:
-                if len(note) <= 60:
-                    highlighted_text = self.highlight_text(highlighted_text, note)
-            elif note not in ignore:
+        phrases.sort(key=len, reverse=True)
+        for phrase in phrases:
+            if self.highlight_text(orig_text, phrase) != orig_text:
+                if len(phrase) <= 60:
+                    highlighted_text = self.highlight_text(highlighted_text, phrase)
+            elif phrase not in ignore:
                 if cf not in self.bad_notes:
                     self.bad_notes[cf] = {
                         'text': orig_text,
                         'notes': []
                     }
-                bad_note = {note: None}
-                alt_notes = [
-                    note.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
-                    note.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
-                    note.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
-                    note.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
-                    note.replace('“', '"').replace('”', '"'),
-                    note.replace('"', '”').replace('”', '“', 1),
-                    note.replace("'", '’').replace('’', '‘', 1),
-                    note.replace("'", '’'),
-                    note.replace('’', "'"),
-                    note.replace('‘', "'")]
-                for alt_note in alt_notes:
-                    if orig_text != self.highlight_text(orig_text, alt_note):
-                        bad_note[note] = alt_note
+                bad_note = {phrase: None}
+                alt_phrase = [
+                    phrase.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
+                    phrase.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
+                    phrase.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
+                    phrase.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
+                    phrase.replace('“', '"').replace('”', '"'),
+                    phrase.replace('"', '”').replace('”', '“', 1),
+                    phrase.replace("'", '’').replace('’', '‘', 1),
+                    phrase.replace("'", '’'),
+                    phrase.replace('’', "'"),
+                    phrase.replace('‘', "'")]
+                for alt_phrase in alt_phrase:
+                    if orig_text != self.highlight_text(orig_text, alt_phrase):
+                        bad_note[phrase] = alt_phrase
                         break
                 self.bad_notes[cf]['notes'].append(bad_note)
         return highlighted_text
 
     def generate_obs_sn_sq_content(self):
-        content = '''
-<div id="obs-sn-sq" class="resource-title-page">
-  <h1 class="section-header">{0}</h1>
-</div>
-'''.format(self.title.replace('unfoldingWord® ', ''))
-        for chapter_num in range(0, 51):
+        content = ''
+        intro_file = os.path.join(self.obs_sq_dir, 'content', '00.md')
+        if os.path.isfile(intro_file):
+            intro_id = 'obs-sq-intro'
+            intro_content = markdown2.markdown_path(intro_file)
+            content += '<div id="{0}" class="chapter break">{1}</div>\n\n'.format(intro_id, intro_content)
+        for chapter_num in range(1, 51):
             chapter = str(chapter_num).zfill(2)
             obs_chapter_file = os.path.join(self.obs_dir, 'content', '{0}.md'.format(chapter))
             sn_chapter_dir = os.path.join(self.obs_sn_dir, 'content', chapter)
@@ -424,66 +461,86 @@ class ObsSnSqConverter(object):
                             download_file(src, os.path.join(self.html_dir, basename))
                     else:
                         bible_reference = p.text
-                content += '<div id="obs-{0}" class="chapter break">\n<h2>{1}</h2>\n'.format(chapter, title)
+                content += '<div id="obs-{0}" class="chapter break">\n<h1>{1}</h1>\n'.format(chapter, title)
                 if bible_reference:
                     content += '<p class="bible_reference">{0}</p>'.format(bible_reference)
+                content += '<h2 class="no-break">Study Notes</h2>'
                 for frame_num in range(1, len(frames)):
                     frame = str(frame_num).zfill(2)
-
-                    # HANDLE OBS TEXT
-                    content += ''''
-<div class="obs-{0}-{1}">
-  <img src="html/{2}" width="100%"/>
-  <p class="obs-text">{3}</p>
-</div>'''.format(chapter, frame, images[frame_num], frames[frame_num])
-                    # HANDLE OBS RC LINKS
-                    rc = 'rc://{0}/obs/bible/{1}/{2}'.format(self.lang_code, chapter, frame)
-                    self.resource_data[rc] = {
-                        'rc': rc,
-                        'id': 'obs-{0}-{1}'.format(chapter, frame),
-                        'link': '#obs-{0}-{1}'.format(chapter, frame),
-                        'title': title
-                    }
                     sn_file = os.path.join(sn_chapter_dir, '{0}.md'.format(frame))
                     if os.path.isfile(sn_file):
-                        content += '<div id="obs-sn-{0}-{1}" class="frame">\n'.format(chapter, frame)
-                        content += '<h3>{0}-{1} Study Notes</h3>\n'.format(chapter, frame)
-                        sn_text = re.sub(r'[\n\s]+', ' ', frames[frame_num - 1], flags=re.MULTILINE)
-                        sn_html = markdown2.markdown_path(sn_file)
-                        sn_html = sn_html.replace('h1>', 'h4>')
-                        sn_html = sn_html.replace('h2>', 'h5>')
-                        sn_html = sn_html.replace('h3>', 'h6>')
-                        sn_html = re.sub(r'href="(\d+)/(\d+)"', r'href="#obs-sn-\1-\2"', sn_html)
-                        text = self.highlight_text_with_frame(sn_text, sn_html, '{0}-{1}'.format(chapter, frame))
-                        content += '<p class="obs-sn-text frame-text">\n{1}\n</p>\n'.format(id, text)
-                        content += sn_html
-                        content += '</div>\n\n'
+                        sn_file_html = markdown2.markdown_path(sn_file)
+                        phrases = []
+                        notes = []
+                        for tag in BeautifulSoup(sn_file_html, 'html.parser'):
+                            if unicode(tag).strip():
+                                if tag.name == 'h1':
+                                    phrases.append(tag.text)
+                                else:
+                                    notes.append(tag.text)
+                        frame_text = re.sub(r'[\n\s]+', ' ', frames[frame_num - 1], flags=re.MULTILINE)
+                        obs_text = self.highlight_text_with_phrases(frame_text, phrases, '{0}-{1}'.format(chapter,
+                                                                                                          frame))
+                        obs_sn_notes = ''
+                        for idx, phrase in enumerate(phrases):
+                            obs_sn_notes += '''
+<span class="obs-sn-phrase-and-note">
+    <span class="h3 obs-sn-phrase">{0}</span>
+    <p class="obs-sn-note">{1}</p>
+</span>
+'''.format(phrase, notes[idx])
+                        content += '''
+<div id="obs-sn-{0}-{1}" class="obs-sn-article {5}break">
+  <h3>{0}-{1}</h3>
+  <div class="obs-img-and-text">
+    <img src="html/{2}" class="obs-img"/>
+    <div class="obs-text">
+        {3}
+    </div>
+  </div>
+  <span class="obs-sn-notes">
+    {4}
+  </span>
+</div>
+'''.format(chapter, frame, images[frame_num], obs_text, obs_sn_notes, 'no-' if frame_num == 1 else '')
                         # HANDLE RC LINKS
+                        rc = 'rc://{0}/obs/bible/{1}/{2}'.format(self.lang_code, chapter, frame)
+                        self.resource_data[rc] = {
+                            'rc': rc,
+                            'id': 'obs-sn-{0}-{1}'.format(chapter, frame),
+                            'link': '#obs-sn-{0}-{1}'.format(chapter, frame),
+                            'title': '{0}-{1}'.format(chapter, frame)
+                        }
                         rc = 'rc://{0}/obs-sn/help/{1}/{2}'.format(self.lang_code, chapter, frame)
                         self.resource_data[rc] = {
                             'rc': rc,
                             'id': 'obs-sn-{0}-{1}'.format(chapter, frame),
                             'link': '#obs-sn-{0}-{1}'.format(chapter, frame),
-                            'title': title
+                            'title': '{0}-{1}'.format(chapter, frame)
                         }
                 content += '</div>\n\n'
             if os.path.isfile(sq_chapter_file):
-                id = 'obs-sq-{0}'.format(chapter)
+                obs_sq_id = 'obs-sq-{0}'.format(chapter)
                 soup = BeautifulSoup(markdown2.markdown_path(sq_chapter_file), 'html.parser')
                 title = soup.h1.text
                 for header in soup.find_all(re.compile("h\d")):
                     if header.name == 'h1':
-                        header.name = 'h2'
+                        header.extract()
                     else:
                         header['class'] = header.get('class', []) + ['h{0}'.format(int(header.name[1])+1)]
                         header.name = 'span'
-                content += '<div id="{0}" class="chapter break">{1}</div>\n\n'.format(id, str(soup))
+                content += '''
+<div id="{0}" class="chapter break">
+  <h2>Study Questions</h2>
+  {1}
+</div>
+'''.format(obs_sq_id, unicode(soup))
                 # HANDLE RC LINKS
                 rc = 'rc://{0}/obs-sq/help/{1}'.format(self.lang_code, chapter)
                 self.resource_data[rc] = {
                     'rc': rc,
-                    'id': id,
-                    'link': '#' + id,
+                    'id': obs_sq_id,
+                    'link': '#{0}'.format(obs_sq_id),
                     'title': title
                 }
         self.obs_sn_sq_text = content
@@ -549,8 +606,6 @@ class ObsSnSqConverter(object):
 
     def replace_rc_links(self, text):
         # Change rc://... rc links to proper HTML links based on that links title and link to its article
-        write_file(os.path.join(self.html_dir, '{0}_obs-sn_content_rc1.html'.format(self.file_id)),
-                   BeautifulSoup(text, 'html.parser').prettify())
         if self.lang_code != DEFAULT_LANG:
             text = re.sub('rc://en', 'rc://{0}'.format(self.lang_code), text, flags=re.IGNORECASE)
         joined = '|'.join(map(re.escape, self.resource_data.keys()))
@@ -563,8 +618,9 @@ class ObsSnSqConverter(object):
                    BeautifulSoup(text, 'html.parser').prettify())
         return text
 
-    @staticmethod
-    def fix_links(text):
+    def fix_links(self, text):
+        text = re.sub(r'href="(\d+)/(\d+)"', r'href="#obs-sn-\1-\2"', text)  # fix self refs
+        text = re.sub(r'#(\d+)[:-](\d+)', r'[[rc://{0}/obs/bible/\1/\2]]'.format(self.lang_code), text)  # fix self refs
         # Change [[http.*]] to <a href="http\1">http\1</a>
         text = re.sub(r'\[\[http([^\]]+)\]\]', r'<a href="http\1">http\1</a>', text, flags=re.IGNORECASE)
 
@@ -620,4 +676,3 @@ if __name__ == '__main__':
                         help='Regenerate PDF even if exists')
     args = parser.parse_args(sys.argv[1:])
     main(args.obs_sn, args.obs_sq, args.obs, args.lang_codes, args.working_dir, args.output_dir, args.owner, args.regenerate)
-G
