@@ -231,7 +231,7 @@ class ObsSnSqConverter(object):
         contributors_html = self.get_contributors_html()
         obs_sn_title = self.obs_sn_manifest['dublin_core']['title']
         obs_sn_version = self.obs_sn_manifest['dublin_core']['version']
-        obs_sq_title = self.obs_sn_manifest['dublin_core']['title']
+        obs_sq_title = self.obs_sq_manifest['dublin_core']['title']
         html = '\n'.join([obs_sn_sq_html, contributors_html])
         html = self.fix_links(html)
         html = self.replace_rc_links(html)
