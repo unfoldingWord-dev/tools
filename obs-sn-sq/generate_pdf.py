@@ -135,8 +135,8 @@ class ObsSnSqConverter(object):
         g = git.Git(repo_dir)
         g.checkout(tag)
         if tag == DEFAULT_TAG:
-            _print("NOT PULLING...")
-            # g.pull()
+            # _print("NOT PULLING...")
+            g.pull()
         commit = g.rev_parse('HEAD', short=10)
         self.generation_info[resource] = {'tag': tag, 'commit': commit}
 
