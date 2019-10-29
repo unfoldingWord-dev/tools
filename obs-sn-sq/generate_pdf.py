@@ -618,8 +618,14 @@ class ObsSnSqConverter(object):
         return text
 
     def fix_links(self, text):
+        text = re.sub(r'href="(\d)/(\d+)"', r'href="0\1/\2"', text)  # fix self refs
+        text = re.sub(r'href="(\d+)/(\d)"', r'href="\1/0\2"', text)  # fix self refs
         text = re.sub(r'href="(\d\d)/(\d\d)"', r'href="#obs-sn-\1-\2"', text)  # fix self refs
+
+        text = re.sub(r'#(\d)[:-](\d+)', r'#0\1-\2', text)  # fix self refs
+        text = re.sub(r'#(\d+)[:-](\d)', r'#\1-0\2', text)  # fix self refs
         text = re.sub(r'#(\d\d)[:-](\d\d)', r'[[rc://{0}/obs/bible/\1/\2]]'.format(self.lang_code), text)  # fix self refs
+
         # Change [[http.*]] to <a href="http\1">http\1</a>
         text = re.sub(r'\[\[http([^\]]+)\]\]', r'<a href="http\1">http\1</a>', text, flags=re.IGNORECASE)
 
