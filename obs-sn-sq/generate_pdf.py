@@ -465,9 +465,11 @@ class ObsSnSqConverter(object):
                 if bible_reference:
                     content += '<p class="bible_reference">{0}</p>'.format(bible_reference)
                 content += '<h2 class="no-break">Study Notes</h2>'
-                for frame_num in range(1, len(frames)):
-                    frame = str(frame_num).zfill(2)
+                for frame_idx in range(0, len(frames)):
+                    frame = str(frame_idx+1).zfill(2)
                     sn_file = os.path.join(sn_chapter_dir, '{0}.md'.format(frame))
+                    obs_text = re.sub(r'[\n\s]+', ' ', frames[frame_idx], flags=re.MULTILINE)
+                    obs_sn_notes = ''
                     if os.path.isfile(sn_file):
                         sn_file_html = markdown2.markdown_path(sn_file)
                         phrases = []
@@ -478,10 +480,7 @@ class ObsSnSqConverter(object):
                                     phrases.append(tag.text)
                                 else:
                                     notes.append(tag.text)
-                        frame_text = re.sub(r'[\n\s]+', ' ', frames[frame_num - 1], flags=re.MULTILINE)
-                        obs_text = self.highlight_text_with_phrases(frame_text, phrases, '{0}-{1}'.format(chapter,
-                                                                                                          frame))
-                        obs_sn_notes = ''
+                        obs_text = self.highlight_text_with_phrases(obs_text, phrases, '{0}-{1}'.format(chapter, frame))
                         for idx, phrase in enumerate(phrases):
                             obs_sn_notes += '''
 <span class="obs-sn-phrase-and-note">
@@ -489,7 +488,9 @@ class ObsSnSqConverter(object):
     <p class="obs-sn-note">{1}</p>
 </span>
 '''.format(phrase, notes[idx])
-                        content += '''
+                    else:
+                        obs_sn_notes = '<p class="obs-sn_note"><em>(No study notes for this frame)</em></p>'
+                    content += '''
 <div id="obs-sn-{0}-{1}" class="obs-sn-article {5}break">
   <h3>{0}-{1}</h3>
   <div class="obs-img-and-text">
@@ -502,22 +503,22 @@ class ObsSnSqConverter(object):
     {4}
   </span>
 </div>
-'''.format(chapter, frame, images[frame_num], obs_text, obs_sn_notes, 'no-' if frame_num == 1 else '')
-                        # HANDLE RC LINKS
-                        rc = 'rc://{0}/obs/bible/{1}/{2}'.format(self.lang_code, chapter, frame)
-                        self.resource_data[rc] = {
-                            'rc': rc,
-                            'id': 'obs-sn-{0}-{1}'.format(chapter, frame),
-                            'link': '#obs-sn-{0}-{1}'.format(chapter, frame),
-                            'title': '{0}-{1}'.format(chapter, frame)
-                        }
-                        rc = 'rc://{0}/obs-sn/help/{1}/{2}'.format(self.lang_code, chapter, frame)
-                        self.resource_data[rc] = {
-                            'rc': rc,
-                            'id': 'obs-sn-{0}-{1}'.format(chapter, frame),
-                            'link': '#obs-sn-{0}-{1}'.format(chapter, frame),
-                            'title': '{0}-{1}'.format(chapter, frame)
-                        }
+'''.format(chapter, frame, images[frame_idx], obs_text, obs_sn_notes, 'no-' if frame_idx == 0 else '')
+                    # HANDLE RC LINKS
+                    rc = 'rc://{0}/obs/bible/{1}/{2}'.format(self.lang_code, chapter, frame)
+                    self.resource_data[rc] = {
+                        'rc': rc,
+                        'id': 'obs-sn-{0}-{1}'.format(chapter, frame),
+                        'link': '#obs-sn-{0}-{1}'.format(chapter, frame),
+                         'title': '{0}-{1}'.format(chapter, frame)
+                    }
+                    rc = 'rc://{0}/obs-sn/help/{1}/{2}'.format(self.lang_code, chapter, frame)
+                    self.resource_data[rc] = {
+                        'rc': rc,
+                        'id': 'obs-sn-{0}-{1}'.format(chapter, frame),
+                        'link': '#obs-sn-{0}-{1}'.format(chapter, frame),
+                        'title': '{0}-{1}'.format(chapter, frame)
+                    }
                 content += '</div>\n\n'
             if os.path.isfile(sq_chapter_file):
                 obs_sq_id = 'obs-sq-{0}'.format(chapter)
