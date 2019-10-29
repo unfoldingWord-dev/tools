@@ -1,9 +1,0 @@
-pyparsing
-git+git://github.com/unfoldingWord-dev/uw_tools.git#egg=uw_tools
-git+git://github.com/unfoldingWord-dev/USFM-Tools.git#egg=usfm_tools
-gogs-client
-PyYAML
-markdown
-markdown2
-bs4
-gitpython

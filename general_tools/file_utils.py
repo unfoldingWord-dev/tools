@@ -97,7 +97,7 @@ def load_yaml_object(file_name, default=None):
     if not os.path.isfile(file_name):
         return default
     # return a deserialized object
-    return yaml.load(read_file(file_name))
+    return yaml.load(read_file(file_name), Loader=yaml.FullLoader)
 
 
 def read_file(file_name, encoding='utf-8'):

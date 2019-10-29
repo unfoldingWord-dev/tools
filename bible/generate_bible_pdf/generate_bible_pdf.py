@@ -100,7 +100,7 @@ class BibleConverter(object):
         self.resource = self.manifest['dublin_core']
         self.title = self.resource['title']
         self.version = self.resource['version']
-        self.contributors = '; '.join(self.resource['contributor'])
+        self.contributors = '<br/>'.join(self.resource['contributor'])
         self.publisher = self.resource['publisher']
         self.issued =  dateutil.parser.parse(self.resource['issued']).strftime('%Y-%m-%d')
         projects = self.manifest['projects']

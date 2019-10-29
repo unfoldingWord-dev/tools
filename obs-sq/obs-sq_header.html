@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <link href="obs-sq_style.css" rel="stylesheet"/>
+        <script>
+            var omitSectionCombos = [
+                ['OBS Study Questions', ''],
+                ['Table of Contents'],
+                ['Contributors'],
+                ['OBS Study Questions - French', ''],
+            ];
+            function subst() {
+                var vars = {};
+                var query_strings_from_url = document.location.search.substring(1).split('&');
+                for (var query_string in query_strings_from_url) {
+                    if (query_strings_from_url.hasOwnProperty(query_string)) {
+                        var temp_var = query_strings_from_url[query_string].split('=', 2);
+                        vars[temp_var[0]] = decodeURI(temp_var[1]);
+                    }
+                }
+                for (var i in omitSectionCombos) {
+                    var sections = omitSectionCombos[i];
+                    if (vars['section'] === sections[0]) {
+                        if (sections.length < 2 || sections[1] === vars['subsection']) {
+                            if (sections.length < 3 || sections[2] === vars['subsubsection'])
+                                document.getElementsByClassName("page-header")[0].className += 'empty';
+                            return;
+                        }
+                    }
+                }
+                var css_selector_classes = ['page', 'frompage', 'topage', 'webpage', 'section', 'subsection', 'date', 'isodate', 'time', 'title', 'doctitle', 'sitepage', 'sitepages'];
+                for (var css_class in css_selector_classes) {
+                    if (css_selector_classes.hasOwnProperty(css_class)) {
+                        var element = document.getElementsByClassName(css_selector_classes[css_class]);
+                        for (var j = 0; j < element.length; ++j) {
+                            element[j].textContent = vars[css_selector_classes[css_class]];
+                        }
+                    }
+                }
+            }
+        </script>
+    </head>
+    <body style="border:0; margin: 0;" onload="subst()">
+        <table class="page-header">
+            <tr>
+                <td class="section"></td>
+                <td class="subsection"></td>
+                <td class="subsubsection"></td>
+            </tr>
+        </table>
+    </body>
+</html>

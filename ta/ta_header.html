@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <script src="https://code.jquery.com/jquery-3.2.1.js"></script>
+    <link href="ta_style.css" rel="stylesheet"/>
+    <title>header</title>
+    <script>
+        var noHeaderPageNums = ["3"];
+
+        function subst() {
+            var vars = {};
+            var valuePairs = document.location.search.substring(1).split("&");
+            for (var i in valuePairs) {
+                var valuePair = valuePairs[i].split("=", 2);
+                vars[valuePair[0]] = decodeURIComponent(valuePair[1]);
+            }
+            if (noHeaderPageNums.indexOf(vars['page']) < 0) {
+                var replaceClasses = ["frompage", "topage", "page", "webpage", "section", "subsection", "subsubsection"];
+                for (var i in replaceClasses) {
+                    var hits = document.getElementsByClassName(replaceClasses[i]);
+                    for (var j = 0; j < hits.length; j++) {
+                        hits[j].textContent = vars[replaceClasses[i]];
+                    }
+                }
+            } else {
+                document.getElementsByClassName("page-header")[0].style.display = "none";
+                document.getElementsByTagName("body")[0].style.display = "none";
+            }
+        }
+    </script>
+</head>
+<body style="border:0; margin: 0px;" onload="subst()">
+<table class="page-header"><tr><td class="section"></td><td class="subsection"></td><td class="subsubsection"></td></tr></table>
+</body>
+</html>
