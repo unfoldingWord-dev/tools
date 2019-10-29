@@ -98,7 +98,7 @@ class ObsSqConverter(object):
         self.publisher = self.manifest['dublin_core']['publisher']
         self.issued = self.manifest['dublin_core']['issued']
         self.file_id = self.file_id
-        self.logger.info('Creating OBS tN HTML files for {0}...'.format(self.file_id))
+        self.logger.info('Creating OBS SQ HTML files for {0}...'.format(self.file_id))
         if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.html'.format(self.file_id))):
             self.generate_obs_sq_content()
             self.logger.info('Generating Body HTML for {0}...'.format(self.file_id))
@@ -506,7 +506,7 @@ class ObsSqConverter(object):
         pattern = r'(\[\[|\(|["\']| |>|)\b(' + joined + r')\b(\]\]|\)|["\']|<|)(?!\]\)")'
 
         text = re.sub(pattern, self.replace, text, flags=re.IGNORECASE)
-        # Remove other scripture reference not in this tN
+        # Remove other scripture reference not in this SQ
         text = re.sub(r'<a[^>]+rc://[^>]+>([^>]+)</a>', r'\1', text, flags=re.IGNORECASE | re.MULTILINE)
         write_file(os.path.join(self.html_dir, '{0}_obs-sq_content_rc2.html'.format(self.file_id)),
                    BeautifulSoup(text, 'html.parser').prettify())
@@ -562,7 +562,7 @@ if __name__ == '__main__':
     parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help='Working Directory')
     parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False, help='Output Directory')
     parser.add_argument('--owner', dest='owner', default=DEFAULT_OWNER, required=False, help='Owner')
-    parser.add_argument('--obs-sq-tag', dest='obs_sq', default=DEFAULT_TAG, required=False, help='OBS tN Tag')
+    parser.add_argument('--obs-sq-tag', dest='obs_sq', default=DEFAULT_TAG, required=False, help='OBS SQ Tag')
     parser.add_argument('-r', '--regenerate', dest='regenerate', action='store_true',
                         help='Regenerate PDF even if exists')
     args = parser.parse_args(sys.argv[1:])

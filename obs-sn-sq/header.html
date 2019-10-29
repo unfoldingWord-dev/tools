@@ -2,15 +2,13 @@
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-        <link href="ta_style.css" rel="stylesheet"/>
+        <link href="style.css" rel="stylesheet"/>
         <script>
             var omitSectionCombos = [
-                ['Introduction to translationAcademy', ''],
-                ['Process Manual', 'Finding Answers'],
-                ['Translation Manual', '6. Distributing'],
-                ['Checking Manual', 'Just-in-Time Learning Modules'],
+                ['Open Bible Stories Study Notes', ''],
                 ['Table of Contents'],
                 ['Contributors'],
+                ['OBS Study Notes - French', ''],
             ];
             function subst() {
                 var vars = {};
@@ -31,8 +29,7 @@
                         }
                     }
                 }
-                var css_selector_classes = ['page', 'frompage', 'topage', 'webpage', 'section', 'subsection',
-                    'subsubsection', 'date', 'isodate', 'time', 'title', 'doctitle', 'sitepage', 'sitepages'];
+                var css_selector_classes = ['page', 'frompage', 'topage', 'webpage', 'section', 'subsection', 'date', 'isodate', 'time', 'title', 'doctitle', 'sitepage', 'sitepages'];
                 for (var css_class in css_selector_classes) {
                     if (css_selector_classes.hasOwnProperty(css_class)) {
                         var element = document.getElementsByClassName(css_selector_classes[css_class]);
@@ -41,8 +38,6 @@
                         }
                     }
                 }
-
-                checkCookie();
             }
         </script>
     </head>
@@ -51,6 +46,7 @@
             <tr>
                 <td class="section"></td>
                 <td class="subsection"></td>
+                <td class="subsubsection"></td>
             </tr>
         </table>
     </body>

@@ -66,7 +66,6 @@ class TaProcessor:
         self.section_container_id = 1
         self.titles = {}
         self.bad_links = {}
-        self.toc_html = ''
 
     def run(self):
         for idx, project in enumerate(self.rc.projects):
@@ -131,14 +130,13 @@ class TaProcessor:
             link = 'section-container-{0}'.format(self.section_container_id)
             self.section_container_id = self.section_container_id + 1
         title = self.get_title(project, link, section['title'])
-        markdown = '<h{0} class="hidden"><a id="{1}"/>{2}</h{0}><span class="h{0}">{3}</span>\n\n'.\
-            format(level, link, section['title'], title)
+        markdown = markdown = '{0} <a id="{1}"/>{2}\n\n'.format('#' * level, link, title)
         if 'link' in section:
             top_box = ""
             bottom_box = ""
             question = self.get_question(project, link)
             if question:
-                top_box += 'This page answers the question:\n\n*{0}*\n\n'.format(question)
+                top_box += 'This page answers the question: *{0}*\n\n'.format(question)
             config = project.config()
             if link in config:
                 if 'dependencies' in config[link] and config[link]['dependencies']:
@@ -197,7 +195,6 @@ class TaProcessor:
             else:
                 title = '{0} Manual'.format(project.identifier.title())
             markdown = '# {0}\n\n'.format(title)
-            self.toc_html += '<a id="{0}">{1}</a>\n'.format(project.identifier, title)
             for section in toc['sections']:
                 markdown += self.compile_section(project, section, 2)
             markdown = self.fix_links(markdown)
@@ -288,7 +285,7 @@ class TaConverter(object):
         self.manifest = load_yaml_object(os.path.join(self.ta_dir, 'manifest.yaml'))
         self.version = self.manifest['dublin_core']['version']
         self.title = self.manifest['dublin_core']['title']
-        self.contributors = '<br/>'.join(self.manifest['dublin_core']['contributor'])
+        self.contributors = '; '.join(self.manifest['dublin_core']['contributor'])
         self.publisher = self.manifest['dublin_core']['publisher']
         self.issued = self.manifest['dublin_core']['issued']
         self.file_id = self.file_id
