@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 # -*- coding: utf8 -*-
 #
 #  Copyright (c) 2019 unfoldingWord
@@ -25,7 +25,6 @@ import json
 import git
 from glob import glob
 from bs4 import BeautifulSoup
-from weasyprint import HTML
 from ..general_tools.file_utils import write_file, read_file, load_json_object, unzip, load_yaml_object
 
 _print = print
@@ -272,7 +271,7 @@ class ObsSqConverter(object):
 
         soup.head.append(soup.new_tag('link', href="html/obs-sq_style.css", rel="stylesheet"))
 
-        html = str(soup)
+        html = unicode(soup)
         html_file = os.path.join(self.output_dir, '{0}.html'.format(self.file_id))
         write_file(html_file, html)
         self.logger.info('Wrote HTML to {0}'.format(html_file))
@@ -426,7 +425,7 @@ class ObsSqConverter(object):
                     else:
                         header['class'] = header.get('class', []) + ['h{0}'.format(int(header.name[1])+1)]
                         header.name = 'span'
-                content += '<div id="{0}" class="chapter break">{1}</div>\n\n'.format(id, str(soup))
+                content += '<div id="{0}" class="chapter break">{1}</div>\n\n'.format(id, unicode(soup))
                 # HANDLE RC LINKS
                 rc = 'rc://{0}/obs-sq/help/{1}'.format(self.lang_code, chapter)
                 self.resource_data[rc] = {
@@ -498,8 +497,6 @@ class ObsSqConverter(object):
 
     def replace_rc_links(self, text):
         # Change rc://... rc links to proper HTML links based on that links title and link to its article
-        write_file(os.path.join(self.html_dir, '{0}_obs-sq_content_rc1.html'.format(self.file_id)),
-                   BeautifulSoup(text, 'html.parser').prettify())
         if self.lang_code != DEFAULT_LANG:
             text = re.sub('rc://en', 'rc://{0}'.format(self.lang_code), text, flags=re.IGNORECASE)
         joined = '|'.join(map(re.escape, self.resource_data.keys()))
@@ -508,8 +505,6 @@ class ObsSqConverter(object):
         text = re.sub(pattern, self.replace, text, flags=re.IGNORECASE)
         # Remove other scripture reference not in this SQ
         text = re.sub(r'<a[^>]+rc://[^>]+>([^>]+)</a>', r'\1', text, flags=re.IGNORECASE | re.MULTILINE)
-        write_file(os.path.join(self.html_dir, '{0}_obs-sq_content_rc2.html'.format(self.file_id)),
-                   BeautifulSoup(text, 'html.parser').prettify())
         return text
 
     @staticmethod

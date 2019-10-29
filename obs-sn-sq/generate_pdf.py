@@ -614,8 +614,6 @@ class ObsSnSqConverter(object):
         text = re.sub(pattern, self.replace, text, flags=re.IGNORECASE)
         # Remove other scripture reference not in this tN
         text = re.sub(r'<a[^>]+rc://[^>]+>([^>]+)</a>', r'\1', text, flags=re.IGNORECASE | re.MULTILINE)
-        write_file(os.path.join(self.html_dir, '{0}_obs-sn_content_rc2.html'.format(self.file_id)),
-                   BeautifulSoup(text, 'html.parser').prettify())
         return text
 
     def fix_links(self, text):
