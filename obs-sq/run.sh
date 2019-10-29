@@ -9,4 +9,4 @@
 #  Richard Mahn <richard_mahn@wyciffeassociates.org>
 
 cd $(dirname "$0")/../..
-python3 -m tools.obs-sq.generate_obs-sq_pdf $@
+python -m tools.obs-sq.generate_obs-sq_pdf $@

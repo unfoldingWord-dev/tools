@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 # -*- coding: utf8 -*-
 #
 #  Copyright (c) 2019 unfoldingWord
@@ -25,7 +25,6 @@ import json
 import git
 from glob import glob
 from bs4 import BeautifulSoup
-from weasyprint import HTML
 from ..general_tools.file_utils import write_file, read_file, load_json_object, unzip, load_yaml_object
 
 _print = print
@@ -272,7 +271,7 @@ class ObsSqConverter(object):
 
         soup.head.append(soup.new_tag('link', href="html/obs-sq_style.css", rel="stylesheet"))
 
-        html = str(soup)
+        html = unicode(soup)
         html_file = os.path.join(self.output_dir, '{0}.html'.format(self.file_id))
         write_file(html_file, html)
         self.logger.info('Wrote HTML to {0}'.format(html_file))
@@ -426,7 +425,7 @@ class ObsSqConverter(object):
                     else:
                         header['class'] = header.get('class', []) + ['h{0}'.format(int(header.name[1])+1)]
                         header.name = 'span'
-                content += '<div id="{0}" class="chapter break">{1}</div>\n\n'.format(id, str(soup))
+                content += '<div id="{0}" class="chapter break">{1}</div>\n\n'.format(id, unicode(soup))
                 # HANDLE RC LINKS
                 rc = 'rc://{0}/obs-sq/help/{1}'.format(self.lang_code, chapter)
                 self.resource_data[rc] = {
