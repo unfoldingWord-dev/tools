@@ -135,8 +135,8 @@ class ObsSnSqConverter(object):
         g = git.Git(repo_dir)
         g.checkout(tag)
         if tag == DEFAULT_TAG:
-            # _print("NOT PULLING...")
-            g.pull()
+            _print("NOT PULLING...")
+            # g.pull()
         commit = g.rev_parse('HEAD', short=10)
         self.generation_info[resource] = {'tag': tag, 'commit': commit}
 
@@ -467,27 +467,19 @@ class ObsSnSqConverter(object):
                 content += '<h2 class="no-break">Study Notes</h2>'
                 for frame_idx in range(0, len(frames)):
                     frame = str(frame_idx+1).zfill(2)
-                    sn_file = os.path.join(sn_chapter_dir, '{0}.md'.format(frame))
+                    obs_sn_file = os.path.join(sn_chapter_dir, '{0}.md'.format(frame))
                     obs_text = re.sub(r'[\n\s]+', ' ', frames[frame_idx], flags=re.MULTILINE)
                     obs_sn_notes = ''
-                    if os.path.isfile(sn_file):
-                        sn_file_html = markdown2.markdown_path(sn_file)
+                    if os.path.isfile(obs_sn_file):
+                        obs_sn_notes = markdown2.markdown_path(obs_sn_file)
                         phrases = []
-                        notes = []
-                        for tag in BeautifulSoup(sn_file_html, 'html.parser'):
-                            if unicode(tag).strip():
-                                if tag.name == 'h1':
-                                    phrases.append(tag.text)
-                                else:
-                                    notes.append(tag.text)
+                        soup = BeautifulSoup(obs_sn_notes, 'html.parser')
+                        for header in soup.find_all('h1'):
+                            phrases.append(header.text)
+                            header['class'] = header.get('class', []) + ['h4']
+                            header.name = 'span'
                         obs_text = self.highlight_text_with_phrases(obs_text, phrases, '{0}-{1}'.format(chapter, frame))
-                        for idx, phrase in enumerate(phrases):
-                            obs_sn_notes += '''
-<span class="obs-sn-phrase-and-note">
-    <span class="h3 obs-sn-phrase">{0}</span>
-    <p class="obs-sn-note">{1}</p>
-</span>
-'''.format(phrase, notes[idx])
+                        obs_sn_notes = unicode(soup)
                     else:
                         obs_sn_notes = '<p class="obs-sn_note"><em>(No study notes for this frame)</em></p>'
                     content += '''
