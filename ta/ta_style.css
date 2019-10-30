@@ -2,7 +2,7 @@
 
 body {
     font-family: 'Noto Serif', sans-serif;
-    font-size: 10pt;
+    font-size: 12pt;
 }
 
 h1, h2, h3, h4, h5, h6,
@@ -90,21 +90,9 @@ table td {
     padding: 6px 13px !important;
 }
 
-a {
+a, a:link, a:visited, a.internal, a.external {
     text-decoration: none;
-    color: #f47142;
-}
-a:link {
-    color: #f47142;
-}
-a:visited {
-    color: #f47142;
-}
-a.internal {
-    color: #f47142 !important;
-}
-a.external {
-    color: #f47142 !important;
+    color: #4183c4 !important;
 }
 
 .docs-bubble-link, .docs-bubble a {
@@ -313,8 +301,8 @@ table.tn-notes-table {
 .bottom-box {
     font-size: 1em;
     clear: both;
-    margin: 0 auto;
-    display: table;
+    display: block;
+    float: left;
     padding-left: 20px;
     padding-right: 20px;
     white-space: nowrap;
