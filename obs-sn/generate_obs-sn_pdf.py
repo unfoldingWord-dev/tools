@@ -88,7 +88,6 @@ class ObsSnConverter(object):
         self.html_soup = BeautifulSoup(read_file(os.path.join(self.my_path, 'template.html')), 'html.parser')
 
     def run(self):
-        # self.load_resource_data()
         self.setup_resource_files()
         self.file_id = '{0}_obs-sn_{1}_{2}'.format(self.lang_code, self.obs_sn_tag, self.generation_info['obs-sn']['commit'])
         self.determine_if_regeneration_needed()
@@ -225,29 +224,12 @@ class ObsSnConverter(object):
         else:
             return {}
 
-    def load_resource_data(self):
-        save_dir = os.path.join(self.output_dir, 'save')
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-
-        save_file = os.path.join(save_dir, '{0}_resource_data.json'.format(self.file_id))
-        if os.path.isfile(save_file):
-            self.resource_data = load_json_object(save_file)
-
-        save_file = os.path.join(save_dir, '{0}_references.json'.format(self.file_id))
-        if os.path.isfile(save_file):
-            self.rc_references = load_json_object(save_file)
-
-        save_file = os.path.join(save_dir, '{0}_bad_links.json'.format(self.file_id))
-        if os.path.isfile(save_file):
-            self.bad_links = load_json_object(save_file)
-
     def generate_body_html(self):
         obs_sn_html = self.obs_sn_text
         contributors_html = self.get_contributors_html()
         html = '\n'.join([obs_sn_html, contributors_html])
-        html = self.replace_rc_links(html)
         html = self.fix_links(html)
+        html = self.replace_rc_links(html)
         html = '''<!DOCTYPE html>
 <html lang="en-US">
   <head data-suburl="">
@@ -468,21 +450,6 @@ class ObsSnConverter(object):
         write_file(os.path.join(self.html_dir, '{0}_obs-sn_content.html'.format(self.file_id)),
                    BeautifulSoup(content, 'html.parser').prettify())
 
-    def get_reference_text(self, rc):
-        uses = ''
-        references = []
-        done = {}
-        for reference in self.rc_references[rc]:
-            if '/obs-sn/' in reference and reference not in done:
-                parts = reference[5:].split('/')
-                id = 'obs-sn-{0}-{1}'.format(parts[3], parts[4])
-                text = '{0}-{1}'.format(parts[3], parts[4])
-                references.append('<a href="#{0}">{1}</a>'.format(id, text))
-                done[reference] = True
-        if len(references):
-            uses = '<p>\n(<b>Go back to:</b> {0})\n</p>\n'.format('; '.join(references))
-        return uses
-
     @staticmethod
     def increase_headers(text, increase_depth=1):
         if text:
@@ -537,8 +504,21 @@ class ObsSnConverter(object):
         text = re.sub(r'<a[^>]+rc://[^>]+>([^>]+)</a>', r'\1', text, flags=re.IGNORECASE | re.MULTILINE)
         return text
 
-    @staticmethod
-    def fix_links(text):
+    def fix_links(self, text):
+        # Changes references to chapter/frame in links
+        # <a href="1/10">Text</a> => <a href="rc://obs-sn/help/obs/01/10">Text</a>
+        # <a href="10-1">Text</a> => <a href="rc://obs-sn/help/obs/10/01">Text</a>
+        text = re.sub(r'href="(\d)/(\d+)"', r'href="0\1/\2"', text)  # fix self refs
+        text = re.sub(r'href="(\d+)/(\d)"', r'href="\1/0\2"', text)  # fix self refs
+        text = re.sub(r'href="(\d\d)/(\d\d)"', r'href="rc://{0}/obs-sn/help/obs/\1/\2"'.format(self.lang_code), text)
+
+        # Changes references to chapter/frame that are just chapter/frame prefixed with a #
+        # #1:10 => [[rc://obs-sn/help/obs/01/10]]
+        # #10/1 => [[rc://obs-sn/help/obs/10/01]]
+        text = re.sub(r'#(\d)[:/-](\d+)', r'#0\1-\2', text)  # fix self refs
+        text = re.sub(r'#(\d+)[:/-](\d)\b', r'#\1-0\2', text)  # fix self refs
+        text = re.sub(r'#(\d\d)[:/-](\d\d)', r'[[rc://{0}/obs/book/obs/\1/\2]]'.format(self.lang_code), text)
+
         # Change [[http.*]] to <a href="http\1">http\1</a>
         text = re.sub(r'\[\[http([^\]]+)\]\]', r'<a href="http\1">http\1</a>', text, flags=re.IGNORECASE)
 

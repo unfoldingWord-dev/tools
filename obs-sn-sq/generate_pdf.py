@@ -80,7 +80,6 @@ class ObsSnSqConverter(object):
         self.title = 'unfoldingWord® Open Bible Stories Study Notes'
 
     def run(self):
-        # self.load_resource_data()
         self.setup_resource_files()
         self.file_id = '{0}_obs-sn-sq_{1}_{2}'.format(self.lang_code, self.obs_sn_tag, self.generation_info['obs-sn']['commit'])
         self.determine_if_regeneration_needed()
@@ -101,10 +100,27 @@ class ObsSnSqConverter(object):
         style_file = os.path.join(self.my_path, 'style.css')
         shutil.copy2(style_file, self.html_dir)
         self.save_resource_data()
-        # self.save_bad_notes()
+        self.save_bad_notes()
         self.logger.info('Generating PDF {0}/{1}.pdf...'.format(self.output_dir, self.file_id))
         self.generate_obs_sn_sq_pdf()
         self.logger.info('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.file_id))
+
+    def save_bad_notes(self):
+        bad_notes = '<!DOCTYPE html><html lang="en-US"><head data-suburl=""><title>NON-MATCHING NOTES</title><meta charset="utf-8"></head><body><p>NON-MATCHING NOTES (i.e. not found in the frame text as written):</p><ul>'
+        for cf in sorted(self.bad_notes.keys()):
+            bad_notes += '<li><a href="html/{0}.html#obs-sn-{1}" title="See in the OBS SN Docs (HTML)" target="obs-sn-html">{1}</a><a href="https://git.door43.org/{6}/{2}_obs-sn/src/branch/{7}/content/{3}/{4}.md" style="text-decoration:none" target="obs-sn-git"><img src="http://www.myiconfinder.com/uploads/iconsets/16-16-65222a067a7152473c9cc51c05b85695-note.png" title="See OBS UTN note on DCS"></a><a href="https://git.door43.org/{6}/{2}_obs/src/branch/master/content/{3}.md" style="text-decoration:none" target="obs-git"><img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-16.png" title="See OBS story on DCS"></a>:<br/><i>{5}</i><br/><ul>'.format(
+                self.file_id, cf, self.lang_code, cf.split('-')[0], cf.split('-')[1], self.bad_notes[cf]['text'], self.owner, DEFAULT_TAG)
+            for note in self.bad_notes[cf]['notes']:
+                for key in note.keys():
+                    if note[key]:
+                        bad_notes += '<li><b><i>{0}</i></b><br/>{1} (QUOTE ISSUE)</li>'.format(key, note[key])
+                    else:
+                        bad_notes += '<li><b><i>{0}</i></b></li>'.format(key)
+            bad_notes += '</ul></li>'
+        bad_notes += "</u></body></html>"
+        save_file = os.path.join(self.output_dir, '{0}_bad_notes.html'.format(self.file_id))
+        write_file(save_file, bad_notes)
+        self.logger.info('BAD NOTES file can be found at {0}'.format(save_file))
 
     @staticmethod
     def get_resource_git_url(resource, lang, owner):
@@ -208,23 +224,6 @@ class ObsSnSqConverter(object):
             return load_json_object(save_file)
         else:
             return {}
-
-    def load_resource_data(self):
-        save_dir = os.path.join(self.output_dir, 'save')
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-
-        save_file = os.path.join(save_dir, '{0}_resource_data.json'.format(self.file_id))
-        if os.path.isfile(save_file):
-            self.resource_data = load_json_object(save_file)
-
-        save_file = os.path.join(save_dir, '{0}_references.json'.format(self.file_id))
-        if os.path.isfile(save_file):
-            self.rc_references = load_json_object(save_file)
-
-        save_file = os.path.join(save_dir, '{0}_bad_links.json'.format(self.file_id))
-        if os.path.isfile(save_file):
-            self.bad_links = load_json_object(save_file)
 
     def generate_body_html(self):
         obs_sn_sq_html = self.obs_sn_sq_text
@@ -497,14 +496,14 @@ class ObsSnSqConverter(object):
 </div>
 '''.format(chapter, frame, images[frame_idx], obs_text, obs_sn_notes, 'no-' if frame_idx == 0 else '')
                     # HANDLE RC LINKS
-                    rc = 'rc://{0}/obs/bible/{1}/{2}'.format(self.lang_code, chapter, frame)
+                    rc = 'rc://{0}/obs/book/obs/{1}/{2}'.format(self.lang_code, chapter, frame)
                     self.resource_data[rc] = {
                         'rc': rc,
                         'id': 'obs-sn-{0}-{1}'.format(chapter, frame),
                         'link': '#obs-sn-{0}-{1}'.format(chapter, frame),
                          'title': '{0}-{1}'.format(chapter, frame)
                     }
-                    rc = 'rc://{0}/obs-sn/help/{1}/{2}'.format(self.lang_code, chapter, frame)
+                    rc = 'rc://{0}/obs-sn/help/obs/{1}/{2}'.format(self.lang_code, chapter, frame)
                     self.resource_data[rc] = {
                         'rc': rc,
                         'id': 'obs-sn-{0}-{1}'.format(chapter, frame),
@@ -529,7 +528,7 @@ class ObsSnSqConverter(object):
 </div>
 '''.format(obs_sq_id, unicode(soup))
                 # HANDLE RC LINKS
-                rc = 'rc://{0}/obs-sq/help/{1}'.format(self.lang_code, chapter)
+                rc = 'rc://{0}/obs-sq/help/obs/{1}'.format(self.lang_code, chapter)
                 self.resource_data[rc] = {
                     'rc': rc,
                     'id': obs_sq_id,
@@ -539,21 +538,6 @@ class ObsSnSqConverter(object):
         self.obs_sn_sq_text = content
         write_file(os.path.join(self.html_dir, '{0}_obs-sn-sq_content.html'.format(self.file_id)),
                    content)
-
-    def get_reference_text(self, rc):
-        uses = ''
-        references = []
-        done = {}
-        for reference in self.rc_references[rc]:
-            if '/obs-sn/' in reference and reference not in done:
-                parts = reference[5:].split('/')
-                id = 'obs-sn-{0}-{1}'.format(parts[3], parts[4])
-                text = '{0}-{1}'.format(parts[3], parts[4])
-                references.append('<a href="#{0}">{1}</a>'.format(id, text))
-                done[reference] = True
-        if len(references):
-            uses = '<p>\n(<b>Go back to:</b> {0})\n</p>\n'.format('; '.join(references))
-        return uses
 
     @staticmethod
     def increase_headers(text, increase_depth=1):
@@ -610,13 +594,19 @@ class ObsSnSqConverter(object):
         return text
 
     def fix_links(self, text):
+        # Changes references to chapter/frame in links
+        # <a href="1/10">Text</a> => <a href="rc://obs-sn/help/obs/01/10">Text</a>
+        # <a href="10-1">Text</a> => <a href="rc://obs-sn/help/obs/10/01">Text</a>
         text = re.sub(r'href="(\d)/(\d+)"', r'href="0\1/\2"', text)  # fix self refs
         text = re.sub(r'href="(\d+)/(\d)"', r'href="\1/0\2"', text)  # fix self refs
-        text = re.sub(r'href="(\d\d)/(\d\d)"', r'href="#obs-sn-\1-\2"', text)  # fix self refs
+        text = re.sub(r'href="(\d\d)/(\d\d)"', r'href="rc://{0}/obs-sn/help/obs/\1/\2"'.format(self.lang_code), text)
 
+        # Changes references to chapter/frame that are just chapter/frame prefixed with a #
+        # #1:10 => [[rc://obs-sn/help/obs/01/10]]
+        # #10/1 => [[rc://obs-sn/help/obs/10/01]]
         text = re.sub(r'#(\d)[:/-](\d+)', r'#0\1-\2', text)  # fix self refs
         text = re.sub(r'#(\d+)[:/-](\d)\b', r'#\1-0\2', text)  # fix self refs
-        text = re.sub(r'#(\d\d)[:/-](\d\d)', r'[[rc://{0}/obs/bible/\1/\2]]'.format(self.lang_code), text)  # fix self refs
+        text = re.sub(r'#(\d\d)[:/-](\d\d)', r'[[rc://{0}/obs/book/obs/\1/\2]]'.format(self.lang_code), text)
 
         # Change [[http.*]] to <a href="http\1">http\1</a>
         text = re.sub(r'\[\[http([^\]]+)\]\]', r'<a href="http\1">http\1</a>', text, flags=re.IGNORECASE)
