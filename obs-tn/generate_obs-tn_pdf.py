@@ -450,8 +450,6 @@ class ObsTnConverter(object):
             split_pattern = re.escape(part)
             if '<span' in text:
                 split_pattern = '({0})'.format(re.sub('(\\\\ )+', '(\s+|(\s*</*span[^>]*>\s*)+)', split_pattern))
-            _print(split_pattern)
-            _print(to_process_text)
             splits = re.split(split_pattern, to_process_text, 1)
             processed_text += splits[0]
             if len(splits) > 1:
