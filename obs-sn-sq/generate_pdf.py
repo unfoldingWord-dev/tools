@@ -597,15 +597,15 @@ class ObsSnSqConverter(object):
         # Changes references to chapter/frame in links
         # <a href="1/10">Text</a> => <a href="rc://obs-sn/help/obs/01/10">Text</a>
         # <a href="10-1">Text</a> => <a href="rc://obs-sn/help/obs/10/01">Text</a>
-        text = re.sub(r'href="(\d)/(\d+)"', r'href="0\1/\2"', text) # prefix 0 on single-digit chapters
-        text = re.sub(r'href="(\d+)/(\d)"', r'href="\1/0\2"', text) # prefix 0 on single-digit frames
+        text = re.sub(r'href="(\d)/(\d+)"', r'href="0\1/\2"', text)  # prefix 0 on single-digit chapters
+        text = re.sub(r'href="(\d+)/(\d)"', r'href="\1/0\2"', text)  # prefix 0 on single-digit frames
         text = re.sub(r'href="(\d\d)/(\d\d)"', r'href="rc://{0}/obs-sn/help/obs/\1/\2"'.format(self.lang_code), text)
 
         # Changes references to chapter/frame that are just chapter/frame prefixed with a #
         # #1:10 => [[rc://obs-sn/help/obs/01/10]]
         # #10/1 => [[rc://obs-sn/help/obs/10/01]]
-        text = re.sub(r'#(\d)[:/-](\d+)', r'#0\1-\2', text) # prefix 0 on single-digit chapters
-        text = re.sub(r'#(\d+)[:/-](\d)\b', r'#\1-0\2', text) # prefix 0 on single-digit frames
+        text = re.sub(r'#(\d)[:/-](\d+)', r'#0\1-\2', text)  # prefix 0 on single-digit chapters
+        text = re.sub(r'#(\d+)[:/-](\d)\b', r'#\1-0\2', text)  # prefix 0 on single-digit frames
         text = re.sub(r'#(\d\d)[:/-](\d\d)', r'[[rc://{0}/obs/book/obs/\1/\2]]'.format(self.lang_code), text)
 
         # Change [[http.*]] to <a href="http\1">http\1</a>
