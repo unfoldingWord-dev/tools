@@ -473,11 +473,10 @@ class TaConverter(object):
             header_content['class'] = ['break']
             h.insert_before(header_content)
             img = soup.new_tag('img', src="html/logo-uta.png", width="120")
-            img['class'] = ['break']
             header_content.append(img)
             h1 = soup.new_tag('span')
             h1['class'] = ['h1']
-            h1.string = 'unfoldingWord® Translation Academy'
+            h1.string = self.title
             header_content.append(h1)
             h['class'] = ['h2', 'no-break']
             header_content.append(h)
