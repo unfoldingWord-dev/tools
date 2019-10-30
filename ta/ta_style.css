@@ -92,7 +92,7 @@ table td {
 
 a, a:link, a:visited, a.internal, a.external {
     text-decoration: none;
-    color: #4183c4 !important;
+    color: #0000BB !important;
 }
 
 .docs-bubble-link, .docs-bubble a {
