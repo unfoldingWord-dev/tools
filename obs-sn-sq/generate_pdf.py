@@ -385,7 +385,9 @@ class ObsSnSqConverter(object):
         processed_text = ''
         to_process_text = text
         for idx, part in enumerate(parts):
-            split_pattern = '({0})'.format(re.sub('(\\\\ )+', '(\s+|(\s*</*(span)[^>]*>\s*)+)', re.escape(part)))
+            split_pattern = re.escape(part)
+            if '<span' in text:
+                split_pattern = '({0})'.format(re.sub('(\\\\ )+', '(\s+|(\s*</*span[^>]*>\s*)+)', split_pattern))
             splits = re.split(split_pattern, to_process_text, 1)
             processed_text += splits[0]
             if len(splits) > 1:
@@ -402,9 +404,9 @@ class ObsSnSqConverter(object):
         highlighted_text = orig_text
         phrases.sort(key=len, reverse=True)
         for phrase in phrases:
-            if self.highlight_text(orig_text, phrase) != orig_text:
-                if len(phrase) <= 60:
-                    highlighted_text = self.highlight_text(highlighted_text, phrase)
+            new_highlighted_text = self.highlight_text(highlighted_text, phrase)
+            if new_highlighted_text != highlighted_text:
+                highlighted_text = new_highlighted_text
             elif phrase not in ignore:
                 if cf not in self.bad_notes:
                     self.bad_notes[cf] = {

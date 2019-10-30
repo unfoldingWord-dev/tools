@@ -447,7 +447,9 @@ class ObsTnConverter(object):
         processed_text = ''
         to_process_text = text
         for idx, part in enumerate(parts):
-            split_pattern = '({0})'.format(re.sub('(\\\\ )+', '(\s+|(\s*</*(span)[^>]*>\s*)+)', re.escape(part)))
+            split_pattern = re.escape(part)
+            if '<span' in text:
+                split_pattern = '({0})'.format(re.sub('(\\\\ )+', '(\s+|(\s*</*span[^>]*>\s*)+)', split_pattern))
             _print(split_pattern)
             _print(to_process_text)
             splits = re.split(split_pattern, to_process_text, 1)
@@ -469,37 +471,37 @@ class ObsTnConverter(object):
                   'Mots de Traduction', 'Nota geral', 'Déclaration de connexion', 'Cette histoire biblique est tirée',
                   'Une histoire biblique tirée de:', 'Informations générales', 'Information Générale']
         highlighted_text = orig_text
-        notes_to_highlight = []
+        phrases = []
         soup = BeautifulSoup(frame_html, 'html.parser')
         headers = soup.find_all('h4')
         for header in headers:
-            notes_to_highlight.append(header.text)
-        notes_to_highlight.sort(lambda x, y: cmp(len(y), len(x)))
-        for note in notes_to_highlight:
-            if self.highlight_text(orig_text, note) != orig_text:
-                if len(note) <= 60:
-                    highlighted_text = self.highlight_text(highlighted_text, note)
-            elif note not in ignore:
+            phrases.append(header.text)
+        phrases.sort(key=len, reverse=True)
+        for phrase in phrases:
+            new_highlighted_text = self.highlight_text(highlighted_text, phrase)
+            if new_highlighted_text != highlighted_text:
+                highlighted_text = new_highlighted_text
+            elif phrase not in ignore:
                 if cf not in self.bad_notes:
                     self.bad_notes[cf] = {
                         'text': orig_text,
                         'notes': []
                     }
-                bad_note = {note: None}
+                bad_note = {phrase: None}
                 alt_notes = [
-                    note.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
-                    note.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
-                    note.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
-                    note.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
-                    note.replace('“', '"').replace('”', '"'),
-                    note.replace('"', '”').replace('”', '“', 1),
-                    note.replace("'", '’').replace('’', '‘', 1),
-                    note.replace("'", '’'),
-                    note.replace('’', "'"),
-                    note.replace('‘', "'")]
+                    phrase.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
+                    phrase.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
+                    phrase.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
+                    phrase.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
+                    phrase.replace('“', '"').replace('”', '"'),
+                    phrase.replace('"', '”').replace('”', '“', 1),
+                    phrase.replace("'", '’').replace('’', '‘', 1),
+                    phrase.replace("'", '’'),
+                    phrase.replace('’', "'"),
+                    phrase.replace('‘', "'")]
                 for alt_note in alt_notes:
                     if orig_text != self.highlight_text(orig_text, alt_note):
-                        bad_note[note] = alt_note
+                        bad_note[phrase] = alt_note
                         break
                 self.bad_notes[cf]['notes'].append(bad_note)
         return highlighted_text
