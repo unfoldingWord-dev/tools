@@ -47,7 +47,7 @@ def print(obj):
 class TaProcessor:
     manual_title_map = {
         'checking': 'Checking Manual',
-        'intro': 'Introduction to translationAcademy',
+        'intro': 'Introduction to unfoldingWord® Translation Academy',
         'process': 'Process Manual',
         'translate': 'Translation Manual'
     }
@@ -477,7 +477,7 @@ class TaConverter(object):
             header_content.append(img)
             h1 = soup.new_tag('span')
             h1['class'] = ['h1']
-            h1.string = 'translationAcademy'
+            h1.string = 'unfoldingWord® Translation Academy'
             header_content.append(h1)
             h['class'] = ['h2', 'no-break']
             header_content.append(h)
