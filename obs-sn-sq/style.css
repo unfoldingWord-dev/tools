@@ -89,21 +89,9 @@ table td {
     padding: 6px 13px !important;
 }
 
-a {
+a, a:link, a:visited, a.internal, a.external {
     text-decoration: none;
-    color: #f47142;
-}
-a:link {
-    color: #f47142;
-}
-a:visited {
-    color: #f47142;
-}
-a.internal {
-    color: #f47142 !important;
-}
-a.external {
-    color: #f47142 !important;
+    color: #0000BB !important;
 }
 
 .docs-bubble-link, .docs-bubble a {
