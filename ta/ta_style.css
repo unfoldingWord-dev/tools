@@ -115,7 +115,9 @@ a.external {
 
 img {
     max-width: 600px;
-    text-align: center;
+    max-height: 300px;
+    display: block;
+    margin: 0 auto;
 }
 
 ul li, ul li p {

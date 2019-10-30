@@ -272,3 +272,20 @@ table.tn-notes-table {
     padding: 0;
     margin: 0;
 }
+
+span.highlight {
+    font-weight: bold;
+}
+
+span.highlight span.highlight {
+    color: #744;
+    font-weight: 900;
+}
+
+span.highlight span.highlight span.highlight {
+    color: #000;
+}
+
+span.highlight.split {
+    text-decoration: underline;
+}

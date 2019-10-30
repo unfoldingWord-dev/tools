@@ -444,16 +444,20 @@ class ObsTnConverter(object):
     @staticmethod
     def highlight_text(text, note):
         parts = re.split(r"\s*…\s*|\s*\.\.\.\s*", note)
-        pattern = ''
-        replace = ''
+        processed_text = ''
+        to_process_text = text
         for idx, part in enumerate(parts):
-            if idx > 0:
-                pattern += '(.*?)'
-                replace += r'\{0}'.format(idx)
-            pattern += re.escape(part)
-            replace += r'<b>{0}</b>'.format(part)
-        new_text = re.sub(pattern, replace, text)
-        return new_text
+            split_pattern = '({0})'.format(re.sub('(\\\\ )+', '(\s+|(\s*</*(span)[^>]*>\s*)+)', re.escape(part)))
+            splits = re.split(split_pattern, to_process_text, 1)
+            processed_text += splits[0]
+            if len(splits) > 1:
+                processed_text += '<span class="highlight{0}">{1}</span>'.format(' split' if len(parts) > 1 else '',
+                                                                                 splits[1])
+                if len(splits) > 2:
+                    to_process_text = splits[-1]
+        if to_process_text:
+            processed_text += to_process_text
+        return processed_text
 
     def highlight_text_with_frame(self, orig_text, frame_html, cf):
         ignore = ['A Bible story from', 'Connecting Statement', 'Connecting Statement:',
