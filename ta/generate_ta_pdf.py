@@ -285,7 +285,7 @@ class TaConverter(object):
         self.manifest = load_yaml_object(os.path.join(self.ta_dir, 'manifest.yaml'))
         self.version = self.manifest['dublin_core']['version']
         self.title = self.manifest['dublin_core']['title']
-        self.contributors = '; '.join(self.manifest['dublin_core']['contributor'])
+        self.contributors = '<br/>'.join(self.manifest['dublin_core']['contributor'])
         self.publisher = self.manifest['dublin_core']['publisher']
         self.issued = self.manifest['dublin_core']['issued']
         self.file_id = self.file_id
