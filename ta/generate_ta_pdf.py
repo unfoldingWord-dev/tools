@@ -45,12 +45,6 @@ def print(obj):
 
 
 class TaProcessor:
-    manual_title_map = {
-        'checking': 'Checking Manual',
-        'intro': 'Introduction to unfoldingWord® Translation Academy',
-        'process': 'Process Manual',
-        'translate': 'Translation Manual'
-    }
     ignoreDirectories = ['.git', '00']
     ignoreFiles = ['.DS_Store', 'reference.txt', 'title.txt', 'LICENSE.md', 'README.md']
 
@@ -190,8 +184,8 @@ class TaProcessor:
             self.titles = self.get_titles(project.identifier)
             self.section_container_id = 1
             toc = self.rc.toc(project.identifier)
-            if project.identifier in self.manual_title_map:
-                title = self.manual_title_map[project.identifier]
+            if project.title:
+                title = project.title
             else:
                 title = '{0} Manual'.format(project.identifier.title())
             markdown = '# {0}\n\n'.format(title)
