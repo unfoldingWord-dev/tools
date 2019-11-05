@@ -27,7 +27,7 @@ import string
 import codecs
 from glob import glob
 from shutil import copy
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from html import escape
 from html.parser import HTMLParser
 from weasyprint import HTML
@@ -173,8 +173,8 @@ class TaConverter(object):
             <h1 id="license-title">Copyrights & Licensing</h1>
             <p>
               <div id="ta-date"><strong>Date:</strong> {0}</div>
-              <div id="ta-version"><strong>Version:</strong> {1}<div>
-              <div id="ta-published-by"><strong>Published by:</strong> {2}<div>
+              <div id="ta-version"><strong>Version:</strong> {1}</div>
+              <div id="ta-published-by"><strong>Published by:</strong> {2}</div>
             </p>
             {3}
           </article>
@@ -203,22 +203,19 @@ class TaConverter(object):
         self.soup.body.append(BeautifulSoup(toc_html, 'html.parser'))
 
     def get_toc_html(self, section):
-        html = '<ul>'
+        toc_html = ''
+        if 'sections' not in section:
+            return toc_html
+        toc_html = '<ul>'
         for section in section['sections']:
             title = section['title']
-            link = None
             if 'link' in section:
-                link = section['link']
-            elif 'sections' in section:
-                self.section_count += 1
-                link = 'section-container-{0}'.format(self.section_count)
-            html += '<li><a href="#{0}-title">{1}</a>'.format(link, title)
-            self.titles[link] = title
-            if 'sections' in section:
-                html += self.get_toc_html(section)
-            html += '</li>'
-        html += '</ul>'
-        return html
+                self.titles[section['link']] = title
+            self.section_count += 1
+            link = 'section-container-{0}'.format(self.section_count)
+            toc_html += '<li><a href="#{0}">{1}</a>{2}</li>'.format(link, title, self.get_toc_html(section))
+        toc_html += '</ul>'
+        return toc_html
 
     def get_articles(self):
         articles_html = ''
@@ -237,33 +234,35 @@ class TaConverter(object):
             articles_html += self.get_articles_from_toc(project['identifier'], toc)
         self.soup.body.append(BeautifulSoup(articles_html, 'html.parser'))
 
-    def get_articles_from_toc(self, project, section):
+    def get_articles_from_toc(self, project, section, level=2):
         articles_html = ''
+        if 'sections' not in section:
+            return articles_html
         for section in section['sections']:
+            self.section_count += 1
+            link = 'section-container-{0}'.format(self.section_count)
             title = section['title']
+            articles_html += '<section id="{0}"><h{1} id="{0}-title">{2}</h{1}>'.\
+                format(link, level, self.get_title(project, link, title))
             if 'link' in section:
                 link = section['link']
-                articles_html += '<article id="{0}">{1}</article>'.\
-                    format(link, self.get_article(project, link, title))
+                articles_html += self.get_article(project, link)
             if 'sections' in section:
-                self.section_count += 1
-                link = 'section-container-{0}'.format(self.section_count)
-                articles_html += '<section id="{0}">'.format(link)
-                if 'link' not in section:
-                    articles_html += '<h2 id="{0}-title">{1}</h2>'.format(link, title)
-                articles_html += self.get_articles_from_toc(project, section)
-                articles_html += '</section>'
+                articles_html += self.get_articles_from_toc(project, section, level+1)
+            articles_html += '</section>'
         return articles_html
 
     def get_title(self, project, link, alt_title):
-        title = read_file(os.path.join(self.ta_dir, project, link, 'title.md')).strip()
+        title_file = os.path.join(self.ta_dir, project, link, 'title.md')
+        title = None
+        if os.path.isfile(title_file):
+            title = read_file(title_file).strip()
         if not title:
             title = alt_title.strip()
         return title
 
-    def get_article(self, project, link, alt_title):
+    def get_article(self, project, link):
         article_dir = os.path.join(self.ta_dir, project, link)
-        title = self.get_title(project, link, alt_title)
         question_file = os.path.join(article_dir, 'sub-title.md')
         question = None
         if os.path.isfile(question_file):
@@ -281,6 +280,11 @@ class TaConverter(object):
                     self.bad_links[bad_link] = '[01.md file exists but no content]'
             else:
                 self.bad_links[bad_link] = '[no corresponding article found]'
+        soup = BeautifulSoup(article_file_html, 'html.parser')
+        # for h in soup.find_all(re.compile(r'^h\d$')):
+        #     h['class'] = h.get('class', []) + [h.name]
+        #     h.name = 'span'
+        #     next = h.next_sibling
         top_box = ""
         bottom_box = ""
         if question:
@@ -326,22 +330,21 @@ class TaConverter(object):
                     </ul>
                 </div>
                 '''
-        article_html = '''
-        <h2 id="{0}-title">{1}</h2>
-        '''.format(link, title)
+        article_html = '<article id="{0}">'.format(link)
         if top_box:
             article_html += '''
             <div class="top-box box">
                 {0}
             </div>
             '''.format(top_box)
-        article_html += article_file_html
+        article_html += str(soup)
         if bottom_box:
             article_html += '''
             <div class="bottom-box box">
                 {0}
             </div>
             '''.format(bottom_box)
+        article_html += '</article>'
         return article_html
 
     @staticmethod
