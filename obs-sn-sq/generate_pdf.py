@@ -378,6 +378,8 @@ class ObsSnSqConverter(object):
         command = re.sub(r'\s+', ' ', command, flags=re.MULTILINE)
         self.logger.info(command)
         subprocess.call(command, shell=True)
+        link_file = os.path.join(self.output_dir, '{0}_obs-sn-sq_{1}.pdf'.format(self.lang_code, self.obs_sn_tag))
+        subprocess.call('ln -sf "{0}" "{1}"'.format(output_file, link_file), shell=True)
 
     @staticmethod
     def highlight_text(text, note):
