@@ -156,7 +156,7 @@ class ObsSnSqConverter(object):
         g = git.Git(repo_dir)
         g.checkout(tag)
         if tag == DEFAULT_TAG:
-            # _print("NOT PULLING...")
+            # self.logger.info("NOT PULLING...")
             g.pull()
         commit = g.rev_parse('HEAD', short=10)
         self.generation_info[resource] = {'tag': tag, 'commit': commit}
@@ -473,7 +473,7 @@ class ObsSnSqConverter(object):
                         images.append(basename)
                         image_file = os.path.join(self.html_dir, basename)
                         if not os.path.isfile(image_file):
-                            _print("Downloading {0}...".format(src))
+                            logger.info("Downloading {0}...".format(src))
                             download_file(src, os.path.join(self.html_dir, basename))
                     else:
                         bible_reference = p.text
@@ -662,7 +662,7 @@ def main(obs_sn_tag, obs_sq_tag, obs_tag, lang_codes, working_dir, output_dir, o
         print('Using env var OUTPUT_DIR: {0}'.format(output_dir))
 
     for lang_code in lang_codes:
-        _print('Starting OBS SN Converter for {0}...'.format(lang_code))
+        logger.info('Starting OBS SN Converter for {0}...'.format(lang_code))
         obs_sn_converter = ObsSnSqConverter(obs_sn_tag, obs_sq_tag, obs_tag, working_dir, output_dir, lang_code, owner, regenerate, logger)
         obs_sn_converter.run()
 
