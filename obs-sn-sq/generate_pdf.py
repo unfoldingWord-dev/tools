@@ -87,22 +87,27 @@ class ObsSnSqConverter(object):
         self.obs_sn_manifest = load_yaml_object(os.path.join(self.obs_sn_dir, 'manifest.yaml'))
         self.obs_sq_manifest = load_yaml_object(os.path.join(self.obs_sq_dir, 'manifest.yaml'))
         self.file_id = self.file_id
-        self.logger.info('Creating OBS SN & SQ HTML files for {0}...'.format(self.file_id))
         if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.html'.format(self.file_id))):
+            self.logger.info('Creating OBS SN & SQ HTML files for {0}...'.format(self.file_id))
             self.generate_obs_sn_sq_content()
             self.logger.info('Generating Body HTML for {0}...'.format(self.file_id))
             self.generate_body_html()
-        self.logger.info('Generating Cover HTML for {0}...'.format(self.file_id))
-        self.generate_cover_html()
-        self.logger.info('Generating License HTML for {0}...'.format(self.file_id))
-        self.generate_license_html()
-        self.logger.info('Copying style sheet file for {0}...'.format(self.file_id))
-        style_file = os.path.join(self.my_path, 'style.css')
-        shutil.copy2(style_file, self.html_dir)
-        self.save_resource_data()
-        self.save_bad_notes()
-        self.logger.info('Generating PDF {0}/{1}.pdf...'.format(self.output_dir, self.file_id))
-        self.generate_obs_sn_sq_pdf()
+            self.logger.info('Generating Cover HTML for {0}...'.format(self.file_id))
+            self.generate_cover_html()
+            self.logger.info('Generating License HTML for {0}...'.format(self.file_id))
+            self.generate_license_html()
+            self.logger.info('Copying style sheet file for {0}...'.format(self.file_id))
+            style_file = os.path.join(self.my_path, 'style.css')
+            shutil.copy2(style_file, self.html_dir)
+            self.save_resource_data()
+            self.save_bad_notes()
+        else:
+            self.logger.info('HTML file is already current')
+        if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.pdf'.format(self.file_id))):
+            self.logger.info('Generating PDF {0}/{1}.pdf...'.format(self.output_dir, self.file_id))
+            self.generate_obs_sn_sq_pdf()
+        else:
+            self.logger.info('PDF file is already current')
         self.logger.info('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.file_id))
 
     def save_bad_notes(self):
