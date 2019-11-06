@@ -219,12 +219,14 @@ class ObsSnSqConverter(object):
         write_file(save_file, self.rc_references)
         save_file = os.path.join(save_dir, '{0}_bad_notes.json'.format(self.file_id))
         write_file(save_file, self.bad_notes)
-        save_file = os.path.join(save_dir, '{0}_generation_info.json'.format(self.file_id))
+        save_file = os.path.join(save_dir, '{0}_obs-sn-sq_{1}_generation_info.json'.format(self.lang_code,
+                                                                                           self.obs_sn_tag))
         write_file(save_file, self.generation_info)
 
     def get_previous_generation_info(self):
         save_dir = os.path.join(self.output_dir, 'save')
-        save_file = os.path.join(save_dir, '{0}_generation_info.json'.format(self.file_id))
+        save_file = os.path.join(save_dir, '{0}_obs-sn-sq_{1}_generation_info.json'.format(self.lang_code,
+                                                                                           self.obs_sn_tag))
         if os.path.isfile(save_file):
             return load_json_object(save_file)
         else:
