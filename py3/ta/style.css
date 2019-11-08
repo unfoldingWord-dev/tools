@@ -44,7 +44,7 @@ html, body {
         line-height: 12px;
     }
     @top-right {
-        content: string(heading2) string(heading3) string(heading4);
+        content: string(heading2) string(heading3) string(heading4) string(heading5);
         font-size: 12px;
         text-align: right;
         font-style: italic;
@@ -453,19 +453,23 @@ article.cover img {
 }
 
 html body .manual-cover h2 {
-    string-set: heading1 content(), heading2 "", heading3 "", heading4 "";
+    string-set: heading1 content(), heading2 "", heading3 "", heading4 "", heading5 "";
 }
 
 html body section h2.section-header {
-    string-set: heading2 content(), heading3 "", heading4 "";
+    string-set: heading2 content(), heading3 "", heading4 "", heading5 "";
 }
 
 html body section h3.section-header {
-    string-set: heading3 " :: " content(), heading4 "";
+    string-set: heading3 " :: " content(), heading4 "", heading5 "";
 }
 
 html body section h4.section-header {
-    string-set: heading4 " :: " content();
+    string-set: heading4 " :: " content(), heading5 "";
+}
+
+html body section h5.section-header {
+    string-set: heading5 " :: " content(), heading3 " :: ...";
 }
 
 code {
