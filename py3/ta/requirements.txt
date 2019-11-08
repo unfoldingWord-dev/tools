@@ -10,4 +10,5 @@ singledispatch
 six
 tornado
 gitpython
+requests
 
