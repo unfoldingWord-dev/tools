@@ -143,8 +143,8 @@ class TaConverter(object):
         html = html_template.safe_substitute(title=self.title)
         self.soup = BeautifulSoup(html, 'html.parser')
         self.soup.html.head.title.string = self.title
-        # self.get_cover()
-        # self.get_license()
+        self.get_cover()
+        self.get_license()
         self.get_toc()
         self.get_articles()
         self.download_all_images()
