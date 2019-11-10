@@ -29,8 +29,7 @@ from glob import glob
 from shutil import copy
 from bs4 import BeautifulSoup
 from ..general_tools.file_utils import write_file, read_file, load_yaml_object, get_files
-from ..general_tools.url_utils import get_url, download_file
-from ResourceContainer import RC
+from .ResourceContainer import RC
 
 _print = print
 DEFAULT_LANG = 'en'

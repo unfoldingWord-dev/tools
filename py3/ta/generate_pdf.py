@@ -24,11 +24,13 @@ import json
 import git
 import markdown2
 import string
+import shutil
+import yaml
 from bs4 import BeautifulSoup, Tag
 from html import escape
 from html.parser import HTMLParser
 from weasyprint import HTML, LOGGER
-from ...general_tools.file_utils import load_yaml_object, read_file, write_file
+from ...general_tools.file_utils import read_file, write_file, load_json_object
 
 DEFAULT_OWNER = 'unfoldingWord'
 DEFAULT_TAG = 'master'
@@ -132,36 +134,44 @@ class TaConverter(object):
         os.makedirs(self.html_dir, exist_ok=True)
         self.setup_resource_files()
         self.file_id = '{0}_ta_{1}_{2}'.format(self.lang_code, self.ta_tag, self.generation_info['ta']['commit'])
-        self.manifest = load_yaml_object(os.path.join(self.ta_dir, 'manifest.yaml'))
+        self.manifest = yaml.full_load(read_file(os.path.join(self.ta_dir, 'manifest.yaml')))
         self.version = self.manifest['dublin_core']['version']
         self.title = self.manifest['dublin_core']['title']
         self.contributors = '<br/>'.join(self.manifest['dublin_core']['contributor'])
         self.publisher = self.manifest['dublin_core']['publisher']
         self.issued = self.manifest['dublin_core']['issued']
-        with open(os.path.join(self.my_path, 'template.html')) as template_file:
-            html_template = string.Template(template_file.read())
-        html = html_template.safe_substitute(title=self.title)
-        self.soup = BeautifulSoup(html, 'html.parser')
-        self.soup.html.head.title.string = self.title
-        self.get_cover()
-        self.get_license()
-        self.get_toc()
-        self.get_articles()
-        self.download_all_images()
-        parser = MyHTMLParser()
-        parser.feed(str(self.soup))
-        parsed_html = self.fix_links(parser.get_parsed_string())
-        # prettify_html = self.fix_links(self.soup.prettify())
-        write_file(os.path.join(self.output_dir, 'ta.html'.format(self.file_id)), parsed_html)
-        write_file(os.path.join(self.output_dir, '{0}_new.html'.format(self.file_id)), parsed_html)
-        write_file(os.path.join(self.output_dir, '{0}_bad_links.json'.format(self.file_id)), self.bad_links)
-        write_file(os.path.join(self.output_dir, '{0}_titles.json'.format(self.file_id)), self.titles)
-        for bad_link in sorted(self.bad_links.keys()):
-            print('{0}: {1}'.format(bad_link, self.bad_links[bad_link]))
-        LOGGER.setLevel('WARN')
-        weasy = HTML(string=parsed_html, base_url='file://{0}/'.format(self.output_dir))
-        weasy_render = weasy.render()
-        weasy_render.write_pdf(os.path.join(os.path.join(self.output_dir, '{0}_new.pdf'.format(self.file_id))))
+        self.determine_if_regeneration_needed()
+        html_file = os.path.join(self.html_dir, '{0}.html'.format(self.file_id))
+        pdf_file = os.path.join(self.output_dir, '{0}.pdf'.format(self.file_id))
+        if self.regenerate or not os.path.exists(html_file):
+            with open(os.path.join(self.my_path, 'template.html')) as template_file:
+                html_template = string.Template(template_file.read())
+            html = html_template.safe_substitute(title=self.title)
+            self.soup = BeautifulSoup(html, 'html.parser')
+            self.soup.html.head.title.string = self.title
+            self.get_cover()
+            self.get_license()
+            self.get_toc()
+            self.get_articles()
+            self.download_all_images()
+            parser = MyHTMLParser()
+            parser.feed(str(self.soup))
+            parsed_html = self.fix_links(parser.get_parsed_string())
+            # prettify_html = self.fix_links(self.soup.prettify())
+            write_file(html_file, parsed_html)
+            style_file = os.path.join(self.my_path, 'ta_style.css')
+            shutil.copy2(style_file, self.html_dir)
+            if not os.path.exists(os.path.join(self.html_dir, 'fonts')):
+                fonts_dir = os.path.join(self.my_path, '..', 'fonts')
+                shutil.copytree(fonts_dir, os.path.join(self.html_dir, 'fonts'))
+            self.save_resource_data()
+            for bad_link in sorted(self.bad_links.keys()):
+                print('{0}: {1}'.format(bad_link, self.bad_links[bad_link]))
+        if self.regenerate or not os.path.exists(pdf_file):
+            LOGGER.setLevel('WARN')  # Set to 'INFO' for debugging
+            weasy = HTML(filename=html_file, base_url='file://{0}/'.format(self.output_dir))
+            weasy_render = weasy.render()
+            weasy_render.write_pdf(pdf_file)
 
     def get_cover(self):
         cover_html = '''
@@ -197,7 +207,7 @@ class TaConverter(object):
         self.section_count = 0
         for idx, project in enumerate(projects):
             project_path = os.path.join(self.ta_dir, project['identifier'])
-            toc = load_yaml_object(os.path.join(project_path, 'toc.yaml'))
+            toc = yaml.full_load(read_file(os.path.join(project_path, 'toc.yaml')))
             if not toc_html:
                 toc_html = '''
                 <article id="contents">
@@ -232,8 +242,8 @@ class TaConverter(object):
         self.section_count = 0
         for idx, project in enumerate(projects):
             project_path = os.path.join(self.ta_dir, project['identifier'])
-            toc = load_yaml_object(os.path.join(project_path, 'toc.yaml'))
-            self.config = load_yaml_object(os.path.join(project_path, 'config.yaml'))
+            toc = yaml.full_load(read_file(os.path.join(project_path, 'toc.yaml')))
+            self.config = yaml.full_load(read_file(os.path.join(project_path, 'config.yaml')))
             articles_html += '''
                 <article id="{0}-manual-cover" class="manual-cover cover">
                   <img src="html/logo-uta.png" alt="UTA" />
@@ -413,6 +423,42 @@ class TaConverter(object):
             command = 'curl -o {0}/logo-uta.png https://cdn.door43.org/assets/uw-icons/logo-uta-256.png'.format(
                 self.html_dir)
             subprocess.call(command, shell=True)
+
+    def save_resource_data(self):
+        save_dir = os.path.join(self.output_dir, 'save')
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        save_file = os.path.join(save_dir, '{0}_bad_links.json'.format(self.file_id))
+        write_file(save_file, self.bad_links)
+        save_file = os.path.join(save_dir, '{0}_titles.json'.format(self.file_id))
+        write_file(save_file, self.titles)
+        save_file = os.path.join(save_dir, '{0}_ta_{1}_generation_info.json'.format(self.lang_code, self.ta_tag))
+        write_file(save_file, self.generation_info)
+
+    def get_previous_generation_info(self):
+        save_dir = os.path.join(self.output_dir, 'save')
+        save_file = os.path.join(save_dir, '{0}_ta_{1}_generation_info.json'.format(self.lang_code, self.ta_tag))
+        if os.path.isfile(save_file):
+            return load_json_object(save_file)
+        else:
+            return {}
+
+    def determine_if_regeneration_needed(self):
+        # check if any commit hashes have changed
+        old_info = self.get_previous_generation_info()
+        if not old_info:
+            self.logger.info('Looks like this is a new commit of {0}. Generating PDF.'.format(self.file_id))
+            self.regenerate = True
+        else:
+            for resource in self.generation_info:
+                if resource in old_info and resource in self.generation_info \
+                        and (old_info[resource]['tag'] != self.generation_info[resource]['tag']
+                             or old_info[resource]['commit'] != self.generation_info[resource]['commit']):
+                    self.logger.info('Resource {0} has changed: {1} => {2}, {3} => {4}. REGENERATING PDF.'.format(
+                        resource, old_info[resource]['tag'], self.generation_info[resource]['tag'],
+                        old_info[resource]['commit'], self.generation_info[resource]['commit']
+                    ))
+                    self.regenerate = True
 
 
 def main(ta_tag, lang_codes, working_dir, output_dir, owner, regenerate):
