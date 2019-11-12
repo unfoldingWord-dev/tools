@@ -27,10 +27,10 @@ import git
 from glob import glob
 from bs4 import BeautifulSoup
 from usfm_tools.transform import UsfmTransform
-from ...general_tools.file_utils import write_file, read_file, load_json_object, unzip, load_yaml_object
-from ...general_tools.url_utils import download_file
-from ...general_tools.bible_books import BOOK_NUMBERS, BOOK_CHAPTER_VERSES
-from ...general_tools.usfm_utils import usfm3_to_usfm2
+from ..general_tools.file_utils import write_file, read_file, load_json_object, unzip, load_yaml_object
+from ..general_tools.url_utils import download_file
+from ..general_tools.bible_books import BOOK_NUMBERS, BOOK_CHAPTER_VERSES
+from ..general_tools.usfm_utils import usfm3_to_usfm2
 
 _print = print
 DEFAULT_LANG = 'en'
@@ -1250,5 +1250,5 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--regenerate', dest='regenerate', default=False, action='store_true',
                         help='Regenerate even if exists')
     args = parser.parse_args(sys.argv[1:])
-    main(args.ta, args.tn, args.tw, args.ust, args.ult, args.ugnt, lang_code, args.books, args.working_dir,
+    main(args.ta, args.tn, args.tw, args.ust, args.ult, args.ugnt, args.lang_codes, args.books, args.working_dir,
          args.output_dir, args.owner, args.regenerate)

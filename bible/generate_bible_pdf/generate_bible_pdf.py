@@ -149,7 +149,7 @@ class BibleConverter(object):
     def download_resource_files(self):
         if not os.path.isdir(os.path.join(self.bible_dir)):
             # zip_url = self.resource['formats'][0]['url']
-            zip_url = 'https://git.door43.org/unfoldingWord/{0}_{1}/archive/{2}.zip'.format(self.lang_code, self.resource_id, self.tag)
+            zip_url = 'https://git.door43.org/Door43-Catalog/{0}_{1}/archive/{2}.zip'.format(self.lang_code, self.resource_id, self.tag)
             self.extract_files_from_url(zip_url)
 
     def extract_files_from_url(self, url):
