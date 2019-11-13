@@ -172,6 +172,8 @@ class TaConverter(object):
             weasy = HTML(filename=html_file, base_url='file://{0}/'.format(self.output_dir))
             weasy_render = weasy.render()
             weasy_render.write_pdf(pdf_file)
+            link_file = os.path.join(self.output_dir, '{0}_ta_{1}.pdf'.format(self.lang_code, self.ta_tag))
+            subprocess.call('ln -sf "{0}" "{1}"'.format(pdf_file, link_file), shell=True)
 
     def get_cover(self):
         cover_html = '''
