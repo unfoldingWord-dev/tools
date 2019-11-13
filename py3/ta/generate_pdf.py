@@ -414,8 +414,8 @@ class TaConverter(object):
                             break
         g = git.Git(repo_dir)
         g.checkout(tag)
-        # if tag == DEFAULT_TAG:
-        #     g.pull()
+        if tag == DEFAULT_TAG:
+            g.pull()
         commit = g.rev_parse('HEAD', short=10)
         self.generation_info[resource] = {'tag': tag, 'commit': commit}
 
