@@ -38,17 +38,44 @@ DEFAULT_OWNER = 'unfoldingWord'
 DEFAULT_TAG = 'master'
 DEFAULT_UST_ID = 'ust'
 DEFAULT_ULT_ID = 'ult'
-
+DEFAULT_TN_ID = 'tn'
 OWNERS = [DEFAULT_OWNER, 'STR', 'Door43-Catalog']
+
 
 def print(obj):
     _print(json.dumps(obj, ensure_ascii=False, indent=2).encode('utf-8'))
+
+
+def tryint(s):
+    try:
+        return int(s)
+    except:
+        return s
+
+
+def alphanum_key(s):
+    return [tryint(c) for c in re.split('([0-9]+)', s)]
+
+
+def sort_alphanumeric(l):
+    l.sort(key=alphanum_key)
+
+
+def get_latest_version(path_to_versions):
+    versions = [d for d in os.listdir(path_to_versions) if re.match(r'^v\d+', d) and
+                os.path.isdir(os.path.join(path_to_versions, d))]
+    if versions and len(versions):
+        sort_alphanumeric(versions)
+        return os.path.join(path_to_versions, versions[-1])
+    else:
+        return path_to_versions
+
 
 class TnConverter(object):
 
     def __init__(self, ta_tag=None, tn_tag=None, tw_tag=None, ust_tag=None, ult_tag=None, ugnt_tag=None,
                  working_dir=None, output_dir=None, lang_code=DEFAULT_LANG, books=None, owner=DEFAULT_OWNER,
-                 regenerate=False, logger=None, ust_id=DEFAULT_UST_ID, ult_id=DEFAULT_ULT_ID):
+                 regenerate=False, logger=None, ust_id=DEFAULT_UST_ID, ult_id=DEFAULT_ULT_ID, tn_id=DEFAULT_TN_ID):
         self.ta_tag = ta_tag
         self.tn_tag = tn_tag
         self.tw_tag = tw_tag
@@ -65,6 +92,7 @@ class TnConverter(object):
         self.logger = logger
         self.ust_id = ust_id
         self.ult_id = ult_id
+        self.tn_id = tn_id
 
         if not self.working_dir:
             self.working_dir = tempfile.mkdtemp(prefix='tn-')
@@ -73,7 +101,7 @@ class TnConverter(object):
 
         self.logger.info('WORKING DIR IS {0}'.format(self.working_dir))
 
-        self.tn_dir = os.path.join(self.working_dir, '{0}_tn'.format(lang_code))
+        self.tn_dir = os.path.join(self.working_dir, '{0}_{1}'.format(lang_code, tn_id))
         self.tw_dir = os.path.join(self.working_dir, '{0}_tw'.format(lang_code))
         self.ta_dir = os.path.join(self.working_dir, '{0}_ta'.format(lang_code))
         self.ust_dir = os.path.join(self.working_dir, '{0}_{1}'.format(lang_code, self.ust_id))
@@ -121,7 +149,7 @@ class TnConverter(object):
     def run(self):
         self.setup_resource_files()
         self.determine_if_regeneration_needed()
-        self.file_id = '{0}_tn_{1}_{2}'.format(self.lang_code, self.tn_tag, self.generation_info['tn']['commit'])
+        self.file_id = '{0}_tn_{1}_{2}'.format(self.lang_code, self.tn_tag, self.generation_info[self.tn_id]['commit'])
         self.manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
         self.version = self.manifest['dublin_core']['version']
         self.title = self.manifest['dublin_core']['title']
@@ -137,7 +165,7 @@ class TnConverter(object):
             if int(self.book_number) < 41:
                 continue
             self.book_file_id = '{0}_tn_{1}_{2}_{3}-{4}'.format(self.lang_code, self.tn_tag,
-                                                                self.generation_info['tn']['commit'],
+                                                                self.generation_info[self.tn_id]['commit'],
                                                                 self.book_number.zfill(2), self.book_id.upper())
             self.logger.info('Creating tN for {0}...'.format(self.book_file_id))
             self.load_resource_data()
@@ -163,10 +191,12 @@ class TnConverter(object):
                 shutil.copy2(style_file, self.html_dir)
                 self.save_resource_data()
                 self.save_bad_links()
-            if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.pdf'.format(self.book_file_id))):
-                self.logger.info("Generating PDF {0}...".format(os.path.join(self.output_dir, '{0}.pdf'.format(self.book_file_id))))
+            if self.regenerate or \
+                    not os.path.exists(os.path.join(self.output_dir, '{0}.pdf'.format(self.book_file_id))):
+                self.logger.info("Generating PDF {0}...".format(os.path.join(self.output_dir, '{0}.pdf'.
+                                                                             format(self.book_file_id))))
                 self.generate_tn_pdf()
-            _print('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.book_id))
+            _print('PDF file can be found at {0}/{1}.pdf'.format(self.output_dir, self.book_file_id))
 
     def save_bad_links(self):
         bad_links = "BAD LINKS:\n"
@@ -240,7 +270,7 @@ class TnConverter(object):
         self.generation_info[resource] = {'tag': tag, 'commit': commit}
 
     def setup_resource_files(self):
-        self.clone_resource('tn', self.tn_tag)
+        self.clone_resource(self.tn_id, self.tn_tag)
         self.clone_resource('tw', self.tw_tag)
         self.clone_resource('ta', self.ta_tag)
         self.clone_resource(self.ult_id, self.ult_tag)
@@ -268,10 +298,8 @@ class TnConverter(object):
             self.logger.info('finished.')
 
     def populate_chunks_text(self):
-        save_dir = os.path.join(self.output_dir, 'chunks_text'.format(self.book_file_id))
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-        save_file = os.path.join(save_dir, '{0}.json'.format(self.book_id))
+        save_dir = os.path.join(self.output_dir, 'chunks_text')
+        save_file = os.path.join(save_dir, '{0}.json'.format(self.book_file_id))
         if os.path.isfile(save_file):
             self.chunks_text = load_json_object(save_file)
             return
@@ -293,14 +321,14 @@ class TnConverter(object):
                     versesInChunk = []
                     for verse in range(first_verse, last_verse+1):
                         if resource not in self.verse_usfm:
-                            logger.error('{0} not in verse_usfm!!!'.format(resource))
+                            self.logger.error('{0} not in verse_usfm!!!'.format(resource))
                             print(self.verse_usfm)
                             exit(1)
                         if chapter not in self.verse_usfm[resource]:
-                            logger.error('Chapter {0} not in {1}!!!'.format(chapter, resource))
+                            self.logger.error('Chapter {0} not in {1}!!!'.format(chapter, resource))
                             exit(1)
                         if verse not in self.verse_usfm[resource][chapter]:
-                            logger.error('{0}:{1} not in {2}!!!'.format(chapter, verse, resource))
+                            self.logger.error('{0}:{1} not in {2}!!!'.format(chapter, verse, resource))
                             exit(1)
                         versesInChunk.append(self.verse_usfm[resource][chapter][verse])
                     chunk_usfm = '\n'.join(versesInChunk)
@@ -310,6 +338,8 @@ class TnConverter(object):
                         'usfm': chunk_usfm,
                         'html': self.get_chunk_html(chunk_usfm, resource, chapter, first_verse)
                     }
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)
             write_file(save_file, chunks_text)
         self.chunks_text = chunks_text
 
@@ -596,8 +626,9 @@ class TnConverter(object):
 
     def populate_verse_usfm_ult2(self):
         bookData = {}
-        chapter_files_path = 'tools/tn/generate_tn_pdf/{0}/bibles/{1}/v5/{2}/*.json'.\
-            format(self.lang_code, self.ult_id, self.book_id)
+        chapter_files_path = '{0}/{1}/*.json'.\
+            format(get_latest_version('tools/tn/generate_tn_pdf/{0}/bibles/{1}'.format(self.lang_code, self.ult_id)),
+                   self.book_id)
         chapter_files = sorted(glob(chapter_files_path))
         for chapter_file in chapter_files:
             try:
@@ -641,7 +672,7 @@ class TnConverter(object):
             yield [unicode(cell, 'utf-8') for cell in row]
 
     def populate_tn_book_data(self):
-        book_file = os.path.join(self.tn_dir, 'en_tn_{0}-{1}.tsv'.format(self.book_number, self.book_id.upper()))
+        book_file = os.path.join(self.tn_dir, '{0}_tn_{1}-{2}.tsv'.format(self.lang_code, self.book_number, self.book_id.upper()))
         self.tn_book_data = {}
         if not os.path.isfile(book_file):
             return
@@ -696,8 +727,6 @@ class TnConverter(object):
         for chapter_verses in self.chapters_and_verses:
             chapter = str(chapter_verses['chapter'])
             print('Chapter {0}...'.format(chapter))
-            print(self.tn_book_data)
-            exit(1)
             if 'intro' in self.tn_book_data[chapter]:
                 write_file('/tmp/test.txt', self.tn_book_data[chapter]['intro'][0]['OccurrenceNote'])
                 intro = markdown.markdown(self.tn_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>',"\n"))
@@ -770,7 +799,7 @@ class TnConverter(object):
 
     def populate_tw_words_data(self):
         groups = ['kt', 'names', 'other']
-        grc_path = 'tools/tn/grc/translationHelps/translationWords/v0.9'
+        grc_path = get_latest_version('tools/tn/grc/translationHelps/translationWords')
         if not os.path.isdir(grc_path):
             self.logger.error('{0} not found! Please make sure you ran `node getResources ./` in the generate_tn_pdf dir and that the version in the script is correct'.format(grc_path))
             exit(1)
@@ -841,7 +870,8 @@ class TnConverter(object):
         return newHtml
 
     def get_all_words_to_match(self, resource, chapter, verse):
-        path = 'tools/tn/{0}/bibles/{1}/v5/{2}/{3}.json'.format(self.lang_code, resource, self.book_id, chapter)
+        path = '{0}/{1}/{2}.json'.format(get_latest_version('tools/tn/{0}/bibles/{1}'.format(self.lang_code, resource)),
+                                         self.book_id, chapter)
         words = []
         data = load_json_object(path)
         chapter = int(chapter)
@@ -1226,7 +1256,7 @@ class TnConverter(object):
 
 
 def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_codes, books, working_dir, output_dir, owner,
-         regenerate, ust_id, ult_id):
+         regenerate, ust_id, ult_id, tn_id):
     lang_codes = lang_codes
     if not lang_codes:
         lang_codes = [DEFAULT_LANG]
@@ -1249,7 +1279,7 @@ def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_codes, books, 
     for lang_code in lang_codes:
         _print('Starting TN Converter for {0}...'.format(lang_code))
         tn_converter = TnConverter(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, working_dir, output_dir,
-                                   lang_code, books, owner, regenerate, logger, ust_id, ult_id)
+                                   lang_code, books, owner, regenerate, logger, ust_id, ult_id, tn_id)
         tn_converter.run()
 
 
@@ -1260,6 +1290,7 @@ if __name__ == '__main__':
     parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help="Working Directory")
     parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False, help="Output Directory")
     parser.add_argument('--tn-tag', dest='tn', default=DEFAULT_TAG, required=False, help='tN Tag')
+    parser.add_argument('--tn-id', dest='tn_id', default=DEFAULT_TN_ID, required=False, help="TN ID")
     parser.add_argument('--ta-tag', dest='ta', default=DEFAULT_TAG, required=False, help='tA Tag')
     parser.add_argument('--tw-tag', dest='tw', default=DEFAULT_TAG, required=False, help='tW Tag')
     parser.add_argument('--ust-id', dest='ust_id', default=DEFAULT_UST_ID, required=False, help="UST ID")
@@ -1272,4 +1303,4 @@ if __name__ == '__main__':
                         help='Regenerate even if exists')
     args = parser.parse_args(sys.argv[1:])
     main(args.ta, args.tn, args.tw, args.ust, args.ult, args.ugnt, args.lang_codes, args.books, args.working_dir,
-         args.output_dir, args.owner, args.regenerate, args.ust_id, args.ult_id)
+         args.output_dir, args.owner, args.regenerate, args.ust_id, args.ult_id, args.tn_id)
