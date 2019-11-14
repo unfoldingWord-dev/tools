@@ -141,7 +141,7 @@ class TaConverter(object):
         self.publisher = self.manifest['dublin_core']['publisher']
         self.issued = self.manifest['dublin_core']['issued']
         self.determine_if_regeneration_needed()
-        html_file = os.path.join(self.html_dir, '{0}.html'.format(self.file_id))
+        html_file = os.path.join(self.output_dir, '{0}.html'.format(self.file_id))
         pdf_file = os.path.join(self.output_dir, '{0}.pdf'.format(self.file_id))
         if self.regenerate or not os.path.exists(html_file):
             with open(os.path.join(self.my_path, 'template.html')) as template_file:
@@ -171,6 +171,7 @@ class TaConverter(object):
             LOGGER.setLevel('WARN')  # Set to 'INFO' for debugging
             weasy = HTML(filename=html_file, base_url='file://{0}/'.format(self.output_dir))
             weasy_render = weasy.render()
+            # print(weasy_render.resolve_links())
             weasy_render.write_pdf(pdf_file)
             link_file = os.path.join(self.output_dir, '{0}_ta_{1}.pdf'.format(self.lang_code, self.ta_tag))
             subprocess.call('ln -sf "{0}" "{1}"'.format(pdf_file, link_file), shell=True)
