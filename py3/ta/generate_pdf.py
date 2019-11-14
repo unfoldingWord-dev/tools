@@ -144,6 +144,7 @@ class TaConverter(object):
         html_file = os.path.join(self.output_dir, '{0}.html'.format(self.file_id))
         pdf_file = os.path.join(self.output_dir, '{0}.pdf'.format(self.file_id))
         if self.regenerate or not os.path.exists(html_file):
+            self.logger.info('Generating HTML file {0}...'.format(html_file))
             with open(os.path.join(self.my_path, 'template.html')) as template_file:
                 html_template = string.Template(template_file.read())
             html = html_template.safe_substitute(title=self.title)
@@ -167,14 +168,21 @@ class TaConverter(object):
             self.save_resource_data()
             for bad_link in sorted(self.bad_links.keys()):
                 print('{0}: {1}'.format(bad_link, self.bad_links[bad_link]))
+            self.logger.info('Generated HTML file.')
+        else:
+            self.logger.info('HTML file {0} already there. Not generating. Use -r to force regeneration.'.format(html_file))
         if self.regenerate or not os.path.exists(pdf_file):
+            self.logger.info('Generating PDF file {0}...'.format(pdf_file))
             LOGGER.setLevel('WARN')  # Set to 'INFO' for debugging
             weasy = HTML(filename=html_file, base_url='file://{0}/'.format(self.output_dir))
             weasy_render = weasy.render()
-            # print(weasy_render.resolve_links())
+            print(weasy_render.resolve_links())
             weasy_render.write_pdf(pdf_file)
             link_file = os.path.join(self.output_dir, '{0}_ta_{1}.pdf'.format(self.lang_code, self.ta_tag))
             subprocess.call('ln -sf "{0}" "{1}"'.format(pdf_file, link_file), shell=True)
+            self.logger.info('Generated PDF file.')
+        else:
+            self.logger.info('PDF file {0} already there. Not generating. Use -r to force regeneration.'.format(pdf_file))
 
     def get_cover(self):
         cover_html = '''
