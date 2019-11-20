@@ -14,7 +14,7 @@ set -x
 MY_DIR=$(cd $(dirname "$0") && pwd)
 RESOURCE_DIR="/tmp/tn_resources"
 
-pip install -r "${MY_DIR}/../requirements.txt"
+pip3 install -r "${MY_DIR}/../requirements.txt"
 mkdir -p "${RESOURCE_DIR}"
 cp package.json "${RESOURCE_DIR}"
 cp getResources.js "${RESOURCE_DIR}"
