@@ -141,9 +141,7 @@ class TaConverter(object):
             LOGGER.setLevel('WARN')  # Set to 'INFO' for debugging
             LOGGER.addHandler(logging.FileHandler(os.path.join(self.output_dir, '{0}_errors.log'.format(self.file_id))))
             weasy = HTML(filename=html_file, base_url='file://{0}/'.format(self.output_dir))
-            weasy_render = weasy.render()
-            weasy_render.resolve_links()
-            weasy_render.write_pdf(pdf_file)
+            weasy.write_pdf(pdf_file)
             link_file = os.path.join(self.output_dir, '{0}_ta_{1}.pdf'.format(self.lang_code, self.ta_tag))
             subprocess.call('ln -sf "{0}" "{1}"'.format(pdf_file, link_file), shell=True)
 
