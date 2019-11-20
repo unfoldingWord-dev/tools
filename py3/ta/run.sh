@@ -8,6 +8,6 @@
 #  Contributors:
 #  Richard Mahn <richard_mahn@wyciffeassociates.org>
 
-cd $(dirname "$0")/../../..
+cd $(dirname "$0")/../..
 pwd
-python3 -m tools.py3.ta.generate_pdf $@
+python3 -m py3.ta.generate_pdf $@

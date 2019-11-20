@@ -7,7 +7,7 @@
 #
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
-#  Richard Mahn <richard_mahn@wycliffeassociates.org>
+#  Richard Mahn <rich.mahn@unfoldingword.org>
 
 '''
 This script takes grabs the ULB text from the local git repo and splits it based on

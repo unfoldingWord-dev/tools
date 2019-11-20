@@ -6,7 +6,7 @@
 #  See LICENSE file for details.
 #
 #  Contributors:
-#  Ricahrd Mahn <richard_mahn@wycliffeassociates.org>
+#  Ricahrd Mahn <rich.mahn@unfoldingword.org>
 #
 #      docuwiki patterns        docuwiki example                 Y github markdown
 # ---- ------------------------ -------------------------------- - ----------------------------------

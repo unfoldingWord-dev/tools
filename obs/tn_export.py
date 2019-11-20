@@ -7,7 +7,7 @@
 #
 #  Contributors:
 #  Phil Hopper <phillip_hopper@wycliffeassociates.org>
-#  Richard Mahn <richard_mahn@wycliffeassociates.org>
+#  Richard Mahn <rich.mahn@unfoldingword.org>
 #
 
 import codecs

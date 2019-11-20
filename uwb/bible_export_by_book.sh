@@ -6,7 +6,7 @@
 #  See LICENSE file for details.
 #
 #  Contributors:
-#  Richard Mahn <richard_mahn@wycliffeassociates.org>
+#  Richard Mahn <rich.mahn@unfoldingword.org>
 
 # Set script to die if any of the subprocesses exit with a fail code. This
 # catches a lot of scripting mistakes that might otherwise only show up as side

@@ -9,7 +9,7 @@
 #
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
-#  Richard Mahn <richard_mahn@wycliffeassociates.org>
+#  Richard Mahn <rich.mahn@unfoldingword.org>
 #  Caleb Maclennan <caleb@alerque.com>
 
 set -e # die if errors

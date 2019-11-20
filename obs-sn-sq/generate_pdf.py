@@ -325,19 +325,19 @@ class ObsSnSqConverter(object):
   <div class="break">
     <span class="h1">Copyrights & Licensing</span>
     <p>
-      <string>{0}</strong><br/>
+      <strong>{0}</strong><br/>
       <strong>Date:</strong> {1}<br/>
       <strong>Version:</strong> {2}<br/>
       <strong>Published by:</strong> {3}<br/>
     </p>
     <p>
-      <string>{4}</strong><br/>
+      <strong>{4}</strong><br/>
       <strong>Date:</strong> {5}<br/>
       <strong>Version:</strong> {6}<br/>
       <strong>Published by:</strong> {7}<br/>
     </p>
     <p>
-      <string>{8}</strong><br/>      
+      <strong>{8}</strong><br/>      
       <strong>Date:</strong> {9}<br/>
       <strong>Version:</strong> {10}<br/>
       <strong>Published by:</strong> {11}<br/>
@@ -345,10 +345,11 @@ class ObsSnSqConverter(object):
     {12}
   </div>
 </body>
-</html>'''.format(obs_title, obs_issued, obs_version, obs_publisher,
-                  obs_sn_title, obs_sn_issued, obs_sn_version, obs_sn_publisher,
-                  obs_sq_title, obs_sq_issued, obs_sq_version, obs_sq_publisher,
-                  obs_sn_license)
+</html>
+'''.format(obs_title, obs_issued, obs_version, obs_publisher,
+           obs_sn_title, obs_sn_issued, obs_sn_version, obs_sn_publisher,
+           obs_sq_title, obs_sq_issued, obs_sq_version, obs_sq_publisher,
+           obs_sn_license)
         html_file = os.path.join(self.html_dir, '{0}_license.html'.format(self.file_id))
         write_file(html_file, license_html)
 

@@ -7,7 +7,7 @@
 #
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
-#  Richard Mahn <richard_mahn@wycliffeassociates.org>
+#  Richard Mahn <rich.mahn@unfoldingword.org>
 
 '''
 This script exports the ULB and UDB from Etherpad by each book into given directory.

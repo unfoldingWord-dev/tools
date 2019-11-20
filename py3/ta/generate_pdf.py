@@ -26,11 +26,10 @@ import markdown2
 import string
 import shutil
 import yaml
-from bs4 import BeautifulSoup, Tag
-from html import escape
-from html.parser import HTMLParser
+from bs4 import BeautifulSoup
 from weasyprint import HTML, LOGGER
-from ...general_tools.file_utils import read_file, write_file, load_json_object
+from ..general_tools.file_utils import read_file, write_file, load_json_object
+from ..general_tools.html_parser import PrettyHTMLParser
 
 DEFAULT_OWNER = 'unfoldingWord'
 DEFAULT_TAG = 'master'
@@ -40,48 +39,6 @@ OWNERS = [DEFAULT_OWNER, 'STR', 'Door43-Catalog']
 
 def debug(obj):
     print(json.dumps(obj, ensure_ascii=False, indent=2).encode('utf-8'))
-
-
-class MyHTMLParser(HTMLParser):
-    def __init__(self):
-        super().__init__()
-        self.__t = 0
-        self.lines = []
-        self.__current_line = ''
-        self.__current_tag = ''
-        self.__prev_is_text = False
-
-    @staticmethod
-    def __attr_str(attrs):
-        return ' '.join('{}="{}"'.format(name, escape(value)) for (name, value) in attrs)
-
-    def handle_starttag(self, tag, attrs):
-        if tag != self.__current_tag and (tag != 'a' or not self.__prev_is_text):
-            self.lines += [self.__current_line]
-            self.__current_line = '\t' * self.__t
-            self.__t += 1
-        self.__current_line += '<{}>'.format(tag + (' ' + self.__attr_str(attrs) if attrs else ''))
-        self.__current_tag = tag
-        self.__prev_is_text = False
-
-    def handle_endtag(self, tag):
-        self.__t -= 1
-        if tag != self.__current_tag:
-            self.lines += [self.__current_line]
-            self.lines += ['\t' * self.__t + '</{}>'.format(tag)]
-            self.__current_line = ''
-        elif tag == 'a':
-            self.__current_line += '</{}>'.format(tag)
-        else:
-            self.lines += [self.__current_line + '</{}>'.format(tag)]
-            self.__current_line = ''
-
-    def handle_data(self, data):
-        self.__prev_is_text = True
-        self.__current_line += data
-
-    def get_parsed_string(self):
-        return '\n'.join(l for l in self.lines if l)
 
 
 class TaConverter(object):
@@ -113,6 +70,7 @@ class TaConverter(object):
         self.bad_links = {}
         self.config = None
         self.file_id = None
+        self.date = datetime.now().strftime('%Y-%m-%d')
 
     def fix_links(self, html):
         html = re.sub(r'href="([^"]+/)*([^"/]+)/01.md"', r'href="#\2"', html, flags=re.MULTILINE | re.IGNORECASE)
@@ -133,7 +91,7 @@ class TaConverter(object):
         self.html_dir = os.path.join(self.output_dir, 'html')
         os.makedirs(self.html_dir, exist_ok=True)
         self.setup_resource_files()
-        self.file_id = '{0}_ta_{1}_{2}'.format(self.lang_code, self.ta_tag, self.generation_info['ta']['commit'])
+        self.file_id = '{0}_{1}_ta_{2}_{3}'.format(self.date, self.lang_code, self.ta_tag, self.generation_info['ta']['commit'])
         self.manifest = yaml.full_load(read_file(os.path.join(self.ta_dir, 'manifest.yaml')))
         self.version = self.manifest['dublin_core']['version']
         self.title = self.manifest['dublin_core']['title']
@@ -145,38 +103,47 @@ class TaConverter(object):
         pdf_file = os.path.join(self.output_dir, '{0}.pdf'.format(self.file_id))
         if self.regenerate or not os.path.exists(html_file):
             self.logger.info('Generating HTML file {0}...'.format(html_file))
-            with open(os.path.join(self.my_path, 'template.html')) as template_file:
+            with open(os.path.join(self.my_path, '..', 'common_files', 'template.html')) as template_file:
                 html_template = string.Template(template_file.read())
             html = html_template.safe_substitute(title=self.title)
             self.soup = BeautifulSoup(html, 'html.parser')
             self.soup.html.head.title.string = self.title
+            self.soup.html.head.append(BeautifulSoup('<link href="html/ta_style.css" rel="stylesheet"/>', 'html.parser'))
             self.get_cover()
             self.get_license()
             self.get_toc()
             self.get_articles()
             self.download_all_images()
-            parser = MyHTMLParser()
-            parser.feed(str(self.soup))
-            parsed_html = self.fix_links(parser.get_parsed_string())
+
+            # parser = PrettyHTMLParser()
+            # parser.feed(str(self.soup))
+            # prettify_html = self.fix_links(parser.get_parsed_string())
             # prettify_html = self.fix_links(self.soup.prettify())
-            write_file(html_file, parsed_html)
+            write_file(html_file, str(self.soup)))
+
+            self.logger.info("Copying style sheet files...")
             style_file = os.path.join(self.my_path, 'ta_style.css')
             shutil.copy2(style_file, self.html_dir)
+            style_file = os.path.join(self.my_path, '..', 'common_files', 'style.css')
+            shutil.copy2(style_file, self.html_dir)
             if not os.path.exists(os.path.join(self.html_dir, 'fonts')):
-                fonts_dir = os.path.join(self.my_path, '..', 'fonts')
+                fonts_dir = os.path.join(self.my_path, '..', 'common_files', 'fonts')
                 shutil.copytree(fonts_dir, os.path.join(self.html_dir, 'fonts'))
+
             self.save_resource_data()
             for bad_link in sorted(self.bad_links.keys()):
                 print('{0}: {1}'.format(bad_link, self.bad_links[bad_link]))
             self.logger.info('Generated HTML file.')
         else:
             self.logger.info('HTML file {0} already there. Not generating. Use -r to force regeneration.'.format(html_file))
+
         if self.regenerate or not os.path.exists(pdf_file):
             self.logger.info('Generating PDF file {0}...'.format(pdf_file))
             LOGGER.setLevel('WARN')  # Set to 'INFO' for debugging
+            LOGGER.addHandler(logging.FileHandler(os.path.join(self.output_dir, '{0}_errors.log'.format(self.file_id))))
             weasy = HTML(filename=html_file, base_url='file://{0}/'.format(self.output_dir))
             weasy_render = weasy.render()
-            print(weasy_render.resolve_links())
+            weasy_render.resolve_links()
             weasy_render.write_pdf(pdf_file)
             link_file = os.path.join(self.output_dir, '{0}_ta_{1}.pdf'.format(self.lang_code, self.ta_tag))
             subprocess.call('ln -sf "{0}" "{1}"'.format(pdf_file, link_file), shell=True)
@@ -201,16 +168,15 @@ class TaConverter(object):
         license_html = '''
           <article id="license">
             <h1 id="license-title">Copyrights & Licensing</h1>
-            <div id="ta-copyright-info">
-              <div id="ta-date"><strong>Date:</strong> {0}</div>
-              <div id="ta-version"><strong>Version:</strong> {1}</div>
-              <div id="ta-published-by"><strong>Published by:</strong> {2}</div>
+            <div id="copyright-info">
+              <div id="date"><strong>Date:</strong> {0}</div>
+              <div id="version"><strong>Version:</strong> {1}</div>
+              <div id="published-by"><strong>Published by:</strong> {2}</div>
             </div>
             {3}
           </article>
         '''.format(self.issued, self.version, self.publisher, license_html)
-        license = BeautifulSoup(license_html, 'html.parser')
-        self.soup.body.append(license)
+        self.soup.body.append(BeautifulSoup(license_html, 'html.parser'))
 
     def get_toc(self):
         toc_html = ''
@@ -384,7 +350,7 @@ class TaConverter(object):
         img_dir = os.path.join(self.html_dir, 'images')
         os.makedirs(img_dir, exist_ok=True)
         for img in self.soup.find_all('img'):
-            if 'http' in img['src']:
+            if img['src'].startswith('http'):
                 url = img['src']
                 filename = re.search(r'/([\w_-]+[.](jpg|gif|png))$', url).group(1)
                 img['src'] = 'html/images/{0}'.format(filename)

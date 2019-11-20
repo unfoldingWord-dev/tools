@@ -524,14 +524,6 @@ class TnConverter(object):
         else:
             return str(num).zfill(2)
 
-    @staticmethod
-    def isInt(str):
-        try: 
-            int(str)
-            return True
-        except ValueError:
-            return False
-
     def get_usfm_from_verse_objects(self, verseObjects, depth=0):
         usfm = ''
         for idx, obj in enumerate(verseObjects):
@@ -830,6 +822,7 @@ class TnConverter(object):
         return html
 
     def get_highlighted_html(self, resource, chapter, first_verse, last_verse):
+        print([resource, chapter, first_verse, last_verse])
         html = self.get_plain_html(resource, chapter, first_verse)
         regex = re.compile(' <div')
         versesAndFooter = regex.split(html)
@@ -843,8 +836,11 @@ class TnConverter(object):
         for i in range(1, len(versesSplit), 2):
             verses[int(versesSplit[i])] = versesSplit[i+1]
         newHtml = versesSplit[0]
+        print([html, newHtml])
         for verseNum in range(first_verse, last_verse+1):
             words = self.get_all_words_to_match(resource, chapter, verseNum)
+            print(words)
+            exit(1)
             for word in words:
                 parts = word['text'].split(' ... ')
                 pattern = ''
