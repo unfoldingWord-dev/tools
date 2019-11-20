@@ -11,4 +11,5 @@ six
 tornado
 gitpython
 requests
+#weasyprint
 
