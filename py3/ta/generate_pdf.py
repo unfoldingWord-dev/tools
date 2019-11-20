@@ -26,10 +26,10 @@ import markdown2
 import string
 import shutil
 import yaml
+import prettierfier
 from bs4 import BeautifulSoup
 from weasyprint import HTML, LOGGER
 from ..general_tools.file_utils import read_file, write_file, load_json_object
-from ..general_tools.html_parser import PrettyHTMLParser
 
 DEFAULT_OWNER = 'unfoldingWord'
 DEFAULT_TAG = 'master'
@@ -115,11 +115,8 @@ class TaConverter(object):
             self.get_articles()
             self.download_all_images()
 
-            # parser = PrettyHTMLParser()
-            # parser.feed(str(self.soup))
-            # prettify_html = self.fix_links(parser.get_parsed_string())
-            # prettify_html = self.fix_links(self.soup.prettify())
-            write_file(html_file, str(self.soup))
+            prettierfied_html = prettierfier.prettify_html(self.soup.prettify())
+            write_file(html_file, prettierfied_html)
 
             self.logger.info("Copying style sheet files...")
             style_file = os.path.join(self.my_path, 'ta_style.css')

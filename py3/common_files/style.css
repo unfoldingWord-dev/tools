@@ -141,60 +141,37 @@ h1, h2, h3, h4, h5, h6,
 .h1 {
     display: block;
     font-size: 2em;
-    -webkit-margin-before: 0.67em;
-    -webkit-margin-after: 0.67em;
-    -webkit-margin-start:0;
-    -webkit-margin-end:0;
     font-weight: bold;
 }
 
 .h2 {
     display: block;
     font-size: 1.4em;
-    -webkit-margin-before: 0.83em;
-    -webkit-margin-after: 0.83em;
-    -webkit-margin-start:0;
-    -webkit-margin-end:0;
     font-weight: bold;
 }
 
 .h3 {
     display: block;
     font-size: 1.2em;
-    -webkit-margin-before: 1em;
-    -webkit-margin-after: 1em;
-    -webkit-margin-start:0;
-    -webkit-margin-end:0;
+
     font-weight: bold;
 }
 
 .h4 {
     display: block;
     font-size: 1em;
-    -webkit-margin-before: 1.33em;
-    -webkit-margin-after: 1.33em;
-    -webkit-margin-start:0;
-    -webkit-margin-end:0;
     font-weight: bold;
 }
 
 .h5 {
     display: block;
     font-size: 1em;
-    -webkit-margin-before: 1.67em;
-    -webkit-margin-after: 1.67em;
-    -webkit-margin-start:0;
-    -webkit-margin-end:0;
     font-weight: bold;
 }
 
 .h6 {
     display: block;
     font-size: 0.75em;
-    -webkit-margin-before: 2em;
-    -webkit-margin-after: 2em;
-    -webkit-margin-start:0;
-    -webkit-margin-end:0;
     font-weight: bold;
 }
 
@@ -213,7 +190,7 @@ section > section:first-child, section > .section-header:first-child + section, 
     text-align: center;
 }
 
-.cover img {
+.cover img, .resource-title-page img {
     width: 120px;
 }
 
@@ -240,10 +217,6 @@ section h5.section-header {
 .section-header {
     display: block;
     font-size: 1.5em;
-    -webkit-margin-before: 0.83em;
-    -webkit-margin-after: 0.83em;
-    -webkit-margin-start:0;
-    -webkit-margin-end:0;
     font-weight: bold;
 }
 

@@ -289,7 +289,7 @@ class SingleHTMLRenderer(AbstractRenderer):
         self.stopLI()
         self.closeFootnote()
         self.cv = token.value.zfill(3)
-        self.write(' <span id="{0}-ch-{1}-v-{2}" class="v-num"><sup><b>{3}</b></sup></span>'.
+        self.write(' <span id="{0}-ch-{1}-v-{2}" class="v-num"><sup><strong>{3}</strong></sup></span>'.
                    format(self.cb, self.cc, self.cv, token.value))
     def renderVA_S(self, token):
         assert not token.value
@@ -354,10 +354,10 @@ class SingleHTMLRenderer(AbstractRenderer):
 
     def renderSC_S(self, token):
         assert not token.value
-        self.write('<b>')
+        self.write('<strong>')
     def renderSC_E(self, token):
         assert not token.value
-        self.write('</b>')
+        self.write('</strong>')
 
     def renderQS_S(self, token):
         assert not token.value
