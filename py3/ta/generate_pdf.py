@@ -119,7 +119,7 @@ class TaConverter(object):
             # parser.feed(str(self.soup))
             # prettify_html = self.fix_links(parser.get_parsed_string())
             # prettify_html = self.fix_links(self.soup.prettify())
-            write_file(html_file, str(self.soup)))
+            write_file(html_file, str(self.soup))
 
             self.logger.info("Copying style sheet files...")
             style_file = os.path.join(self.my_path, 'ta_style.css')
