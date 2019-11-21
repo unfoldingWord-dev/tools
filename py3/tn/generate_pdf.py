@@ -1004,7 +1004,7 @@ class TnConverter(object):
         word_list = []
         for verse_object in verse_objects:
             ol = None
-            if 'content' in verse_object and verse_object['type'] == 'milestone':
+            if 'content' in verse_object and 'type' in verse_object and verse_object['type'] == 'milestone':
                 ol_words.append(verse_object['content'])
                 target_words = []
                 for child in verse_object['children']:
@@ -1013,7 +1013,8 @@ class TnConverter(object):
                 target = ' '.join(target_words)
                 found = False
                 for idx, word in enumerate(word_list):
-                    if word['ol'] == verse_object['content'] and word['occurrence'] == verse_object['occurrence']:
+                    if word['ol'] == verse_object['content'] and 'occurrence' in verse_object and \
+                            word['occurrence'] == verse_object['occurrence']:
                         word_list[idx]['target'] += ' ... ' + target
                         found = True
                 if not found:
