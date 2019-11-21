@@ -170,7 +170,7 @@ class TnConverter(object):
         for p in projects:
             self.project = p
             self.book_id = p['identifier'].lower()
-            self.book_title = p['title'].replace(' {0}'.format(self.title), '')
+            self.book_title = p['title']
             self.book_number = BOOK_NUMBERS[self.book_id]
             self.book_file_id = '{0}_{1}_tn_{2}_{3}_{4}-{5}'.format(self.date, self.lang_code, self.tn_tag,
                                                                 self.generation_info[self.tn_id]['commit'],
@@ -233,7 +233,7 @@ class TnConverter(object):
                 weasy.write_pdf(pdf_file)
                 self.logger.info('Generated PDF file.')
                 link_file = os.path.join(self.output_dir, '{0}_tn_{1}_{2}-{3}.pdf'.
-                                         format(self.lang_code, self.ta_tag, self.book_number.zfill(2),
+                                         format(self.lang_code, self.tn_tag, self.book_number.zfill(2),
                                                 self.book_id.upper()))
                 subprocess.call('ln -sf "{0}" "{1}"'.format(pdf_file, link_file), shell=True)
             else:
@@ -245,9 +245,10 @@ class TnConverter(object):
 <article id="main-cover" class="cover">
     <img src="html/logo-utn-256.png" alt="UTN"/>
     <h1 id="cover-title">{0}</h1>
-    <h2>Version {1}</h2>
+    <h2 id="cover-book-title">{1}</h1>
+    <h3 id="cover-verson">Version {2}</h2>
 </article>
-        '''.format(self.title, self.version)
+        '''.format(self.title, self.book_title, self.version)
         self.soup.body.append(BeautifulSoup(cover_html, 'html.parser'))
 
     def get_license(self):
@@ -259,15 +260,15 @@ class TnConverter(object):
         tn_publisher = self.tn_manifest['dublin_core']['publisher']
         tn_issued = self.tn_manifest['dublin_core']['issued']
 
-        tw_title = self.tw_manifest['dublin_core']['title']
-        tw_version = self.tw_manifest['dublin_core']['version']
-        tw_publisher = self.tw_manifest['dublin_core']['publisher']
-        tw_issued = self.tw_manifest['dublin_core']['issued']
-
         ta_title = self.ta_manifest['dublin_core']['title']
         ta_version = self.ta_manifest['dublin_core']['version']
         ta_publisher = self.ta_manifest['dublin_core']['publisher']
         ta_issued = self.ta_manifest['dublin_core']['issued']
+
+        tw_title = self.tw_manifest['dublin_core']['title']
+        tw_version = self.tw_manifest['dublin_core']['version']
+        tw_publisher = self.tw_manifest['dublin_core']['publisher']
+        tw_issued = self.tw_manifest['dublin_core']['issued']
 
         license_html = '''
 <article id="license">
@@ -293,8 +294,8 @@ class TnConverter(object):
     {12}
 </article>
 '''.format(tn_title, tn_issued, tn_version, tn_publisher,
-           tw_title, tw_issued, tw_version, tw_publisher,
            ta_title, ta_issued, ta_version, ta_publisher,
+           tw_title, tw_issued, tw_version, tw_publisher,
            tn_license)
         self.soup.body.append(BeautifulSoup(license_html, 'html.parser'))
 
@@ -492,7 +493,7 @@ class TnConverter(object):
         {5}
     </div>
 </section>
-'''.format(tn_title, tn_contributors, tw_title, tw_contributors, ta_title, ta_contributors)
+'''.format(tn_title, tn_contributors, ta_title, ta_contributors, tw_title, tw_contributors)
         return contributors_html
 
     def save_resource_data(self):
