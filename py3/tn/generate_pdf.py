@@ -172,8 +172,6 @@ class TnConverter(object):
             self.book_id = p['identifier'].lower()
             self.book_title = p['title'].replace(' {0}'.format(self.title), '')
             self.book_number = BOOK_NUMBERS[self.book_id]
-            if int(self.book_number) < 41:
-                continue
             self.book_file_id = '{0}_{1}_tn_{2}_{3}_{4}-{5}'.format(self.date, self.lang_code, self.tn_tag,
                                                                 self.generation_info[self.tn_id]['commit'],
                                                                 self.book_number.zfill(2), self.book_id.upper())
