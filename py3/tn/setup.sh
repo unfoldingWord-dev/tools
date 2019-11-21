@@ -13,11 +13,11 @@ set -x
 
 MY_DIR=$(cd $(dirname "$0") && pwd)
 
-#pip3 install -r "${MY_DIR}/../requirements.txt"
+pip3 install --upgrade -r "${MY_DIR}/../requirements.txt"
 
 cd resources
-#npm i
-#node ./getResources.js ./
+npm i
+node ./getResources.js ./
 
 rm -rf en/translationHelps en/bibles/t4t en/bibles/udb en/bibles/ulb
 rm -rf kn/translationHelps
