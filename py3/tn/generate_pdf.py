@@ -245,8 +245,8 @@ class TnConverter(object):
 <article id="main-cover" class="cover">
     <img src="html/logo-utn-256.png" alt="UTN"/>
     <h1 id="cover-title">{0}</h1>
-    <h2 id="cover-book-title">{1}</h1>
-    <h3 id="cover-verson">Version {2}</h2>
+    <h2 id="cover-book-title">{1}</h2>
+    <h3 id="cover-version">Version {2}</h3>
 </article>
         '''.format(self.title, self.book_title, self.version)
         self.soup.body.append(BeautifulSoup(cover_html, 'html.parser'))
