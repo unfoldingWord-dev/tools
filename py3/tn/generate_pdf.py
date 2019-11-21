@@ -79,16 +79,18 @@ def get_latest_version(path_to_versions):
 
 class TnConverter(object):
 
-    def __init__(self, ta_tag=None, tn_tag=None, tw_tag=None, ust_tag=None, ult_tag=None, ugnt_tag=None,
+    def __init__(self, ta_tag=None, tn_tag=None, tw_tag=None, ust_tag=None, ult_tag=None,
+                 ust_id=DEFAULT_UST_ID, ult_id=DEFAULT_ULT_ID, tn_id=DEFAULT_TN_ID,
                  working_dir=None, output_dir=None, lang_code=DEFAULT_LANG, books=None, owner=DEFAULT_OWNER,
-                 regenerate=False, logger=None, ust_id=DEFAULT_UST_ID, ult_id=DEFAULT_ULT_ID, tn_id=DEFAULT_TN_ID,
-                 regenerate_all=False):
+                 regenerate=False, regenerate_all=False, logger=None):
         self.ta_tag = ta_tag
         self.tn_tag = tn_tag
         self.tw_tag = tw_tag
         self.ust_tag = ust_tag
         self.ult_tag = ult_tag
-        self.ugnt_tag = ugnt_tag
+        self.ust_id = ust_id
+        self.ult_id = ult_id
+        self.tn_id = tn_id
         self.working_dir = working_dir
         self.output_dir = output_dir
         self.lang_code = lang_code
@@ -98,9 +100,6 @@ class TnConverter(object):
         self.regenerate = regenerate_all or regenerate
         self.regenerate_all = regenerate_all
         self.logger = logger
-        self.ust_id = ust_id
-        self.ult_id = ult_id
-        self.tn_id = tn_id
 
         if not self.working_dir:
             self.working_dir = tempfile.mkdtemp(prefix='tn-')
@@ -114,7 +113,6 @@ class TnConverter(object):
         self.ta_dir = os.path.join(self.working_dir, '{0}_ta'.format(lang_code))
         self.ust_dir = os.path.join(self.working_dir, '{0}_{1}'.format(lang_code, self.ust_id))
         self.ult_dir = os.path.join(self.working_dir, '{0}_{1}'.format(lang_code, self.ult_id))
-        self.ugnt_dir = os.path.join(self.working_dir, 'el-x-koine_ugnt')
         self.versification_dir = os.path.join(self.working_dir, 'versification', 'bible', 'ufw', 'chunks')
         self.html_dir = os.path.join(self.output_dir, 'html')
         if not os.path.isdir(self.html_dir):
@@ -146,7 +144,7 @@ class TnConverter(object):
         self.usfm_chunks = {}
         self.version = None
         self.my_path = os.path.dirname(os.path.realpath(__file__))
-        self.tn_resources_dir = '/tmp/tn_resources'
+        self.tn_resources_dir = os.path.join(self.my_path, 'resources')
 
         self.lastEndedWithQuoteTag = False
         self.lastEndedWithParagraphTag = False
@@ -309,20 +307,26 @@ class TnConverter(object):
                 source = source_rc[5:].split('/')
                 parts = rc[5:].split('/')
                 if source[1] == self.ult_id:
-                    str = '  ULT {0} {1}:{2}: English ULT alignment not found for `{3}` (greek: `{4}`, occurrence: {5})'.format(source[3].upper(), source[4], source[5], self.bad_links[source_rc][rc], parts[3], parts[4])
+                    error_message = \
+                        '  ULT {0} {1}:{2}: Target ULT alignment not found for `{3}` (quote: `{4}`, occurrence: {5})'.\
+                        format(source[3].upper(), source[4], source[5], self.bad_links[source_rc][rc], parts[3],
+                               parts[4])
                 else:
                     if source[1] == 'tn':
                         if parts[1] == 'tw':
-                            str = '  UGNT'
+                            if int(self.book_number) > 40:
+                                error_message = '  UGNT'
+                            else:
+                                error_message = '  UHB'
                         else:
-                            str = '  tN'
-                        str += ' {0} {1}:{2}'.format(source[3].upper(), source[4], source[5])
+                            error_message = '  UTN'
+                        error_message += ' {0} {1}:{2}'.format(source[3].upper(), source[4], source[5])
                     else:
-                        str = '  {0} {1}'.format(source[1], '/'.join(source[3:]))
-                    str += ': BAD RC - `{0}`'.format(rc)
+                        error_message = '  {0} {1}'.format(source[1], '/'.join(source[3:]))
+                    error_message += ': BAD RC - `{0}`'.format(rc)
                     if self.bad_links[source_rc][rc]:
-                        str += ' - change to `{0}`'.format(self.bad_links[source_rc][rc])
-                bad_links += "{0}\n".format(str)
+                        error_message += ' - change to `{0}`'.format(self.bad_links[source_rc][rc])
+                bad_links += "{0}\n".format(error_message)
         save_file = os.path.join(self.output_dir, '{0}_bad_links.txt'.format(self.book_file_id))
         write_file(save_file, bad_links)
         self.logger.info('BAD LINKS file can be found at {0}'.format(save_file))
@@ -380,7 +384,6 @@ class TnConverter(object):
         self.clone_resource('ta', self.ta_tag)
         self.clone_resource(self.ult_id, self.ult_tag)
         self.clone_resource(self.ust_id, self.ust_tag)
-        self.clone_resource('ugnt', self.ugnt_tag, 'el-x-koine')
         if not os.path.isdir(self.versification_dir):
             git.Repo.clone_from('https://git.door43.org/Door43-Catalog/versification.git',
                                 os.path.join(self.working_dir, 'versification'))
@@ -868,12 +871,12 @@ class TnConverter(object):
 
                 chunk_article = '''
     <h2 class="section-header">{0}</h2>
-    <table class="tn-notes-table" style="width:100%">
+    <table class="tn-notes-table">
         <tr>
-            <td class="col1" style="vertical-align:top;width:35%;padding-right:5px">
+            <td class="col1">
                 {1}
             </td>
-            <td class="col2" style="vertical-align:top">
+            <td class="col2">
                 {2}
             </td>
         </tr>
@@ -890,13 +893,16 @@ class TnConverter(object):
 
     def populate_tw_words_data(self):
         groups = ['kt', 'names', 'other']
-        grc_path = get_latest_version(os.path.join(self.tn_resources_dir, 'grc/translationHelps/translationWords'))
-        if not os.path.isdir(grc_path):
-            self.logger.error('{0} not found! Please make sure you ran `node getResources ./` in the generate_tn_pdf dir and that the version in the script is correct'.format(grc_path))
+        if int(self.book_number) < 41:
+            ol_path = get_latest_version(os.path.join(self.tn_resources_dir, 'hbo/translationHelps/translationWords'))
+        else:
+            ol_path = get_latest_version(os.path.join(self.tn_resources_dir, 'el-x-koine/translationHelps/translationWords'))
+        if not os.path.isdir(ol_path):
+            self.logger.error('{0} not found! Please make sure you ran `setup.sh` in the `tn` dir'.format(ol_path))
             exit(1)
         words = {}
         for group in groups:
-            files_path = '{0}/{1}/groups/{2}/*.json'.format(grc_path, group, self.book_id)
+            files_path = '{0}/{1}/groups/{2}/*.json'.format(ol_path, group, self.book_id)
             files = glob(files_path)
             for file in files:
                 base = os.path.splitext(os.path.basename(file))[0]
@@ -989,52 +995,57 @@ class TnConverter(object):
                     words.append({'text': aligned_text, 'contextId': context_id})
         return words
 
-    def find_english_from_combination(self, verse_objects, quote, occurrence):
-        greekWords = []
-        wordList = []
+    def find_target_from_combination(self, verse_objects, quote, occurrence):
+        ol_words = []
+        word_list = []
         for verse_object in verse_objects:
-            greek = None
+            ol = None
             if 'content' in verse_object and verse_object['type'] == 'milestone':
-                greekWords.append(verse_object['content'])
-                englishWords = []
+                ol_words.append(verse_object['content'])
+                target_words = []
                 for child in verse_object['children']:
                     if child['type'] == 'word':
-                        englishWords.append(child['text'])
-                english = ' '.join(englishWords)
+                        target_words.append(child['text'])
+                target = ' '.join(target_words)
                 found = False
-                for idx, word in enumerate(wordList):
-                    if word['greek'] == verse_object['content'] and word['occurrence'] == verse_object['occurrence']:
-                        wordList[idx]['english'] += ' ... ' + english
+                for idx, word in enumerate(word_list):
+                    if word['ol'] == verse_object['content'] and word['occurrence'] == verse_object['occurrence']:
+                        word_list[idx]['target'] += ' ... ' + target
                         found = True
                 if not found:
-                    wordList.append({'greek': verse_object['content'], 'english': english, 'occurrence': verse_object['occurrence']})
+                    word_list.append({'ol': verse_object['content'], 'target': target, 'occurrence': verse_object['occurrence']})
         combinations = []
         occurrences = {}
-        for i in range(0, len(wordList)):
-            greek = wordList[i]['greek']
-            english = wordList[i]['english']
-            for j in range(i, len(wordList)):
+        for i in range(0, len(word_list)):
+            ol = word_list[i]['ol']
+            target = word_list[i]['target']
+            for j in range(i, len(word_list)):
                 if i != j:
-                    greek += ' '+wordList[j]['greek']
-                    english += ' '+wordList[j]['english']
-                if greek not in occurrences:
-                    occurrences[greek] = 0
-                occurrences[greek] += 1
-                combinations.append({'greek': greek, 'english': english, 'occurrence': occurrences[greek]})
+                    ol += ' '+word_list[j]['ol']
+                    target += ' '+word_list[j]['target']
+                if ol not in occurrences:
+                    occurrences[ol] = 0
+                occurrences[ol] += 1
+                combinations.append({'ol': ol, 'target': target, 'occurrence': occurrences[ol]})
         for combination in combinations:
-            if combination['greek'] == quote and combination['occurrence'] == occurrence:
-                return combination['english']
+            if combination['ol'] == quote and combination['occurrence'] == occurrence:
+                return combination['target']
         return None
 
-    def find_english_from_split(self, verse_objects, quote, occurrence, isMatch=False):
-        words_to_match = quote.split(' ')
+    def find_target_from_split(self, verse_objects, quote, occurrence, is_match=False):
+        words_to_match = []
+        if isinstance(quote, list):
+            for q in quote:
+                words_to_match.append(q['word'])
+        else:
+            words_to_match = quote.split(' ')
         separator = ' '
         needs_ellipsis = False
         text = ''
         for index, verse_object in enumerate(verse_objects):
             last_match = False
             if verse_object['type'] == 'milestone' or verse_object['type'] == 'word':
-                if ((('content' in verse_object and verse_object['content'] in words_to_match) or ('lemma' in verse_object and verse_object['lemma'] in words_to_match)) and verse_object['occurrence'] == occurrence) or isMatch:
+                if ((('content' in verse_object and verse_object['content'] in words_to_match) or ('lemma' in verse_object and verse_object['lemma'] in words_to_match)) and verse_object['occurrence'] == occurrence) or is_match:
                     last_match = True
                     if needs_ellipsis:
                         separator += '... '
@@ -1045,15 +1056,15 @@ class TnConverter(object):
                     if 'text' in verse_object and verse_object['text']:
                         text += verse_object['text']
                     if 'children' in verse_object and verse_object['children']:
-                        text += self.find_english_from_split(verse_object['children'], quote, occurrence, True)
+                        text += self.find_target_from_split(verse_object['children'], quote, occurrence, True)
                 elif 'children' in verse_object and verse_object['children']:
-                    childText = self.find_english_from_split(verse_object['children'], quote, occurrence, isMatch)
-                    if childText:
+                    child_text = self.find_target_from_split(verse_object['children'], quote, occurrence, is_match)
+                    if child_text:
                         last_match = True
                         if needs_ellipsis:
                             separator += '... '
                             needs_ellipsis = False
-                        text += (separator if text else '') + childText
+                        text += (separator if text else '') + child_text
                         separator = ' '
                     elif text:
                         needs_ellipsis = True
@@ -1063,23 +1074,26 @@ class TnConverter(object):
                 separator += verse_objects[index + 1]['text']
         return text
 
-    def get_aligned_text(self, verse_objects, context_id, isMatch=False):
-        if not verse_objects or not context_id or not 'quote' in context_id or not context_id['quote']:
+    def get_aligned_text(self, verse_objects, context_id, is_match=False):
+        if not verse_objects or not context_id or 'quote' not in context_id or not context_id['quote']:
             return ''
-        text = self.find_english_from_combination(verse_objects, context_id['quote'], context_id['occurrence'])
+        text = self.find_target_from_combination(verse_objects, context_id['quote'], context_id['occurrence'])
         if text:
             return text
-        text = self.find_english_from_split(verse_objects, context_id['quote'], context_id['occurrence'])
+        text = self.find_target_from_split(verse_objects, context_id['quote'], context_id['occurrence'])
         if text:
             return text
         rc = 'rc://{0}/{1}/bible/{2}/{3}/{4}'.format(self.lang_code, self.ult_id, self.book_id,
                                                      context_id['reference']['chapter'],
                                                      context_id['reference']['verse'])
-        bad_rc = 'rc://*/grc/word/{0}/{1}'.format(context_id['quote'], context_id['occurrence'])
+        if int(self.book_number) < 41:
+            bad_rc = 'rc://hbo/tw/word/{0}/{1}'.format(context_id['quote'], context_id['occurrence'])
+        else:
+            bad_rc = 'rc://el-x-koine/tw/word/{0}/{1}'.format(context_id['quote'], context_id['occurrence'])
         if rc not in self.bad_links:
             self.bad_links[rc] = {}
         self.bad_links[rc][bad_rc] = context_id['rc']
-        self.logger.error('{0} word not found for Greek word `{1}` (occurrence: {2}) in `ULT {3} {4}:{5}`'.
+        self.logger.error('{0} word not found for OL word `{1}` (occurrence: {2}) in `ULT {3} {4}:{5}`'.
                           format(self.lang_code.upper(), context_id['quote'], context_id['occurrence'],
                                  self.book_id.upper(), context_id['reference']['chapter'],
                                  context_id['reference']['verse']))
@@ -1392,10 +1406,8 @@ class TnConverter(object):
     def fix_links(self, text):
         # convert URLs to links if not already
         text = re.sub(r'(?<![">])((http|https|ftp)://[A-Za-z0-9\/\?&_\.:=#-]+[A-Za-z0-9\/\?&_:=#-])', r'<a href="\1">\1</a>', text, flags=re.IGNORECASE)
-
-        # # Removes leading 0s from verse references
-        # text = re.sub(r' 0*(\d+):0*(\d+)(-*)0*(\d*)', r' \1:\2\3\4', text, flags=re.IGNORECASE | re.MULTILINE)
-
+        # Removes leading 0s from verse references
+        text = re.sub(r' 0*(\d+):0*(\d+)(-*)0*(\d*)', r' \1:\2\3\4', text, flags=re.IGNORECASE | re.MULTILINE)
         return text
 
     def get_chunk_html(self, usfm, resource, chapter, verse):
@@ -1430,8 +1442,8 @@ class TnConverter(object):
         return html
 
 
-def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_codes, books, working_dir, output_dir, owner,
-         regenerate, ust_id, ult_id, tn_id, regenerate_all):
+def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ust_id, ult_id, tn_id,
+         lang_codes, books, working_dir, output_dir, owner, regenerate, regenerate_all):
     lang_codes = lang_codes
     if not lang_codes:
         lang_codes = [DEFAULT_LANG]
@@ -1455,8 +1467,8 @@ def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_codes, books, 
 
     for lang_code in lang_codes:
         logger.info('Starting TN Converter for {0}...'.format(lang_code))
-        tn_converter = TnConverter(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, working_dir, output_dir,
-                                   lang_code, books, owner, regenerate, logger, ust_id, ult_id, tn_id, regenerate_all)
+        tn_converter = TnConverter(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ust_id, ult_id, tn_id,
+                                   working_dir, output_dir, lang_code, books, owner, regenerate, regenerate_all, logger)
         tn_converter.run()
 
 
@@ -1474,12 +1486,12 @@ if __name__ == '__main__':
     parser.add_argument('--ult-id', dest='ult_id', default=DEFAULT_ULT_ID, required=False, help="ULT ID")
     parser.add_argument('--ust-tag', dest='ust', default=DEFAULT_TAG, required=False, help="UST Tag")
     parser.add_argument('--ult-tag', dest='ult', default=DEFAULT_TAG, required=False, help="ULT Tag")
-    parser.add_argument('--ugnt-tag', dest='ugnt', default=DEFAULT_TAG, required=False, help="UGNT Tag")
     parser.add_argument('--owner', dest='owner', default=DEFAULT_OWNER, required=False, help='Owner')
     parser.add_argument('-r', '--regenerate', dest='regenerate', default=False, action='store_true',
                         help='Regenerate even if exists')
     parser.add_argument('--regenerate-all', dest='regenerate_all', default=False, action='store_true',
                         help='Regenerate all things even scripture html even if exists')
     args = parser.parse_args(sys.argv[1:])
-    main(args.ta, args.tn, args.tw, args.ust, args.ult, args.ugnt, args.lang_codes, args.books, args.working_dir,
-         args.output_dir, args.owner, args.regenerate, args.ust_id, args.ult_id, args.tn_id, args.regenerate_all)
+    main(args.ta, args.tn, args.tw, args.ust, args.ult, args.ust_id, args.ult_id, args.tn_id,
+         args.lang_codes, args.books, args.working_dir, args.output_dir, args.owner, args.regenerate,
+         args.regenerate_all)

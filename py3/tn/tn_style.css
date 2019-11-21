@@ -1,7 +1,30 @@
-h3.bible-resource-title {
-    color: #555;
+table.tn-notes-table {
+    margin: 0 !important;
+    width: 100%;
 }
 
-.bible-resource-title {
+table.tn-notes-table td {
+    padding-bottom: 0;
+}
+
+table.tn-notes-table td.col1 {
+    vertical-align: top;
+    width:35%;
+    padding: 0 6px !important;
+}
+
+table.tn-notes-table td.col2 {
+    vertical-align: top;
+    width: 65%;
+    padding: 0 !important;
+}
+
+table.tn-notes-table td.col1 h3 {
+    color: #555;
     margin-bottom: 0;
+}
+
+table.tn-notes-table td > h3:first-child,
+table.tn-notes-table td div.verse-note:first-child h3 {
+    margin-top: 0;
 }

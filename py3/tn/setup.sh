@@ -12,12 +12,14 @@ set -e
 set -x
 
 MY_DIR=$(cd $(dirname "$0") && pwd)
-RESOURCE_DIR="/tmp/tn_resources"
 
-pip3 install -r "${MY_DIR}/../requirements.txt"
-mkdir -p "${RESOURCE_DIR}"
-cp package.json "${RESOURCE_DIR}"
-cp getResources.js "${RESOURCE_DIR}"
-cd "${RESOURCE_DIR}"
-npm i
-node ./getResources.js ./
+#pip3 install -r "${MY_DIR}/../requirements.txt"
+
+cd resources
+#npm i
+#node ./getResources.js ./
+
+rm -rf en/translationHelps en/bibles/t4t en/bibles/udb en/bibles/ulb
+rm -rf kn/translationHelps
+rm -rf hbo/bibles
+rm -rf el-x-koine/bibles
