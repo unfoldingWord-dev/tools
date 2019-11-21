@@ -873,16 +873,14 @@ class TnConverter(object):
 
                 chunk_article = '''
     <h2 class="section-header">{0}</h2>
-    <table class="tn-notes-table">
-        <tr>
-            <td class="col1">
+    <div class="tn-notes">
+            <div class="col1">
                 {1}
-            </td>
-            <td class="col2">
+            </div>
+            <div class="col2">
                 {2}
-            </td>
-        </tr>
-    </table>
+            </div>
+    </div>
 '''.format(title, scripture, chunk_notes)
                 tn_html += '''
 <article id="{0}-top">
