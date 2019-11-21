@@ -10,8 +10,3 @@ div.tn-notes .bible-resource-title {
     margin-bottom: 0;
     color: #555;
 }
-
-div.tn-notes h3:first-child,
-div.tn-notes div.verse-note:first-child h3 {
-    margin-top: 0;
-}
