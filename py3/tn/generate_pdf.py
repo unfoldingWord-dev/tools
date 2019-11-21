@@ -226,7 +226,7 @@ class TnConverter(object):
                 self.logger.info(
                     'HTML file {0} already there. Not generating. Use -r to force regeneration.'.format(html_file))
 
-            if False:  #self.regenerate or not os.path.exists(pdf_file):
+            if self.regenerate or not os.path.exists(pdf_file):
                 self.logger.info('Generating PDF file {0}...'.format(pdf_file))
                 LOGGER.setLevel('INFO')  # Set to 'INFO' for debugging
                 LOGGER.addHandler(
