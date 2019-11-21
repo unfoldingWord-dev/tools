@@ -755,9 +755,9 @@ class TnConverter(object):
 <section id="tn-{0}">
 <div class="resource-title-page">
     <img src="html/logo-utn-256.png" class="logo" alt="UTN">
-    <h1 class="section-header">{1}</h1>
+    <h1 class="section-header">{1} - {2}</h1>
 </div>
-'''.format(self.book_id, self.title)
+'''.format(self.book_id, self.tn_manifest['dublin_core']['title'], self.book_title)
         if 'front' in self.tn_book_data and 'intro' in self.tn_book_data['front']:
             intro = markdown2.markdown(self.tn_book_data['front']['intro'][0]['OccurrenceNote'].replace('<br>', '\n'))
             title = self.get_first_header(intro)
@@ -1085,9 +1085,9 @@ class TnConverter(object):
 <section id="tw-{0}">
 <div class="resource-title-page">
     <img src="html/logo-utw-256.png" class="logo" alt="UTW">
-    <h1 class="section-header">Translation Words</h1>
+    <h1 class="section-header">{1}</h1>
 </div>
-'''.format(self.book_id)
+'''.format(self.book_id, self.tw_manifest['dublin_core']['title'])
         sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
         for rc in sorted_rcs:
             if '/tw/' not in rc:
@@ -1109,9 +1109,9 @@ class TnConverter(object):
 <section id="ta-{0}">
 <div class="resource-title-page">
     <img src="html/logo-uta-256.png" class="logo" alt="UTA">
-    <h1 class="section-header">Translation Academy</h1>
+    <h1 class="section-header">{1}</h1>
 </div>
-'''.format(self.book_id)
+'''.format(self.book_id, self.ta_manifest['dublin_core']['title'])
         sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
         for rc in sorted_rcs:
             if '/ta/' not in rc:
