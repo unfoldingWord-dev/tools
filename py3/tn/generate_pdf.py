@@ -95,7 +95,7 @@ class TnConverter(object):
         self.books = books
         self.hash = tn_tag
         self.owner = owner
-        self.regenerate = regenerate
+        self.regenerate = regenerate_all or regenerate
         self.regenerate_all = regenerate_all
         self.logger = logger
         self.ust_id = ust_id
