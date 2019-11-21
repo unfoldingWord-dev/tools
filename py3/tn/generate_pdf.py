@@ -1114,15 +1114,17 @@ class TnConverter(object):
         for rc in sorted_rcs:
             if '/tw/' not in rc:
                 continue
-            html = self.resource_data[rc]['text']
-            html = self.increase_headers(html)
-            title = self.resource_data[rc]['title']
-            alt_title = self.resource_data[rc]['alt_title']
-            if alt_title:
-                html = '<h2 class="section-header">{0}</h2>\n{2}{3}'.format(alt_title, title, self.get_reference_text(rc), html)
-            else:
-                html = '<h2 class="section-header">{0}</h2>\n{1}{2}'.format(title, self.get_reference_text(rc), html)
-            tw_html += '<article id="{0}">\n{1}\n</article>\n\n'.format(self.resource_data[rc]['id'], html)
+            reference_text = self.get_reference_text(rc)
+            if reference_text:
+                html = self.resource_data[rc]['text']
+                html = self.increase_headers(html)
+                title = self.resource_data[rc]['title']
+                alt_title = self.resource_data[rc]['alt_title']
+                if alt_title:
+                    html = '<h2 class="section-header">{0}</h2>\n{2}{3}'.format(alt_title, title, reference_text, html)
+                else:
+                    html = '<h2 class="section-header">{0}</h2>\n{1}{2}'.format(title, reference_text, html)
+                tw_html += '<article id="{0}">\n{1}\n</article>\n\n'.format(self.resource_data[rc]['id'], html)
         tw_html += "\n</section>\n\n"
         return tw_html
 
@@ -1138,7 +1140,8 @@ class TnConverter(object):
         for rc in sorted_rcs:
             if '/ta/' not in rc:
                 continue
-            if self.resource_data[rc]['text']:
+            reference_text = self.get_reference_text(rc)
+            if reference_text and self.resource_data[rc]['text']:
                 html = self.resource_data[rc]['text']
                 html = self.increase_headers(html)
                 html = '''
@@ -1146,7 +1149,7 @@ class TnConverter(object):
     {1}
     <div class="alt-title"><strong>{2}</strong></div>
     {3}
-'''.format(self.resource_data[rc]['title'], self.get_reference_text(rc), self.resource_data[rc]['alt_title'], html)
+'''.format(self.resource_data[rc]['title'], reference_text, self.resource_data[rc]['alt_title'], html)
                 ta_html += '''
 <article id="{0}">
     {1}
@@ -1300,7 +1303,7 @@ class TnConverter(object):
                         'references': [source_rc]
                     }
                     self.rc_lookup[anchor_id] = rc
-                    # self.get_resource_data_from_rc_links(t, rc)  # Turned off due to Jesse's request
+                    self.get_resource_data_from_rc_links(t, rc)
                 else:
                     if source_rc not in self.resource_data[rc]['references']:
                         self.resource_data[rc]['references'].append(source_rc)
