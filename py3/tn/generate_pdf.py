@@ -161,6 +161,12 @@ class TnConverter(object):
         self.file_id = '{0}_{1}_tn_{2}_{3}'.format(self.date, self.lang_code, self.tn_tag,
                                                    self.generation_info[self.tn_id]['commit'])
         self.determine_if_regeneration_needed()
+
+        logger_handler = logging.FileHandler(os.path.join(self.output_dir, '{0}_logger.log'.format(self.file_id)))
+        self.logger.addHandler(logger_handler)
+        LOGGER_handler = logging.FileHandler(os.path.join(self.output_dir, '{0}_weasyprint.log'.format(self.file_id)))
+        LOGGER.addHandler(LOGGER_handler)
+
         self.tn_manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
         self.tw_manifest = load_yaml_object(os.path.join(self.tw_dir, 'manifest.yaml'))
         self.ta_manifest = load_yaml_object(os.path.join(self.ta_dir, 'manifest.yaml'))
@@ -221,14 +227,11 @@ class TnConverter(object):
                 self.save_bad_links()
                 self.logger.info('Generated HTML file.')
             else:
-                self.logger.info(
-                    'HTML file {0} already there. Not generating. Use -r to force regeneration.'.format(html_file))
+                self.logger.info('HTML file {0} already there. Not generating. Use -r to force regeneration.'.
+                                 format(html_file))
 
             if self.regenerate or not os.path.exists(pdf_file):
                 self.logger.info('Generating PDF file {0}...'.format(pdf_file))
-                LOGGER.setLevel('INFO')  # Set to 'INFO' for debugging
-                LOGGER.addHandler(
-                    logging.FileHandler(os.path.join(self.output_dir, '{0}_errors.log'.format(self.book_file_id))))
                 weasy = HTML(filename=html_file, base_url='file://{0}/'.format(self.output_dir))
                 weasy.write_pdf(pdf_file)
                 self.logger.info('Generated PDF file.')
@@ -919,6 +922,7 @@ class TnConverter(object):
         html = re.sub(r'\s*<span class="v-num"', '</div><div class="verse"><span class="v-num"', html, flags=re.IGNORECASE | re.MULTILINE)
         html = re.sub(r'^</div>', '', html)
         html = re.sub(r'id="(ref-)*fn-', r'id="{0}-\1fn-'.format(resource), html, flags=re.IGNORECASE | re.MULTILINE)
+        html = re.sub(r'href="#(ref-)*fn-', r'href="#{0}-\1fn-'.format(resource), html, flags=re.IGNORECASE | re.MULTILINE)
         html += '</div>'
         return html
 
@@ -1431,6 +1435,8 @@ def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_codes, books, 
     lang_codes = lang_codes
     if not lang_codes:
         lang_codes = [DEFAULT_LANG]
+
+    LOGGER.setLevel('INFO')  # Set to 'INFO' for debugging
 
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
