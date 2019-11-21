@@ -1049,7 +1049,7 @@ class TnConverter(object):
         text = ''
         for index, verse_object in enumerate(verse_objects):
             last_match = False
-            if verse_object['type'] == 'milestone' or verse_object['type'] == 'word':
+            if 'type' in verse_object and (verse_object['type'] == 'milestone' or verse_object['type'] == 'word'):
                 if ((('content' in verse_object and verse_object['content'] in words_to_match) or ('lemma' in verse_object and verse_object['lemma'] in words_to_match)) and verse_object['occurrence'] == occurrence) or is_match:
                     last_match = True
                     if needs_ellipsis:
