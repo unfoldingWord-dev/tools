@@ -138,38 +138,38 @@ h1, h2, h3, h4, h5, h6,
     break-after: avoid-page !important;
 }
 
-.h1 {
+h1, .h1 {
     display: block;
     font-size: 2em;
     font-weight: bold;
 }
 
-.h2 {
+h2, .h2 {
     display: block;
     font-size: 1.4em;
     font-weight: bold;
 }
 
-.h3 {
+h3, .h3 {
     display: block;
     font-size: 1.2em;
 
     font-weight: bold;
 }
 
-.h4 {
+h4, .h4 {
     display: block;
     font-size: 1em;
     font-weight: bold;
 }
 
-.h5 {
+h5, .h5 {
     display: block;
     font-size: 1em;
     font-weight: bold;
 }
 
-.h6 {
+h6, .h6 {
     display: block;
     font-size: 0.75em;
     font-weight: bold;
@@ -216,7 +216,7 @@ section h5.section-header {
 
 .section-header {
     display: block;
-    font-size: 1.5em;
+    font-size: 1.5em !important;
     font-weight: bold;
 }
 
@@ -403,7 +403,7 @@ code {
 }
 
 #contributors .contributors-list h1,
-#contributors .contributors-list h2 {
+#contributors .contributors-list .h2 {
     column-span: all;
 }
 
@@ -411,4 +411,8 @@ code {
     padding: 0;
     margin: 0 0 0 2em;
     text-indent: -2em
+}
+
+.resource-info {
+    padding-bottom: 1em;
 }

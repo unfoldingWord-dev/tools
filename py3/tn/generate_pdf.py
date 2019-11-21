@@ -482,15 +482,15 @@ class TnConverter(object):
 <section id="contributors">
     <div class="contributors-list">
         <h1 class="section-header">Contributors</h1>
-        <h2>{0} - Contributors</h2>
+        <span class="h2">{0} - Contributors</span>
         {1}
     </div>
     <div class="contributors-list">
-        <h2>{2} - Contributors</h2>
+        <span class="h2">{2} - Contributors</span>
         {3}
     </div>
     <div class="contributors-list">
-        <h2>{4} - Contributors</h2>
+        <span class="h2">{4} - Contributors</span>
         {5}
     </div>
 </section>
