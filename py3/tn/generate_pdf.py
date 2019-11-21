@@ -81,7 +81,8 @@ class TnConverter(object):
 
     def __init__(self, ta_tag=None, tn_tag=None, tw_tag=None, ust_tag=None, ult_tag=None, ugnt_tag=None,
                  working_dir=None, output_dir=None, lang_code=DEFAULT_LANG, books=None, owner=DEFAULT_OWNER,
-                 regenerate=False, logger=None, ust_id=DEFAULT_UST_ID, ult_id=DEFAULT_ULT_ID, tn_id=DEFAULT_TN_ID):
+                 regenerate=False, logger=None, ust_id=DEFAULT_UST_ID, ult_id=DEFAULT_ULT_ID, tn_id=DEFAULT_TN_ID,
+                 regenerate_all=False):
         self.ta_tag = ta_tag
         self.tn_tag = tn_tag
         self.tw_tag = tw_tag
@@ -95,6 +96,7 @@ class TnConverter(object):
         self.hash = tn_tag
         self.owner = owner
         self.regenerate = regenerate
+        self.regenerate_all = regenerate_all
         self.logger = logger
         self.ust_id = ust_id
         self.ult_id = ult_id
@@ -224,11 +226,11 @@ class TnConverter(object):
                 self.logger.info(
                     'HTML file {0} already there. Not generating. Use -r to force regeneration.'.format(html_file))
 
-            if self.regenerate or not os.path.exists(pdf_file):
+            if False:  #self.regenerate or not os.path.exists(pdf_file):
                 self.logger.info('Generating PDF file {0}...'.format(pdf_file))
                 LOGGER.setLevel('INFO')  # Set to 'INFO' for debugging
                 LOGGER.addHandler(
-                    logging.FileHandler(os.path.join(self.output_dir, '{0}_errors.log'.format(self.file_id))))
+                    logging.FileHandler(os.path.join(self.output_dir, '{0}_errors.log'.format(self.book_file_id))))
                 weasy = HTML(filename=html_file, base_url='file://{0}/'.format(self.output_dir))
                 weasy.write_pdf(pdf_file)
                 self.logger.info('Generated PDF file.')
@@ -403,7 +405,7 @@ class TnConverter(object):
     def populate_chunks_text(self):
         save_dir = os.path.join(self.output_dir, 'chunks_text')
         save_file = os.path.join(save_dir, '{0}.json'.format(self.book_file_id))
-        if os.path.isfile(save_file):
+        if not self.regenerate_all and os.path.isfile(save_file):
             self.chunks_text = load_json_object(save_file)
             return
 
@@ -477,18 +479,21 @@ class TnConverter(object):
 
         contributors_html = '''
 <section id="contributors">
-  <h1 class="section-header">Contributors</h1>
-'''
-        if tn_contributors and len(tn_contributors):
-            contributors_html += '<h2 class="section-header">{0} - Contributors</h2>\n<div class="contributors-list">{1}</div>'.\
-                format(tn_title, tn_contributors)
-        if tw_contributors and len(tw_contributors):
-            contributors_html += '<h2 class="section-header">{0} - Contributors</h2>\n<div class="contributors-list">{1}</div>'.\
-                format(tw_title, tw_contributors)
-        if ta_contributors and len(ta_contributors):
-            contributors_html += '<h2 class="section-header">{0} - Contributors</h2>\n<div class="contributors-list">{1}</div>'.\
-                format(ta_title, ta_contributors)
-        contributors_html += '</section>'
+    <div class="contributors-list">
+        <h1 class="section-header">Contributors</h1>
+        <h2>{0} - Contributors</h2>
+        {1}
+    </div>
+    <div class="contributors-list">
+        <h2>{2} - Contributors</h2>
+        {3}
+    </div>
+    <div class="contributors-list">
+        <h2>{4} - Contributors</h2>
+        {5}
+    </div>
+</section>
+'''.format(tn_title, tn_contributors, tw_title, tw_contributors, ta_title, ta_contributors)
         return contributors_html
 
     def save_resource_data(self):
@@ -520,21 +525,21 @@ class TnConverter(object):
             os.makedirs(save_dir)
 
         save_file = os.path.join(save_dir, '{0}_resource_data.json'.format(self.book_file_id))
-        if os.path.isfile(save_file):
+        if not self.regenerate and os.path.isfile(save_file):
             self.resource_data = load_json_object(save_file)
         else:
             self.regenerate = True
             self.resource_data = {}
 
         save_file = os.path.join(save_dir, '{0}_references.json'.format(self.book_file_id))
-        if os.path.isfile(save_file):
+        if not self.regenerate and os.path.isfile(save_file):
             self.rc_references = load_json_object(save_file)
         else:
             self.regenerate = True
             self.rc_references = {}
 
         save_file = os.path.join(save_dir, '{0}_bad_links.json'.format(self.book_file_id))
-        if os.path.isfile(save_file):
+        if not self.regenerate and os.path.isfile(save_file):
             self.bad_links = load_json_object(save_file)
         else:
             self.regenerate = True
@@ -591,8 +596,6 @@ class TnConverter(object):
                 toc_html += '<ul>'
                 for article in articles:
                     rc = self.resource_data[self.rc_lookup[article.get('id')]]
-                    if not rc:
-                        rc
                     title = rc['alt_title'] if 'alt_title' in rc and rc['alt_title'] else rc['title']
                     toc_html += '''
 <li><a href="{0}"><span>{1}</span></a></li>
@@ -654,7 +657,7 @@ class TnConverter(object):
                     usfm += '\n\\{0}{1}\n'.format(obj['tag'], obj['text'])
             elif obj['type'] == 'footnote':
                 obj['text'] = obj['text'].replace('\n', '').strip() if 'text' in obj else ''
-                usfm += ' \{0} {1} \{0}*'.format(obj['tag'], obj['content'])
+                usfm += r' \{0} {1} \{0}*'.format(obj['tag'], obj['content'])
             else:
                 self.logger.error("ERROR! Not sure what to do with this:")
                 self.logger.error(obj)
@@ -670,15 +673,15 @@ class TnConverter(object):
         book_file = os.path.join(self.ust_dir, '{0}-{1}.usfm'.format(self.book_number, self.book_id.upper()))
         usfm3 = read_file(book_file)
         usfm2 = usfm3_to_usfm2(usfm3)
-        chapters = usfm2.split('\\c ')
+        chapters = usfm2.split(r'\c ')
         for chapter_usfm in chapters[1:]:
             chapter = int(re.findall('(\d+)', chapter_usfm)[0])
             book_data[chapter] = {}
-            chapter_usfm = '\\c '+chapter_usfm
-            verses = chapter_usfm.split('\\v ')
+            chapter_usfm = r'\c '+chapter_usfm
+            verses = chapter_usfm.split(r'\v ')
             for verseUsfm in verses[1:]:
                 verse = int(re.findall('(\d+)', verseUsfm)[0])
-                verseUsfm = '\\v '+verseUsfm
+                verseUsfm = r'\v '+verseUsfm
                 if re.match(r'^\\v \d+\s*$', verseUsfm, flags=re.MULTILINE):
                     verseUsfm = ''
                 book_data[chapter][verse] = verseUsfm
@@ -689,15 +692,15 @@ class TnConverter(object):
         book_file = os.path.join(self.ult_dir, '{0}-{1}.usfm'.format(self.book_number, self.book_id.upper()))
         usfm3 = read_file(book_file)
         usfm2 = usfm3_to_usfm2(usfm3)
-        chapters = usfm2.split('\\c ')
+        chapters = usfm2.split(r'\c ')
         for chapterUsfm in chapters[1:]:
             chapter = int(re.findall('(\d+)', chapterUsfm)[0])
             bookData[chapter] = {}
-            chapterUsfm = '\\c '+chapterUsfm
-            verses = chapterUsfm.split('\\v ')
+            chapterUsfm = r'\c '+chapterUsfm
+            verses = chapterUsfm.split(r'\v ')
             for verseUsfm in verses[1:]:
                 verse = int(re.findall('(\d+)', verseUsfm)[0])
-                verseUsfm = '\\v '+verseUsfm
+                verseUsfm = r'\v '+verseUsfm
                 if re.match(r'^\\v \d+\s*$', verseUsfm, flags=re.MULTILINE):
                     verseUsfm = ''
                 bookData[chapter][verse] = verseUsfm
@@ -765,7 +768,7 @@ class TnConverter(object):
             intro_id = 'tn-{0}-front-intro'.format(self.book_id)
             tn_html += '<article id="{0}">\n{1}\n</article>\n\n'.format(intro_id, intro)
             # HANDLE RC LINKS AND BACK REFERENCE
-            rc = 'rc://*/tn/help/{0}/front/intro'.format(self.book_id)
+            rc = 'rc://{0}/tn/help/{1}/front/intro'.format(self.lang_code, self.book_id)
             self.resource_data[rc] = {
                 'rc': rc,
                 'id': intro_id,
@@ -789,7 +792,7 @@ class TnConverter(object):
                 intro = re.sub(r'<h(\d+)>', r'<h\1 class="section-header">', intro, 1, flags=re.IGNORECASE | re.MULTILINE)
                 tn_html += '<article id="{0}">\n{1}\n</article>\n\n'.format(intro_id, intro)
                 # HANDLE RC LINKS
-                rc = 'rc://*/tn/help/{0}/{1}/intro'.format(self.book_id, self.pad(chapter))
+                rc = 'rc://{0}/tn/help/{1}/{2}/intro'.format(self.lang_code, self.book_id, self.pad(chapter))
                 self.resource_data[rc] = {
                     'rc': rc,
                     'id': intro_id,
@@ -821,7 +824,8 @@ class TnConverter(object):
                     </div>
                 </div>
             '''.format(note_quote, note)
-                        rc = 'rc://*/tn/help/{0}/{1}/{2}'.format(self.book_id, self.pad(chapter), self.pad(verse))
+                        rc = 'rc://{0}/tn/help/{1}/{2}/{3}'.format(self.lang_code, self.book_id, self.pad(chapter),
+                                                                   self.pad(verse))
                         self.get_resource_data_from_rc_links(verse_notes, rc)
                         chunk_notes += verse_notes
 
@@ -840,7 +844,8 @@ class TnConverter(object):
                 for verse in range(first_verse, last_verse+1):
                     verse_id = 'tn-{0}-{1}-{2}'.format(self.book_id, self.pad(chapter), self.pad(verse))
                     verse_ids.append(verse_id)
-                    rc = 'rc://*/tn/help/{0}/{1}/{2}'.format(self.book_id, self.pad(chapter), self.pad(verse))
+                    rc = 'rc://{0}/tn/help/{1}/{2}/{3}'.format(self.lang_code, self.book_id, self.pad(chapter),
+                                                               self.pad(verse))
                     self.resource_data[rc] = {
                         'rc': rc,
                         'id': verse_id,
@@ -892,7 +897,7 @@ class TnConverter(object):
             files = glob(files_path)
             for file in files:
                 base = os.path.splitext(os.path.basename(file))[0]
-                rc = 'rc://*/tw/dict/bible/{0}/{1}'.format(group, base)
+                rc = 'rc://{0}/tw/dict/bible/{1}/{2}'.format(self.lang_code, group, base)
                 occurrences = load_json_object(file)
                 for occurrence in occurrences:
                     context_id = occurrence['contextId']
@@ -908,11 +913,12 @@ class TnConverter(object):
 
     def get_plain_html(self, resource, chapter, first_verse):
         html = self.chunks_text[str(chapter)][str(first_verse)][resource]['html']
-        html = re.sub('\s*\n\s*', '', html, flags=re.IGNORECASE | re.MULTILINE)
+        html = re.sub(r'\s*\n\s*', '', html, flags=re.IGNORECASE | re.MULTILINE)
         html = re.sub(r'\s*</*p[^>]*>\s*', '', html, flags=re.IGNORECASE | re.MULTILINE)
         html = html.strip()
-        html = re.sub(r'\s*<span class="v-num"', '''</div><div class="verse"><span class="v-num"''', html, flags=re.IGNORECASE | re.MULTILINE)
+        html = re.sub(r'\s*<span class="v-num"', '</div><div class="verse"><span class="v-num"', html, flags=re.IGNORECASE | re.MULTILINE)
         html = re.sub(r'^</div>', '', html)
+        html = re.sub(r'id="(ref-)*fn-', r'id="{0}-\1fn-'.format(resource), html, flags=re.IGNORECASE | re.MULTILINE)
         html += '</div>'
         return html
 
@@ -951,14 +957,15 @@ class TnConverter(object):
                         pattern += r'(.*?)'
                         replace += r'\{0}'.format(idx + 1)
                 verses[verse_num] = re.sub(pattern, replace, verses[verse_num], 1, flags=re.MULTILINE | re.IGNORECASE)
-            rc = 'rc://*/tn/help/{0}/{1}/{2}'.format(self.book_id, self.pad(chapter), self.pad(str(verse_num)))
-            verseText = ''
+            rc = 'rc://{0}/tn/help/{1}/{2}/{3}'.format(self.lang_code, self.book_id, self.pad(chapter),
+                                                       self.pad(str(verse_num)))
+            verse_text = ''
             if verse_num in verses:
-                verseText = verses[verse_num]
+                verse_text = verses[verse_num]
                 self.get_resource_data_from_rc_links(verses[verse_num], rc)
             new_html += '<div class="verse"><span class="v-num" id="{0}-{1}-ch-{2}-v-{3}"><sup><strong>{4}</strong></sup></span>{5}'.\
                 format(resource, str(self.book_number).zfill(3), str(chapter).zfill(3), str(verse_num).zfill(3),
-                       verse_num, verseText)
+                       verse_num, verse_text)
         new_html += footer_html
         return new_html
 
@@ -1061,10 +1068,17 @@ class TnConverter(object):
         text = self.find_english_from_split(verse_objects, context_id['quote'], context_id['occurrence'])
         if text:
             return text
-        self.bad_links['rc://*/{0}/bible/{1}/{2}/{3}'.format(self.ult_id, self.book_id, context_id['reference']['chapter'], context_id['reference']['verse'])] = {
-            'rc://*/grc/word/{0}/{1}'.format(context_id['quote'], context_id['occurrence']): context_id['rc']
-        }
-        # self.logger.error('English not found for Greek word `{0}` (occurrence: {1}) in `ULT {2} {3}:{4}`'.format(context_id['quote'], context_id['occurrence'], self.book_id.upper(), context_id['reference']['chapter'], context_id['reference']['verse']))
+        rc = 'rc://{0}/{1}/bible/{2}/{3}/{4}'.format(self.lang_code, self.ult_id, self.book_id,
+                                                     context_id['reference']['chapter'],
+                                                     context_id['reference']['verse'])
+        bad_rc = 'rc://*/grc/word/{0}/{1}'.format(context_id['quote'], context_id['occurrence'])
+        if rc not in self.bad_links:
+            self.bad_links[rc] = {}
+        self.bad_links[rc][bad_rc] = context_id['rc']
+        self.logger.error('{0} word not found for Greek word `{1}` (occurrence: {2}) in `ULT {3} {4}:{5}`'.
+                          format(self.lang_code.upper(), context_id['quote'], context_id['occurrence'],
+                                 self.book_id.upper(), context_id['reference']['chapter'],
+                                 context_id['reference']['verse']))
 
     def get_tw_html(self):
         tw_html = '''
@@ -1144,7 +1158,7 @@ class TnConverter(object):
     def get_resource_data_from_rc_links(self, text, source_rc):
         for rc in re.findall(r'rc://[A-Z0-9/_\*-]+', text, flags=re.IGNORECASE | re.MULTILINE):
             parts = rc[5:].split('/')
-            rc = 'rc://*/{0}'.format('/'.join(parts[1:]))
+            rc = 'rc://{0}/{1}'.format(self.lang_code, '/'.join(parts[1:]))
             resource = parts[1]
             path = '/'.join(parts[3:])
 
@@ -1159,11 +1173,11 @@ class TnConverter(object):
             t = ''
             anchor_id = '{0}-{1}'.format(resource, path.replace('/', '-'))
             link = '#{0}'.format(anchor_id)
-            file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
-                                        '{0}.md'.format(path))
-            if not os.path.isfile(file_path):
-                file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
-                                            '{0}/01.md'.format(path))
+            file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource), path)
+            if resource == 'ta':
+                file_path = os.path.join(file_path, '01.md')
+            else:
+                file_path += '.md'
             fix = None
             if not os.path.isfile(file_path):
                 if resource == 'tw':
@@ -1199,7 +1213,7 @@ class TnConverter(object):
                         path2 = re.sub(r'^bible/other/', r'bible/kt/', path)
                     else:
                         path2 = re.sub(r'^bible/kt/', r'bible/other/', path)
-                    fix = 'rc://*/tw/dict/{0}'.format(path2)
+                    fix = 'rc://{0}/tw/dict/{1}'.format(self.lang_code, path2)
                     anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
                     link = '#{0}'.format(anchor_id)
                     file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
@@ -1212,7 +1226,7 @@ class TnConverter(object):
                         path2 = bad_names[parts[3]]
                     else:
                         path2 = path
-                    fix = 'rc://*/ta/man/{0}'.format(path2)
+                    fix = 'rc://{0}/ta/man/{1}'.format(self.lang_code, path2)
                     anchor_id = '{0}-{1}'.format(resource, path2.replace('/', '-'))
                     link = '#{0}'.format(anchor_id)
                     file_path = os.path.join(self.working_dir, '{0}_{1}'.format(self.lang_code, resource),
@@ -1299,57 +1313,84 @@ class TnConverter(object):
         return "NO TITLE"
 
     def fix_tn_links(self, text, chapter):
-        text = re.sub(r'<a href="\.\./\.\./([^"]+)">([^<]+)</a>', r'\2', text, flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'href="\.\./([^"]+?)/([^"]+?)(\.md)*"', r'href="#tn-{0}-\1-\2"'.format(self.book_id), text, flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'href="\.\./([^"]+?)(\.md)*"', r'href="#tn-{0}-\1"'.format(self.book_id), text, flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'href="\./([^"]+?)(\.md)*"', r'href="#tn-{0}-{1}-\1"'.format(self.book_id, self.pad(chapter)), text, flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'\n__.*\|.*', r'', text, flags=re.IGNORECASE | re.MULTILINE)
+        def replace_link(match):
+            before_href = match.group(1)
+            link = match.group(2)
+            after_href = match.group(3)
+            linked_text = match.group(4)
+            new_link = link
+            if link.startswith('../../'):
+                # link to another book, which we don't link to so link removed
+                return linked_text
+            elif link.startswith('../'):
+                # links to another chunk in another chapter
+                link = os.path.splitext(link)[0]
+                parts = link.split('/')
+                if len(parts) == 3:
+                    # should have two numbers, the chapter and the verse
+                    c = parts[1]
+                    v = parts[2]
+                    new_link = '#tn-{0}-{1}-{2}'.format(self.book_id, c, v)
+                if len(parts) == 2:
+                    # shouldn't be here, but just in case, assume link to the first chunk of the given chapter
+                    c = parts[1]
+                    new_link = '#tn-{0}-{1}-{2}'.format(self.book_id, c, '01')
+            elif link.startswith('./'):
+                # link to another verse in the same chapter
+                link = os.path.splitext(link)[0]
+                parts = link.split('/')
+                v = parts[1]
+                new_link = '#tn-{0}-{1}-{2}'.format(self.book_id, self.pad(chapter), v)
+            return '<a{0}href="{1}"{2}>{3}</a>'.format(before_href, new_link, after_href, linked_text)
+        regex = re.compile(r'<a([^>]+)href="(\.[^"]+)"([^>]*)>(.*?)</a>')
+        text = regex.sub(replace_link, text)
         return text
 
     def fix_tw_links(self, text, group):
-        text = re.sub(r'href="\.\./([^/)]+?)(\.md)*"', r'href="rc://*/tw/dict/bible/{0}/\1"'.format(group), text, flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'hrefp="\.\./([^)]+?)(\.md)*"', r'href="rc://*/tw/dict/bible/\1"', text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="\.\./([^/)]+?)(\.md)*"', r'href="rc://{0}/tw/dict/bible/{1}/\1"'.
+                      format(self.lang_code, group), text, flags=re.IGNORECASE | re.MULTILINE)
         return text
 
     def fix_ta_links(self, text, manual):
-        text = re.sub(r'href="\.\./([^/"]+)/01\.md"', r'href="rc://*/ta/man/{0}/\1"'.format(manual), text, flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'href="\.\./\.\./([^/"]+)/([^/"]+)/01\.md"', r'href="rc://*/ta/man/\1/\2"', text, flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'href="([^# :/"]+)"', r'href="rc://*/ta/man/{0}/\1"'.format(manual), text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="\.\./([^/"]+)/01\.md"', r'href="rc://{0}/ta/man/{1}/\1"'.format(self.lang_code, manual),
+                      text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="\.\./\.\./([^/"]+)/([^/"]+)/01\.md"', r'href="rc://{0}/ta/man/\1/\2"'.
+                      format(self.lang_code), text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="([^# :/"]+)"', r'href="rc://{0}/ta/man/{1}/\1"'.format(self.lang_code, manual),
+                      text, flags=re.IGNORECASE | re.MULTILINE)
         return text
 
     def replace_rc_links(self, text):
         # Change rc://... rc links,
-        # 1st: [[rc://en/tw/help/bible/kt/word]] => <a href="#tw-kt-word">God's Word</a>
-        # 2nd: rc://en/tw/help/bible/kt/word => #tw-kt-word (used in links that are already formed)
-        for rc, info in self.resource_data.items():
-            parts = rc[5:].split('/')
-            tail = '/'.join(parts[1:])
-
-            pattern = r'\[\[rc://[^/]+/{0}\]\]'.format(re.escape(tail))
-            replace = r'<a href="{0}">{1}</a>'.format(info['link'], info['title'])
-            text = re.sub(pattern, replace, text, flags=re.IGNORECASE | re.MULTILINE)
-
-            pattern = r'rc://[^/]+/{0}'.format(re.escape(tail))
-            replace = info['link']
-            text = re.sub(pattern, replace, text, flags=re.IGNORECASE | re.MULTILINE)
-
-        # Remove other scripture reference not in this tN
-        text = re.sub(r'<a[^>]+rc://[^>]+>([^>]+)</a>', r'\1', text, flags=re.IGNORECASE | re.MULTILINE)
-
+        # Case 1: [[rc://en/tw/help/bible/kt/word]] => <a href="#tw-kt-word">God's Word</a>
+        # Case 2: rc://en/tw/help/bible/kt/word => #tw-kt-word (used in links that are already formed)
+        # Case 3: Remove other scripture reference not in this tN
+        def replace_rc(match):
+            left = match.group(1)
+            rc = match.group(2)
+            right = match.group(3)
+            title = match.group(4)
+            if rc in self.resource_data:
+                info = self.resource_data[rc]
+                if left and right and left == '[[':
+                    # Case 1
+                    return '<a href="{0}">{1}</a>'.format(info['link'], info['title'])
+                else:
+                    # Case 2
+                    return left + info['link'] + right
+            else:
+                # Case 3
+                return title if title else rc
+        regex = re.compile(r'(\[\[|<a[^>]+href=")*(rc://[/A-Za-z0-9\*_-]+)(\]\]|"[^>]*>(.*?)</a>)*')
+        text = regex.sub(replace_rc, text)
         return text
 
     def fix_links(self, text):
-        # Change [[http.*]] to <a href="http\1">http\1</a>
-        text = re.sub(r'\[\[http([^\]]+)\]\]', r'<a href="http\1">http\1</a>', text, flags=re.IGNORECASE)
-
         # convert URLs to links if not already
-        text = re.sub(r'([^">])((http|https|ftp)://[A-Za-z0-9\/\?&_\.:=#-]+[A-Za-z0-9\/\?&_:=#-])', r'\1<a href="\2">\2</a>', text, flags=re.IGNORECASE)
+        text = re.sub(r'(?<![">])((http|https|ftp)://[A-Za-z0-9\/\?&_\.:=#-]+[A-Za-z0-9\/\?&_:=#-])', r'<a href="\1">\1</a>', text, flags=re.IGNORECASE)
 
-        # URLS wth just www at the start, no http
-        text = re.sub(r'([^\/])(www\.[A-Za-z0-9\/\?&_\.:=#-]+[A-Za-z0-9\/\?&_:=#-])', r'\1<a href="http://\2">\2</a>', text, flags=re.IGNORECASE)
-
-        # Removes leading 0s from verse references
-        text = re.sub(r' 0*(\d+):0*(\d+)(-*)0*(\d*)', r' \1:\2\3\4', text, flags=re.IGNORECASE | re.MULTILINE)
+        # # Removes leading 0s from verse references
+        # text = re.sub(r' 0*(\d+):0*(\d+)(-*)0*(\d*)', r' \1:\2\3\4', text, flags=re.IGNORECASE | re.MULTILINE)
 
         return text
 
@@ -1386,7 +1427,7 @@ class TnConverter(object):
 
 
 def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_codes, books, working_dir, output_dir, owner,
-         regenerate, ust_id, ult_id, tn_id):
+         regenerate, ust_id, ult_id, tn_id, regenerate_all):
     lang_codes = lang_codes
     if not lang_codes:
         lang_codes = [DEFAULT_LANG]
@@ -1409,7 +1450,7 @@ def main(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, lang_codes, books, 
     for lang_code in lang_codes:
         logger.info('Starting TN Converter for {0}...'.format(lang_code))
         tn_converter = TnConverter(ta_tag, tn_tag, tw_tag, ust_tag, ult_tag, ugnt_tag, working_dir, output_dir,
-                                   lang_code, books, owner, regenerate, logger, ust_id, ult_id, tn_id)
+                                   lang_code, books, owner, regenerate, logger, ust_id, ult_id, tn_id, regenerate_all)
         tn_converter.run()
 
 
@@ -1431,6 +1472,8 @@ if __name__ == '__main__':
     parser.add_argument('--owner', dest='owner', default=DEFAULT_OWNER, required=False, help='Owner')
     parser.add_argument('-r', '--regenerate', dest='regenerate', default=False, action='store_true',
                         help='Regenerate even if exists')
+    parser.add_argument('--regenerate-all', dest='regenerate_all', default=False, action='store_true',
+                        help='Regenerate all things even scripture html even if exists')
     args = parser.parse_args(sys.argv[1:])
     main(args.ta, args.tn, args.tw, args.ust, args.ult, args.ugnt, args.lang_codes, args.books, args.working_dir,
-         args.output_dir, args.owner, args.regenerate, args.ust_id, args.ult_id, args.tn_id)
+         args.output_dir, args.owner, args.regenerate, args.ust_id, args.ult_id, args.tn_id, args.regenerate_all)

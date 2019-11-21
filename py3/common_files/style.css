@@ -402,9 +402,13 @@ code {
     break-before: avoid-page;
 }
 
-#contributors .contributors-list p {
+#contributors .contributors-list h1,
+#contributors .contributors-list h2 {
+    column-span: all;
+}
+
+#contributors .contributors-list .contributor {
     padding: 0;
-    margin: 0;
-    margin-left: 2em;
+    margin: 0 0 0 2em;
     text-indent: -2em
 }
