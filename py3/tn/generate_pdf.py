@@ -1003,7 +1003,6 @@ class TnConverter(object):
         ol_words = []
         word_list = []
         for verse_object in verse_objects:
-            ol = None
             if 'content' in verse_object and 'type' in verse_object and verse_object['type'] == 'milestone':
                 ol_words.append(verse_object['content'])
                 target_words = []
@@ -1204,32 +1203,32 @@ class TnConverter(object):
             fix = None
             if not os.path.isfile(file_path):
                 if resource == 'tw':
-                    bad_names = {
-                        'fishermen': 'bible/other/fisherman',
-                        'chiefpriests': 'bible/kt/highpriest',
-                        'capitive': 'bible/other/captive',
-                        'olive': 'bible/other/olive',
-                        'forsake': 'bible/kt/forsaken',
-                        'destroy': 'bible/other/destroyer',
-                        'jusdasiscariot': 'bible/names/judasiscariot',
-                        'jusdassonofjames': 'bible/names/judassonofjames',
-                        'jusdasonofjames': 'bible/names/judassonofjames',
-                        'curcumcise': 'bible/kt/circumcise',
-                        'noble': 'bible/other/noble',
-                        'thessalonia': 'bible/names/thessalonica',
-                        'deliver': 'bible/other/deliverer',
-                        'strnegth': 'bible/other/strength',
-                        'destiny': 'bible/kt/predestine',
-                        'zeal': 'bible/kt/zealous',
-                        'pure': 'bible/kt/purify',
-                        'boey': 'bible/kt/body',
-                        'prefect': 'bible/other/perfect',
-                        'glorify': 'bible/kt/glory',
-                        'partiarchs': 'bible/other/patriarchs',
-                        'joseph': 'bible/names/josephot',
-                        'soldier': 'bible/other/warrior',
-                        'live': 'bible/kt/life'
-                    }
+                    bad_names = {}
+                    #     'fishermen': 'bible/other/fisherman',
+                    #     'chiefpriests': 'bible/kt/highpriest',
+                    #     'capitive': 'bible/other/captive',
+                    #     'olive': 'bible/other/olive',
+                    #     'forsake': 'bible/kt/forsaken',
+                    #     'destroy': 'bible/other/destroyer',
+                    #     'jusdasiscariot': 'bible/names/judasiscariot',
+                    #     'jusdassonofjames': 'bible/names/judassonofjames',
+                    #     'jusdasonofjames': 'bible/names/judassonofjames',
+                    #     'curcumcise': 'bible/kt/circumcise',
+                    #     'noble': 'bible/other/noble',
+                    #     'thessalonia': 'bible/names/thessalonica',
+                    #     'deliver': 'bible/other/deliverer',
+                    #     'strnegth': 'bible/other/strength',
+                    #     'destiny': 'bible/kt/predestine',
+                    #     'zeal': 'bible/kt/zealous',
+                    #     'pure': 'bible/kt/purify',
+                    #     'boey': 'bible/kt/body',
+                    #     'prefect': 'bible/other/perfect',
+                    #     'glorify': 'bible/kt/glory',
+                    #     'partiarchs': 'bible/other/patriarchs',
+                    #     'joseph': 'bible/names/josephot',
+                    #     'soldier': 'bible/other/warrior',
+                    #     'live': 'bible/kt/life'
+                    # }
                     if parts[5] in bad_names:
                         path2 = bad_names[parts[5]]
                     elif path.startswith('bible/other/'):
@@ -1301,7 +1300,7 @@ class TnConverter(object):
                         'references': [source_rc]
                     }
                     self.rc_lookup[anchor_id] = rc
-                    self.get_resource_data_from_rc_links(t, rc)
+                    # self.get_resource_data_from_rc_links(t, rc)  # Turned off due to Jesse's request
                 else:
                     if source_rc not in self.resource_data[rc]['references']:
                         self.resource_data[rc]['references'].append(source_rc)
