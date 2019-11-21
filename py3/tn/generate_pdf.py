@@ -959,7 +959,7 @@ class TnConverter(object):
                 replace = ''
                 new_parts = []
                 for idx, part in enumerate(parts):
-                    words_to_ignore = ['a', 'am', 'an', 'and', 'as', 'are', 'at', 'be', 'by', 'did', 'do', 'does', 'done', 'for', 'from', 'had', 'has', 'have', 'he', 'her', 'his', 'i', 'in', 'into', 'less', 'let', 'may', 'might', 'more', 'my', 'not', 'is', 'of', 'on', 'one', 'onto', 'our', 'she', 'the', 'their', 'they', 'this', 'that', 'those', 'these', 'to', 'was', 'we', 'who', 'whom', 'with', 'will', 'were', 'your', 'you', 'would', 'could', 'should', 'shall', 'can']
+                    words_to_ignore = ['a', 'am', 'an', 'and', 'as', 'are', 'at', 'be', 'by', 'did', 'do', 'does', 'done', 'for', 'from', 'had', 'has', 'have', 'he', 'her', 'his', 'i', 'in', 'into', 'less', 'let', 'may', 'might', 'more', 'my', 'not', 'is', 'of', 'on', 'one', 'onto', 'our', 'she', 'than', 'the', 'their', 'then', 'they', 'this', 'that', 'those', 'these', 'to', 'was', 'we', 'who', 'whom', 'with', 'will', 'were', 'your', 'you', 'would', 'could', 'should', 'shall', 'can']
                     part = re.sub(r'^(({0})\s+)+'.format('|'.join(words_to_ignore)), '', part, flags=re.MULTILINE | re.IGNORECASE)
                     if not part or (idx < len(parts)-1 and part.lower().split(' ')[-1] in words_to_ignore):
                         continue
