@@ -440,7 +440,7 @@ class TnConverter(object):
                             exit(1)
                         if verse not in self.verse_usfm[resource][chapter]:
                             self.logger.error('{0}:{1} not in {2}!!!'.format(chapter, verse, resource))
-                            if len(verses_in_chunk):
+                            if len(verses_in_chunk) or resource != self.ult_id:
                                 self.verse_usfm[resource][chapter][verse] = ''
                             else:
                                 exit(1)
@@ -861,13 +861,15 @@ class TnConverter(object):
                     self.rc_lookup[verse_id] = rc
                     self.rc_lookup[verse_id + '-top'] = rc
 
+                ult_highlighted_scripture = self.get_highlighted_html(self.ult_id, int(chapter), first_verse, last_verse)
+                ust_scripture = self.get_plain_html(self.ust_id, int(chapter), first_verse)
                 scripture = '''
     <h3 class="bible-resource-title">{0}</h3>
     <div class="bible-text">{1}</div>
     <h3 class="bible-resource-title">{2}</h3>
     <div class="bible-text">{3}</div>
-'''.format(self.ult_id.upper(), self.get_highlighted_html(self.ult_id, int(chapter), first_verse, last_verse),
-           self.ust_id.upper(), self.get_plain_html(self.ust_id, int(chapter), first_verse))
+'''.format(self.ult_id.upper(), ult_highlighted_scripture, self.ust_id.upper(),
+           ust_scripture if ust_scripture else '&nbsp;')
 
                 chunk_article = '''
     <h2 class="section-header">{0}</h2>
@@ -922,14 +924,16 @@ class TnConverter(object):
 
     def get_plain_html(self, resource, chapter, first_verse):
         html = self.chunks_text[str(chapter)][str(first_verse)][resource]['html']
-        html = re.sub(r'\s*\n\s*', '', html, flags=re.IGNORECASE | re.MULTILINE)
-        html = re.sub(r'\s*</*p[^>]*>\s*', '', html, flags=re.IGNORECASE | re.MULTILINE)
-        html = html.strip()
-        html = re.sub(r'\s*<span class="v-num"', '</div><div class="verse"><span class="v-num"', html, flags=re.IGNORECASE | re.MULTILINE)
-        html = re.sub(r'^</div>', '', html)
-        html = re.sub(r'id="(ref-)*fn-', r'id="{0}-\1fn-'.format(resource), html, flags=re.IGNORECASE | re.MULTILINE)
-        html = re.sub(r'href="#(ref-)*fn-', r'href="#{0}-\1fn-'.format(resource), html, flags=re.IGNORECASE | re.MULTILINE)
-        html += '</div>'
+        if html:
+            html = re.sub(r'\s*\n\s*', '', html, flags=re.IGNORECASE | re.MULTILINE)
+            html = re.sub(r'\s*</*p[^>]*>\s*', '', html, flags=re.IGNORECASE | re.MULTILINE)
+            html = html.strip()
+            html = re.sub(r'\s*<span class="v-num"', '</div><div class="verse"><span class="v-num"', html, flags=re.IGNORECASE | re.MULTILINE)
+            html = re.sub(r'^</div>', '', html)
+            html = re.sub(r'id="(ref-)*fn-', r'id="{0}-\1fn-'.format(resource), html, flags=re.IGNORECASE | re.MULTILINE)
+            html = re.sub(r'href="#(ref-)*fn-', r'href="#{0}-\1fn-'.format(resource), html, flags=re.IGNORECASE | re.MULTILINE)
+            if html and '<div class="verse">' in html:
+                html += '</div>'
         return html
 
     def get_highlighted_html(self, resource, chapter, first_verse, last_verse):
@@ -1381,8 +1385,9 @@ class TnConverter(object):
     def replace_rc_links(self, text):
         # Change rc://... rc links,
         # Case 1: [[rc://en/tw/help/bible/kt/word]] => <a href="#tw-kt-word">God's Word</a>
-        # Case 2: rc://en/tw/help/bible/kt/word => #tw-kt-word (used in links that are already formed)
-        # Case 3: Remove other scripture reference not in this tN
+        # Case 2: rc://en/tw/help/bible/ht/word => <a href="#tw-kt-word">God's Word</a>
+        # Case 3: <a href="rc://en/tw/help/bible/kt/word">text</a> => <a href="#tw-kt-word>Text</a> (used in links that are already formed)
+        # Case 4: Remove other scripture reference not in this tN
         def replace_rc(match):
             left = match.group(1)
             rc = match.group(2)
@@ -1390,14 +1395,15 @@ class TnConverter(object):
             title = match.group(4)
             if rc in self.resource_data:
                 info = self.resource_data[rc]
-                if left and right and left == '[[':
-                    # Case 1
+                if (left and right and left == '[[' and right == ']]') \
+                        or (not left and not right):
+                    # Case 1 and Case 2
                     return '<a href="{0}">{1}</a>'.format(info['link'], info['title'])
                 else:
-                    # Case 2
-                    return left + info['link'] + right
+                    # Case 3
+                    return (left if left else '') + info['link'] + (right if right else '')
             else:
-                # Case 3
+                # Case 4
                 return title if title else rc
         regex = re.compile(r'(\[\[|<a[^>]+href=")*(rc://[/A-Za-z0-9\*_-]+)(\]\]|"[^>]*>(.*?)</a>)*')
         text = regex.sub(replace_rc, text)
