@@ -1157,7 +1157,15 @@ class TnConverter(object):
         ta_html += "\n</section>\n\n"
         return ta_html
 
+    def has_tn_references(self, rc):
+        for reference in self.rc_references[rc]:
+            if '/tn/' in reference:
+                return True
+        return False
+
     def get_reference_text(self, rc):
+        if not self.has_tn_references(rc):
+            return ''
         uses = ''
         references = []
         book_title = '{0} '.format(self.book_title)
@@ -1175,8 +1183,7 @@ class TnConverter(object):
                     book_title = ''
                 references.append('<a href="#{0}">{1}</a>'.format(id, text))
                 done[reference] = True
-        if len(references):
-            uses = '<div class="go-back">\n(<strong>Go back to:</strong> {0})\n</div>\n'.format('; '.join(references))
+        uses = '<div class="go-back">\n(<strong>Go back to:</strong> {0})\n</div>\n'.format('; '.join(references))
         return uses
 
     def get_resource_data_from_rc_links(self, text, source_rc):
@@ -1395,7 +1402,7 @@ class TnConverter(object):
             rc = match.group(2)
             right = match.group(3)
             title = match.group(4)
-            if rc in self.resource_data:
+            if rc in self.resource_data and self.has_tn_references(rc):
                 info = self.resource_data[rc]
                 if (left and right and left == '[[' and right == ']]') \
                         or (not left and not right):
