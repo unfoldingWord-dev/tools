@@ -10,3 +10,8 @@ div.tn-notes .bible-resource-title {
     margin-bottom: 0;
     color: #555;
 }
+
+.verse-note-reference {
+    font-weight: normal;
+    font-size: .8em;
+}

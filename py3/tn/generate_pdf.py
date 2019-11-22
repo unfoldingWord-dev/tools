@@ -370,11 +370,11 @@ class TnConverter(object):
                         if os.path.isdir(repo_dir):
                             break
         g = git.Git(repo_dir)
-        g.fetch()
+        # g.fetch()
         g.checkout(tag)
         if tag == DEFAULT_TAG:
-            # self.logger.info("not pulling")
-            g.pull()
+            self.logger.info("not pulling")
+            # g.pull()
         commit = g.rev_parse('HEAD', short=10)
         self.generation_info[resource] = {'tag': tag, 'commit': commit}
 
@@ -746,7 +746,7 @@ class TnConverter(object):
                     data[field] = row[idx]
             if not found:
                 break
-            self.logger.info('{0} {1}:{2}:{3}'.format(data['Book'], data['Chapter'], data['Verse'], data['ID']))
+            # self.logger.info('{0} {1}:{2}:{3}'.format(data['Book'], data['Chapter'], data['Verse'], data['ID']))
             chapter = data['Chapter'].lstrip('0')
             verse = data['Verse'].lstrip('0')
             if not chapter in book_data:
@@ -808,6 +808,8 @@ class TnConverter(object):
                 self.rc_lookup[intro_id] = rc
                 self.get_resource_data_from_rc_links(intro, rc)
 
+            chapter_chunk_data = {}
+            previous_first_verse = None
             for idx, first_verse in enumerate(chapter_verses['first_verses']):
                 if idx < len(chapter_verses['first_verses'])-1:
                     last_verse = chapter_verses['first_verses'][idx+1] - 1
@@ -824,23 +826,36 @@ class TnConverter(object):
                             note = re.sub(r'</*p[^>]*>', '', note, flags=re.IGNORECASE | re.MULTILINE)
                             verse_notes += '''
                 <div class="verse-note">
-                    <h3 class="verse-note-title">{0}</h3>
+                    <h3 class="verse-note-title">{0} <span class="verse-note-reference">{1}</span></h3>
                     <div class="verse-note-text">
-                        {1}
+                        {2}
                     </div>
                 </div>
-            '''.format(note_quote, note)
+            '''.format(note_quote, '({0}:{1})'.format(chapter, verse) if first_verse != last_verse else '', note)
                         rc = 'rc://{0}/tn/help/{1}/{2}/{3}'.format(self.lang_code, self.book_id, self.pad(chapter),
                                                                    self.pad(verse))
                         self.get_resource_data_from_rc_links(verse_notes, rc)
                         chunk_notes += verse_notes
 
-                if not chunk_notes:
-                    continue
-
                 chunk_notes = self.decrease_headers(chunk_notes, 5)  # bring headers of 5 or more #'s down 1
                 chunk_notes = self.fix_tn_links(chunk_notes, chapter)
 
+                if previous_first_verse and \
+                        (not chunk_notes or not chapter_chunk_data[previous_first_verse]['chunk_notes']):
+                    if chunk_notes:
+                        chapter_chunk_data[previous_first_verse]['chunk_notes'] = chunk_notes
+                    chapter_chunk_data[previous_first_verse]['last_verse'] = last_verse
+                else:
+                    chapter_chunk_data[first_verse] = {
+                        'chunk_notes': chunk_notes,
+                        'first_verse': first_verse,
+                        'last_verse': last_verse
+                    }
+                    previous_first_verse = first_verse
+
+            for first_verse in sorted(chapter_chunk_data.keys()):
+                last_verse = chapter_chunk_data[first_verse]['last_verse']
+                chunk_notes = chapter_chunk_data[first_verse]['chunk_notes']
                 if first_verse != last_verse:
                     title = '{0} {1}:{2}-{3}'.format(self.book_title, chapter, first_verse, last_verse)
                 else:
@@ -861,8 +876,9 @@ class TnConverter(object):
                     self.rc_lookup[verse_id] = rc
                     self.rc_lookup[verse_id + '-top'] = rc
 
-                ult_highlighted_scripture = self.get_highlighted_html(self.ult_id, int(chapter), first_verse, last_verse)
-                ust_scripture = self.get_plain_html(self.ust_id, int(chapter), first_verse)
+                ult_highlighted_scripture = self.get_highlighted_html(self.ult_id, int(chapter), first_verse,
+                                                                      last_verse)
+                ust_scripture = self.get_plain_html(self.ust_id, int(chapter), first_verse, last_verse)
                 scripture = '''
     <h3 class="bible-resource-title">{0}</h3>
     <div class="bible-text">{1}</div>
@@ -872,22 +888,21 @@ class TnConverter(object):
            ust_scripture if ust_scripture else '&nbsp;')
 
                 chunk_article = '''
-    <h2 class="section-header">{0}</h2>
+<article id="{0}-top">
+    {1}
+    <h2 class="section-header">{2}</h2>
     <div class="tn-notes">
             <div class="col1">
-                {1}
+                {3}
             </div>
             <div class="col2">
-                {2}
+                {4}
             </div>
     </div>
-'''.format(title, scripture, chunk_notes)
-                tn_html += '''
-<article id="{0}-top">
-  {1}
-  {2}
 </article>
-'''.format(verse_ids[0], "\n".join(map(lambda x: '<a id="{0}"></a>'.format(x), verse_ids)), chunk_article)
+'''.format(verse_ids[0], "\n".join(map(lambda x: '<a id="{0}"></a>'.format(x), verse_ids)), title, scripture,
+           chunk_notes)
+                tn_html += chunk_article
         tn_html += "\n</section>\n\n"
         return tn_html
 
@@ -920,8 +935,12 @@ class TnConverter(object):
                     words[chapter][verse].append(context_id)
         self.tw_words_data = words
 
-    def get_plain_html(self, resource, chapter, first_verse):
-        html = self.chunks_text[str(chapter)][str(first_verse)][resource]['html']
+    def get_plain_html(self, resource, chapter, first_verse, last_verse):
+        html = ''
+        while first_verse <= last_verse:
+            data = self.chunks_text[str(chapter)][str(first_verse)]
+            html += data[resource]['html']
+            first_verse = data['last_verse'] + 1
         if html:
             html = re.sub(r'\s*\n\s*', '', html, flags=re.IGNORECASE | re.MULTILINE)
             html = re.sub(r'\s*</*p[^>]*>\s*', '', html, flags=re.IGNORECASE | re.MULTILINE)
@@ -935,7 +954,7 @@ class TnConverter(object):
         return html
 
     def get_highlighted_html(self, resource, chapter, first_verse, last_verse):
-        html = self.get_plain_html(resource, chapter, first_verse)
+        html = self.get_plain_html(resource, chapter, first_verse, last_verse)
         regex = re.compile(' <div')
         verses_and_footer = regex.split(html)
         verses_html = verses_and_footer[0]
@@ -1398,14 +1417,18 @@ class TnConverter(object):
         # Case 1: [[rc://en/tw/help/bible/kt/word]] => <a href="#tw-kt-word">God's Word</a>
         # Case 2: rc://en/tw/help/bible/ht/word => <a href="#tw-kt-word">God's Word</a>
         # Case 3: <a href="rc://en/tw/help/bible/kt/word">text</a> => <a href="#tw-kt-word>Text</a> (used in links that are already formed)
-        # Case 4: Remove other scripture reference not in this tN
+        # Case 5: Link from a TA or TW article that was not referenced in a TN. Remove the link
+        # Case 4: Remove other links to other resources not in this tN
         def replace_rc(match):
             left = match.group(1)
             rc = match.group(2)
             right = match.group(3)
             title = match.group(4)
-            if rc in self.resource_data and self.has_tn_references(rc):
+            if rc in self.resource_data:
                 info = self.resource_data[rc]
+                if not self.has_tn_references(rc):
+                    # Case 4
+                    return info['title']
                 if (left and right and left == '[[' and right == ']]') \
                         or (not left and not right):
                     # Case 1 and Case 2
@@ -1414,7 +1437,7 @@ class TnConverter(object):
                     # Case 3
                     return (left if left else '') + info['link'] + (right if right else '')
             else:
-                # Case 4
+                # Case 5
                 return title if title else rc
         regex = re.compile(r'(\[\[|<a[^>]+href=")*(rc://[/A-Za-z0-9\*_-]+)(\]\]|"[^>]*>(.*?)</a>)*')
         text = regex.sub(replace_rc, text)
