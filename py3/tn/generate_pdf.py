@@ -1094,11 +1094,12 @@ class TnConverter(object):
             bad_rc = 'rc://el-x-koine/tw/word/{0}/{1}'.format(context_id['quote'], context_id['occurrence'])
         if rc not in self.bad_links:
             self.bad_links[rc] = {}
-        self.bad_links[rc][bad_rc] = context_id['rc']
-        self.logger.error('{0} word not found for OL word `{1}` (occurrence: {2}) in `ULT {3} {4}:{5}`'.
-                          format(self.lang_code.upper(), context_id['quote'], context_id['occurrence'],
-                                 self.book_id.upper(), context_id['reference']['chapter'],
-                                 context_id['reference']['verse']))
+        if int(self.book_number) > 40 or self.book_id.lower() == 'rut' or self.book_id.lower() == 'jon':
+            self.bad_links[rc][bad_rc] = context_id['rc']
+            self.logger.error('{0} word not found for OL word `{1}` (occurrence: {2}) in `ULT {3} {4}:{5}`'.
+                              format(self.lang_code.upper(), context_id['quote'], context_id['occurrence'],
+                                     self.book_id.upper(), context_id['reference']['chapter'],
+                                     context_id['reference']['verse']))
 
     def get_tw_html(self):
         tw_html = '''
