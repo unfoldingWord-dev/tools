@@ -15,7 +15,7 @@ import sys
 
 # Globals
 nChanged = 0
-max_changes = 10000
+max_changes = 1
 filename_re = re.compile(r'.*\.usfm$')
 
 # wholestring is used with whole file matches
@@ -71,7 +71,7 @@ def convertFolder(folder):
 # Processes all .txt files in specified directory, one at a time
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        folder = r'C:\DCS\Marathi\mr_udb'
+        folder = r'C:\DCS\Papuan Malay\pmy_ulb'
     else:
         folder = sys.argv[1]
 

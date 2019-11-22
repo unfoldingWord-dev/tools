@@ -11,7 +11,7 @@
 
 # Global variables
 contributors = []
-target_dir = r'C:\DCS\Spanish\es-419_ulb'
+target_dir = r'C:\DCS\Spanish\es-419_ulb.temp'
 
 import usfm_verses
 import re
@@ -592,7 +592,7 @@ def convert(dir):
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        convert(r'C:\DCS\Spanish\NT\es-419_1pe_text_lvl3_ulb')
+        convert(r'C:\DCS\Spanish\OT')
     else:       # the first command line argument presumed to be a folder
         convert(sys.argv[1])
 

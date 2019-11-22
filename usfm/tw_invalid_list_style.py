@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # This program is intended to remove blank lines between markdown list items.
+# Leading spaces before the asterisk are also removed.
 # List items start with an asterisk followed by a space.
 # Backs up the original .md files that are modified.
 # Outputs .md files of the same name in the same location.
@@ -14,9 +15,9 @@ import sys
 
 # Globals
 nChanged = 0
-max_changes = 200
+max_changes = 22
 filename_re = re.compile(r'.*\.md$')
-wholestring = re.compile(u'(\n\* .*)\n\n\* ', flags=re.UNICODE)
+wholestring = re.compile(u'(\n *\* .*)\n(\n *\* )', flags=re.UNICODE)
 prefix_re = re.compile(r'C:\\DCS')
 
 def shortname(longpath):
@@ -39,10 +40,10 @@ def convertWholeFile(mdpath):
             os.rename(mdpath, bakpath)
         output = io.open(mdpath, "tw", encoding='utf-8', newline='\n')
         
-        # Use this loop if I want multiple replacements per file
+        # Multiple replacements per file
         while found:
             output.write( alltext[0:found.start()] + found.group(1) )
-            alltext = alltext[found.end()-3:]
+            alltext = found.group(2) + alltext[found.end():]
             found = wholestring.search(alltext)
         output.write(alltext)
         output.close()
@@ -68,7 +69,7 @@ def convertFolder(folder):
 # Processes all .txt files in specified directory, one at a time
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        folder = r'C:\DCS\Gujarati\gu_tw\bible'
+        folder = r'C:\DCS\Malagasy\plt_tw\bible'
     else:
         folder = sys.argv[1]
 
@@ -76,4 +77,4 @@ if __name__ == "__main__":
         convertFolder(folder)
         sys.stdout.write("Done. Changed " + str(nChanged) + " files.\n")
     else:
-        sys.stderr.write("Usage: python fix_invalid_list_style.py <folder>\n  Use . for current folder.\n")
+        sys.stderr.write("Usage: python tw_invalid_list_style.py <folder>\n  Use . for current folder.\n")

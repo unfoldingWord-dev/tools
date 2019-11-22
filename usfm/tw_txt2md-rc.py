@@ -10,8 +10,8 @@
 # Global variables
 en_ta_dir = r'C:\DCS\English\en_ta'
 en_tw_dir = r'C:\DCS\English\en_tw\bible'
-target_dir = r'C:\DCS\Thai\th_tW\bible'     # should end in 'bible'
-language_code = 'th'
+target_dir = r'C:\DCS\Malagasy\plt_tw\bible'     # should end in 'bible'
+language_code = 'plt'
 
 import re
 import io
@@ -86,7 +86,7 @@ def convertFolder(fullpath):
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        folder = r'C:\DCS\Thai\th_bible_tw\01'
+        folder = r'C:\DCS\Malagasy\plt_bible_tw_l3\01'
     else:       # the first command line argument presumed to be a folder
         folder = sys.argv[1]
 

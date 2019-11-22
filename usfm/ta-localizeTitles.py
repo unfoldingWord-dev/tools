@@ -104,7 +104,7 @@ def convertFolder(folder):
 # Rewrites toc.yaml files under the specified directory
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        folder = r'C:\DCS\Oriya\or_tA'
+        folder = r'C:\DCS\Kannada\kn_tA'
     else:
         folder = sys.argv[1]
 

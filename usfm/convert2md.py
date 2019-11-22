@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 # This module converts a single json file or individual lines to .md format.
-#    Ensures correct syntax, with spaces before and after lists, etc.
+#    Ensures correct syntax, with blank lines before and after lists, etc.
 #    Fixes links of this form [[:en:ta...]]
 #    Converts leading dash to asterisk (json2md() only, needed for Brazilian Portuguese)
+#    Removes leading spaces from headers and text lines.
 # Import and use either of two external functions:
 #    json2md()
 #    md2md()
@@ -204,14 +205,15 @@ def convertLine(line, nIn, mdFile, path, shortname):
         if state.prevlinetype != ORDEREDLIST_ITEM and state.prevlinetype != BLANKLINE:
             needblank = True
     elif state.currlinetype == TEXT:
-        if state.prevlinetype == HEADING or state.prevlinetype == LIST_ITEM or state.prevlinetype == ORDEREDLIST_ITEM:
+        line = line.lstrip()
+        if state.prevlinetype in (HEADING, LIST_ITEM, ORDEREDLIST_ITEM):
             needblank = True
 
     if needblank:
         mdFile.write(u'\n')
     mdFile.write(line + u'\n')
     
-    if len(line) - origlen > 15 or len(line) - origlen < -15:
+    if len(line) - origlen > 15 or len(line) - origlen < -25:
         sys.stderr.write("Manually check conversion of line " + str(nIn) + " in " + shortname(path) + ".\n")
         sys.stderr.write("  Length difference: " + str(len(line) - origlen) + "\n")
 
@@ -255,8 +257,10 @@ list1_re = re.compile(r'^([^\*]*[^\n])\n\* (.*)', flags=re.UNICODE+re.DOTALL)   
 list2_re = re.compile(r'(.*\* [^\n]*)\n([^\n\*].*)', flags=re.UNICODE+re.DOTALL)      # no blank line after ordered list
 list3_re = re.compile(r'^\*([^ \*].*)', flags=re.UNICODE+re.DOTALL)      # no space after single asterisk at beginning of string
 
+# This function is used by both md2md() and json2md().
 # Cleans up the string destined for markdown file.
 # Converts improper links [[:en:ta...]] to the current format.
+# Converts &nbsp; to space character
 # Returns fixed string.
 def normalize(ustr):
     # Poorly formed links
@@ -269,11 +273,13 @@ def normalize(ustr):
     str = str.replace(u"[[[", u"[[")
     str = str.replace(u"\t", u" ")
     str = re.sub(r'\n *-', u'\n*', str)
+    str = re.sub(r'&nbsp;', u' ', str, count=0)
     
     if not g_multilist:
         str = re.sub(r'    *', u'  ', str)   # reduce runs of 3 or more spaces
         str = re.sub(r'\n +\*', u'\n*', str)     # removes spaces before asterisk, although they are required in multi-level lists (uncommon)
     
+    str = re.sub(r'\n +\#', u'\n#', str)       # removes spaces before hash marks (new 5/30/19)
     str = re.sub(r'\n\*  +', u'\n* ', str)     # removes excess spaces after asterisk
     str = re.sub(r':\n\* ', u':\n\n* ', str)   # adds blank line at start of list
 
@@ -326,7 +332,7 @@ def normalize(ustr):
     if g_langcode != "en":
         url = enurl_re.match(str)
         while url:
-            str = url.group(1) + g_langcode + url.group(2)
+            str = url.group(1) + u"*" + url.group(2)
             url = enurl_re.match(str)
 
     # Fix what's inside the note links and tA links
@@ -433,7 +439,7 @@ def normalizeTaLink(lastpart):
     lastpart = lastpart.replace(u'/vol2/', u'/man/')
     lastpart = re.sub(r'\|[^\]]*', u'', lastpart, flags=re.UNICODE)
 
-    goodlink = u"[[rc://" + g_langcode + lastpart + u"]]"
+    goodlink = u"[[rc://" + u"*" + lastpart + u"]]"
     return goodlink
 
 badbita_re = re.compile(r'(.*\()(bita-.*?)(\).*)', flags=re.UNICODE+re.DOTALL)     # matches a bad relative path in tA link to bita parts

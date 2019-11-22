@@ -17,10 +17,10 @@ import sys
 # Globals
 # Heading to the added where needed.
 # Include hash marks, word for "Definition" in target language, and 2 newlines
-h2_terms = u"## Definisi: \n\n"  
-h2_names = u"## Fakta-fakta: \n\n"
+h2_terms = u"## Famaritana\n\n"     # व्याख्या:  व्याख्या: व्याख्या: व्याख्या:  व्याख्या: 
+h2_names = u"## Facts \n\n"  # तथ्य: तथ्य: तथ्य: 
 
-max_changes = 1
+max_changes = 1111
 nChanged = 0
 nRead = 0
 
@@ -90,7 +90,7 @@ def convertFolder(folder):
 # Processes all .txt files in specified directory, one at a time
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        folder = r'C:\DCS\Indonesian\id_tw\bible'
+        folder = r'C:\DCS\Malagasy\plt_tw\bible'
     else:
         folder = sys.argv[1]
 

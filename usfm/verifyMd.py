@@ -13,13 +13,17 @@
 # References in headings (warning)
 # References to tA entries are valid.
 # No html code: <!-- -->, &nbsp;
+# Counts open and closed parentheses, open and closed brackets. (not markdown-specific)
+# Reports files that have purely ASCII content.
 
 # Globals
-language_code = u'ml'
-resource_type = 'obs'
-ta_dir = r'C:\DCS\English\en_tA'    # English tA
-obs_dir = r'C:\DCS\Tamil\ta_obs\content'   # Target language OBS content folder, needed if OBS links are to be checked
-#tn_dir = r'C:\DCS\Malayalam\ml_tn'    # Target language tN, needed if note links are to be checked
+language_code = u'id'
+resource_type = 'tq'
+ta_dir = r'E:\DCS\English\en_tA'    # English tA
+#ta_dir = r'E:\DCS\Croatian\hr_tA'    # Target language tA
+obs_dir = r'E:\DCS\Malayalam\ml_obs\content'   # English language OBS content folder, needed if OBS links are to be checked
+#obs_dir = r'E:\DCS\Croatian\hr_obs\content'   # Target language OBS content folder, needed if OBS links are to be checked
+#tn_dir = r'E:\DCS\Malayalam\ml_tn'    # Target language tN, needed if note links are to be checked
 nChecked = 0
 sourceDir = ""
 issuesFile = None
@@ -32,6 +36,8 @@ suppress5 = False    # Suppress warnings about invalid passage links (needed for
 suppress6 = False    # Suppress warnings about invalid OBS links
 suppress7 = False    # Suppress warnings about file starting with blank line
 suppress8 = False    # Suppress warnings about invalid list style
+suppress9 = True     # Suppress warnings about no non-ASCII content
+suppress10 = False    # Suppress warnings about heading levels
 if resource_type == "ta":
     suppress1 = True
     suppress7 = True
@@ -70,6 +76,11 @@ class State:
     currlinetype = None
     italicized = False      # Does the last TEXT line begin with and underscore
     reported1 = False       # reported text before first heading
+    leftparens = 0
+    rightparens = 0
+    leftbrackets = 0
+    rightbrackets = 0
+    ascii = True
         
     def setPath(self, path):
         State.path = path
@@ -81,6 +92,13 @@ class State:
         State.currlinetype = None
         State.linetype = []
         State.reported1 = False
+        State.leftparens = 0
+        State.rightparens = 0
+        State.leftbrackets = 0
+        State.rightbrackets = 0
+        State.leftcurly = 0
+        State.rightcurly = 0
+        State.ascii = True
         # sys.stdout.write(shortname(path) + "\n")
         
     def addLine(self, line):
@@ -101,10 +119,32 @@ class State:
             State.currlinetype = TEXT
             State.italicized = (line[0] == u'_' and line[-1] == u'_')
         State.linetype.append(State.currlinetype)
+        if State.ascii and not suppress9:
+            try:
+                line.decode('ascii')
+            except UnicodeEncodeError as e:
+                State.ascii = False
         # sys.stdout.write(str(State.linecount) + ": line length: " + str(len(line)) + ". headingcount is " + str(State.headingcount) + "\n")
     
+    def countParens(self, line):
+#        State.leftparens += line.count(u"(")
+#        State.rightparens += line.count(u")")
+        State.leftbrackets += line.count(u"[")
+        State.rightbrackets += line.count(u"]")
+        State.leftcurly += line.count(u"{")
+        State.rightcurly += line.count(u"}")
+        
     def report1(self):
         State.reported1 = True
+
+def reportParens():
+    state = State()
+    if state.leftparens != state.rightparens:
+        reportError("Parentheses are unbalanced")
+    if state.leftbrackets != state.rightbrackets:
+        reportError("Left and right square brackets are unbalanced")
+    if state.leftcurly != state.rightcurly:
+        reportError("Left and right curly braces are unbalanced")
 
 # If issues.txt file is not already open, opens it for writing.
 # First renames existing issues.txt file to issues-oldest.txt unless
@@ -148,6 +188,7 @@ toobold_re = re.compile(r'#+[ \t]+[\*_]', re.UNICODE)        # unwanted formatti
 
 def take(line):
     state = State()
+    state.countParens(line)
     state.addLine(line)
     if not line:
         if state.linecount == 1 and not suppress7:
@@ -172,9 +213,9 @@ def take(line):
                 reportError("no space before closing hash mark")
         elif len(line) == 1 and not suppress2:
             reportError("blank heading")
-        if resource_type != "ta" and state.currheadinglevel > 2:
+        if resource_type != "ta" and state.currheadinglevel > 2 and not suppress10:
             reportError("excessive heading level")
-        elif state.currheadinglevel > state.prevheadinglevel + 1:
+        elif state.currheadinglevel > state.prevheadinglevel + 1  and not suppress10:
             if resource_type != "ta" or state.prevheadinglevel > 0:
                 reportError("heading level incremented by more than one level")
     if state.currlinetype == LIST_ITEM:
@@ -304,7 +345,6 @@ def checkPassageLinks(line, fullpath):
     global resource_type
     passage = passagelink_re.search(line)
     while passage:
-        reported = False
         obsJpg = obsJpg_re.match(passage.group(1))
         if not (resource_type == 'obs' and obsJpg):
             referencedPath = os.path.join( os.path.dirname(fullpath), passage.group(1) )
@@ -338,8 +378,11 @@ def verifyFile(path):
         line = line.rstrip()
         take( line )
         checkMdLinks(line, path)
+    reportParens()
     if resource_type == 'obs' and not state.italicized and storyfile_re.search(path):
         reportError("Last line is not italicized")
+    if state.ascii and not suppress9:
+        reportError("No non-ASCII content")
     sys.stderr.flush()
     global nChecked
     nChecked += 1
@@ -360,6 +403,8 @@ def verifiable(path, fname):
     if os.path.isfile(path) and fname[-3:].lower() == '.md':
         if resource_type == "ta":
             v = (fname == "01.md")
+#        elif resource_type == "tn":
+#            v = (fname != "intro.md")
         else:
             v = True
     return v
@@ -376,7 +421,7 @@ def verifyDir(dirpath):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        source = r'C:\DCS\Nagamese\nag_obs'
+        source = r'E:\DCS\Indonesian\id_tq'
     else:
         source = sys.argv[1]
 

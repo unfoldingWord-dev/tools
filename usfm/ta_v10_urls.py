@@ -28,7 +28,6 @@ keystring.append(re.compile(r'\(figs-', flags=re.UNICODE) )
 v9string = []
 v9string.append(u'https://unfoldingword.org/en/?resource=translation-words')
 v9string.append(u'https://unfoldingword.org/network')
-v9string.append(u'https://unfoldingword.org')
 v9string.append(u'(bita-part1)')
 v9string.append(u'(bita-part2)')
 v9string.append(u'(bita-part3)')
@@ -46,9 +45,8 @@ v9string.append(u"(figs-verbs)")
 
 # Strings to replace with
 v10string = []
-v10string.append( u'https://unfoldingword.bible/tw/' )
-v10string.append( u'https://unfoldingword.bible' )
-v10string.append( u'https://unfoldingword.bible' )
+v10string.append( u'https://unfoldingword.org/tw/' )
+v10string.append( u'https://unfoldingword.org' )
 v10string.append( u'(../bita-part1/01.md)' )
 v10string.append( u'(../bita-part2/01.md)' )
 v10string.append( u'(../bita-part3/01.md)' )
@@ -129,7 +127,7 @@ def convertFolder(folder):
 # Processes all .txt files in specified directory, one at a time
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        folder = r'C:\DCS\Oriya\or_tA'
+        folder = r'C:\DCS\Kannada\kn_tA'
     else:
         folder = sys.argv[1]
 

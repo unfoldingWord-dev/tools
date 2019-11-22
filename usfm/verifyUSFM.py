@@ -361,7 +361,7 @@ def take(token):
         if token.value == "p":
             reportError("Orphaned paragraph marker after " + state.reference)
         elif usfmVersion < 3.0:
-            reportError("Unknown token following " + state.reference)
+            reportError("Unknown USFM token following " + state.reference)
         
     lastToken = token
 
@@ -376,6 +376,7 @@ bad_verse_re3 = re.compile(r'(\\v\s*[-0-9]+[^-\d\s])', re.UNICODE)
 # Reports bad patterns.
 # Can't report verse references because we haven't started to parse the book yet.
 def verifyChapterAndVerseMarkers(text, book):
+    state = State()
     for badactor in bad_chapter_re1.finditer(text):
         reportError(book + ": missing newline before chapter marker: " + badactor.group(1))
     for badactor in bad_chapter_re2.finditer(text):
@@ -393,7 +394,7 @@ def verifyChapterAndVerseMarkers(text, book):
         str = badactor.group(1)
         if str[-1] < ' ' or str[-1] > '~': # not printable ascii
             str = str[:-1]
-        reportError(book + ": missing space after verse number: " + str)
+        reportError(book + ": missing space after verse number: " + str + " near " + state.reference)
 
 prefix_re = re.compile(r'C:\\DCS')
 
@@ -443,7 +444,7 @@ def verifyDir(dirpath):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        source = r'C:\DCS\Telugu\te_iev'
+        source = r'E:\DCS\Indonesian\id_ayt'
     else:
         source = sys.argv[1]
         

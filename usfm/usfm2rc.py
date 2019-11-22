@@ -9,6 +9,9 @@
 # The output folder is also hard-coded.
 # The input file(s) should be verified, correct USFM.
 
+# Global variables
+en_rc_dir = r'C:\Users\Larry\AppData\Local\translationstudio\library\resource_containers'
+target_dir = r'C:\DCS\Papuan Malay\pmy_ulb'
 
 import sys
 import os
@@ -22,11 +25,6 @@ import parseUsfm
 import io
 import codecs
 import re
-
-# Global variables
-en_rc_dir = r'C:\Users\Larry\AppData\Local\translationstudio\library\resource_containers'
-target_dir = r'C:\DCS\Portuguese-Brazil\pt-br_ulb2'
-vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
 class State:
     ID = u""
@@ -111,16 +109,10 @@ class State:
         
     def addP(self):
         State.needPp = False
-
-    # Reports if vv is a range of verses, e.g. 3-4. Passes the verse(s) on to addVerse()
-    def addVerses(self, vv):
-        if vv.find('-') > 0:
-            vv_range = vv_re.search(vv)
-            self.addVerse(vv_range.group(1))
-            # sys.stderr.write("Range of verses encountered at " + State.reference + "\n")
-            self.addVerse(vv_range.group(2))
-        else:
-            self.addVerse(vv)
+    
+    # Called when a \p is encountered in the source but needs to be help for later output.
+    def holdP(self):
+        State.needPp = True
 
     def addS5(self):
         State.s5marked = True
@@ -222,10 +214,15 @@ def takeMTX(key, value):
     else:
         takeAsIs(key, value)
 
+# Copies paragraph marker to output unless a section 5 break is just ahead.
+# In that case, the paragraph marker will automatically be added after \s5.
 def takeP():
     state = State()
-    state.addP()
-    state.usfmFile.write(u"\n\\p")
+    if state.getChunkVerse() != state.verse + 1:
+        state.addP()
+        state.usfmFile.write(u"\n\\p")
+    else:
+        state.holdP()
 
 def addSection(v):
     state = State()
@@ -244,10 +241,11 @@ def takeS5():
         state.addS5()
         state.usfmFile.write(u"\n\\s5")
 
+vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 def takeV(v):
     state = State()
-    if v.find('-') > 0:
-        vv_range = vv_re.search(v)
+    vv_range = vv_re.search(v)
+    if vv_range:
         v1 = vv_range.group(1)
         v2 = vv_range.group(2)
         state.addVerse(v1)
@@ -255,6 +253,7 @@ def takeV(v):
         addSection(v1)
         state.addVerse(v2)
     else:
+        v = v.strip("-")    # A verse marker like this has occurred:  \v 19-
         state.addVerse(v)
         addSection(v)
     state.usfmFile.write(u"\n\\v " + v)
@@ -401,7 +400,7 @@ def appendToManifest():
     manifest.write(u"    title: '" + state.title + u" '\n")
     manifest.write(u"    versification: ufw\n")
     manifest.write(u"    identifier: " + state.ID.lower() + u"\n")
-    manifest.write(u"    sort: " + '{0:02d}'.format(usfm_verses.verseCounts[state.ID]['sort']) + u"\n")
+    manifest.write(u"    sort: " + str(usfm_verses.verseCounts[state.ID]['sort']) + u"\n")
     manifest.write(u"    path: ./" + makeUsfmFilename(state.ID) + u"\n")
     testament = u'nt'
     if usfm_verses.verseCounts[state.ID]['sort'] < 40:
@@ -447,7 +446,7 @@ if __name__ == "__main__":
     if os.path.isfile( makeManifestPath() ):
         os.remove( makeManifestPath() )
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-         convertFolder(r'C:\DCS\Portuguese-Brazil\pt-br_ulb')
+         convertFolder(r'C:\DCS\Papuan Malay\ULB')
     else:       # the first command line argument is presumed to be the folder containing usfm files to be converted
         convertFolder(sys.argv[1])
 

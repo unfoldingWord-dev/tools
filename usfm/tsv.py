@@ -7,14 +7,11 @@
 # The list2Dict function converts a list to a Python dictionary mapping.
 # make_key() generates keys used in the dictionary.
 
-# import re
 import io
-# import os
-# import sys
-# import json
 import codecs
 
-
+# Each row becomes a list of strings
+# The entire file is returned as a list of lists of strings (rows).
 def tsvRead(inputPath):
     enc = detect_by_bom(inputPath, default="utf-8")
     f = io.open(inputPath, "tr", 1, encoding=enc)
@@ -37,6 +34,7 @@ def tsvWrite(data, tsvPath):
     tsvFile.close()
 
 # Maps each element of the list to a dictionary key, based on values in the key columns of the list.
+# keycolumns is a list of column numbers which will serve as the unique key for all rows.
 # The list of strings in each element of the list become the values of the dictionary.
 # Returns this dictionary object.
 def list2Dict(list, keycolumns):
@@ -46,6 +44,8 @@ def list2Dict(list, keycolumns):
         dict[key] = row
     return dict
 
+# Returns a string made up of the keycolumn values separated by dots.
+# The caller must ensure the keycolumn numbers are valid, or an IndexError might occur.
 def make_key(list, keycolumns):
     key = u""
     for col in keycolumns:

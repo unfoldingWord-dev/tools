@@ -5,10 +5,10 @@
 #    Uses convert2md.md2md() to convert links and things.
 
 # Global variables
-language_code = u'gu'
+language_code = u'pmy'
 resource_type = 'tw'    # should be ta or tw
-target_dir = r'C:\DCS\Gujarati\gu_tw'
-source_dir = r'C:\DCS\Gujarati\TW'      # Source and target directories must be at the same level
+target_dir = r'C:\DCS\Papuan Malay\pmy_tw'
+source_dir = r'C:\DCS\Papuan Malay\pmy_tw.temp'      # Source and target directories must be at the same level
 
 import re
 import io
@@ -87,7 +87,7 @@ def convertDir(dir):
 if __name__ == "__main__":
     if resource_type == "ta":
         convert2md.g_multilist = True
-        sys.stdout.write("WARNING: Preserving all spaces except trailing spaces.\n\n")
+        sys.stdout.write("WARNING: Preserving all spaces except trailing spaces.\n")
         sys.stdout.write("WARNING: This is only converting files named 01.md\n\n")
         sys.stdout.flush()
 
