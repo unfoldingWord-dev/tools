@@ -1158,6 +1158,8 @@ class TnConverter(object):
         return ta_html
 
     def has_tn_references(self, rc):
+        if rc not in self.rc_references:
+            return False
         for reference in self.rc_references[rc]:
             if '/tn/' in reference:
                 return True
