@@ -1141,7 +1141,7 @@ class TnConverter(object):
                 if alt_title:
                     html = '<h2 class="section-header">{0}</h2>\n{2}'.format(alt_title, title, html)
                 else:
-                    html = '<h2 class="section-header">{0}</h2>\n{1}{2}'.format(title, reference_text, html)
+                    html = '<h2 class="section-header">{0}</h2>\n{1}'.format(title, html)
                 tw_html += '<article id="{0}">\n{1}\n{2}</article>\n\n'.format(self.resource_data[rc]['id'], html,
                                                                                reference_text)
         tw_html += "\n</section>\n\n"
