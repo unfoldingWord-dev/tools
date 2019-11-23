@@ -942,8 +942,8 @@ class TnConverter(object):
             html += data[resource]['html']
             first_verse = data['last_verse'] + 1
         if html:
-            html = re.sub(r'\s*\n\s*', '', html, flags=re.IGNORECASE | re.MULTILINE)
-            html = re.sub(r'\s*</*p[^>]*>\s*', '', html, flags=re.IGNORECASE | re.MULTILINE)
+            html = re.sub(r'\s*\n\s*', ' ', html, flags=re.IGNORECASE | re.MULTILINE)
+            html = re.sub(r'\s*</*p[^>]*>\s*', ' ', html, flags=re.IGNORECASE | re.MULTILINE)
             html = html.strip()
             html = re.sub(r'\s*<span class="v-num"', '</div><div class="verse"><span class="v-num"', html, flags=re.IGNORECASE | re.MULTILINE)
             html = re.sub(r'^</div>', '', html)
