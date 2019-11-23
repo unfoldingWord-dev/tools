@@ -434,6 +434,8 @@ def main(ta_tag, lang_codes, working_dir, output_dir, owner, regenerate):
     if not lang_codes:
         lang_codes = [DEFAULT_LANG]
 
+    LOGGER.setLevel('INFO')  # Set to 'INFO' for debugging
+
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
     ch = logging.StreamHandler()
