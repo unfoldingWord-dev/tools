@@ -1139,7 +1139,7 @@ class TnConverter(object):
                 title = self.resource_data[rc]['title']
                 alt_title = self.resource_data[rc]['alt_title']
                 if alt_title:
-                    html = '<h2>{0}</h2><h2 class="hidden section-header">{1}</h2>\n{2}'.format(title, alt_title, html)
+                    html = '<h2 class="hidden section-header">{0}</h2><h2>{1}</h2>\n{2}'.format(alt_title, title, html)
                 else:
                     html = '<h2 class="section-header">{0}</h2>\n{1}'.format(title, html)
                 tw_html += '<article id="{0}">\n{1}\n{2}</article>\n\n'.format(self.resource_data[rc]['id'], html,

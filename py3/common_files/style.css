@@ -422,7 +422,6 @@ code {
 }
 
 .hidden {
-    display: none;
     height: 0;
     font-size: 0;
     color: #ffffff;
