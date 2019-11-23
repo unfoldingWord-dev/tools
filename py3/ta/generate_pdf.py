@@ -27,6 +27,7 @@ import string
 import shutil
 import yaml
 import prettierfier
+from datetime import datetime
 from bs4 import BeautifulSoup
 from weasyprint import HTML, LOGGER
 from ..general_tools.file_utils import read_file, write_file, load_json_object
@@ -99,6 +100,8 @@ class TaConverter(object):
         self.publisher = self.manifest['dublin_core']['publisher']
         self.issued = self.manifest['dublin_core']['issued']
         self.determine_if_regeneration_needed()
+        LOGGER_handler = logging.FileHandler(os.path.join(self.output_dir, '{0}_weasyprint.log'.format(self.file_id)))
+        LOGGER.addHandler(LOGGER_handler)
         html_file = os.path.join(self.output_dir, '{0}.html'.format(self.file_id))
         pdf_file = os.path.join(self.output_dir, '{0}.pdf'.format(self.file_id))
         if self.regenerate or not os.path.exists(html_file):
@@ -135,8 +138,6 @@ class TaConverter(object):
             self.logger.info('HTML file {0} already there. Not generating. Use -r to force regeneration.'.format(html_file))
 
         if self.regenerate or not os.path.exists(pdf_file):
-            LOGGER.setLevel('WARN')  # Set to 'INFO' for debugging
-            LOGGER.addHandler(logging.FileHandler(os.path.join(self.output_dir, '{0}_errors.log'.format(self.file_id))))
             weasy = HTML(filename=html_file, base_url='file://{0}/'.format(self.output_dir))
             weasy.write_pdf(pdf_file)
             link_file = os.path.join(self.output_dir, '{0}_ta_{1}.pdf'.format(self.lang_code, self.ta_tag))
