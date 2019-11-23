@@ -370,11 +370,11 @@ class TnConverter(object):
                         if os.path.isdir(repo_dir):
                             break
         g = git.Git(repo_dir)
-        # g.fetch()
+        g.fetch()
         g.checkout(tag)
         if tag == DEFAULT_TAG:
-            self.logger.info("not pulling")
-            # g.pull()
+            # self.logger.info("not pulling")
+            g.pull()
         commit = g.rev_parse('HEAD', short=10)
         self.generation_info[resource] = {'tag': tag, 'commit': commit}
 
