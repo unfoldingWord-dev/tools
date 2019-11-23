@@ -1139,10 +1139,11 @@ class TnConverter(object):
                 title = self.resource_data[rc]['title']
                 alt_title = self.resource_data[rc]['alt_title']
                 if alt_title:
-                    html = '<h2 class="section-header">{0}</h2>\n{2}{3}'.format(alt_title, title, reference_text, html)
+                    html = '<h2 class="section-header">{0}</h2>\n{2}'.format(alt_title, title, html)
                 else:
                     html = '<h2 class="section-header">{0}</h2>\n{1}{2}'.format(title, reference_text, html)
-                tw_html += '<article id="{0}">\n{1}\n</article>\n\n'.format(self.resource_data[rc]['id'], html)
+                tw_html += '<article id="{0}">\n{1}\n{2}</article>\n\n'.format(self.resource_data[rc]['id'], html,
+                                                                               reference_text)
         tw_html += "\n</section>\n\n"
         return tw_html
 
@@ -1164,10 +1165,10 @@ class TnConverter(object):
                 html = self.increase_headers(html)
                 html = '''
     <h2 class="section-header">{0}</h2>
-    {1}
-    <div class="alt-title"><strong>{2}</strong></div>
+    <div class="alt-title"><strong>{1}</strong></div>
+    {2}
     {3}
-'''.format(self.resource_data[rc]['title'], reference_text, self.resource_data[rc]['alt_title'], html)
+'''.format(self.resource_data[rc]['title'], self.resource_data[rc]['alt_title'], html, reference_text)
                 ta_html += '''
 <article id="{0}">
     {1}
@@ -1204,7 +1205,7 @@ class TnConverter(object):
                     book_title = ''
                 references.append('<a href="#{0}">{1}</a>'.format(id, text))
                 done[reference] = True
-        uses = '<div class="go-back">\n(<strong>Go back to:</strong> {0})\n</div>\n'.format('; '.join(references))
+        uses = '<div class="go-back reference-text">\n(<strong>Go back to:</strong> {0})\n</div>\n'.format('; '.join(references))
         return uses
 
     def get_resource_data_from_rc_links(self, text, source_rc):
