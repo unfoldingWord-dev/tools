@@ -15,3 +15,12 @@ div.tn-notes .bible-resource-title {
     font-weight: normal;
     font-size: .8em;
 }
+
+div.bible-text {
+    text-align: justify;
+}
+
+div.verse {
+    display: inline;
+    padding-left: .5em;
+}
