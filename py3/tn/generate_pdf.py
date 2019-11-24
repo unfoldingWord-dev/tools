@@ -936,31 +936,43 @@ class TnConverter(object):
         self.tw_words_data = words
 
     def get_plain_html(self, resource, chapter, first_verse, last_verse):
-        html = ''
+        verses = ''
+        footnotes = ''
         while first_verse <= last_verse:
             data = self.chunks_text[str(chapter)][str(first_verse)]
-            html += data[resource]['html']
+            footnotes_split = re.compile('<div class="footnotes">', flags=re.IGNORECASE | re.MULTILINE)
+            verses_and_footnotes = re.split(footnotes_split, data[resource]['html'], maxsplit=1)
+            verses += verses_and_footnotes[0]
+            if len(verses_and_footnotes) == 2:
+                footnote = '<div class="footnotes">{0}'.format(verses_and_footnotes[1])
+                if footnotes:
+                    footnote = footnote.replace('<hr class="footnotes-hr"/>', '')
+                footnotes += footnote
             first_verse = data['last_verse'] + 1
-        if html:
+        html = ''
+        if verses:
+            verses = re.sub(r'\s*<span class="v-num"', '</div><div class="verse"><span class="v-num"', verses, flags=re.IGNORECASE | re.MULTILINE)
+            verses = re.sub(r'^</div>', '', verses)
+            if verses and '<div class="verse">' in verses:
+                verses += '</div>'
+            html = verses + footnotes
             html = re.sub(r'\s*\n\s*', ' ', html, flags=re.IGNORECASE | re.MULTILINE)
             html = re.sub(r'\s*</*p[^>]*>\s*', ' ', html, flags=re.IGNORECASE | re.MULTILINE)
             html = html.strip()
-            html = re.sub(r'\s*<span class="v-num"', '</div><div class="verse"><span class="v-num"', html, flags=re.IGNORECASE | re.MULTILINE)
-            html = re.sub(r'^</div>', '', html)
-            html = re.sub(r'id="(ref-)*fn-', r'id="{0}-\1fn-'.format(resource), html, flags=re.IGNORECASE | re.MULTILINE)
-            html = re.sub(r'href="#(ref-)*fn-', r'href="#{0}-\1fn-'.format(resource), html, flags=re.IGNORECASE | re.MULTILINE)
-            if html and '<div class="verse">' in html:
-                html += '</div>'
+            html = re.sub(r'id="(ref-)*fn-', r'id="{0}-\1fn-'.format(resource), html,
+                          flags=re.IGNORECASE | re.MULTILINE)
+            html = re.sub(r'href="#(ref-)*fn-', r'href="#{0}-\1fn-'.format(resource), html,
+                          flags=re.IGNORECASE | re.MULTILINE)
         return html
 
     def get_highlighted_html(self, resource, chapter, first_verse, last_verse):
         html = self.get_plain_html(resource, chapter, first_verse, last_verse)
-        regex = re.compile(' <div')
-        verses_and_footer = regex.split(html)
-        verses_html = verses_and_footer[0]
+        footnotes_split = re.compile('<div class="footnotes">', flags=re.MULTILINE | re.IGNORECASE)
+        verses_and_footnotes = footnotes_split.split(html, maxsplit=1)
+        verses_html = verses_and_footnotes[0]
         footer_html = ''
-        if len(verses_and_footer) > 1:
-            footer_html = ' <div {0}'.format(verses_and_footer[1])
+        if len(verses_and_footnotes) == 2:
+            footer_html = '<div class="footnotes">{0}'.format(verses_and_footnotes[1])
         regex = re.compile(r'<div class="verse"><span class="v-num" id="{0}-\d+-ch-\d+-v-\d+"><sup><strong>(\d+)</strong></sup></span>'.
                            format(resource))
         verses_split = regex.split(verses_html)
@@ -994,9 +1006,9 @@ class TnConverter(object):
             if verse_num in verses:
                 verse_text = verses[verse_num]
                 self.get_resource_data_from_rc_links(verses[verse_num], rc)
-            new_html += '<div class="verse"><span class="v-num" id="{0}-{1}-ch-{2}-v-{3}"><sup><strong>{4}</strong></sup></span>{5}'.\
-                format(resource, str(self.book_number).zfill(3), str(chapter).zfill(3), str(verse_num).zfill(3),
-                       verse_num, verse_text)
+                new_html += '<div class="verse"><span class="v-num" id="{0}-{1}-ch-{2}-v-{3}"><sup><strong>{4}</strong></sup></span>{5}'.\
+                    format(resource, str(self.book_number).zfill(3), str(chapter).zfill(3), str(verse_num).zfill(3),
+                           verse_num, verse_text)
         new_html += footer_html
         return new_html
 
