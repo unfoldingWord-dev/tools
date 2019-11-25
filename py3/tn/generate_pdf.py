@@ -785,7 +785,7 @@ class TnConverter(object):
             }
             self.rc_lookup[intro_id] = rc
             self.get_resource_data_from_rc_links(intro, rc)
-            self.verse_to_chunk['front'] = title
+            self.verse_to_chunk['front'] = {'intro': title}
 
         for chapter_verses in self.chapters_and_verses:
             chapter = str(chapter_verses['chapter'])
@@ -838,7 +838,7 @@ class TnConverter(object):
                 </div>
             '''.format(note_quote, '({0}:{1})'.format(chapter, verse) if first_verse != last_verse else '', note)
                         rc = 'rc://{0}/tn/help/{1}/{2}/{3}'.format(self.lang_code, self.book_id, self.pad(chapter),
-                                                                   self.pad(verse))
+                                                                   str(verse).zfill(3))
                         self.get_resource_data_from_rc_links(verse_notes, rc)
                         chunk_notes += verse_notes
 
@@ -868,10 +868,10 @@ class TnConverter(object):
 
                 verse_ids = []
                 for verse in range(first_verse, last_verse+1):
-                    verse_id = 'tn-{0}-{1}-{2}'.format(self.book_id, self.pad(chapter), self.pad(verse))
+                    verse_id = 'tn-{0}-{1}-{2}'.format(self.book_id, self.pad(chapter), str(verse).zfill(3))
                     verse_ids.append(verse_id)
                     rc = 'rc://{0}/tn/help/{1}/{2}/{3}'.format(self.lang_code, self.book_id, self.pad(chapter),
-                                                               self.pad(verse))
+                                                               str(verse).zfill(3))
                     self.resource_data[rc] = {
                         'rc': rc,
                         'id': verse_id,
@@ -1007,7 +1007,7 @@ class TnConverter(object):
                         replace += r'\{0}'.format(idx + 1)
                 verses[verse_num] = re.sub(pattern, replace, verses[verse_num], 1, flags=re.MULTILINE | re.IGNORECASE)
             rc = 'rc://{0}/tn/help/{1}/{2}/{3}'.format(self.lang_code, self.book_id, self.pad(chapter),
-                                                       self.pad(str(verse_num)))
+                                                       str(verse_num).zfill(3))
             verse_text = ''
             if verse_num in verses:
                 verse_text = verses[verse_num]
@@ -1206,7 +1206,7 @@ class TnConverter(object):
     def get_reference_text(self, rc):
         if not self.has_tn_references(rc):
             return ''
-        go_back_tos = {}
+        go_back_tos = []
         done = {}
         book_started = False
         for reference in self.rc_references[rc]:
@@ -1215,48 +1215,36 @@ class TnConverter(object):
                 chapter = parts[4]
                 verse = parts[5]
                 tn_id = 'tn-{0}-{1}-{2}'.format(self.book_id, chapter, verse)
-                text = ''
                 if chapter == 'front':
-                    if 'front' in self.verse_to_chunk:
-                        text = self.verse_to_chunk['front']
+                    if chapter in self.verse_to_chunk and verse in self.verse_to_chunk[chapter]:
+                        text = self.verse_to_chunk[chapter][verse]
                     else:
                         text = 'Intro to {0}'.format(self.book_title)
+                        self.verse_to_chunk[chapter][verse] = text
                 elif verse == 'intro':
-                    if chapter in self.verse_to_chunk and 'intro' in self.verse_to_chunk[chapter]:
-                        text = self.verse_to_chunk[chapter]['intro']
+                    if chapter in self.verse_to_chunk and verse in self.verse_to_chunk[chapter]:
+                        text = self.verse_to_chunk[chapter][verse]
                     else:
                         text = '{0} {1} Notes'.format(self.book_title, chapter)
+                        self.verse_to_chunk[chapter][verse] = text
                     book_started = True
                 else:
-                    verse = verse.lstrip('0')
-                    book_title = ''
-                    chapter_text = ''
-                    chapter = self.pad(chapter)
-                    verse = verse.zfill(3)
-                    if not book_started:
-                        book_title = '{0} '.format(self.book_title)
-                        book_started = True
-                    if chapter not in go_back_tos:
-                        chapter_text = '{0}:'.format(chapter.lstrip('0'))
                     if chapter in self.verse_to_chunk and verse in self.verse_to_chunk[chapter]:
-                        chunk_title = self.verse_to_chunk[chapter][verse].split(':')[1]
+                        if book_started:
+                            text = self.verse_to_chunk[chapter][verse].split(' ')[-1]
+                        else:
+                            text = self.verse_to_chunk[chapter][verse]
                     else:
-                        chunk_title = verse
-                    if chunk_title not in done:
-                        text = '{0}{1}{2}'.format(book_title, chapter_text, chunk_title)
-                        done[chunk_title] = True
-                if text:
-                    if chapter not in go_back_tos:
-                        go_back_tos[chapter] = []
-                    go_back_tos[chapter].append('<a href="#{0}">{1}</a>'.format(tn_id, text))
+                        text = '{0} {1}:{2}'.format(self.book_title, chapter.lstrip('0'), verse.lstrip('0'))
+                        self.verse_to_chunk[chapter][verse] = text
+                    book_started = True
+                if text and self.verse_to_chunk[chapter][verse] not in done:
+                    go_back_tos.append('<a href="#{0}">{1}</a>'.format(tn_id, text))
+                done[self.verse_to_chunk[chapter][verse]] = True
                 done[reference] = True
-        uses = ''
-        for chapter in sorted(go_back_tos.keys()):
-            if uses:
-                uses += '; '
-            uses += ', '.join(go_back_tos[chapter])
-        uses = '<div class="go-back reference-text">\n(<strong>Go back to:</strong> {0})\n</div>\n'.format(uses)
-        return uses
+        reference_text = '<div class="go-back reference-text">\n(<strong>Go back to:</strong> {0})\n</div>\n'.\
+            format('; '.join(go_back_tos))
+        return reference_text
 
     def get_resource_data_from_rc_links(self, text, source_rc):
         for rc in re.findall(r'rc://[A-Z0-9/_\*-]+', text, flags=re.IGNORECASE | re.MULTILINE):
