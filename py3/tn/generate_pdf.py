@@ -153,6 +153,7 @@ class TnConverter(object):
         self.generation_info = {}
         self.soup = None
         self.date = datetime.now().strftime('%Y-%m-%d')
+        self.verse_to_chunk = {}
 
     def run(self):
         self.setup_resource_files()
@@ -187,6 +188,7 @@ class TnConverter(object):
                 self.logger.info('Generating HTML file {0}...'.format(html_file))
                 self.resource_data = {}
                 self.rc_references = {}
+                self.verse_to_chunk = {}
                 self.populate_tn_book_data()
                 self.populate_tw_words_data()
                 self.populate_chapters_and_verses()
@@ -714,7 +716,7 @@ class TnConverter(object):
 
     def populate_chapters_and_verses(self):
         versification_file = os.path.join(self.versification_dir, '{0}.json'.format(self.book_id))
-        self.chapter_and_verses = {}
+        self.chapters_and_verses = {}
         if os.path.isfile(versification_file):
             self.chapters_and_verses = load_json_object(versification_file)
 
@@ -783,9 +785,11 @@ class TnConverter(object):
             }
             self.rc_lookup[intro_id] = rc
             self.get_resource_data_from_rc_links(intro, rc)
+            self.verse_to_chunk['front'] = title
 
         for chapter_verses in self.chapters_and_verses:
             chapter = str(chapter_verses['chapter'])
+            self.verse_to_chunk[self.pad(chapter)] = {}
             self.logger.info('Chapter {0}...'.format(chapter))
             if 'intro' in self.tn_book_data[chapter]:
                 intro = markdown2.markdown(self.tn_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>',"\n"))
@@ -807,6 +811,7 @@ class TnConverter(object):
                 }
                 self.rc_lookup[intro_id] = rc
                 self.get_resource_data_from_rc_links(intro, rc)
+                self.verse_to_chunk[self.pad(chapter)]['intro'] = title
 
             chapter_chunk_data = {}
             previous_first_verse = None
@@ -875,6 +880,7 @@ class TnConverter(object):
                     }
                     self.rc_lookup[verse_id] = rc
                     self.rc_lookup[verse_id + '-top'] = rc
+                    self.verse_to_chunk[self.pad(chapter)][str(verse).zfill(3)] = title
 
                 ult_highlighted_scripture = self.get_highlighted_html(self.ult_id, int(chapter), first_verse,
                                                                       last_verse)
@@ -1200,24 +1206,56 @@ class TnConverter(object):
     def get_reference_text(self, rc):
         if not self.has_tn_references(rc):
             return ''
-        uses = ''
-        references = []
-        book_title = '{0} '.format(self.book_title)
+        go_back_tos = {}
         done = {}
+        book_started = False
         for reference in self.rc_references[rc]:
             if '/tn/' in reference and reference not in done:
                 parts = reference[5:].split('/')
-                id = 'tn-{0}-{1}-{2}'.format(self.book_id, parts[4], parts[5])
-                if parts[4] == 'front':
-                    text = 'Intro to {0}'.format(self.book_title)
-                elif parts[5] == 'intro':
-                    text = '{0} {1} Notes'.format(self.book_title, parts[4].lstrip('0'))
+                chapter = parts[4]
+                verse = parts[5]
+                tn_id = 'tn-{0}-{1}-{2}'.format(self.book_id, chapter, verse)
+                text = ''
+                if chapter == 'front':
+                    if 'front' in self.verse_to_chunk:
+                        text = self.verse_to_chunk['front']
+                    else:
+                        text = 'Intro to {0}'.format(self.book_title)
+                elif verse == 'intro':
+                    if chapter in self.verse_to_chunk and 'intro' in self.verse_to_chunk[chapter]:
+                        text = self.verse_to_chunk[chapter]['intro']
+                    else:
+                        text = '{0} {1} Notes'.format(self.book_title, chapter)
+                    book_started = True
                 else:
-                    text = '{0}{1}:{2}'.format(book_title, parts[4].lstrip('0'), parts[5].lstrip('0'))
+                    verse = verse.lstrip('0')
                     book_title = ''
-                references.append('<a href="#{0}">{1}</a>'.format(id, text))
+                    chapter_text = ''
+                    chapter = self.pad(chapter)
+                    verse = verse.zfill(3)
+                    if not book_started:
+                        book_title = '{0} '.format(self.book_title)
+                        book_started = True
+                    if chapter not in go_back_tos:
+                        chapter_text = '{0}:'.format(chapter.lstrip('0'))
+                    if chapter in self.verse_to_chunk and verse in self.verse_to_chunk[chapter]:
+                        chunk_title = self.verse_to_chunk[chapter][verse].split(':')[1]
+                    else:
+                        chunk_title = verse
+                    if chunk_title not in done:
+                        text = '{0}{1}{2}'.format(book_title, chapter_text, chunk_title)
+                        done[chunk_title] = True
+                if text:
+                    if chapter not in go_back_tos:
+                        go_back_tos[chapter] = []
+                    go_back_tos[chapter].append('<a href="#{0}">{1}</a>'.format(tn_id, text))
                 done[reference] = True
-        uses = '<div class="go-back reference-text">\n(<strong>Go back to:</strong> {0})\n</div>\n'.format('; '.join(references))
+        uses = ''
+        for chapter in sorted(go_back_tos.keys()):
+            if uses:
+                uses += '; '
+            uses += ', '.join(go_back_tos[chapter])
+        uses = '<div class="go-back reference-text">\n(<strong>Go back to:</strong> {0})\n</div>\n'.format(uses)
         return uses
 
     def get_resource_data_from_rc_links(self, text, source_rc):
