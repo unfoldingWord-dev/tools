@@ -1421,17 +1421,17 @@ class TnConverter(object):
                     # should have two numbers, the chapter and the verse
                     c = parts[1]
                     v = parts[2]
-                    new_link = '#tn-{0}-{1}-{2}'.format(self.book_id, c, v)
+                    new_link = '#tn-{0}-{1}-{2}'.format(self.book_id, c, v.zfill(3))
                 if len(parts) == 2:
                     # shouldn't be here, but just in case, assume link to the first chunk of the given chapter
                     c = parts[1]
-                    new_link = '#tn-{0}-{1}-{2}'.format(self.book_id, c, '01')
+                    new_link = '#tn-{0}-{1}-{2}'.format(self.book_id, c, '001')
             elif link.startswith('./'):
                 # link to another verse in the same chapter
                 link = os.path.splitext(link)[0]
                 parts = link.split('/')
                 v = parts[1]
-                new_link = '#tn-{0}-{1}-{2}'.format(self.book_id, self.pad(chapter), v)
+                new_link = '#tn-{0}-{1}-{2}'.format(self.book_id, self.pad(chapter), v.zfill(3))
             return '<a{0}href="{1}"{2}>{3}</a>'.format(before_href, new_link, after_href, linked_text)
         regex = re.compile(r'<a([^>]+)href="(\.[^"]+)"([^>]*)>(.*?)</a>')
         text = regex.sub(replace_link, text)
