@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf8 -*-
 #
-#  Copyright (c) 2019 unfoldingWord
+    #  Copyright (c) 2019 unfoldingWord
 #  http://creativecommons.org/licenses/MIT/
 #  See LICENSE file for details.
 #
@@ -125,6 +125,8 @@ class TnConverter(object):
         self.tn_manifest = None
         self.tw_manifest = None
         self.ta_manifest = None
+        self.ult_manifest = None
+        self.ust_manifest = None
         self.book_title = None
         self.book_number = None
         self.project = None
@@ -169,6 +171,8 @@ class TnConverter(object):
         self.tn_manifest = load_yaml_object(os.path.join(self.tn_dir, 'manifest.yaml'))
         self.tw_manifest = load_yaml_object(os.path.join(self.tw_dir, 'manifest.yaml'))
         self.ta_manifest = load_yaml_object(os.path.join(self.ta_dir, 'manifest.yaml'))
+        self.ult_manifest = load_yaml_object(os.path.join(self.ult_dir, 'manifest.yaml'))
+        self.ust_manifest = load_yaml_object(os.path.join(self.ust_dir, 'manifest.yaml'))
         self.version = self.tn_manifest['dublin_core']['version']
         self.title = self.tn_manifest['dublin_core']['title']
         projects = self.get_book_projects()
@@ -273,6 +277,16 @@ class TnConverter(object):
         tw_publisher = self.tw_manifest['dublin_core']['publisher']
         tw_issued = self.tw_manifest['dublin_core']['issued']
 
+        ult_title = self.ult_manifest['dublin_core']['title']
+        ult_version = self.ult_manifest['dublin_core']['version']
+        ult_publisher = self.ult_manifest['dublin_core']['publisher']
+        ult_issued = self.ult_manifest['dublin_core']['issued']
+
+        ust_title = self.ust_manifest['dublin_core']['title']
+        ust_version = self.ust_manifest['dublin_core']['version']
+        ust_publisher = self.ust_manifest['dublin_core']['publisher']
+        ust_issued = self.ust_manifest['dublin_core']['issued']
+
         license_html = '''
 <article id="license">
     <h1>Copyrights & Licensing</h1>
@@ -294,11 +308,25 @@ class TnConverter(object):
       <div class="resource-version"><strong>Version:</strong> {10}</div>
       <div class="resource-publisher"><strong>Published by:</strong> {11}</div>
     </div>
+    <div class="resource-info">
+      <div class="resource-title"><strong>{8}</strong></div>
+      <div class="resource-date"><strong>Date:</strong> {9}</div>
+      <div class="resource-version"><strong>Version:</strong> {10}</div>
+      <div class="resource-publisher"><strong>Published by:</strong> {11}</div>
+    </div>
+    <div class="resource-info">
+      <div class="resource-title"><strong>{8}</strong></div>
+      <div class="resource-date"><strong>Date:</strong> {9}</div>
+      <div class="resource-version"><strong>Version:</strong> {10}</div>
+      <div class="resource-publisher"><strong>Published by:</strong> {11}</div>
+    </div>
     {12}
 </article>
 '''.format(tn_title, tn_issued, tn_version, tn_publisher,
            ta_title, ta_issued, ta_version, ta_publisher,
            tw_title, tw_issued, tw_version, tw_publisher,
+           ult_title, ult_issued, ult_version, ult_publisher,
+           ust_title, ust_issued, ust_version, ust_publisher,
            tn_license)
         self.soup.body.append(BeautifulSoup(license_html, 'html.parser'))
 
@@ -478,12 +506,16 @@ class TnConverter(object):
 
     def get_contributors(self):
         tn_title = self.tn_manifest['dublin_core']['title']
-        tw_title = self.tw_manifest['dublin_core']['title']
         ta_title = self.ta_manifest['dublin_core']['title']
+        tw_title = self.tw_manifest['dublin_core']['title']
+        ult_title = self.ult_manifest['dublin_core']['title']
+        ust_title = self.ust_manifest['dublin_core']['title']
 
         tn_contributors = '<div class="contributor">'+'</div><div class="contributor">'.join(self.tn_manifest['dublin_core']['contributor'])+'</div>'
-        tw_contributors = '<div class="contributor">'+'</div><div class="contributor">'.join(self.tw_manifest['dublin_core']['contributor'])+'</div>'
         ta_contributors = '<div class="contributor">'+'</div><div class="contributor">'.join(self.ta_manifest['dublin_core']['contributor'])+'</div>'
+        tw_contributors = '<div class="contributor">'+'</div><div class="contributor">'.join(self.tw_manifest['dublin_core']['contributor'])+'</div>'
+        ult_contributors = '<div class="contributor">'+'</div><div class="contributor">'.join(self.ult_manifest['dublin_core']['contributor'])+'</div>'
+        ust_contributors = '<div class="contributor">'+'</div><div class="contributor">'.join(self.tw_manifest['dublin_core']['contributor'])+'</div>'
 
         contributors_html = '''
 <section id="contributors">
@@ -500,8 +532,20 @@ class TnConverter(object):
         <span class="h2">{4} - Contributors</span>
         {5}
     </div>
+    <div class="contributors-list">
+        <span class="h2">{6} - Contributors</span>
+        {7}
+    </div>
+    <div class="contributors-list">
+        <span class="h2">{8} - Contributors</span>
+        {9}
+    </div>
 </section>
-'''.format(tn_title, tn_contributors, ta_title, ta_contributors, tw_title, tw_contributors)
+'''.format(tn_title, tn_contributors,
+           ta_title, ta_contributors,
+           tw_title, tw_contributors,
+           ult_title, ult_contributors,
+           ust_title, ust_contributors)
         return contributors_html
 
     def save_resource_data(self):

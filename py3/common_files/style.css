@@ -395,9 +395,9 @@ code {
 }
 
 #contributors .contributors-list {
-    columns: 2;
-    padding: 1em;
-    column-gap: 1em;
+    columns: 3;
+    padding: .5em;
+    column-gap: .5em;
     page-break-before: avoid !important;
     break-before: avoid-page;
 }
