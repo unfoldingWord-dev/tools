@@ -474,7 +474,7 @@ class ObsSnSqConverter(object):
                         images.append(basename)
                         image_file = os.path.join(self.html_dir, basename)
                         if not os.path.isfile(image_file):
-                            logger.info("Downloading {0}...".format(src))
+                            self.logger.info("Downloading {0}...".format(src))
                             download_file(src, os.path.join(self.html_dir, basename))
                     else:
                         bible_reference = p.text
@@ -495,13 +495,13 @@ class ObsSnSqConverter(object):
                             phrases.append(header.text)
                             header['class'] = header.get('class', []) + ['h4']
                             header.name = 'span'
-                        obs_text = self.highlight_text_with_phrases(obs_text, phrases, '{0}-{1}'.format(chapter, frame))
+                        obs_text = self.highlight_text_with_phrases(obs_text, phrases, '{0}:{1}'.format(chapter, frame))
                         obs_sn_notes = unicode(soup)
                     else:
                         obs_sn_notes = '<p class="obs-sn_note"><em>(No study notes for this frame)</em></p>'
                     content += '''
 <div id="obs-sn-{0}-{1}" class="obs-sn-article {5}break">
-  <h3>{0}-{1}</h3>
+  <h3>{0}:{1}</h3>
   <div class="obs-img-and-text">
     <img src="html/{2}" class="obs-img"/>
     <div class="obs-text">
@@ -519,14 +519,14 @@ class ObsSnSqConverter(object):
                         'rc': rc,
                         'id': 'obs-sn-{0}-{1}'.format(chapter, frame),
                         'link': '#obs-sn-{0}-{1}'.format(chapter, frame),
-                         'title': '{0}-{1}'.format(chapter, frame)
+                         'title': '{0}:{1}'.format(chapter, frame)
                     }
                     rc = 'rc://{0}/obs-sn/help/obs/{1}/{2}'.format(self.lang_code, chapter, frame)
                     self.resource_data[rc] = {
                         'rc': rc,
                         'id': 'obs-sn-{0}-{1}'.format(chapter, frame),
                         'link': '#obs-sn-{0}-{1}'.format(chapter, frame),
-                        'title': '{0}-{1}'.format(chapter, frame)
+                        'title': '{0}:{1}'.format(chapter, frame)
                     }
                 content += '</div>\n\n'
             if os.path.isfile(sq_chapter_file):

@@ -533,7 +533,7 @@ class ObsTnConverter(object):
                     frame_idx = int(frame)
                     id = 'obs-tn-{0}-{1}'.format(chapter, frame)
                     content += '<div id="{0}" class="frame">\n'.format(id)
-                    content += '<h3>{0}-{1}</h3>\n'.format(chapter, frame)
+                    content += '<h3>{0}:{1}</h3>\n'.format(chapter, frame)
                     text = ''
                     if frame_idx > 0:
                         text = re.sub(r'[\n\s]+', ' ', frames[frame_idx - 1], flags=re.MULTILINE)
@@ -543,7 +543,7 @@ class ObsTnConverter(object):
                     frame_html = frame_html.replace('h3>', 'h6>')
                     frame_html = re.sub(r'href="(\d+)/(\d+)"', r'href="#obs-tn-\1-\2"', frame_html)
                     if text:
-                        text = self.highlight_text_with_frame(text, frame_html, '{0}-{1}'.format(chapter, frame))
+                        text = self.highlight_text_with_frame(text, frame_html, '{0}:{1}'.format(chapter, frame))
                     if '/tw/' not in frame_html and chapter in self.tw_cat and frame in self.tw_cat[chapter]\
                             and len(self.tw_cat[chapter][frame]):
                         frame_html += "<h3>{0}</h3>\n<ul>".format(self.tw_title)
@@ -614,7 +614,7 @@ class ObsTnConverter(object):
             if '/obs-tn/' in reference and reference not in done:
                 parts = reference[5:].split('/')
                 id = 'obs-tn-{0}-{1}'.format(parts[3], parts[4])
-                text = '{0}-{1}'.format(parts[3], parts[4])
+                text = '{0}:{1}'.format(parts[3], parts[4])
                 references.append('<a href="#{0}">{1}</a>'.format(id, text))
                 done[reference] = True
         if len(references):

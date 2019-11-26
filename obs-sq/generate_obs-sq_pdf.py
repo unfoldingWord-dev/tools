@@ -446,7 +446,7 @@ class ObsSqConverter(object):
             if '/obs-sq/' in reference and reference not in done:
                 parts = reference[5:].split('/')
                 id = 'obs-sq-{0}-{1}'.format(parts[3], parts[4])
-                text = '{0}-{1}'.format(parts[3], parts[4])
+                text = '{0}:{1}'.format(parts[3], parts[4])
                 references.append('<a href="#{0}">{1}</a>'.format(id, text))
                 done[reference] = True
         if len(references):

@@ -430,7 +430,7 @@ class ObsSnConverter(object):
                     frame_idx = int(frame)
                     id = 'obs-sn-{0}-{1}'.format(chapter, frame)
                     content += '<div id="{0}" class="frame">\n'.format(id)
-                    content += '<h3>{0}-{1}</h3>\n'.format(chapter, frame)
+                    content += '<h3>{0}:{1}</h3>\n'.format(chapter, frame)
                     # chapter_soup.ul.append(soup('<li><a href="#{0}">{1}</a></li>'))
                     text = ''
                     if frame_idx > 0:
@@ -441,7 +441,7 @@ class ObsSnConverter(object):
                     frame_html = frame_html.replace('h3>', 'h6>')
                     frame_html = re.sub(r'href="(\d+)/(\d+)"', r'href="#obs-sn-\1-\2"', frame_html)
                     if text:
-                        text = self.highlight_text_with_frame(text, frame_html, '{0}-{1}'.format(chapter, frame))
+                        text = self.highlight_text_with_frame(text, frame_html, '{0}:{1}'.format(chapter, frame))
                     content += '<div id="{0}-text" class="frame-text">\n{1}\n</div>\n'.format(id, text)
                     content += frame_html
                     content += '</div>\n\n'
