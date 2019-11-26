@@ -396,11 +396,9 @@ code {
 
 #contributors .contributors-list {
     columns: 3;
-    padding: .5em;
-    column-gap: .5em;
-    page-break-before: avoid !important;
-    break-before: avoid-page;
-}
+    padding: 1em;
+    column-gap: 1em;
+s}
 
 #contributors .contributors-list h1,
 #contributors .contributors-list .h2 {

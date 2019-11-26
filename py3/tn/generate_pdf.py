@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf8 -*-
 #
-    #  Copyright (c) 2019 unfoldingWord
+#  Copyright (c) 2019 unfoldingWord
 #  http://creativecommons.org/licenses/MIT/
 #  See LICENSE file for details.
 #
@@ -259,76 +259,31 @@ class TnConverter(object):
         self.soup.body.append(BeautifulSoup(cover_html, 'html.parser'))
 
     def get_license(self):
-        tn_license_file = os.path.join(self.tn_dir, 'LICENSE.md')
-        tn_license = markdown2.markdown_path(tn_license_file)
+        resource_manifests = [self.tn_manifest, self.ta_manifest, self.tw_manifest, self.ult_manifest, self.ust_manifest]
 
-        tn_title = self.tn_manifest['dublin_core']['title']
-        tn_version = self.tn_manifest['dublin_core']['version']
-        tn_publisher = self.tn_manifest['dublin_core']['publisher']
-        tn_issued = self.tn_manifest['dublin_core']['issued']
-
-        ta_title = self.ta_manifest['dublin_core']['title']
-        ta_version = self.ta_manifest['dublin_core']['version']
-        ta_publisher = self.ta_manifest['dublin_core']['publisher']
-        ta_issued = self.ta_manifest['dublin_core']['issued']
-
-        tw_title = self.tw_manifest['dublin_core']['title']
-        tw_version = self.tw_manifest['dublin_core']['version']
-        tw_publisher = self.tw_manifest['dublin_core']['publisher']
-        tw_issued = self.tw_manifest['dublin_core']['issued']
-
-        ult_title = self.ult_manifest['dublin_core']['title']
-        ult_version = self.ult_manifest['dublin_core']['version']
-        ult_publisher = self.ult_manifest['dublin_core']['publisher']
-        ult_issued = self.ult_manifest['dublin_core']['issued']
-
-        ust_title = self.ust_manifest['dublin_core']['title']
-        ust_version = self.ust_manifest['dublin_core']['version']
-        ust_publisher = self.ust_manifest['dublin_core']['publisher']
-        ust_issued = self.ust_manifest['dublin_core']['issued']
-
-        license_html = '''
+        copyrights_and_licensing = '''
 <article id="license">
     <h1>Copyrights & Licensing</h1>
+'''
+        for manifest in resource_manifests:
+            title = manifest['dublin_core']['title']
+            version = manifest['dublin_core']['version']
+            publisher = manifest['dublin_core']['publisher']
+            issued = manifest['dublin_core']['issued']
+
+            copyrights_and_licensing += '''
     <div class="resource-info">
       <div class="resource-title"><strong>{0}</strong></div>
       <div class="resource-date"><strong>Date:</strong> {1}</div>
       <div class="resource-version"><strong>Version:</strong> {2}</div>
       <div class="resource-publisher"><strong>Published by:</strong> {3}</div>
     </div>
-    <div class="resource-info">
-      <div class="resource-title"><strong>{4}</strong></div>
-      <div class="resource-date"><strong>Date:</strong> {5}</div>
-      <div class="resource-version"><strong>Version:</strong> {6}</div>
-      <div class="resource-publisher"><strong>Published by:</strong> {7}</div>
-    </div>
-    <div class="resource-info">
-      <div class="resource-title"><strong>{8}</strong></div>
-      <div class="resource-date"><strong>Date:</strong> {9}</div>
-      <div class="resource-version"><strong>Version:</strong> {10}</div>
-      <div class="resource-publisher"><strong>Published by:</strong> {11}</div>
-    </div>
-    <div class="resource-info">
-      <div class="resource-title"><strong>{8}</strong></div>
-      <div class="resource-date"><strong>Date:</strong> {9}</div>
-      <div class="resource-version"><strong>Version:</strong> {10}</div>
-      <div class="resource-publisher"><strong>Published by:</strong> {11}</div>
-    </div>
-    <div class="resource-info">
-      <div class="resource-title"><strong>{8}</strong></div>
-      <div class="resource-date"><strong>Date:</strong> {9}</div>
-      <div class="resource-version"><strong>Version:</strong> {10}</div>
-      <div class="resource-publisher"><strong>Published by:</strong> {11}</div>
-    </div>
-    {12}
-</article>
-'''.format(tn_title, tn_issued, tn_version, tn_publisher,
-           ta_title, ta_issued, ta_version, ta_publisher,
-           tw_title, tw_issued, tw_version, tw_publisher,
-           ult_title, ult_issued, ult_version, ult_publisher,
-           ust_title, ust_issued, ust_version, ust_publisher,
-           tn_license)
-        self.soup.body.append(BeautifulSoup(license_html, 'html.parser'))
+'''.format(title, issued, version, publisher)
+
+        license_file = os.path.join(self.tn_dir, 'LICENSE.md')
+        copyrights_and_licensing += markdown2.markdown_path(license_file)
+        copyrights_and_licensing += '</article>'
+        self.soup.body.append(BeautifulSoup(copyrights_and_licensing, 'html.parser'))
 
     def save_bad_links(self):
         bad_links = "BAD LINKS:\n"
@@ -505,47 +460,18 @@ class TnConverter(object):
                     self.regenerate = True
 
     def get_contributors(self):
-        tn_title = self.tn_manifest['dublin_core']['title']
-        ta_title = self.ta_manifest['dublin_core']['title']
-        tw_title = self.tw_manifest['dublin_core']['title']
-        ult_title = self.ult_manifest['dublin_core']['title']
-        ust_title = self.ust_manifest['dublin_core']['title']
+        resource_manifests = [self.tn_manifest, self.ta_manifest, self.tw_manifest, self.ult_manifest, self.ust_manifest]
 
-        tn_contributors = '<div class="contributor">'+'</div><div class="contributor">'.join(self.tn_manifest['dublin_core']['contributor'])+'</div>'
-        ta_contributors = '<div class="contributor">'+'</div><div class="contributor">'.join(self.ta_manifest['dublin_core']['contributor'])+'</div>'
-        tw_contributors = '<div class="contributor">'+'</div><div class="contributor">'.join(self.tw_manifest['dublin_core']['contributor'])+'</div>'
-        ult_contributors = '<div class="contributor">'+'</div><div class="contributor">'.join(self.ult_manifest['dublin_core']['contributor'])+'</div>'
-        ust_contributors = '<div class="contributor">'+'</div><div class="contributor">'.join(self.tw_manifest['dublin_core']['contributor'])+'</div>'
-
-        contributors_html = '''
-<section id="contributors">
-    <div class="contributors-list">
-        <h1 class="section-header">Contributors</h1>
-        <span class="h2">{0} - Contributors</span>
-        {1}
-    </div>
-    <div class="contributors-list">
-        <span class="h2">{2} - Contributors</span>
-        {3}
-    </div>
-    <div class="contributors-list">
-        <span class="h2">{4} - Contributors</span>
-        {5}
-    </div>
-    <div class="contributors-list">
-        <span class="h2">{6} - Contributors</span>
-        {7}
-    </div>
-    <div class="contributors-list">
-        <span class="h2">{8} - Contributors</span>
-        {9}
-    </div>
-</section>
-'''.format(tn_title, tn_contributors,
-           ta_title, ta_contributors,
-           tw_title, tw_contributors,
-           ult_title, ult_contributors,
-           ust_title, ust_contributors)
+        contributors_html = '<section id="contributors">'
+        for idx, manifest in enumerate(resource_manifests):
+            contributors_html += '<div class="contributors-list">'
+            if idx == 0:
+                contributors_html += '<h1 class="section-header">Contributors</h1>'
+            contributors_html += '<span class="h2">{0}</span>'.format(manifest['dublin_core']['title'])
+            for contributor in manifest['dublin_core']['contributor']:
+                contributors_html += '<div class="contributor">{0}</div>'.format(contributor)
+            contributors_html += '</div>'
+        contributors_html += '</section>'
         return contributors_html
 
     def save_resource_data(self):
