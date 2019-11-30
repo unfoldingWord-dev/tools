@@ -226,7 +226,8 @@ class ObsSnConverter(object):
   <p>
     {1}
   </p>
-</div>'''.format(self.translate('contributors'), self.contributors)
+</div>
+'''.format(self.translate('contributors'), self.contributors)
         else:
             return ''
 
