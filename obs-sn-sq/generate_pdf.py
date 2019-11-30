@@ -223,7 +223,7 @@ class ObsSnSqConverter(object):
 
         tr_contributors = self.translate('contributors')
         contributors_html = '''
-<div class="chapter break">
+<div class="chapter break" id="contributors">
   <h1>{0}</h1>
 '''.format(tr_contributors)
         if obs_contributors and len(obs_contributors):
