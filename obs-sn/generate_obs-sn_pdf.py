@@ -31,8 +31,11 @@ _print = print
 DEFAULT_LANG = 'en'
 DEFAULT_OWNER = 'unfoldingWord'
 DEFAULT_TAG = 'master'
-
 OWNERS = [DEFAULT_OWNER, 'STR', 'Door43-Catalog']
+LANGUAGE_FILES = {
+    'fr': 'French-fr_FR.json',
+    'en': 'English-en_US.json'
+}
 
 
 def print(obj):
@@ -78,14 +81,30 @@ class ObsSnConverter(object):
         self.my_path = os.path.dirname(os.path.realpath(__file__))
         self.generation_info = {}
         self.title = 'unfoldingWord® Open Bible Stories Study Notes'
-        self.toc_soup = BeautifulSoup('''<article id="contents">
-    <h1 class="toc-header">
-        Table of Contents
-    </h1>
-    <ul class="level1" />
-</article>
-''', 'html.parser')
-        self.html_soup = BeautifulSoup(read_file(os.path.join(self.my_path, 'template.html')), 'html.parser')
+        self.toc_soup = None
+        self.html_soup = None
+        self.translations = {}
+
+    def translate(self, key):
+        if not self.translations:
+            if self.lang_code not in LANGUAGE_FILES:
+                self.logger.error('No locale file for {0}.'.format(self.lang_code))
+                exit(1)
+            locale_file = os.path.join(self.my_path, '..', 'locale', LANGUAGE_FILES[self.lang_code])
+            if not os.path.isfile(locale_file):
+                self.logger.error('No locale file found at {0} for {1}.'.format(locale_file, self.lang_code))
+                exit(1)
+            self.translations = load_json_object(locale_file)
+        keys = key.split('.')
+        t = self.translations
+        for key in keys:
+            t = t.get(key, None)
+            if t is None:
+                # handle the case where the self.translations doesn't have that (sub)key
+                self.logger.error("No translation for `{0}`".format(key))
+                exit(1)
+                break
+        return t
 
     def run(self):
         self.setup_resource_files()
@@ -100,6 +119,14 @@ class ObsSnConverter(object):
         self.file_id = self.file_id
         self.logger.info('Creating OBS SN HTML files for {0}...'.format(self.file_id))
         if self.regenerate or not os.path.exists(os.path.join(self.output_dir, '{0}.html'.format(self.file_id))):
+            self.toc_soup = BeautifulSoup('''<article id="contents">
+                <h1 class="toc-header">
+                    {0}
+                </h1>
+                <ul class="level1" />
+            </article>
+'''.format(self.translate('table_of_contents')), 'html.parser')
+            self.html_soup = BeautifulSoup(read_file(os.path.join(self.my_path, 'template.html')), 'html.parser')
             self.generate_obs_sn_content()
             self.logger.info('Generating Body HTML for {0}...'.format(self.file_id))
             self.generate_body_html()
@@ -195,11 +222,11 @@ class ObsSnConverter(object):
         if self.contributors and len(self.contributors):
             return '''
 <div id="contributors" class="article">
-  <h1 class="section-header">Contributors</h1>
+  <h1 class="section-header">{0}</h1>
   <p>
-    {0}
+    {1}
   </p>
-</div>'''.format(self.contributors)
+</div>'''.format(self.translate('contributors'), self.contributors)
         else:
             return ''
 
@@ -273,11 +300,11 @@ class ObsSnConverter(object):
   <div style="text-align:center;padding-top:200px" class="break" id="cover">
     <img src="logo-obs-sn.png" width="120">
     <span class="h1">{0}</span>
-    <span class="h3">Version {1}</span>
+    <span class="h3">{1} {2}</span>
   </div>
 </body>
 </html>
-'''.format(self.title, self.version)
+'''.format(self.title, self.translate('license.version'), self.version)
         html_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.file_id))
         write_file(html_file, cover_html)
 
@@ -293,16 +320,20 @@ class ObsSnConverter(object):
 </head>
 <body>
   <div class="break">
-    <span class="h1">Copyrights & Licensing</span>
+    <span class="h1">{4}</span>
     <p>
-      <strong>Date:</strong> {0}<br/>
-      <strong>Version:</strong> {1}<br/>
-      <strong>Published by:</strong> {2}<br/>
+      <strong>{5}:</strong> {0}<br/>
+      <strong>{6}:</strong> {1}<br/>
+      <strong>{7}:</strong> {2}<br/>
     </p>
     {3}
   </div>
 </body>
-</html>'''.format(self.issued, self.version, self.publisher, license)
+</html>'''.format(self.issued, self.version, self.publisher, license,
+                  self.translate('license.copyrights_and_licensing'),
+                  self.translate('license.date'),
+                  self.translate('license.version'),
+                  self.translate('license.published_by'))
         html_file = os.path.join(self.html_dir, '{0}_license.html'.format(self.file_id))
         write_file(html_file, license_html)
 
@@ -313,7 +344,7 @@ class ObsSnConverter(object):
         footer_file = os.path.join(self.my_path, 'obs-sn_footer.html')
         body_file = os.path.join(self.output_dir, '{0}.html'.format(self.file_id))
         output_file = os.path.join(self.output_dir, '{0}.pdf'.format(self.file_id))
-        template_file = os.path.join(self.my_path, 'toc_template.xsl')
+        template_file = os.path.join(self.my_path, '{0}_toc_template.xsl'.format(self.lang_code))
         command = '''wkhtmltopdf 
                         --javascript-delay 2000 
                         --debug-javascript
@@ -332,10 +363,13 @@ class ObsSnConverter(object):
                         --disable-dotted-lines 
                         --enable-external-links 
                         --xsl-style-sheet "{3}" 
+                        --toc-header-text "{8}"
+                        --enable-toc-back-links
                         "{4}" 
                         "{5}"
                     '''.format(header_file, cover_file, license_file, template_file, body_file, output_file,
-                               os.path.join(self.working_dir, 'wkhtmltopdf'), footer_file)
+                               os.path.join(self.working_dir, 'wkhtmltopdf'), footer_file,
+                               self.translate('table_of_contents'))
         command = re.sub(r'\s+', ' ', command, flags=re.MULTILINE)
         self.logger.info(command)
         subprocess.call(command, shell=True)
@@ -348,7 +382,7 @@ class ObsSnConverter(object):
         for idx, part in enumerate(parts):
             split_pattern = re.escape(part)
             if '<span' in text:
-                split_pattern = '({0})'.format(re.sub('(\\\\ )+', '(\s+|(\s*</*span[^>]*>\s*)+)', split_pattern))
+                split_pattern = '({0})'.format(re.sub('(\\\\ )+', r'(\s+|(\s*</*span[^>]*>\s*)+)', split_pattern))
             else:
                 split_pattern = '({0})'.format(split_pattern)
             splits = re.split(split_pattern, to_process_text, 1)

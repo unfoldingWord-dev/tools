@@ -31,8 +31,11 @@ _print = print
 DEFAULT_LANG = 'en'
 DEFAULT_OWNER = 'unfoldingWord'
 DEFAULT_TAG = 'master'
-
 OWNERS = [DEFAULT_OWNER, 'STR', 'Door43-Catalog']
+LANGUAGE_FILES = {
+    'fr': 'French-fr_FR.json',
+    'en': 'English-en_US.json'
+}
 
 
 def print(obj):
@@ -78,6 +81,28 @@ class ObsSnSqConverter(object):
         self.my_path = os.path.dirname(os.path.realpath(__file__))
         self.generation_info = {}
         self.title = 'unfoldingWord® Open Bible Stories Study Notes'
+        self.translations = {}
+
+    def translate(self, key):
+        if not self.translations:
+            if self.lang_code not in LANGUAGE_FILES:
+                self.logger.error('No locale file for {0}.'.format(self.lang_code))
+                exit(1)
+            locale_file = os.path.join(self.my_path, '..', 'locale', LANGUAGE_FILES[self.lang_code])
+            if not os.path.isfile(locale_file):
+                self.logger.error('No locale file found at {0} for {1}.'.format(locale_file, self.lang_code))
+                exit(1)
+            self.translations = load_json_object(locale_file)
+        keys = key.split('.')
+        t = self.translations
+        for key in keys:
+            t = t.get(key, None)
+            if t is None:
+                # handle the case where the self.translations doesn't have that (sub)key
+                self.logger.error("No translation for `{0}`".format(key))
+                exit(1)
+                break
+        return t
 
     def run(self):
         self.setup_resource_files()
@@ -196,16 +221,19 @@ class ObsSnSqConverter(object):
         obs_sn_contributors = '<br/>'.join(self.obs_sn_manifest['dublin_core']['contributor'])
         obs_sq_contributors = '<br/>'.join(self.obs_sq_manifest['dublin_core']['contributor'])
 
+        tr_contributors = self.translate('contributors')
         contributors_html = '''
 <div id="contributors" class="article">
-  <h1 class="section-header">Contributors</h1>
-'''
+  <h1 class="section-header">{0}</h1>
+'''.format(tr_contributors)
         if obs_contributors and len(obs_contributors):
-            contributors_html += '<h2>{0} Contributors</h2>\n<p>{1}</p>'.format(obs_title, obs_contributors)
+            contributors_html += '<h2>{0} {1}</h2>\n<p>{1}</p>'.format(obs_title, obs_contributors, tr_contributors)
         if obs_sn_contributors and len(obs_sn_contributors):
-            contributors_html += '<h2>{0} Contributors</h2>\n<p>{1}</p>'.format(obs_sn_title, obs_sn_contributors)
+            contributors_html += '<h2>{0} {1}</h2>\n<p>{1}</p>'.format(obs_sn_title, obs_sn_contributors,
+                                                                       tr_contributors)
         if obs_sq_contributors and len(obs_sq_contributors):
-            contributors_html += '<h2>{0} Contributors</h2>\n<p>{1}</p>'.format(obs_sq_title, obs_sq_contributors)
+            contributors_html += '<h2>{0} {1}</h2>\n<p>{1}</p>'.format(obs_sq_title, obs_sq_contributors,
+                                                                       tr_contributors)
         contributors_html += '</div>'
         return contributors_html
 
@@ -287,11 +315,11 @@ class ObsSnSqConverter(object):
   <div class="break" id="cover">
     <img src="logo-obs-sn-sq.png" width="120">
     <span class="h1">{0}<br/>&<br/>{1}</span>
-    <span class="h3">Version {2}</span>
+    <span class="h3">{2} {3}</span>
   </div>
 </body>
 </html>
-'''.format(obs_sn_title, obs_sq_title, obs_sn_version)
+'''.format(obs_sn_title, obs_sq_title, self.translate('license.version'), obs_sn_version)
         html_file = os.path.join(self.html_dir, '{0}_cover.html'.format(self.file_id))
         write_file(html_file, cover_html)
 
@@ -323,24 +351,24 @@ class ObsSnSqConverter(object):
 </head>
 <body>
   <div class="break">
-    <span class="h1">Copyrights & Licensing</span>
+    <span class="h1">{13}</span>
     <p>
       <strong>{0}</strong><br/>
-      <strong>Date:</strong> {1}<br/>
-      <strong>Version:</strong> {2}<br/>
-      <strong>Published by:</strong> {3}<br/>
+      <strong>{14}:</strong> {1}<br/>
+      <strong>{15}:</strong> {2}<br/>
+      <strong>{16}:</strong> {3}<br/>
     </p>
     <p>
       <strong>{4}</strong><br/>
-      <strong>Date:</strong> {5}<br/>
-      <strong>Version:</strong> {6}<br/>
-      <strong>Published by:</strong> {7}<br/>
+      <strong>{14}:</strong> {5}<br/>
+      <strong>{15}:</strong> {6}<br/>
+      <strong>{16}:</strong> {7}<br/>
     </p>
     <p>
       <strong>{8}</strong><br/>      
-      <strong>Date:</strong> {9}<br/>
-      <strong>Version:</strong> {10}<br/>
-      <strong>Published by:</strong> {11}<br/>
+      <strong>{14}:</strong> {9}<br/>
+      <strong>{15}:</strong> {10}<br/>
+      <strong>{16}:</strong> {11}<br/>
     </p>
     {12}
   </div>
@@ -349,7 +377,11 @@ class ObsSnSqConverter(object):
 '''.format(obs_title, obs_issued, obs_version, obs_publisher,
            obs_sn_title, obs_sn_issued, obs_sn_version, obs_sn_publisher,
            obs_sq_title, obs_sq_issued, obs_sq_version, obs_sq_publisher,
-           obs_sn_license)
+           obs_sn_license,
+           self.translate('license.copyrights_and_licensing'),
+           self.translate('license.date'),
+           self.translate('license.version'),
+           self.translate('license.published_by'))
         html_file = os.path.join(self.html_dir, '{0}_license.html'.format(self.file_id))
         write_file(html_file, license_html)
 
@@ -360,7 +392,7 @@ class ObsSnSqConverter(object):
         footer_file = os.path.join(self.my_path, 'footer.html')
         body_file = os.path.join(self.output_dir, '{0}.html'.format(self.file_id))
         output_file = os.path.join(self.output_dir, '{0}.pdf'.format(self.file_id))
-        template_file = os.path.join(self.my_path, 'toc_template.xsl')
+        template_file = os.path.join(self.my_path, '{0}_toc_template.xsl'.format(self.lang_code))
         command = '''wkhtmltopdf 
                         --javascript-delay 2000 
                         --debug-javascript
@@ -481,7 +513,7 @@ class ObsSnSqConverter(object):
                 content += '<div id="obs-{0}" class="chapter break">\n<h1>{1}</h1>\n'.format(chapter, title)
                 if bible_reference:
                     content += '<p class="bible_reference">{0}</p>'.format(bible_reference)
-                content += '<h2 class="no-break">Study Notes</h2>'
+                content += '<h2 class="no-break">{0}</h2>'.format(self.translate('study_notes'))
                 for frame_idx in range(0, len(frames)):
                     frame = str(frame_idx+1).zfill(2)
                     obs_sn_file = os.path.join(sn_chapter_dir, '{0}.md'.format(frame))
@@ -541,10 +573,10 @@ class ObsSnSqConverter(object):
                         header.name = 'span'
                 content += '''
 <div id="{0}" class="chapter break">
-  <h2>Study Questions</h2>
-  {1}
+  <h2>{1}</h2>
+  {2}
 </div>
-'''.format(obs_sq_id, unicode(soup))
+'''.format(obs_sq_id, self.translate('study_questions'), unicode(soup))
                 # HANDLE RC LINKS
                 rc = 'rc://{0}/obs-sq/help/obs/{1}'.format(self.lang_code, chapter)
                 self.resource_data[rc] = {

@@ -49,7 +49,7 @@
   </xsl:template>
   <xsl:template match="outline:item">
     <li>
-      <xsl:if test="@title!=''">
+      <xsl:if test="@title!='' and @title!='Table of Contents'">
         <div>
           <a class="title">
             <xsl:if test="@link">

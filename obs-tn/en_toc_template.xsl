@@ -42,7 +42,7 @@
         </style>
       </head>
       <body>
-        <h1 id="table-of-contents">Table of Contents</h1>
+        <h1 id="table-of-contents"><xsl:value-of select="$tocTitle" /></h1>
         <ul id="toc-top-ul"><xsl:apply-templates select="outline:item/outline:item"/></ul>
       </body>
     </html>
@@ -53,7 +53,7 @@
         <div>
           <a class="title">
             <xsl:if test="@link">
-              <xsl:attribute name="href"><xsl:value-of select="@link"/></xsl:attribute>
+              <xsl:attribute name="href">Table of Contents</xsl:attribute>
             </xsl:if>
             <xsl:if test="@backLink">
               <xsl:attribute name="name"><xsl:value-of select="@backLink"/></xsl:attribute>

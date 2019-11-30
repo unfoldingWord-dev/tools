@@ -42,14 +42,14 @@
         </style>
       </head>
       <body>
-        <h1 id="table-of-contents">Table of Contents</h1>
+        <h1 id="table-of-contents">Table of Contents/h1>
         <ul id="toc-top-ul"><xsl:apply-templates select="outline:item/outline:item"/></ul>
       </body>
     </html>
   </xsl:template>
   <xsl:template match="outline:item">
     <li>
-      <xsl:if test="@title!=''">
+      <xsl:if test="@title!='' and @title!='Table of Contents'">
         <div>
           <a class="title">
             <xsl:if test="@link">
