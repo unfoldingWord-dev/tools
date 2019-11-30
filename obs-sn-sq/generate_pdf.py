@@ -223,16 +223,16 @@ class ObsSnSqConverter(object):
 
         tr_contributors = self.translate('contributors')
         contributors_html = '''
-<div id="contributors" class="article">
-  <h1 class="section-header">{0}</h1>
+<div id="contributors-wrapper" class="article">
+  <h1 class="section-header" id="contributors">{0}</h1>
 '''.format(tr_contributors)
         if obs_contributors and len(obs_contributors):
-            contributors_html += '<h2>{0} {1}</h2>\n<p>{2}</p>'.format(obs_title, tr_contributors, obs_contributors)
+            contributors_html += '<span class="h2">{0} {1}</span>\n<p>{2}</p>'.format(obs_title, tr_contributors, obs_contributors)
         if obs_sn_contributors and len(obs_sn_contributors):
-            contributors_html += '<h2>{0} {1}</h2>\n<p>{2}</p>'.format(obs_sn_title, tr_contributors,
+            contributors_html += '<span class="h2">{0} {1}</span>\n<p>{2}</p>'.format(obs_sn_title, tr_contributors,
                                                                        obs_sn_contributors)
         if obs_sq_contributors and len(obs_sq_contributors):
-            contributors_html += '<h2>{0} {1}</h2>\n<p>{2}</p>'.format(obs_sq_title, tr_contributors,
+            contributors_html += '<span class="h2">{0} {1}</span>\n<p>{2}</p>'.format(obs_sq_title, tr_contributors,
                                                                        obs_sq_contributors)
         contributors_html += '</div>'
         return contributors_html
