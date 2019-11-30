@@ -515,7 +515,7 @@ class ObsSnSqConverter(object):
                     content += '<p class="bible_reference">{0}</p>'.format(bible_reference)
                 content += '<h2 class="no-break">{0}</h2>'.format(self.translate('study_notes'))
                 for frame_idx in range(0, len(frames)):
-                    frame = str(frame_idx+1).zfill(2)
+                    frame = str(frame_idx+1).zfill(2)s
                     obs_sn_file = os.path.join(sn_chapter_dir, '{0}.md'.format(frame))
                     obs_text = re.sub(r'[\n\s]+', ' ', frames[frame_idx], flags=re.MULTILINE)
                     obs_sn_notes = ''
@@ -540,9 +540,9 @@ class ObsSnSqConverter(object):
         {3}
     </div>
   </div>
-  <span class="obs-sn-notes">
+  <div class="obs-sn-notes">
     {4}
-  </span>
+  </div>
 </div>
 '''.format(chapter, frame, images[frame_idx], obs_text, obs_sn_notes, 'no-' if frame_idx == 0 else '')
                     # HANDLE RC LINKS
