@@ -227,12 +227,12 @@ class ObsSnSqConverter(object):
   <h1 class="section-header">{0}</h1>
 '''.format(tr_contributors)
         if obs_contributors and len(obs_contributors):
-            contributors_html += '<h2>{0} {1}</h2>\n<p>{1}</p>'.format(obs_title, obs_contributors, tr_contributors)
+            contributors_html += '<h2>{0} {1}</h2>\n<p>{2}</p>'.format(obs_title, obs_contributors, tr_contributors)
         if obs_sn_contributors and len(obs_sn_contributors):
-            contributors_html += '<h2>{0} {1}</h2>\n<p>{1}</p>'.format(obs_sn_title, obs_sn_contributors,
+            contributors_html += '<h2>{0} {1}</h2>\n<p>{2}</p>'.format(obs_sn_title, obs_sn_contributors,
                                                                        tr_contributors)
         if obs_sq_contributors and len(obs_sq_contributors):
-            contributors_html += '<h2>{0} {1}</h2>\n<p>{1}</p>'.format(obs_sq_title, obs_sq_contributors,
+            contributors_html += '<h2>{0} {1}</h2>\n<p>{2}</p>'.format(obs_sq_title, obs_sq_contributors,
                                                                        tr_contributors)
         contributors_html += '</div>'
         return contributors_html
