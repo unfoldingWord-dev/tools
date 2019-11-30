@@ -221,8 +221,8 @@ class ObsSnConverter(object):
     def get_contributors_html(self):
         if self.contributors and len(self.contributors):
             return '''
-<div id="contributors" class="article">
-  <h1 class="section-header">{0}</h1>
+<div id="contributors" class="chapter break">
+  <h1>{0}</h1>
   <p>
     {1}
   </p>
