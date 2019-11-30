@@ -515,7 +515,7 @@ class ObsSnSqConverter(object):
                     content += '<p class="bible_reference">{0}</p>'.format(bible_reference)
                 content += '<h2 class="no-break">{0}</h2>'.format(self.translate('study_notes'))
                 for frame_idx in range(0, len(frames)):
-                    frame = str(frame_idx+1).zfill(2)s
+                    frame = str(frame_idx+1).zfill(2)
                     obs_sn_file = os.path.join(sn_chapter_dir, '{0}.md'.format(frame))
                     obs_text = re.sub(r'[\n\s]+', ' ', frames[frame_idx], flags=re.MULTILINE)
                     obs_sn_notes = ''
