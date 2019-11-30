@@ -42,7 +42,7 @@
         </style>
       </head>
       <body>
-        <h1 id="table-of-contents">Table of Contents/h1>
+        <h1 id="table-of-contents">Table of Contents</h1>
         <ul id="toc-top-ul"><xsl:apply-templates select="outline:item/outline:item"/></ul>
       </body>
     </html>
