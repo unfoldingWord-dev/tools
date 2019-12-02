@@ -639,9 +639,10 @@ class ObsTnConverter(object):
         </div>
     </div>
     {2}
+    {3}
 </div>
 '''.format(self.resource_data[rc]['id'], self.resource_data[rc]['title'], self.resource_data[rc]['alt_title'],
-           self.increase_headers(self.resource_data[rc]['text']))
+           self.increase_headers(self.resource_data[rc]['text']), self.get_reference_text(rc))
         if ta_html:
             ta_html = '<div id="ta" class="resource-title-page">\n<h1 class="section-header">{0}</h1>\n</div>\n\n{1}'.\
                 format(self.ta_title, ta_html)
