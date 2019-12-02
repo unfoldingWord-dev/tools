@@ -630,12 +630,18 @@ class ObsTnConverter(object):
             if '/ta/' not in rc:
                 continue
             if self.resource_data[rc]['text']:
-                html = self.resource_data[rc]['text']
-                html = self.increase_headers(html)
-                html = '<h2 class="section-header">{0}</h2>\n{1}<b>{2}</b>\n<br>{3}\n'.format(
-                    self.resource_data[rc]['title'], self.get_reference_text(rc), self.resource_data[rc]['alt_title'],
-                    html)
-                ta_html += '<div id="{0}" class="article">\n{1}\n</div>\n\n'.format(self.resource_data[rc]['id'], html)
+                ta_html += '''
+<div id="{0}" class="article">
+    <h2 class="section-header">{0}</h2>
+    <div class="top-box box">
+        <div class="ta-question">
+            This page answers the question: <em>{1}<em>
+        </div>
+    </div>
+    {2}
+</div>
+'''.format(self.resource_data[rc]['id'], self.resource_data[rc]['title'], self.resource_data[rc]['alt_title'],
+           self.increase_headers(self.resource_data[rc]['text']))
         if ta_html:
             ta_html = '<div id="ta" class="resource-title-page">\n<h1 class="section-header">{0}</h1>\n</div>\n\n{1}'.\
                 format(self.ta_title, ta_html)
