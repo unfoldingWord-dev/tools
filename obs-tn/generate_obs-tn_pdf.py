@@ -592,10 +592,9 @@ class ObsTnConverter(object):
                         'rc': rc,
                         'id': id,
                         'link': '#' + id,
-                        'title': title,
-                        'show_page': True
+                        'title': title
                     }
-                    self.get_resource_data_from_rc_links(frame_html, rc, True)
+                    self.get_resource_data_from_rc_links(frame_html, rc)
                 content += '</div>\n\n'
         self.obs_tn_text = content
         write_file(os.path.join(self.html_dir, '{0}_obs-tn_content.html'.format(self.file_id)),
@@ -605,7 +604,10 @@ class ObsTnConverter(object):
         tw_html = ''
         sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
         for rc in sorted_rcs:
-            if '/tw/' not in rc or not self.resource_data[rc]['show_page']:
+            if '/tw/' not in rc:
+                continue
+            reference_text = self.get_reference_text(rc)
+            if not reference_text:
                 continue
             html = self.resource_data[rc]['text']
             html = self.increase_headers(html)
@@ -616,7 +618,6 @@ class ObsTnConverter(object):
                     format(alt_title, title, html)
             else:
                 html = '<h2 class="section-header">{0}</h2>\n{1}'.format(title, html)
-            reference_text = self.get_reference_text(rc)
             tw_html += '<div id="{0}" class="article">\n{1}\n{2}</div>\n\n'.format(self.resource_data[rc]['id'], html,
                                                                                    reference_text)
         if tw_html:
@@ -628,7 +629,10 @@ class ObsTnConverter(object):
         ta_html = ''
         sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
         for rc in sorted_rcs:
-            if '/ta/' not in rc or not self.resource_data[rc]['show_page']:
+            if '/ta/' not in rc:
+                continue
+            reference_text = self.get_reference_text(rc)
+            if not reference_text:
                 continue
             if self.resource_data[rc]['text']:
                 ta_html += '''
@@ -649,7 +653,17 @@ class ObsTnConverter(object):
                 format(self.ta_title, ta_html)
         return ta_html
 
+    def has_tn_references(self, rc):
+        if rc not in self.rc_references:
+            return False
+        for reference in self.rc_references[rc]:
+            if '/tn/' in reference:
+                return True
+        return False
+
     def get_reference_text(self, rc):
+        if not self.has_tn_references(rc):
+            return ''
         uses = ''
         references = []
         done = {}
@@ -665,7 +679,7 @@ class ObsTnConverter(object):
                                                                            '; '.join(references))
         return uses
 
-    def get_resource_data_from_rc_links(self, text, source_rc, show_page=True):
+    def get_resource_data_from_rc_links(self, text, source_rc):
         if source_rc not in self.bad_links:
             self.bad_links[source_rc] = {}
         rcs = re.findall(r'rc://[A-Z0-9/_\*-]+', text, flags=re.IGNORECASE | re.MULTILINE)
@@ -751,10 +765,9 @@ class ObsTnConverter(object):
                         'title': title,
                         'alt_title': alt_title,
                         'text': t,
-                        'references': [source_rc],
-                        'show_page': show_page
+                        'references': [source_rc]
                     }
-                    self.get_resource_data_from_rc_links(t, rc, False)
+                    self.get_resource_data_from_rc_links(t, rc)
                 else:
                     if source_rc not in self.resource_data[rc]['references']:
                         self.resource_data[rc]['references'].append(source_rc)
