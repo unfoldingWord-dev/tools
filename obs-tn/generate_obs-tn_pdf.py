@@ -742,7 +742,7 @@ class ObsTnConverter(object):
                         'text': t,
                         'references': [source_rc]
                     }
-                    self.get_resource_data_from_rc_links(t, rc)
+                    # self.get_resource_data_from_rc_links(t, rc)
                 else:
                     if source_rc not in self.resource_data[rc]['references']:
                         self.resource_data[rc]['references'].append(source_rc)
