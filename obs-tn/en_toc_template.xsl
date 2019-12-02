@@ -53,7 +53,7 @@
         <div>
           <a class="title">
             <xsl:if test="@link">
-              <xsl:attribute name="href">Table of Contents</xsl:attribute>
+              <xsl:attribute name="href"><xsl:value-of select="@link"/></xsl:attribute>
             </xsl:if>
             <xsl:if test="@backLink">
               <xsl:attribute name="name"><xsl:value-of select="@backLink"/></xsl:attribute>
