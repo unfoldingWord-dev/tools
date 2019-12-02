@@ -640,12 +640,14 @@ class ObsTnConverter(object):
     <h2 class="section-header">{1}</h2>
     <div class="top-box box">
         <div class="ta-question">
+            {2}: <em>{3}</em>
         </div>
     </div>
     {4}
     {5}
 </div>
 '''.format(self.resource_data[rc]['id'], self.resource_data[rc]['title'],
+           self.translate('this_page_answers_the_question'),
            self.resource_data[rc]['alt_title'],
            self.increase_headers(self.resource_data[rc]['text']), self.get_reference_text(rc))
         if ta_html:
@@ -746,9 +748,7 @@ class ObsTnConverter(object):
                             t = re.sub(r'\s*\n*\s*<h\d>[^<]+</h\d>\s*\n*', r'', t, 1,
                                        flags=re.IGNORECASE | re.MULTILINE)  # removes the header
                         if os.path.isfile(question_file):
-                            question = read_file(question_file)
-                            alt_title = '{0}: <em>{1}</em>'.format(self.translate('this_page_answers_the_question'),
-                                                                   question)
+                            alt_title = read_file(question_file)
                         t = self.fix_ta_links(t, path.split('/')[0])
                     elif resource == 'tw':
                         title = self.get_first_header(t)
