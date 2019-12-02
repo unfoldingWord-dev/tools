@@ -660,7 +660,8 @@ class ObsTnConverter(object):
                 references.append('<a href="#{0}">{1}</a>'.format(id, text))
                 done[reference] = True
         if len(references):
-            uses = '<p class="go-back">\n(<b>Go back to:</b> {0})\n</p>\n'.format('; '.join(references))
+            uses = '<p class="go-back">\n(<b>{0}:</b> {1})\n</p>\n'.format(self.translate('go_back_to'),
+                                                                           '; '.join(references))
         return uses
 
     def get_resource_data_from_rc_links(self, text, source_rc):
