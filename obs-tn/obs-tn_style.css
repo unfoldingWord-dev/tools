@@ -278,3 +278,7 @@ span.highlight span.highlight span.highlight {
 span.highlight.split {
     text-decoration: underline;
 }
+
+.go-back {
+    padding-top: 1.5em;
+}

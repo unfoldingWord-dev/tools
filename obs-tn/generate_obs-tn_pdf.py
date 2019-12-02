@@ -611,11 +611,13 @@ class ObsTnConverter(object):
             title = self.resource_data[rc]['title']
             alt_title = self.resource_data[rc]['alt_title']
             if alt_title:
-                html = '<h2 class="hidden">{0}11</h2><span class="h2 section-header">{1}</span>\n{2}{3}'.\
-                    format(alt_title, title, self.get_reference_text(rc), html)
+                html = '<h2 class="hidden">{0}11</h2><span class="h2 section-header">{1}</span>\n{2}'.\
+                    format(alt_title, title, html)
             else:
-                html = '<h2 class="section-header">{0}</h2>\n{1}{2}'.format(title, self.get_reference_text(rc), html)
-            tw_html += '<div id="{0}" class="article">\n{1}\n</div>\n\n'.format(self.resource_data[rc]['id'], html)
+                html = '<h2 class="section-header">{0}</h2>\n{1}'.format(title, html)
+            reference_text = self.get_reference_text(rc)
+            tw_html += '<div id="{0}" class="article">\n{1}\n{2}</div>\n\n'.format(self.resource_data[rc]['id'], html,
+                                                                                   reference_text)
         if tw_html:
             tw_html = '<div id="tw" class="resource-title-page">\n<h1 class="section-header">{0}</h1>\n</div>\n\n{1}'.\
                 format(self.tw_title, tw_html)
@@ -651,7 +653,7 @@ class ObsTnConverter(object):
                 references.append('<a href="#{0}">{1}</a>'.format(id, text))
                 done[reference] = True
         if len(references):
-            uses = '<p>\n(<b>Go back to:</b> {0})\n</p>\n'.format('; '.join(references))
+            uses = '<p class="go-back">\n(<b>Go back to:</b> {0})\n</p>\n'.format('; '.join(references))
         return uses
 
     def get_resource_data_from_rc_links(self, text, source_rc):
