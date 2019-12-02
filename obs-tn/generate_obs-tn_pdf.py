@@ -657,7 +657,7 @@ class ObsTnConverter(object):
         if rc not in self.rc_references:
             return False
         for reference in self.rc_references[rc]:
-            if '/tn/' in reference:
+            if '/obs-tn/' in reference:
                 return True
         return False
 
