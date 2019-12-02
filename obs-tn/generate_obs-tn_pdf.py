@@ -592,9 +592,10 @@ class ObsTnConverter(object):
                         'rc': rc,
                         'id': id,
                         'link': '#' + id,
-                        'title': title
+                        'title': title,
+                        'show_page': True
                     }
-                    self.get_resource_data_from_rc_links(frame_html, rc)
+                    self.get_resource_data_from_rc_links(frame_html, rc, True)
                 content += '</div>\n\n'
         self.obs_tn_text = content
         write_file(os.path.join(self.html_dir, '{0}_obs-tn_content.html'.format(self.file_id)),
@@ -604,7 +605,7 @@ class ObsTnConverter(object):
         tw_html = ''
         sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
         for rc in sorted_rcs:
-            if '/tw/' not in rc:
+            if '/tw/' not in rc or not self.resource_data[rc]['show_page']:
                 continue
             html = self.resource_data[rc]['text']
             html = self.increase_headers(html)
@@ -627,7 +628,7 @@ class ObsTnConverter(object):
         ta_html = ''
         sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
         for rc in sorted_rcs:
-            if '/ta/' not in rc:
+            if '/ta/' not in rc or not self.resource_data[rc]['show_page']:
                 continue
             if self.resource_data[rc]['text']:
                 ta_html += '''
@@ -664,7 +665,7 @@ class ObsTnConverter(object):
                                                                            '; '.join(references))
         return uses
 
-    def get_resource_data_from_rc_links(self, text, source_rc):
+    def get_resource_data_from_rc_links(self, text, source_rc, show_page=True):
         if source_rc not in self.bad_links:
             self.bad_links[source_rc] = {}
         rcs = re.findall(r'rc://[A-Z0-9/_\*-]+', text, flags=re.IGNORECASE | re.MULTILINE)
@@ -750,9 +751,10 @@ class ObsTnConverter(object):
                         'title': title,
                         'alt_title': alt_title,
                         'text': t,
-                        'references': [source_rc]
+                        'references': [source_rc],
+                        'show_page': show_page
                     }
-                    # self.get_resource_data_from_rc_links(t, rc)
+                    self.get_resource_data_from_rc_links(t, rc, False)
                 else:
                     if source_rc not in self.resource_data[rc]['references']:
                         self.resource_data[rc]['references'].append(source_rc)
