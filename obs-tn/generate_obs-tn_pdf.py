@@ -219,6 +219,7 @@ class ObsTnConverter(object):
                         if os.path.isdir(repo_dir):
                             break
         g = git.Git(repo_dir)
+        g.fetch()
         g.checkout(tag)
         if tag == DEFAULT_TAG:
             g.pull()
@@ -300,7 +301,7 @@ class ObsTnConverter(object):
         if self.contributors and len(self.contributors):
             return '''
 <div id="contributors" class="article">
-  <h1 class="section-header">{0}/h1>
+  <h1 class="section-header">{0}</h1>
   <p>
     {1}
   </p>

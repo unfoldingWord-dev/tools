@@ -187,6 +187,7 @@ class ObsSnConverter(object):
                         if os.path.isdir(repo_dir):
                             break
         g = git.Git(repo_dir)
+        g.fetch()
         g.checkout(tag)
         if tag == DEFAULT_TAG:
             g.pull()
