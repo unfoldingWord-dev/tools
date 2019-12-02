@@ -300,11 +300,12 @@ class ObsTnConverter(object):
         if self.contributors and len(self.contributors):
             return '''
 <div id="contributors" class="article">
-  <h1 class="section-header">Contributors</h1>
+  <h1 class="section-header">{0}/h1>
   <p>
-    {0}
+    {1}
   </p>
-</div>'''.format(self.contributors)
+</div>
+'''.format(self.translate('contributors'), self.contributors)
         else:
             return ''
 
