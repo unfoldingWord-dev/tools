@@ -841,19 +841,34 @@ class ObsTnConverter(object):
         return m.group()
 
     def replace_rc_links(self, text):
-        # Change rc://... rc links to proper HTML links based on that links title and link to its article
-        write_file(os.path.join(self.html_dir, '{0}_obs-tn_content_rc1.html'.format(self.file_id)),
-                   BeautifulSoup(text, 'html.parser').prettify())
-        if self.lang_code != DEFAULT_LANG:
-            text = re.sub('rc://en', 'rc://{0}'.format(self.lang_code), text, flags=re.IGNORECASE)
-        joined = '|'.join(map(re.escape, self.resource_data.keys()))
-        pattern = r'(\[\[|\(|["\']| |>|)\b(' + joined + r')\b(\]\]|\)|["\']|<|)(?!\]\)")'
-
-        text = re.sub(pattern, self.replace, text, flags=re.IGNORECASE)
-        # Remove other scripture reference not in this tN
-        text = re.sub(r'<a[^>]+rc://[^>]+>([^>]+)</a>', r'\1', text, flags=re.IGNORECASE | re.MULTILINE)
-        write_file(os.path.join(self.html_dir, '{0}_obs-tn_content_rc2.html'.format(self.file_id)),
-                   BeautifulSoup(text, 'html.parser').prettify())
+        # Change rc://... rc links,
+        # Case 1: [[rc://en/tw/help/bible/kt/word]] => <a href="#tw-kt-word">God's Word</a>
+        # Case 2: rc://en/tw/help/bible/ht/word => <a href="#tw-kt-word">God's Word</a>
+        # Case 3: <a href="rc://en/tw/help/bible/kt/word">text</a> => <a href="#tw-kt-word>Text</a> (used in links that are already formed)
+        # Case 5: Link from a TA or TW article that was not referenced in a TN. Remove the link
+        # Case 4: Remove other links to other resources not in this tN
+        def replace_rc(match):
+            left = match.group(1)
+            rc = match.group(2)
+            right = match.group(3)
+            title = match.group(4)
+            if rc in self.resource_data:
+                info = self.resource_data[rc]
+                if not self.has_tn_references(rc):
+                    # Case 4
+                    return info['title']
+                if (left and right and left == '[[' and right == ']]') \
+                        or (not left and not right):
+                    # Case 1 and Case 2
+                    return '<a href="{0}">{1}</a>'.format(info['link'], info['title'])
+                else:
+                    # Case 3
+                    return (left if left else '') + info['link'] + (right if right else '')
+            else:
+                # Case 5
+                return title if title else rc
+        regex = re.compile(r'(\[\[|<a[^>]+href=")*(rc://[/A-Za-z0-9\*_-]+)(\]\]|"[^>]*>(.*?)</a>)*')
+        text = regex.sub(replace_rc, text)
         return text
 
     @staticmethod
