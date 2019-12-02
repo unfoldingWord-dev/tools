@@ -632,14 +632,14 @@ class ObsTnConverter(object):
             if self.resource_data[rc]['text']:
                 ta_html += '''
 <div id="{0}" class="article">
-    <h2 class="section-header">{0}</h2>
+    <h2 class="section-header">{1}</h2>
     <div class="top-box box">
         <div class="ta-question">
-            This page answers the question: <em>{1}<em>
+            This page answers the question: <em>{2}<em>
         </div>
     </div>
-    {2}
     {3}
+    {4}
 </div>
 '''.format(self.resource_data[rc]['id'], self.resource_data[rc]['title'], self.resource_data[rc]['alt_title'],
            self.increase_headers(self.resource_data[rc]['text']), self.get_reference_text(rc))
