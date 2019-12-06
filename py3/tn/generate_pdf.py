@@ -198,7 +198,7 @@ class TnConverter(object):
                 self.populate_chapters_and_verses()
                 self.populate_verse_usfm()
                 self.populate_chunks_text()
-                with open(os.path.join(self.my_path, '..', 'common_files', 'template.html')) as template_file:
+                with open(os.path.join(self.my_path, '../common_files/template.html')) as template_file:
                     html_template = string.Template(template_file.read())
                 html = html_template.safe_substitute(title='{0} - {1} - v{2}'.format(self.title, self.book_title,
                                                                                      self.version))
@@ -219,12 +219,12 @@ class TnConverter(object):
                 write_file(html_file, str(self.soup))
 
                 self.logger.info("Copying style sheet files...")
-                style_file = os.path.join(self.my_path, '..', 'common_files', 'style.css')
+                style_file = os.path.join(self.my_path, '../common_files/style.css')
                 shutil.copy2(style_file, self.html_dir)
                 style_file = os.path.join(self.my_path, 'tn_style.css')
                 shutil.copy2(style_file, self.html_dir)
                 if not os.path.exists(os.path.join(self.html_dir, 'fonts')):
-                    fonts_dir = os.path.join(self.my_path, '..', 'common_files', 'fonts')
+                    fonts_dir = os.path.join(self.my_path, '../common_files/fonts')
                     shutil.copytree(fonts_dir, os.path.join(self.html_dir, 'fonts'))
 
                 self.save_resource_data()
@@ -243,6 +243,7 @@ class TnConverter(object):
                                          format(self.lang_code, self.tn_tag, self.book_number.zfill(2),
                                                 self.book_id.upper()))
                 subprocess.call('ln -sf "{0}" "{1}"'.format(pdf_file, link_file), shell=True)
+                self.logger.info('PDF file located at {0}'.format(pdf_file))
             else:
                 self.logger.info(
                     'PDF file {0} already there. Not generating. Use -r to force regeneration.'.format(pdf_file))

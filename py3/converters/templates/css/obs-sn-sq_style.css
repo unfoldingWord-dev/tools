@@ -1,0 +1,23 @@
+html, body {
+    font-size: 14px;
+}
+
+.frame {
+    padding-bottom: 2em;
+}
+
+.obs-text {
+    font-style: italic;
+    font-size: 1.2em;
+    padding: 1em 0;
+}
+
+.no-notes-messages {
+    padding-top: 1em;
+}
+
+img.obs-img {
+    max-width: inherit !important;
+    max-height: inherit !important;
+    margin: 0 !important;
+}

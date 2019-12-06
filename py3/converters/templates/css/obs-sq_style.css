@@ -1,0 +1,20 @@
+.frame-text {
+  font-style: italic;
+  font-size: 1.2em;
+}
+
+.obs-frame {
+    padding-bottom: 5px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+.obs-frame-title {
+    font-weight: bold;
+    page-break-after: avoid;
+    break-after: avoid;
+}
+
+.obs-frame-text {
+    font-style: italic;
+}
