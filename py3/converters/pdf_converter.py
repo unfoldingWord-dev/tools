@@ -439,8 +439,7 @@ class PdfConverter:
             phrases.append(header.text)
         return phrases
 
-    @staticmethod
-    def highlight_text(text, phrase):
+    def highlight_text(self, text, phrase):
         parts = re.split(r'\s*…\s*|\s*\.\.\.\s*', phrase)
         processed_text = ''
         to_process_text = text
