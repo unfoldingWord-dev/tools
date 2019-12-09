@@ -53,9 +53,7 @@ class PdfConverter:
         self.bad_links = {}
         self.resource_data = {}
         self.rc_references = {}
-        self.project_title = None
-        self.version = None
-        self.file_id = None
+
         self.images_dir = None
         self.save_dir = None
         self.html_file = None
@@ -84,7 +82,37 @@ class PdfConverter:
 
     @property
     def title(self):
-        return self.main_resource.manifest['dublin_core']['title']
+        return self.main_resource.title
+
+    @property
+    def simple_title(self):
+        return self.main_resource.simple_title
+
+    @property
+    def version(self):
+        return self.main_resource.version
+
+    @property
+    def file_id(self):
+        project_id_str = f'_{self.project_id}' if self.project_id else ''
+        return f'{self.lang_code}_{self.name}{project_id_str}_{self.main_resource.tag}_{self.main_resource.commit}'
+
+    @property
+    def project(self):
+        if self.project_id:
+            project = self.main_resource.find_project(self.project_id)
+            if project:
+                self.logger.info(f'Project ID: {self.project_id}; Project Title: {self.project_title}')
+                return project
+            else:
+                self.logger.error(f'Project not found: {self.project_id}')
+                exit(1)
+
+    @property
+    def project_title(self):
+        project = self.project
+        if project:
+            return project.title
 
     def translate(self, key):
         if not self.translations:
@@ -111,13 +139,10 @@ class PdfConverter:
         self.setup_dirs()
         self.setup_resource_files()
 
-        project_id_str = f'_{self.project_id}' if self.project_id else ''
-        self.file_id = f'{self.lang_code}_{self.name}{project_id_str}_{self.main_resource.tag}_{self.main_resource.commit}'
         self.html_file = os.path.join(self.output_dir, f'{self.file_id}.html')
         self.pdf_file = os.path.join(self.output_dir, f'{self.file_id}.pdf')
 
         self.setup_logging_to_file()
-        self.setup_info()
         self.determine_if_regeneration_needed()
         self.generate_html()
         self.generate_pdf()
@@ -157,19 +182,6 @@ class PdfConverter:
         logger_handler = logging.FileHandler(os.path.join(self.output_dir, f'{self.file_id}_weasyprint.log'))
         LOGGER.addHandler(logger_handler)
 
-    def setup_info(self):
-        manifest = self.main_resource.manifest
-        self.version = manifest['dublin_core']['version']
-        if self.project_id:
-            for project in manifest['projects']:
-                if project.identifier == self.project_id:
-                    self.project_title = project.title
-            if self.project_title:
-                self.logger.info(f'Project ID: {self.project_id}; Project Title: {self.project_title}')
-            else:
-                self.logger.error(f'Project not found: {self.project_id}')
-                exit(1)
-
     def generate_html(self):
         if self.regenerate or not os.path.exists(self.html_file):
             self.logger.info(f'Creating HTML file for {self.file_id}...')
@@ -208,7 +220,7 @@ class PdfConverter:
             self.save_bad_links_html()
             self.logger.info('Generated HTML file.')
         else:
-            self.logger.info(f'HTML file {html_file} already there. Not generating. Use -r to force regeneration.')
+            self.logger.info(f'HTML file {self.html_file} is already there. Not generating. Use -r to force regeneration.')
 
     def generate_pdf(self):
         if self.regenerate or not os.path.exists(self.pdf_file):
@@ -222,7 +234,7 @@ class PdfConverter:
             subprocess.call(f'ln -sf "{self.pdf_file}" "{link_file_path}"', shell=True)
         else:
             self.logger.info(
-                f'PDF file {self.pdf_file} already there. Not generating. Use -r to force regeneration.')
+                f'PDF file {self.pdf_file} is already there. Not generating. Use -r to force regeneration.')
 
     def save_bad_links_html(self):
         pass
@@ -343,12 +355,11 @@ class PdfConverter:
         return toc_html + str(soup)
 
     def get_cover_html(self):
-        project_title_html = ''
-        version_title_html = ''
-        if self.project_title:
+        if self.project_id:
             project_title_html = f'<h2 id="cover-project">{self.project_title}</h2>'
             version_title_html = f'<h3 id="cover-version">{self.translate("license.version")} {self.version}</h3>'
         else:
+            project_title_html = ''
             version_title_html = f'<h2 id="cover-version">{self.translate("license.version")} {self.version}</h2>'
         cover_html = f'''
 <article id="main-cover" class="cover">
@@ -367,10 +378,10 @@ class PdfConverter:
 '''
         for resource_name, resource in self.resources.items():
             manifest = resource.manifest
-            title = manifest['dublin_core']['title']
-            version = manifest['dublin_core']['version']
-            publisher = manifest['dublin_core']['publisher']
-            issued = manifest['dublin_core']['issued']
+            title = resource.title
+            version = resource.version
+            publisher = resource.publisher
+            issued = resource.issued
 
             license_html += f'''
     <div class="resource-info">
@@ -389,8 +400,7 @@ class PdfConverter:
         contributors_html = '<section id="contributors" class="no-header">'
         for idx, resource_name in enumerate(self.resources.keys()):
             resource = self.resources[resource_name]
-            manifest = resource.manifest
-            contributors = manifest['dublin_core']['contributor']
+            contributors = resource.contributors
             contributors_list_classes = 'contributors-list'
             if len(contributors) > 10:
                 contributors_list_classes += ' more-than-ten'
@@ -400,13 +410,22 @@ class PdfConverter:
             if idx == 0:
                 contributors_html += f'<h1 class="section-header">{self.translate("contributors")}</h1>'
             if len(self.resources) > 1:
-                title = manifest['dublin_core']['title']
+                title = resource.title
                 contributors_html += f'<h2>{title} {self.translate("contributors")}</h2>'
             for contributor in contributors:
                 contributors_html += f'<div class="contributor">{contributor}</div>'
             contributors_html += '</div>'
         contributors_html += '</section>'
         return contributors_html
+
+    @staticmethod
+    def get_title_from_html(html):
+        soup = BeautifulSoup(html, 'html.parser')
+        header = soup.find(re.compile(r'^h\d'))
+        if header:
+            return header.text
+        else:
+            return "NO TITLE"
 
     @staticmethod
     def get_phrases_to_highlight(html, header_tag=None):
@@ -426,11 +445,11 @@ class PdfConverter:
         processed_text = ''
         to_process_text = text
         for idx, part in enumerate(parts):
-            split_pattern = re.escape(part)
             if '<span' in text:
-                split_pattern = '(' + re.sub('(\\\\ )+', r'(\\s+|(\\s*</*span[^>]*>\\s*)+)', split_pattern) + ')'
+                split_pattern = '(' + re.sub(' +', r'(\\s+|(\\s*</*span[^>]*>\\s*)+)', part) + ')'
             else:
-                split_pattern = '(' + split_pattern + ')'
+                split_pattern = '(' + part + ')'
+            split_pattern += '(?![^<]*>)'  # don't match within HTML tags
             splits = re.split(split_pattern, to_process_text, 1)
             processed_text += splits[0]
             if len(splits) > 1:
@@ -444,15 +463,14 @@ class PdfConverter:
             processed_text += to_process_text
         return processed_text
 
-    def highlight_text_with_phrases(self, orig_text, phrases, rc):
-        ignore = []
+    def highlight_text_with_phrases(self, orig_text, phrases, rc, ignore=[]):
         highlighted_text = orig_text
         phrases.sort(key=len, reverse=True)
         for phrase in phrases:
             new_highlighted_text = self.highlight_text(highlighted_text, phrase)
             if new_highlighted_text != highlighted_text:
                 highlighted_text = new_highlighted_text
-            elif phrase not in ignore:
+            elif not ignore or phrase not in ignore:
                 if rc not in self.bad_links:
                     self.bad_links[rc] = {
                         'text': orig_text,

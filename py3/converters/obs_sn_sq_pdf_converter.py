@@ -8,7 +8,7 @@
 #  Richard Mahn <rich.mahn@unfoldingword.org>
 
 """
-This script generates the HTML and PDF OBS SN & SQ document
+This script generates the HTML and PDF OBS SN & SQ documents
 """
 import os
 import re
@@ -27,14 +27,14 @@ class ObsSnSqPdfConverter(PdfConverter):
 
     @property
     def title(self):
-        sn_title = self.resources['obs-sn'].manifest['dublin_core']['title']
-        sq_title = self.resources['obs-sq'].manifest['dublin_core']['title']
+        sn_title = self.resources['obs-sn'].title
+        sq_title = self.resources['obs-sq'].title
         return f'{sn_title}\n<br/>\n&\n<br/>\n{sq_title}'
 
     @property
     def simple_title(self):
-        sn_title = self.resources['obs-sn'].manifest['dublin_core']['title'].replace('unfoldingWord® ', '')
-        sq_title = self.resources['obs-sq'].manifest['dublin_core']['title'].replace('unfoldingWord® ', '')
+        sn_title = self.resources['obs-sn'].simple_title
+        sq_title = self.resources['obs-sq'].simple_title
         return f'{sn_title} & {sq_title}'
 
     def get_body_html(self):

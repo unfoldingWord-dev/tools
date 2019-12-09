@@ -82,6 +82,40 @@ class Resource(object):
             self._manifest = load_yaml_object(os.path.join(self.repo_dir, 'manifest.yaml'))
         return self._manifest
 
+    @property
+    def title(self):
+        return self.manifest['dublin_core']['title']
+
+    @property
+    def simple_title(self):
+        return self.title.replace('unfoldingWord® ', '')
+
+    @property
+    def version(self):
+        return self.manifest['dublin_core']['version']
+
+    @property
+    def publisher(self):
+        return self.manifest['dublin_core']['publisher']
+
+    @property
+    def issued(self):
+        return self.manifest['dublin_core']['issued']
+
+    @property
+    def contributors(self):
+        return self.manifest['dublin_core']['contributor']
+
+    @property
+    def projects(self):
+        return self.manifest['projects']
+
+    def find_project(self, project_id):
+        if self.projects:
+            for project in self.projects:
+                if project.identifier == project_id:
+                    return project
+
 
 class Resources(OrderedDict):
     @property

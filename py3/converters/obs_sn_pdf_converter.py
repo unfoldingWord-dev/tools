@@ -8,7 +8,7 @@
 #  Richard Mahn <rich.mahn@unfoldingword.org>
 
 """
-This script generates the HTML and PDF OBS SN document
+This script generates the HTML and PDF OBS SN documents
 """
 import os
 import re
@@ -26,11 +26,11 @@ class ObsSnPdfConverter(PdfConverter):
 
     @property
     def title(self):
-        return self.main_resource.manifest['dublin_core']['title']
+        return self.main_resource.title
 
     @property
     def simple_title(self):
-        return self.main_resource.manifest['dublin_core']['title'].replace('unfoldingWord® ', '')
+        return self.main_resource.simple_title
 
     def get_body_html(self):
         self.logger.info('Generating OBS SN html...')

@@ -8,7 +8,7 @@
 #  Richard Mahn <rich.mahn@unfoldingword.org>
 
 """
-This script generates the HTML and PDF OBS SQ document
+This script generates the HTML and PDF OBS SQ documents
 """
 import os
 import re
@@ -27,11 +27,11 @@ class ObsSqPdfConverter(ObsSnSqPdfConverter):
 
     @property
     def title(self):
-        return self.main_resource.manifest['dublin_core']['title']
+        return self.main_resource.title
 
     @property
     def simple_title(self):
-        return self.main_resource.manifest['dublin_core']['title'].replace('unfoldingWord® ', '')
+        return self.main_resource.simple_title
 
     def get_body_html(self):
         obs_sq_html = f'''
