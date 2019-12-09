@@ -175,6 +175,8 @@ class ObsTnPdfConverter(PdfConverter):
             {notes_html}
         </div>
 '''
+                    if frame_idx < len(frames) - 1:
+                        obs_tn_html += '<hr class="frame-divider"/>\n'
                     # HANDLE RC LINKS FOR FRAME
                     frame_rc = f'rc://{self.lang_code}/obs-tn/help/{chapter_num}/{frame_num}'
                     self.resource_data[frame_rc] = {

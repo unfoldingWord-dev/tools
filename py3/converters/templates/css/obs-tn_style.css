@@ -1,0 +1,12 @@
+hr.frame-divider {
+    width: 75%;
+    text-align: center;
+}
+
+.frame {
+    padding-bottom: 5px;
+}
+
+.frame h3 {
+    margin: 0;
+}
