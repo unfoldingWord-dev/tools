@@ -450,6 +450,7 @@ class PdfConverter:
             else:
                 split_pattern = '(' + part + ')'
             split_pattern += '(?![^<]*>)'  # don't match within HTML tags
+            logger.info(f'SPLIT PATTER: {split_pattern}')
             splits = re.split(split_pattern, to_process_text, 1)
             processed_text += splits[0]
             if len(splits) > 1:
