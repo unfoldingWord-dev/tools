@@ -126,7 +126,7 @@ class ObsTnPdfConverter(PdfConverter):
                 for paragraph_idx, p in enumerate(paragraphs):  # iterate over loop [above sections]
                     if paragraph_idx % 2:
                         frames.append(p.text)
-                for frame_idx, obs_text in enumerate(frames):
+                for frame_idx, frame_html in enumerate(frames):
                     frame_num = str(frame_idx).zfill(2)
                     frame_id = f'obs-tn-{chapter_num}-{frame_num}'
                     frame_title = f'{chapter_num}:{frame_num}'
@@ -135,12 +135,14 @@ class ObsTnPdfConverter(PdfConverter):
                     if os.path.isfile(notes_file):
                         notes_html = markdown2.markdown_path(notes_file)
                         notes_html = self.increase_headers(notes_html, 3)
-                    if obs_text:
-                        obs_text = re.sub(r'[\n\s]+', ' ', obs_text, flags=re.MULTILINE)
+                    if not frame_html and not notes_html:
+                        continue
+                    if frame_html:
+                        frame_html = re.sub(r'[\n\s]+', ' ', frame_html, flags=re.MULTILINE)
                         if notes_html:
                             phrases = self.get_phrases_to_highlight(notes_html, 'h4')
-                            obs_text = self.highlight_text_with_phrases(obs_text, phrases, frame_title,
-                                                                        TN_TITLES_TO_IGNORE[self.lang_code])
+                            frame_html = self.highlight_text_with_phrases(frame_html, phrases, frame_title,
+                                                                          TN_TITLES_TO_IGNORE[self.lang_code])
                     # Some OBS TN languages (e.g. French) do not have Translation Words in their TN article.
                     # We need to add them ourselves from the tw_cat file
                     if notes_html and '/tw/' not in notes_html and chapter_num in self.tw_cat and \
@@ -156,10 +158,10 @@ class ObsTnPdfConverter(PdfConverter):
                         notes_html += '''
             </ul>
 '''
-                    if obs_text:
-                        obs_text = f'''
+                    if frame_html:
+                        frame_html = f'''
             <div id="{frame_id}-text" class="frame-text">
-                {obs_text}
+                {frame_html}
             </div>
 '''
                     if notes_html:
@@ -171,7 +173,7 @@ class ObsTnPdfConverter(PdfConverter):
                     obs_tn_html += f'''
         <div id="{frame_id}">
             <h3>{frame_title}</h3>
-            {obs_text}
+            {frame_html}
             {notes_html}
         </div>
 '''
@@ -366,7 +368,7 @@ class ObsTnPdfConverter(PdfConverter):
             if os.path.isfile(file_path):
                 if fix:
                     self.bad_links[source_rc][rc] = fix
-                if rc not in self.resource_data:
+                if rc not in self.resource_data or (save_text and not self.resource_data[rc]['text']):
                     resource_html = markdown2.markdown_path(file_path)
                     alt_title = None
                     question = None
@@ -391,9 +393,9 @@ class ObsTnPdfConverter(PdfConverter):
                             alt_title = ','.join(title[:70].split(',')[:-1]) + ', ...'
                         if save_text:
                             resource_html = re.sub(r'\s*\n*\s*<h\d>[^<]+</h\d>\s*\n*', r'', resource_html, 1,
-                                       flags=re.IGNORECASE | re.MULTILINE)  # removes the header
+                                                   flags=re.IGNORECASE | re.MULTILINE)  # removes the header
                             resource_html = re.sub(r'\n*\s*\(See [^\n]*\)\s*\n*', '\n\n', resource_html,
-                                       flags=re.IGNORECASE | re.MULTILINE)  # removes the See also line
+                                                   flags=re.IGNORECASE | re.MULTILINE)  # removes the See also line
                             resource_html = self.fix_tw_links(resource_html, path.split('/')[1])
                     self.resource_data[rc] = {
                         'rc': rc,
@@ -403,12 +405,8 @@ class ObsTnPdfConverter(PdfConverter):
                         'alt_title': alt_title,
                         'question': question,
                         'text': resource_html if save_text else None,
-                        'references': [source_rc]
                     }
                     self.get_resource_data_from_rc_links(resource_html, rc, False)
-                else:
-                    if source_rc not in self.resource_data[rc]['references']:
-                        self.resource_data[rc]['references'].append(source_rc)
             else:
                 if rc not in self.bad_links[source_rc]:
                     self.bad_links[source_rc][rc] = None
