@@ -135,6 +135,12 @@ class PdfConverter:
                 break
         return t
 
+    def add_bad_link(self, source_rc, rc, fix=None):
+        if source_rc not in self.bad_links:
+            self.bad_links[source_rc] = {}
+        if rc not in self.bad_links[source_rc] or fix:
+            self.bad_links[source_rc][rc] = fix
+
     def run(self):
         self.setup_dirs()
         self.setup_resource_files()
@@ -546,7 +552,7 @@ class PdfConverter:
         self.logger.error(f'FOUND SOME MALFORMED RC LINKS: {m.group()}')
         return m.group()
 
-    def replace_rc_links(self, html):
+    def replace_rc_links2(self, html):
         # Change rc://... rc links to proper HTML links based on that links title and link to its article
         if self.lang_code != DEFAULT_LANG_CODE:
             html = re.sub('rc://en', f'rc://{self.lang_code}', html, flags=re.IGNORECASE)
@@ -557,6 +563,47 @@ class PdfConverter:
         # Remove other scripture reference not in this SN
         html = re.sub(r'<a[^>]+rc://[^>]+>([^>]+)</a>', r'\1', html, flags=re.IGNORECASE | re.MULTILINE)
         return html
+
+    def replace_rc(self, match):
+        # Replace rc://... rc links according to self.resource_data:
+        # Case 1: RC links in double square brackets that need to be converted to <a> elements with articles title:
+        #   e.g. [[rc://en/tw/help/bible/kt/word]] => <a href="#tw-kt-word">God's Word</a>
+        # Case 2: RC link already in an <a> tag's href, thus preserve its text
+        #   e.g. <a href="rc://en/tw/help/bible/kt/word">text</a> => <a href="#tw-kt-word>Text</a>
+        # Case 3: RC link without square brackets not in <a> tag's href:
+        #   e.g. rc://en/tw/help/bible/kt/word => <a href="#tw-kt-word">God's Word</a>
+        # Case 4: RC link for was not referenced by the main content (exists due to a secondary resource referencing it)
+        #   e.g. <a href="rc://en/tw/help/bible/names/horeb">Horeb Mountain</a> => Horeb Mountain
+        #   e.g. [[rc://en/tw/help/bible/names/horeb]] => Horeb
+        # Case 5: Remove other links to resources without text (they weren't directly reference by main content)
+        left = match.group(1)
+        rc = match.group(2)
+        right = match.group(3)
+        title = match.group(4)
+        if rc in self.resource_data:
+            info = self.resource_data[rc]
+            if (left and right and left == '[[' and right == ']]') \
+                    or (not left and not right):
+                if info['text']:
+                    # Case 1 and Case 3
+                    return '<a href="{0}">{1}</a>'.format(info['link'], info['title'])
+                else:
+                    # Case 4:
+                    return info['title']
+            else:
+                if info['text']:
+                    # Case 3, left = `<a href="` and right = `">[text]</a>`
+                    return left + info['link'] + right
+                else:
+                    # Case 4
+                    return title if title else info['title']
+        # Case 5
+        return title if title else rc
+
+    def replace_rc_links(self, text):
+        regex = re.compile(r'(\[\[|<a[^>]+href=")*(rc://[/A-Za-z0-9\*_-]+)(\]\]|"[^>]*>(.*?)</a>)*')
+        text = regex.sub(self.replace_rc, text)
+        return text
 
     @staticmethod
     def _fix_links(html):

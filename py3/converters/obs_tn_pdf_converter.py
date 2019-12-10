@@ -80,16 +80,14 @@ class ObsTnPdfConverter(PdfConverter):
                                     term = mapping[term]
                                     break
                         if category:
-                            self._tw_cat[chapter['id']][frame['id']].append('rc://{}/tw/dict/bible/{}/{}'.format(
-                                self.lang_code, category, term))
+                            self._tw_cat[chapter['id']][frame['id']].append(
+                                f'rc://{self.lang_code}/tw/dict/bible/{category}/{term}')
                         if not category or term != item['id']:
                             fix = None
                             if term != item['id']:
                                 fix = term
                             source_rc = f'tw_cat.json {chapter["id"]}/{frame["id"]}'
-                            if source_rc not in self.bad_links:
-                                self.bad_links[source_rc] = {}
-                            self.bad_links[source_rc][item['id']] = fix
+                            self.add_bad_link(source_rc, item['id'], fix)
         return self._tw_cat
 
     def get_body_html(self):
@@ -295,7 +293,6 @@ class ObsTnPdfConverter(PdfConverter):
     def get_go_back_to_html(self, rc):
         if not self.has_tn_references(rc):
             return ''
-        uses = ''
         references = []
         done = {}
         for reference in self.rc_references[rc]:
@@ -315,13 +312,12 @@ class ObsTnPdfConverter(PdfConverter):
         return go_back_to_html
 
     def get_resource_data_from_rc_links(self, text, source_rc, save_text=True):
-        if source_rc not in self.bad_links:
-            self.bad_links[source_rc] = {}
         rcs = re.findall(r'rc://[A-Z0-9/_\*-]+', text, flags=re.IGNORECASE | re.MULTILINE)
-        for rc in rcs:
-            parts = rc[5:].split('/')
+        for orig_rc in rcs:
+            parts = orig_rc[5:].split('/')
             resource = parts[1]
             path = '/'.join(parts[3:])
+            rc = 'rc://' + self.lang_code + '/' + '/'.join(parts[1:])
 
             if resource not in ['ta', 'tw']:
                 continue
@@ -331,24 +327,22 @@ class ObsTnPdfConverter(PdfConverter):
             if source_rc not in self.rc_references[rc]:
                 self.rc_references[rc].append(source_rc)
             title = ''
-            resource_html = ''
-            anchor_id = '{}-{}'.format(resource, path.replace('/', '-'))
-            link = '#{}'.format(anchor_id)
-            file_path = os.path.join(self.working_dir, '{}_{}'.format(self.lang_code, resource),
-                                     '{}.md'.format(path))
+            anchor_path = path.replace('/', '-')
+            anchor_id = f'{resource}-{anchor_path}'
+            link = f'#{anchor_id}'
+            file_path = os.path.join(self.working_dir, f'{self.lang_code}_{resource}', f'{path}.md')
             if not os.path.isfile(file_path):
-                file_path = os.path.join(self.working_dir, '{}_{}'.format(self.lang_code, resource),
-                                         '{}/01.md'.format(path))
+                file_path = os.path.join(self.working_dir, f'{self.lang_code}_{resource}', f'{path}/01.md')
             fix = None
             if not os.path.isfile(file_path):
                 if resource == 'tw':
                     for category in ['kt', 'other', 'names']:
-                        path2 = re.sub(r'^bible/([^/]+)/', r'bible/{}/'.format(category), path.lower())
-                        fix = 'rc://{}/tw/dict/{}'.format(self.lang_code, path2)
-                        anchor_id = '{}-{}'.format(resource, path2.replace('/', '-'))
-                        link = '#{}'.format(anchor_id)
-                        file_path = os.path.join(self.working_dir, '{}_{}'.format(self.lang_code, resource),
-                                                 '{}.md'.format(path2))
+                        path2 = re.sub(r'^bible/([^/]+)/', rf'bible/{category}/', path.lower())
+                        fix = f'rc://{self.lang_code}/tw/dict/{path2}'
+                        anchor_path = path2.replace('/', '-')
+                        anchor_id = f'{resource}-{anchor_path}'
+                        link = f'#{anchor_id}'
+                        file_path = os.path.join(self.working_dir, f'{self.lang_code}_{resource}', f'{path2}.md')
                         if os.path.isfile(file_path):
                             break
                 elif resource == 'ta':
@@ -359,15 +353,15 @@ class ObsTnPdfConverter(PdfConverter):
                         path2 = bad_names[parts[3]]
                     else:
                         path2 = path
-                    fix = 'rc://{}/ta/man/{}'.format(self.lang_code, path2)
-                    anchor_id = '{}-{}'.format(resource, path2.replace('/', '-'))
-                    link = '#{}'.format(anchor_id)
-                    file_path = os.path.join(self.working_dir, '{}_{}'.format(self.lang_code, resource),
-                                             '{}/01.md'.format(path2))
+                    fix = f'rc://{self.lang_code}/ta/man/{path2}'
+                    anchor_path = path2.replace('/', '-')
+                    anchor_id = f'{resource}-{anchor_path}'
+                    link = f'#{anchor_id}'
+                    file_path = os.path.join(self.working_dir, f'{self.lang_code}_{resource}', f'{path2}/01.md')
 
             if os.path.isfile(file_path):
                 if fix:
-                    self.bad_links[source_rc][rc] = fix
+                    self.add_bad_link(source_rc, rc, fix)
                 if rc not in self.resource_data or (save_text and not self.resource_data[rc]['text']):
                     resource_html = markdown2.markdown_path(file_path)
                     alt_title = None
@@ -408,25 +402,26 @@ class ObsTnPdfConverter(PdfConverter):
                     }
                     self.get_resource_data_from_rc_links(resource_html, rc, False)
             else:
-                if rc not in self.bad_links[source_rc]:
-                    self.bad_links[source_rc][rc] = None
-        rcs = re.findall(r'(?<=\()\.+/[^\)]+(?=\))', text, flags=re.IGNORECASE | re.MULTILINE)
-        for rc in rcs:
-            fix = re.sub(r'(\.\./)+(kt|names|other)/([^)]+?)(\.md)*', rf'rc://{self.lang_code}/tw/dict/bible/\2/\3', rc,
-                         flags=re.IGNORECASE)
-            if fix != rc:
-                self.bad_links[source_rc][rc] = fix
-            else:
-                self.bad_links[source_rc][rc] = None
-        rcs = re.findall(r'(?<=\()\.[^ \)]+(?=\))', text, flags=re.IGNORECASE | re.MULTILINE)
-        for rc in rcs:
-            fix = None
-            if '/kt/' in rc or '/names/' in rc or '/other/' in rc:
-                new_rc = re.sub(r'(\.\./)+(kt|names|other)/([^)]+?)(\.md)*',
-                                rf'rc://{self.lang_code}/tw/dict/bible/\2/\3', rc, flags=re.IGNORECASE)
-                if new_rc != rc:
-                    fix = new_rc
-            self.bad_links[source_rc][rc] = fix
+                self.add_bad_link(source_rc, rc)
+        #### THE BELOW IS TO FIND ALL RELATIVE REFERENCES (../<term> and ./<term) AS ERRORS,
+        #### BUT I BELIEVE THIS IS ALLOWED - RHM
+        # rcs = re.findall(r'(?<=\()\.+/[^\)]+(?=\))', text, flags=re.IGNORECASE | re.MULTILINE)
+        # for rc in rcs:
+        #     fix = re.sub(r'(\.\./)+(kt|names|other)/([^)]+?)(\.md)*', rf'rc://{self.lang_code}/tw/dict/bible/\2/\3', rc,
+        #                  flags=re.IGNORECASE)
+        #     if fix != rc:
+        #         self.add_bad_link(source_rc, rc, fix)
+        #     else:
+        #         self.add_bad_link(source_rc, rc)
+        # rcs = re.findall(r'(?<=\()\.[^ \)]+(?=\))', text, flags=re.IGNORECASE | re.MULTILINE)
+        # for rc in rcs:
+        #     fix = None
+        #     if '/kt/' in rc or '/names/' in rc or '/other/' in rc:
+        #         new_rc = re.sub(r'(\.\./)+(kt|names|other)/([^)]+?)(\.md)*',
+        #                         rf'rc://{self.lang_code}/tw/dict/bible/\2/\3', rc, flags=re.IGNORECASE)
+        #         if new_rc != rc:
+        #             fix = new_rc
+        #     self.add_bad_link(source_rc, rc, fix)
 
     def fix_tw_links(self, text, group):
         text = re.sub(r'href="\.\./([^/)]+?)(\.md)*"', rf'href="rc://{self.lang_code}/tw/dict/bible/{group}/\1"', text,
@@ -447,7 +442,7 @@ class ObsTnPdfConverter(PdfConverter):
                       flags=re.IGNORECASE | re.MULTILINE)
         return text
 
-    def save_bad_links(self):
+    def save_bad_links_html(self):
         bad_links = "BAD LINKS:\n"
         for source_rc in sorted(self.bad_links.keys()):
             for rc in sorted(self.bad_links[source_rc].keys()):
@@ -455,16 +450,16 @@ class ObsTnPdfConverter(PdfConverter):
                 parts = rc[5:].split('/')
                 if source[1] == 'obs-tn':
                     if parts[1] == 'tw':
-                        str = '  tW'
+                        line = '  tW'
                     else:
-                        str = '  tN'
-                    str += f' {source[3].upper()} {source[4]}:{source[5]}'
+                        line = '  tN'
+                    line += f' {source[3].upper()} {source[4]}:{source[5]}'
                 else:
-                    str = f'  {source_rc}'
-                str += ': BAD RC - `{}`'.format(rc)
+                    line = f'  {source_rc}'
+                line += f': BAD RC - `{rc}`'
                 if self.bad_links[source_rc][rc]:
-                    str += f' - change to `{self.bad_links[source_rc][rc]}`'
-                bad_links += f'{str}\n'
+                    line += f' - change to `{self.bad_links[source_rc][rc]}`'
+                bad_links += f'{line}\n'
         save_file = os.path.join(self.output_dir, f'{self.file_id}_bad_links.txt')
         write_file(save_file, bad_links)
         self.logger.info(f'BAD LINKS file can be found at {save_file}')
@@ -473,18 +468,19 @@ class ObsTnPdfConverter(PdfConverter):
         bad_notes = '<!DOCTYPE html><html lang="en-US"><head data-suburl=""><title>NON-MATCHING NOTES</title><meta charset="utf-8"></head><body><p>NON-MATCHING NOTES (i.e. not found in the frame text as written):</p><ul>'
         for cf in sorted(self.bad_notes.keys()):
             bad_notes += '<li><a href="{0}_html/{0}.html#obs-tn-{1}" title="See in the OBS tN Docs (HTML)" target="obs-tn-html">{1}</a><a href="https://git.door43.org/{6}/{2}_obs-tn/src/branch/{7}/content/{3}/{4}.md" style="text-decoration:none" target="obs-tn-git"><img src="http://www.myiconfinder.com/uploads/iconsets/16-16-65222a067a7152473c9cc51c05b85695-note.png" title="See OBS UTN note on DCS"></a><a href="https://git.door43.org/{6}/{2}_obs/src/branch/master/content/{3}.md" style="text-decoration:none" target="obs-git"><img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-16.png" title="See OBS story on DCS"></a>:<br/><i>{5}</i><br/><ul>'.format(
-                self.file_id, cf, self.lang_code, cf.split('-')[0], cf.split('-')[1], self.bad_notes[cf]['text'], self.owner, DEFAULT_TAG)
+                self.file_id, cf, self.lang_code, cf.split('-')[0], cf.split('-')[1], self.bad_notes[cf]['text'],
+                self.owner, DEFAULT_TAG)
             for note in self.bad_notes[cf]['notes']:
                 for key in note.keys():
                     if note[key]:
-                        bad_notes += '<li><b><i>{}</i></b><br/>{} (QUOTE ISSUE)</li>'.format(key, note[key])
+                        bad_notes += f'<li><b><i>{key}</i></b><br/>{note[key]} (QUOTE ISSUE)</li>'
                     else:
-                        bad_notes += '<li><b><i>{}</i></b></li>'.format(key)
+                        bad_notes += f'<li><b><i>{key}</i></b></li>'
             bad_notes += '</ul></li>'
         bad_notes += "</u></body></html>"
-        save_file = os.path.join(self.output_dir, '{}_bad_notes.html'.format(self.file_id))
+        save_file = os.path.join(self.output_dir, f'{self.file_id}_bad_notes.html')
         write_file(save_file, bad_notes)
-        self.logger.info('BAD NOTES file can be found at {}'.format(save_file))
+        self.logger.info(f'BAD NOTES file can be found at {save_file}')
 
 
 if __name__ == '__main__':
