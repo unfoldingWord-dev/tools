@@ -443,8 +443,10 @@ class PdfConverter:
         parts = re.split(r'\s*…\s*|\s*\.\.\.\s*', phrase)
         processed_text = ''
         to_process_text = text
+        self.logger.info(f'==========\nPHRASE: {phrase}\n')
+        self.logger.info(f'PARTS: {parts}\n')
         for idx, part in enumerate(parts):
-            self.logger.info(f'==========\nPART: {part}\n')
+            self.logger.info(f'PART: {part}\n')
             escaped_part = re.escape(part)
             self.logger.info(f'ESCAPED: {escaped_part}\n')
             if '<span' in text:
