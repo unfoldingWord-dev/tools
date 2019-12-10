@@ -444,14 +444,16 @@ class PdfConverter:
         processed_text = ''
         to_process_text = text
         for idx, part in enumerate(parts):
+            self.logger.info(f'==========\nPART: {part}\n')
             escaped_part = re.escape(part)
+            self.logger.info(f'ESCAPED: {escaped_part}\n')
             if '<span' in text:
                 split_pattern = '(' + re.sub('(\\\\ +)', r'(\\s+|(\\s*</*span[^>]*>\\s*)+)', escaped_part) + ')'
             else:
                 split_pattern = '(' + escaped_part + ')'
             split_pattern += '(?![^<]*>)'  # don't match within HTML tags
+            self.logger.info(f'PATTERN: {split_pattern}\n')
             splits = re.split(split_pattern, to_process_text, 1)
-            self.logger.info(f'==========\nPART: {part}\nESCAPED: {escaped_part}\nSPLIT PATTERN: {split_pattern}\n\n')
             self.logger.info(f'SPLITS: {splits}\n\n')
             processed_text += splits[0]
             if len(splits) > 1:
