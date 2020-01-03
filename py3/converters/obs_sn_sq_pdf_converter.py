@@ -122,14 +122,16 @@ class ObsSnSqPdfConverter(PdfConverter):
                     'rc': obs_sn_rc,
                     'id': frame_id,
                     'link': f'#{frame_id}',
-                    'title': frame_title
+                    'title': frame_title,
+                    'text': 'text'
                 }
                 # HANDLE RC LINKS FOR OBS FRAME
                 self.resource_data[obs_rc] = {
                     'rc': obs_rc,
                     'id': frame_id,
                     'link': f'#{frame_id}',
-                    'title': frame_title
+                    'title': frame_title,
+                    'text': 'text'
                 }
             obs_sn_sq_html += '''
         </section>
@@ -152,7 +154,8 @@ class ObsSnSqPdfConverter(PdfConverter):
                     'rc': obs_sq_rc,
                     'id': obs_sq_id,
                     'link': f'#{obs_sq_id}',
-                    'title': chapter_title
+                    'title': chapter_title,
+                    'text': 'text'
                 }
         obs_sn_sq_html += '''
 </section>

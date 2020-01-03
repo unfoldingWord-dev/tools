@@ -582,8 +582,7 @@ class PdfConverter:
         title = match.group(4)
         if rc in self.resource_data:
             info = self.resource_data[rc]
-            if (left and right and left == '[[' and right == ']]') \
-                    or (not left and not right):
+            if (left and right and left == '[[' and right == ']]') or (not left and not right):
                 if info['text']:
                     # Case 1 and Case 3
                     return '<a href="{0}">{1}</a>'.format(info['link'], info['title'])

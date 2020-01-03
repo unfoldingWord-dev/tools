@@ -106,7 +106,7 @@ class TaConverter(object):
         pdf_file = os.path.join(self.output_dir, '{0}.pdf'.format(self.file_id))
         if self.regenerate or not os.path.exists(html_file):
             self.logger.info('Generating HTML file {0}...'.format(html_file))
-            with open(os.path.join(self.my_path, '..', 'common_files', 'template.html')) as template_file:
+            with open(os.path.join(self.my_path, '../common_files/template.html')) as template_file:
                 html_template = string.Template(template_file.read())
             html = html_template.safe_substitute(title=self.title)
             self.soup = BeautifulSoup(html, 'html.parser')
@@ -124,10 +124,10 @@ class TaConverter(object):
             self.logger.info("Copying style sheet files...")
             style_file = os.path.join(self.my_path, 'ta_style.css')
             shutil.copy2(style_file, self.html_dir)
-            style_file = os.path.join(self.my_path, '..', 'common_files', 'style.css')
+            style_file = os.path.join(self.my_path, '../common_files/style.css')
             shutil.copy2(style_file, self.html_dir)
             if not os.path.exists(os.path.join(self.html_dir, 'fonts')):
-                fonts_dir = os.path.join(self.my_path, '..', 'common_files', 'fonts')
+                fonts_dir = os.path.join(self.my_path, '../common_files/fonts')
                 shutil.copytree(fonts_dir, os.path.join(self.html_dir, 'fonts'))
 
             self.save_resource_data()
@@ -276,11 +276,6 @@ class TaConverter(object):
                     self.bad_links[bad_link] = '[01.md file exists but no content]'
             else:
                 self.bad_links[bad_link] = '[no corresponding article found]'
-        soup = BeautifulSoup(article_file_html, 'html.parser')
-        # for h in soup.find_all(re.compile(r'^h\d$')):
-        #     h['class'] = h.get('class', []) + [h.name]
-        #     h.name = 'span'
-        #     next = h.next_sibling
         top_box = ""
         bottom_box = ""
         if question:
@@ -333,7 +328,7 @@ class TaConverter(object):
                 {0}
             </div>
             '''.format(top_box)
-        article_html += str(soup)
+        article_html += article_file_html
         if bottom_box:
             article_html += '''
             <div class="bottom-box box">

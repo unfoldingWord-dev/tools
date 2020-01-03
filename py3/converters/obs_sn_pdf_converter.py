@@ -64,7 +64,8 @@ class ObsSnPdfConverter(PdfConverter):
                     'rc': obs_sn_rc,
                     'id': chapter_id,
                     'link': '#' + chapter_id,
-                    'title': title
+                    'title': title,
+                    'text': 'text'
                 }
                 for frame_idx, obs_text in enumerate(frames):
                     frame_num = str(frame_idx+1).zfill(2)
@@ -102,7 +103,8 @@ class ObsSnPdfConverter(PdfConverter):
                         'rc': obs_rc,
                         'id': frame_id,
                         'link': '#' + frame_id,
-                        'title': title
+                        'title': title,
+                        'text': 'text'
                     }
                     # HANDLE RC LINKS FOR OBS SN FRAMES
                     obs_sn_rc = f'rc://{self.lang_code}/obs-sn/help/obs/{chapter_num}/{frame_num}'
@@ -110,7 +112,8 @@ class ObsSnPdfConverter(PdfConverter):
                         'rc': obs_sn_rc,
                         'id': frame_id,
                         'link': '#' + frame_id,
-                        'title': title
+                        'title': title,
+                        'text': 'text'
                     }
                 obs_sn_html += '</article>\n\n'
         obs_sn_html += '</section>'
