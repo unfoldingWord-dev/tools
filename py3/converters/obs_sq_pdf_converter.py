@@ -57,7 +57,8 @@ class ObsSqPdfConverter(ObsSnSqPdfConverter):
                 'rc': chapter_rc,
                 'id': chapter_id,
                 'link': f'#{chapter_id}',
-                'title': title
+                'title': title,
+                'text': 'text'
             }
             obs_chapter_file = os.path.join(self.resources['obs'].repo_dir, 'content', f'{chapter_num}.md')
             if os.path.isfile(obs_chapter_file):
@@ -90,7 +91,8 @@ class ObsSqPdfConverter(ObsSnSqPdfConverter):
                         'rc': obs_rc,
                         'id': frame_id,
                         'link': f'#{frame_id}',
-                        'title': frame_title
+                        'title': frame_title,
+                        'texxt': 'text'
                     }
                 frames_html += '</div>\n'
                 header.insert_after(BeautifulSoup(frames_html, 'html.parser'))
