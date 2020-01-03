@@ -15,6 +15,7 @@ import re
 import markdown2
 from glob import glob
 from bs4 import BeautifulSoup
+from .rc_link import ResourceContainerLink
 from .pdf_converter import PdfConverter, run_converter
 from ..general_tools.file_utils import write_file, load_json_object, read_file
 
@@ -179,13 +180,13 @@ class ObsTnPdfConverter(PdfConverter):
                         obs_tn_html += '<hr class="frame-divider"/>\n'
                     # HANDLE RC LINKS FOR FRAME
                     frame_rc = f'rc://{self.lang_code}/obs-tn/help/{chapter_num}/{frame_num}'
-                    self.resource_data[frame_rc] = {
+                    self.rcs[frame_rc] = {
                         'rc': frame_rc,
                         'id': frame_id,
                         'link': f'#{frame_id}',
                         'title': frame_title
                     }
-                    self.get_resource_data_from_rc_links(notes_html, frame_rc)
+                    self.crawl_ta_tw_deep_linking(notes_html, frame_rc)
                 obs_tn_html += '''
     </article>
 '''
@@ -194,99 +195,11 @@ class ObsTnPdfConverter(PdfConverter):
 '''
         return obs_tn_html
 
-    def get_ta_html(self):
-        self.logger.info('Generating TA html...')
-        ta_html = ''
-        sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
-        for rc in sorted_rcs:
-            if '/ta/' not in rc:
-                continue
-            html = self.resource_data[rc]['text']
-            if html:
-                title = self.resource_data[rc]['title']
-                alt_title = self.resource_data[rc]['alt_title']
-                if 'question' in self.resource_data[rc] and self.resource_data[rc]['question']:
-                    question_box = f'''
-    <div class="top-box box">
-        <div class="ta-question">
-            {self.translate('this_page_answers_the_question')}: <em>{self.resource_data[rc]['question']}</em>
-        </div>
-    </div>
-'''
-                else:
-                    question_box = ''
-                if alt_title:
-                    headers = f'''
-        <h2 class="section-header hidden">{alt_title}</h2>
-        <h2>{title}</h2>
-'''
-                else:
-                    headers = f'''
-        <h2 class="section-header">{title}</h2>
-'''
-                ta_html += f'''
-    <article id="{self.resource_data[rc]['id']}">
-        {headers}
-        {question_box}
-        {html}
-        {self.get_go_back_to_html(rc)}
-    </article>
-'''
-        if ta_html:
-            ta_html = f'''
-<section id="ta">
-    <div class="resource-title-page">
-        <h1 class="section-header">{self.resources['ta'].title}</h1>
-    </div>
-    {ta_html}
-</section>
-'''
-        return ta_html
-
-    def get_tw_html(self):
-        self.logger.info('Generating TW html...')
-        tw_html = ''
-        sorted_rcs = sorted(self.resource_data.keys(), key=lambda k: self.resource_data[k]['title'].lower())
-        for rc in sorted_rcs:
-            if '/tw/' not in rc:
-                continue
-            html = self.resource_data[rc]['text']
-            if html:
-                html = self.increase_headers(html)
-                title = self.resource_data[rc]['title']
-                alt_title = self.resource_data[rc]['alt_title']
-                if alt_title:
-                    headers = f'''
-        <h2 class="section-header hidden">{alt_title}</h2>
-        <h2>{title}</h2>
-'''
-                else:
-                    headers = f'''
-        <h2 class="section-header">{title}</h2>
-'''
-                tw_html += f'''
-    <article id="{self.resource_data[rc]['id']}">
-        {headers}
-        {html}
-        {self.get_go_back_to_html(rc)}
-    </article>
-'''
-        if tw_html:
-            tw_html = f'''
-<section id="tw">
-    <div class="resource-title-page">
-        <h1 class="section-header">{self.resources['tw'].title}</h1>
-    </div>
-    {tw_html}
-</section>
-'''
-        return tw_html
-
-    def has_tn_references(self, rc):
-        if rc not in self.rc_references:
+    def has_tn_references(self, source_rc):
+        if source_rc.rc_link not in self.rc_references:
             return False
-        for reference in self.rc_references[rc]:
-            if '/obs-tn/' in reference:
+        for rc in self.rc_references[source_rc.rc_link]:
+            if rc.resource == 'obs-tn':
                 return True
         return False
 
@@ -302,6 +215,7 @@ class ObsTnPdfConverter(PdfConverter):
                 frame_title = f'{parts[3]}:{parts[4]}'
                 references.append(f'<a href="#{frame_id}">{frame_title}</a>')
                 done[reference] = True
+        go_back_to_html = ''
         if len(references):
             references_str = '; '.join(references)
             go_back_to_html = f'''
@@ -310,118 +224,6 @@ class ObsTnPdfConverter(PdfConverter):
     </p>
 '''
         return go_back_to_html
-
-    def get_resource_data_from_rc_links(self, text, source_rc, save_text=True):
-        rcs = re.findall(r'rc://[A-Z0-9/_\*-]+', text, flags=re.IGNORECASE | re.MULTILINE)
-        for orig_rc in rcs:
-            parts = orig_rc[5:].split('/')
-            resource = parts[1]
-            path = '/'.join(parts[3:])
-            rc = 'rc://' + self.lang_code + '/' + '/'.join(parts[1:])
-
-            if resource not in ['ta', 'tw']:
-                continue
-
-            if rc not in self.rc_references:
-                self.rc_references[rc] = []
-            if source_rc not in self.rc_references[rc]:
-                self.rc_references[rc].append(source_rc)
-            title = ''
-            anchor_path = path.replace('/', '-')
-            anchor_id = f'{resource}-{anchor_path}'
-            link = f'#{anchor_id}'
-            file_path = os.path.join(self.working_dir, f'{self.lang_code}_{resource}', f'{path}.md')
-            if not os.path.isfile(file_path):
-                file_path = os.path.join(self.working_dir, f'{self.lang_code}_{resource}', f'{path}/01.md')
-            fix = None
-            if not os.path.isfile(file_path):
-                if resource == 'tw':
-                    for category in ['kt', 'other', 'names']:
-                        path2 = re.sub(r'^bible/([^/]+)/', rf'bible/{category}/', path.lower())
-                        fix = f'rc://{self.lang_code}/tw/dict/{path2}'
-                        anchor_path = path2.replace('/', '-')
-                        anchor_id = f'{resource}-{anchor_path}'
-                        link = f'#{anchor_id}'
-                        file_path = os.path.join(self.working_dir, f'{self.lang_code}_{resource}', f'{path2}.md')
-                        if os.path.isfile(file_path):
-                            break
-                elif resource == 'ta':
-                    bad_names = {
-                        'figs-abstractnoun': 'translate/figs-abstractnouns'
-                    }
-                    if parts[3] in bad_names:
-                        path2 = bad_names[parts[3]]
-                    else:
-                        path2 = path
-                    fix = f'rc://{self.lang_code}/ta/man/{path2}'
-                    anchor_path = path2.replace('/', '-')
-                    anchor_id = f'{resource}-{anchor_path}'
-                    link = f'#{anchor_id}'
-                    file_path = os.path.join(self.working_dir, f'{self.lang_code}_{resource}', f'{path2}/01.md')
-
-            if os.path.isfile(file_path):
-                if fix:
-                    self.add_bad_link(source_rc, rc, fix)
-                if rc not in self.resource_data or (save_text and not self.resource_data[rc]['text']):
-                    resource_html = markdown2.markdown_path(file_path)
-                    alt_title = None
-                    question = None
-                    if resource == 'ta':
-                        title_file = os.path.join(os.path.dirname(file_path), 'title.md')
-                        if os.path.isfile(title_file):
-                            title = read_file(title_file)
-                        else:
-                            title = self.get_title_from_html(resource_html)
-                            resource_html = re.sub(r'\s*\n*\s*<h\d>[^<]+</h\d>\s*\n*', r'', resource_html, 1,
-                                                   flags=re.IGNORECASE | re.MULTILINE)  # removes the header
-                        if len(title) > 70:
-                            alt_title = ' '.join(title[:70].split(' ')[:-1]) + ' ...'
-                        question_file = os.path.join(os.path.dirname(file_path), 'sub-title.md')
-                        if os.path.isfile(question_file):
-                            question = read_file(question_file)
-                        if save_text:
-                            resource_html = self.fix_ta_links(resource_html, path.split('/')[0])
-                    elif resource == 'tw':
-                        title = self.get_title_from_html(resource_html)
-                        if len(title) > 70:
-                            alt_title = ','.join(title[:70].split(',')[:-1]) + ', ...'
-                        if save_text:
-                            resource_html = re.sub(r'\s*\n*\s*<h\d>[^<]+</h\d>\s*\n*', r'', resource_html, 1,
-                                                   flags=re.IGNORECASE | re.MULTILINE)  # removes the header
-                            resource_html = re.sub(r'\n*\s*\(See [^\n]*\)\s*\n*', '\n\n', resource_html,
-                                                   flags=re.IGNORECASE | re.MULTILINE)  # removes the See also line
-                            resource_html = self.fix_tw_links(resource_html, path.split('/')[1])
-                    self.resource_data[rc] = {
-                        'rc': rc,
-                        'link': link,
-                        'id': anchor_id,
-                        'title': title,
-                        'alt_title': alt_title,
-                        'question': question,
-                        'text': resource_html if save_text else None,
-                    }
-                    self.get_resource_data_from_rc_links(resource_html, rc, False)
-            else:
-                self.add_bad_link(source_rc, rc)
-        #### THE BELOW IS TO FIND ALL RELATIVE REFERENCES (../<term> and ./<term) AS ERRORS,
-        #### BUT I BELIEVE THIS IS ALLOWED - RHM
-        # rcs = re.findall(r'(?<=\()\.+/[^\)]+(?=\))', text, flags=re.IGNORECASE | re.MULTILINE)
-        # for rc in rcs:
-        #     fix = re.sub(r'(\.\./)+(kt|names|other)/([^)]+?)(\.md)*', rf'rc://{self.lang_code}/tw/dict/bible/\2/\3', rc,
-        #                  flags=re.IGNORECASE)
-        #     if fix != rc:
-        #         self.add_bad_link(source_rc, rc, fix)
-        #     else:
-        #         self.add_bad_link(source_rc, rc)
-        # rcs = re.findall(r'(?<=\()\.[^ \)]+(?=\))', text, flags=re.IGNORECASE | re.MULTILINE)
-        # for rc in rcs:
-        #     fix = None
-        #     if '/kt/' in rc or '/names/' in rc or '/other/' in rc:
-        #         new_rc = re.sub(r'(\.\./)+(kt|names|other)/([^)]+?)(\.md)*',
-        #                         rf'rc://{self.lang_code}/tw/dict/bible/\2/\3', rc, flags=re.IGNORECASE)
-        #         if new_rc != rc:
-        #             fix = new_rc
-        #     self.add_bad_link(source_rc, rc, fix)
 
     def fix_tw_links(self, text, group):
         text = re.sub(r'href="\.\./([^/)]+?)(\.md)*"', rf'href="rc://{self.lang_code}/tw/dict/bible/{group}/\1"', text,
@@ -441,28 +243,6 @@ class ObsTnPdfConverter(PdfConverter):
         text = re.sub(r'href="([^# :/"]+)"', rf'href="rc://{self.lang_code}/ta/man/{manual}/\1"', text,
                       flags=re.IGNORECASE | re.MULTILINE)
         return text
-
-    def save_bad_links_html(self):
-        bad_links = "BAD LINKS:\n"
-        for source_rc in sorted(self.bad_links.keys()):
-            for rc in sorted(self.bad_links[source_rc].keys()):
-                source = source_rc[5:].split('/')
-                parts = rc[5:].split('/')
-                if source[1] == 'obs-tn':
-                    if parts[1] == 'tw':
-                        line = '  tW'
-                    else:
-                        line = '  tN'
-                    line += f' {source[3].upper()} {source[4]}:{source[5]}'
-                else:
-                    line = f'  {source_rc}'
-                line += f': BAD RC - `{rc}`'
-                if self.bad_links[source_rc][rc]:
-                    line += f' - change to `{self.bad_links[source_rc][rc]}`'
-                bad_links += f'{line}\n'
-        save_file = os.path.join(self.output_dir, f'{self.file_id}_bad_links.txt')
-        write_file(save_file, bad_links)
-        self.logger.info(f'BAD LINKS file can be found at {save_file}')
 
     def save_bad_notes(self):
         bad_notes = '<!DOCTYPE html><html lang="en-US"><head data-suburl=""><title>NON-MATCHING NOTES</title><meta charset="utf-8"></head><body><p>NON-MATCHING NOTES (i.e. not found in the frame text as written):</p><ul>'

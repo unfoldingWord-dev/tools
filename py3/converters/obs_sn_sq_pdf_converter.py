@@ -66,7 +66,7 @@ class ObsSnSqPdfConverter(PdfConverter):
             chapter_title = obs_chapter_data['title']
             # HANDLE RC LINKS FOR OBS SN CHAPTER
             obs_sn_chapter_rc = f'rc://{self.lang_code}/obs-sn/help/obs/{chapter_num}'
-            self.resource_data[obs_sn_chapter_rc] = {
+            self.rcs[obs_sn_chapter_rc] = {
                 'rc': obs_sn_chapter_rc,
                 'id': chapter_id,
                 'link': f'#{chapter_id}',
@@ -118,14 +118,14 @@ class ObsSnSqPdfConverter(PdfConverter):
         </article>
 '''
                 # HANDLE RC LINKS FOR OBS SN FRAME
-                self.resource_data[obs_sn_rc] = {
+                self.rcs[obs_sn_rc] = {
                     'rc': obs_sn_rc,
                     'id': frame_id,
                     'link': f'#{frame_id}',
                     'title': frame_title
                 }
                 # HANDLE RC LINKS FOR OBS FRAME
-                self.resource_data[obs_rc] = {
+                self.rcs[obs_rc] = {
                     'rc': obs_rc,
                     'id': frame_id,
                     'link': f'#{frame_id}',
@@ -148,7 +148,7 @@ class ObsSnSqPdfConverter(PdfConverter):
                 # HANDLE RC LINKS FOR OBS SQ
                 obs_sq_rc = f'rc://{self.lang_code}/obs-sq/help/obs/{chapter_num}'
                 obs_sq_title = f'{chapter_title} - {self.translate("study_questions")}'
-                self.resource_data[obs_sq_rc] = {
+                self.rcs[obs_sq_rc] = {
                     'rc': obs_sq_rc,
                     'id': obs_sq_id,
                     'link': f'#{obs_sq_id}',

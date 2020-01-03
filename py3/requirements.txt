@@ -14,5 +14,6 @@ tornado
 gitpython
 requests
 prettierfier
+jsonpickle
 #weasyprint
 https://github.com/Kozea/WeasyPrint/archive/master.zip

@@ -21,12 +21,14 @@ import string
 import requests
 import sys
 import argparse
+import jsonpickle
 from typing import List, Type
 from bs4 import BeautifulSoup
 from abc import abstractmethod
 from weasyprint import HTML, LOGGER
 from .resource import Resource, Resources
-from ..general_tools.file_utils import write_file, load_json_object
+from .rc_link import ResourceContainerLink
+from ..general_tools.file_utils import write_file, read_file, load_json_object
 
 DEFAULT_LANG_CODE = 'en'
 DEFAULT_OWNER = 'unfoldingWord'
@@ -35,7 +37,8 @@ LANGUAGE_FILES = {
     'fr': 'French-fr_FR.json',
     'en': 'English-en_US.json'
 }
-
+APPENDIX_LINKING_LEVEL = 1
+APPENDIX_RESOURCES = ['ta', 'tw']
 
 class PdfConverter:
 
@@ -51,8 +54,9 @@ class PdfConverter:
         self.logger = logger
 
         self.bad_links = {}
-        self.resource_data = {}
-        self.rc_references = {}
+        self.rcs = {}
+        self.appendix_rcs = {}
+        self.all_rcs = {}
 
         self.images_dir = None
         self.save_dir = None
@@ -136,14 +140,15 @@ class PdfConverter:
         return t
 
     def add_bad_link(self, source_rc, rc, fix=None):
-        if source_rc not in self.bad_links:
-            self.bad_links[source_rc] = {}
-        if rc not in self.bad_links[source_rc] or fix:
-            self.bad_links[source_rc][rc] = fix
+        if source_rc:
+            if source_rc.rc_link not in self.bad_links:
+                self.bad_links[source_rc.rc_link] = {}
+            if rc.rc_link not in self.bad_links[source_rc.rc_link] or fix:
+                self.bad_links[source_rc.rc_link][rc.rc_link] = fix
 
     def run(self):
         self.setup_dirs()
-        self.setup_resource_files()
+        self.setup_resources()
 
         self.html_file = os.path.join(self.output_dir, f'{self.file_id}.html')
         self.pdf_file = os.path.join(self.output_dir, f'{self.file_id}.pdf')
@@ -200,6 +205,12 @@ class PdfConverter:
 
             self.logger.info('Generating body HTML...')
             body_html = self.get_body_html()
+            self.get_appendix_rcs()
+            self.all_rcs = {**self.rcs, **self.appendix_rcs}
+            if 'ta' in self.resources:
+                body_html += self.get_appendix_html(self.resources['ta'])
+            if 'tw' in self.resources:
+                body_html += self.get_appendix_html(self.resources['tw'])
             self.logger.info('Fixing links in body HTML...')
             body_html = self.fix_links(body_html)
             body_html = self._fix_links(body_html)
@@ -207,9 +218,9 @@ class PdfConverter:
             body_html = self.replace_rc_links(body_html)
             self.logger.info('Generating Contributors HTML...')
             body_html += self.get_contributors_html()
-            self.logger.info('Generating TOC HTML...')
-            body_html = self.get_body_with_toc_html(body_html)
             body_html = self.download_all_images(body_html)
+            self.logger.info('Generating TOC HTML...')
+            toc_html = self.get_toc_html(body_html)
 
             with open(os.path.join(self.converters_dir, 'templates/template.html')) as template_file:
                 html_template = string.Template(template_file.read())
@@ -218,9 +229,13 @@ class PdfConverter:
             personal_styles_file = os.path.join(self.output_dir, f'css/{self.name}_style.css')
             if os.path.isfile(personal_styles_file):
                 link = f'<link href="css/{self.name}_style.css" rel="stylesheet">'
-            body = '\n'.join([cover_html, license_html, body_html])
+            body = '\n'.join([cover_html, license_html, toc_html, body_html])
             html = html_template.safe_substitute(title=title, link=link, body=body)
             write_file(self.html_file, html)
+
+            link_file_name = '_'.join(self.file_id.split('_')[0:-1]) + '.html'
+            link_file_path = os.path.join(self.output_dir, link_file_name)
+            subprocess.call(f'ln -sf "{self.html_file}" "{link_file_path}"', shell=True)
 
             self.save_resource_data()
             self.save_bad_links_html()
@@ -243,16 +258,41 @@ class PdfConverter:
                 f'PDF file {self.pdf_file} is already there. Not generating. Use -r to force regeneration.')
 
     def save_bad_links_html(self):
-        pass
+        if not self.bad_links:
+            bad_links_html = 'NO BAD LINKS!'
+        else:
+            bad_links_html = '''
+<h1>BAD LINKS</h1>
+<ul>
+'''
+            for source_rc_links in sorted(self.bad_links.keys()):
+                for rc_links in sorted(self.bad_links[source_rc_links].keys()):
+                    line = f'<li>{source_rc_links}: BAD RC - `{rc_links}`'
+                    if self.bad_links[source_rc_links][rc_links]:
+                        line += f' - change to `{self.bad_links[source_rc_links][rc_links]}`'
+                    bad_links_html += f'{line}</li>\n'
+            bad_links_html += '''
+</ul>
+'''
 
-    def setup_resource_files(self):
+        with open(os.path.join(self.converters_dir, 'templates/template.html')) as template_file:
+            html_template = string.Template(template_file.read())
+        html = html_template.safe_substitute(title=f'BAD LINKS FOR {self.file_id}', link='', body=bad_links_html)
+        bad_links_file = os.path.join(self.output_dir, f'{self.file_id}_bad_links.html')
+        write_file(bad_links_file, html)
+        self.logger.info(f'BAD LINKS HTML file can be found at {bad_links_file}')
+
+    def setup_resource(self, resource):
+        resource.clone(self.working_dir)
+        self.generation_info[resource.repo_name] = {'tag': resource.tag, 'commit': resource.commit}
+        logo_path = os.path.join(self.images_dir, resource.logo_file)
+        if not os.path.isfile(logo_path):
+            command = f'cd "{self.images_dir}" && curl -O "{resource.logo_url}"'
+            subprocess.call(command, shell=True)
+
+    def setup_resources(self):
         for resource_name, resource in self.resources.items():
-            resource.clone(self.working_dir)
-            self.generation_info[resource.repo_name] = {'tag': resource.tag, 'commit': resource.commit}
-            logo_path = os.path.join(self.images_dir, f'{resource.resource_name}.png')
-            if not os.path.isfile(logo_path):
-                command = f'curl -o "{logo_path}" {resource.get_logo_url()}'
-                subprocess.call(command, shell=True)
+            self.setup_resource(resource)
 
     def determine_if_regeneration_needed(self):
         # check if any commit hashes have changed
@@ -276,10 +316,10 @@ class PdfConverter:
     def save_resource_data(self):
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
-        save_file = os.path.join(self.save_dir, f'{self.file_id}_resource_data.json')
-        write_file(save_file, self.resource_data)
-        save_file = os.path.join(self.save_dir, f'{self.file_id}_references.json')
-        write_file(save_file, self.rc_references)
+        save_file = os.path.join(self.save_dir, f'{self.file_id}_rcs.json')
+        write_file(save_file, jsonpickle.dumps(self.rcs))
+        save_file = os.path.join(self.save_dir, f'{self.file_id}_appendix_rcs.json')
+        write_file(save_file, jsonpickle.dumps(self.appendix_rcs))
         save_file = os.path.join(self.save_dir, f'{self.file_id}_bad_links.json')
         write_file(save_file, self.bad_links)
         save_file = os.path.join(self.save_dir, f'{self.file_id}_generation_info.json')
@@ -312,19 +352,18 @@ class PdfConverter:
     def get_body_html(self):
         pass
 
-    def get_rc_info_by_link(self, link):
-        for rc, rc_info in self.rc_references.items():
-            if 'link' in rc_info and rc_info['link'] == link:
-                return rc_info
+    def get_rc_by_article_id(self, article_id):
+        for rc_link, rc in self.all_rcs:
+            if rc.article_id == article_id:
+                return rc
 
-    def get_body_with_toc_html(self, html):
+    def get_toc_html(self, body_html):
         toc_html = f'''
 <article id="contents">
     <h1>{self.translate('table_of_contents')}</h1>
 '''
         current_level = 0
-        count = 0
-        soup = BeautifulSoup(html, 'html.parser')
+        soup = BeautifulSoup(body_html, 'html.parser')
         for header in soup.find_all(re.compile(r'^h\d'), {'class': 'section-header'}):
             level = int(header.name[1])
             # Handle closing of ul/li tags or handle the opening of new ul tags
@@ -334,31 +373,21 @@ class PdfConverter:
             elif level < current_level:
                 toc_html += '\n</li>\n'
                 for l in range(current_level, level, -1):
-                        toc_html += '</ul>\n</li>\n'
+                    toc_html += '</ul>\n</li>\n'
             elif current_level > 0:
                 toc_html += '\n</li>\n'
 
-            if header.get('id'):
-                link = f'#{id}'
-            else:
+            article_id = header.get('id')
+            if not article_id:
                 parent = header.find_parent(['section', 'article'])
-                if parent and parent.get('id'):
-                    link = f'#{parent.get("id")}'
-                else:
-                    header_id = f'article-{count}'
-                    count += 1
-                    header['id'] = header_id
-                    link = f'#{header_id}'
-            title = header.text
-            rc_info = self.get_rc_info_by_link(link)
-            if rc_info and 'toc_title' in rc_info:
-                title = rc_info['toc_title']
-            toc_html += f'<li>\n<a href="{link}"><span>{title}</span></a>\n'
+                article_id = parent.get('id')
+            rc = self.get_rc_by_article_id(article_id)
+            toc_html += f'<li>\n<a href="#{rc.article_id}"><span>{rc.toc_title}</span></a>\n'
             current_level = level
         for l in range(current_level, 0, -1):
             toc_html += '</li>\n</ul>\n'
         toc_html += '</article>'
-        return toc_html + str(soup)
+        return toc_html
 
     def get_cover_html(self):
         if self.project_id:
@@ -369,7 +398,7 @@ class PdfConverter:
             version_title_html = f'<h2 id="cover-version">{self.translate("license.version")} {self.version}</h2>'
         cover_html = f'''
 <article id="main-cover" class="cover">
-    <img src="images/{self.main_resource.logo}.png" alt="UTN"/>
+    <img src="images/{self.main_resource.logo_file}" alt="UTN"/>
     <h1 id="cover-title">{self.title}</h1>
     {project_title_html}
     {version_title_html}
@@ -383,7 +412,6 @@ class PdfConverter:
     <h1>{self.translate('license.copyrights_and_licensing')}</h1>
 '''
         for resource_name, resource in self.resources.items():
-            manifest = resource.manifest
             title = resource.title
             version = resource.version
             publisher = resource.publisher
@@ -527,42 +555,20 @@ class PdfConverter:
                               flags=re.MULTILINE)
         return html
 
-    @staticmethod
-    def get_first_header(text):
-        lines = text.split('\n')
-        if len(lines):
-            for line in lines:
-                if re.match(r'<h1>', line):
-                    return re.sub(r'<h1>(.*?)</h1>', r'\1', line)
-            return lines[0]
-        return "NO TITLE"
-
     def replace(self, m):
         before = m.group(1)
-        rc = m.group(2)
+        rc_link = m.group(2)
         after = m.group(3)
-        if rc not in self.resource_data:
+        if rc_link not in self.all_rcs:
             return m.group()
-        info = self.resource_data[rc]
+        rc = self.all_rcs[rc_link]
         if (before == '[[' and after == ']]') or (before == '(' and after == ')') or before == ' ' \
                 or (before == '>' and after == '<'):
-            return f'<a href="{info["link"]}">{info["title"]}</a>'
+            return f'<a href="#{rc.article_id}">{rc.title}</a>'
         if (before == '"' and after == '"') or (before == "'" and after == "'"):
-            return info['link']
+            return f'#{rc.article_id}'
         self.logger.error(f'FOUND SOME MALFORMED RC LINKS: {m.group()}')
         return m.group()
-
-    def replace_rc_links2(self, html):
-        # Change rc://... rc links to proper HTML links based on that links title and link to its article
-        if self.lang_code != DEFAULT_LANG_CODE:
-            html = re.sub('rc://en', f'rc://{self.lang_code}', html, flags=re.IGNORECASE)
-        joined = '|'.join(map(re.escape, self.resource_data.keys()))
-        pattern = r'(\[\[|\(|["\']| |>|)\b(' + joined + r')\b(\]\]|\)|["\']|<|)(?!\]\)")'
-
-        html = re.sub(pattern, self.replace, html, flags=re.IGNORECASE)
-        # Remove other scripture reference not in this SN
-        html = re.sub(r'<a[^>]+rc://[^>]+>([^>]+)</a>', r'\1', html, flags=re.IGNORECASE | re.MULTILINE)
-        return html
 
     def replace_rc(self, match):
         # Replace rc://... rc links according to self.resource_data:
@@ -577,28 +583,29 @@ class PdfConverter:
         #   e.g. [[rc://en/tw/help/bible/names/horeb]] => Horeb
         # Case 5: Remove other links to resources without text (they weren't directly reference by main content)
         left = match.group(1)
-        rc = match.group(2)
+        rc_link = match.group(2)
         right = match.group(3)
         title = match.group(4)
-        if rc in self.resource_data:
-            info = self.resource_data[rc]
+        if rc_link in self.all_rcs:
+            rc = self.all_rcs[rc_link]
             if (left and right and left == '[[' and right == ']]') \
                     or (not left and not right):
-                if info['text']:
+                # Only if it is a main article or is in the appendix
+                if rc.linking_level <= APPENDIX_LINKING_LEVEL:
                     # Case 1 and Case 3
-                    return '<a href="{0}">{1}</a>'.format(info['link'], info['title'])
+                    return f'<a href="#{rc.article_id}">{rc.title}</a>'
                 else:
                     # Case 4:
-                    return info['title']
+                    return rc.title
             else:
-                if info['text']:
-                    # Case 3, left = `<a href="` and right = `">[text]</a>`
-                    return left + info['link'] + right
+                if rc.article:
+                    # Case 3, left = `<a href="#` and right = `">[text]</a>`
+                    return left + rc.article_id + right
                 else:
                     # Case 4
-                    return title if title else info['title']
+                    return title if title else rc.title
         # Case 5
-        return title if title else rc
+        return title if title else rc_link
 
     def replace_rc_links(self, text):
         regex = re.compile(r'(\[\[|<a[^>]+href=")*(rc://[/A-Za-z0-9\*_-]+)(\]\]|"[^>]*>(.*?)</a>)*')
@@ -621,8 +628,190 @@ class PdfConverter:
         return html
 
     def fix_links(self, html):
-        # could be implemented by child class
+        # can be implemented by child class
         return html
+
+    def get_appendix_rcs(self):
+        for rc_link, rc in self.rcs.items():
+            self.crawl_ta_tw_deep_linking(rc)
+
+    def crawl_ta_tw_deep_linking(self, source_rc: ResourceContainerLink):
+        if source_rc.linking_level > APPENDIX_LINKING_LEVEL + 1:
+            return
+        # get all rc links. the "?:" in the regex means to not leave the (ta|tw) match in the result
+        rc_links = re.findall(r'rc://[A-Z0-9_\*-]+/(?:ta|tw)/[A-Z0-9/_\*-]+', source_rc.article, flags=re.IGNORECASE | re.MULTILINE)
+        for rc_link in rc_links:
+            self.logger.debug(rc_link)
+            rc = ResourceContainerLink(rc_link, linking_level=source_rc.linking_level+1)
+            rc.lang_code = self.lang_code  # ensure we are staying within the same language
+            if rc.rc_link in self.rcs or rc.rc_link in self.appendix_rcs:
+                if rc.rc_link in self.rcs:
+                    rc = self.rcs[rc.rc_link]
+                else:
+                    rc = self.appendix_rcs[rc.rc_link]
+                if rc.linking_level > source_rc.linking_level + 1:
+                    rc.linking_level = source_rc.linking_level + 1
+                rc.add_reference(source_rc)
+                continue
+            if rc.resource not in APPENDIX_RESOURCES:
+                continue
+            if rc.resource not in self.resources:
+                # We don't have this resource in our list of resources, so adding
+                resource = Resource(resource_name=rc.resource, repo_name=f'{self.lang_code}_{rc.resource}',
+                                    owner=self.main_resource.owner)
+                self.setup_resource(resource)
+            if rc.resource == 'ta':
+                self.get_ta_article_html(rc, source_rc)
+            elif rc.resource == 'tw':
+                self.get_tw_article_html(rc, source_rc)
+            if rc.article:
+                self.appendix_rcs[rc.rc_link] = rc
+                self.crawl_ta_tw_deep_linking(rc)
+            else:
+                self.add_bad_link(source_rc, rc)
+
+    def get_appendix_html(self, resource):
+        self.logger.info(f'Generating {resource.resource_name} appendix html...')
+        html = ''
+
+        filtered_rcs = dict(filter(lambda x: x[1].resource == resource.resource_name and
+                                             x[1].linking_level == APPENDIX_LINKING_LEVEL,
+                                   self.appendix_rcs.items()))
+        sorted_rcs = sorted(filtered_rcs.items(), key=lambda x: x[1].title.lower())
+        for item in sorted_rcs:
+            rc = item[1]
+            if rc.article:
+                html += rc.article
+        if html:
+            html = f'''
+        <section id="{self.lang_code}-{resource.resource_name}">
+            <div class="resource-title-page">
+                <h1 class="section-header">{resource.title}</h1>
+            </div>
+            {html}
+        </section>
+        '''
+        return html
+
+    def get_ta_article_html(self, rc, source_rc=None):
+        file_path = os.path.join(self.resources[rc.resource].repo_dir, rc.project, rc.path, '01.md')
+        fix = None
+        # File for the article not in the expected place, so look in a few other places based on resource
+        if not os.path.isfile(file_path):
+            bad_names = {
+                'figs-abstractnoun': 'translate/figs-abstractnouns'
+            }
+            if rc.path in bad_names:
+                alt_path = bad_names[rc.path]
+                fix = ResourceContainerLink(f'rc://{self.lang_code}/ta/man/{alt_path}')
+                file_path = os.path.join(self.resources['ta'].repo_dir, alt_path, '01.md')
+        # if we have the file, then we can proceed to process it
+        if os.path.isfile(file_path):
+            if fix and source_rc:
+                self.add_bad_link(source_rc, rc, fix)
+            ta_article_html = markdown2.markdown_path(file_path)
+            title_file = os.path.join(os.path.dirname(file_path), 'title.md')
+            if os.path.isfile(title_file):
+                title = read_file(title_file)
+            else:
+                title = self.get_title_from_html(ta_article_html)
+                ta_article_html = re.sub(r'\s*\n*\s*<h\d>[^<]+</h\d>\s*\n*', r'', ta_article_html, 1,
+                                         flags=re.IGNORECASE | re.MULTILINE)  # removes the header
+            question_file = os.path.join(os.path.dirname(file_path), 'sub-title.md')
+            question = ''
+            if os.path.isfile(question_file):
+                question = read_file(question_file)
+            ta_article_html = self.fix_ta_links(ta_article_html, rc.project)
+            top_box = ''
+            if question:
+                top_box = f'''
+    <div class="top-box box">
+        <div class="ta-question">
+            {self.translate('this_page_answers_the_question')}: <em>{question}</em>
+        </div>
+    </div>
+'''
+            ta_article_html = f'''
+    <article id="{rc.article_id}">
+        <h2 class="section-header">{title}</h2>
+        {top_box}
+        {ta_article_html}
+        {self.get_go_back_to_html(rc)}
+    </article>
+'''
+            rc.set_article(ta_article_html)
+        else:
+            self.logger.error(f'NO TA FILE AT {file_path}')
+            self.add_bad_link(source_rc, rc)
+
+    def get_go_back_to_html(self, source_rc):
+        references = []
+        for rc_link in source_rc.references:
+            rc = self.rcs[rc_link]
+            if rc.linking_level < APPENDIX_LINKING_LEVEL:
+                references.append(f'<a href="#{rc.article_id}">{rc.title}</a>')
+        go_back_to_html = ''
+        if len(references):
+            references_str = '; '.join(references)
+            go_back_to_html = f'''
+    <p class="go-back">
+        (<b>{self.translate('go_back_to')}:</b> {references_str})
+    </p>
+'''
+        return go_back_to_html
+
+    def fix_ta_links(self, text, manual):
+        text = re.sub(r'href="\.\./([^/"]+)/01\.md"', rf'href="rc://{self.lang_code}/ta/man/{manual}/\1"', text,
+                      flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="\.\./\.\./([^/"]+)/([^/"]+)/01\.md"', rf'href="rc://{self.lang_code}/ta/man/\1/\2"', text,
+                      flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="([^# :/"]+)"', rf'href="rc://{self.lang_code}/ta/man/{manual}/\1"', text,
+                      flags=re.IGNORECASE | re.MULTILINE)
+        return text
+
+    def get_tw_article_html(self, rc, source_rc=None):
+        file_path = os.path.join(self.resources[rc.resource].repo_dir, rc.project, f'{rc.path}.md')
+        fix = None
+        if not os.path.exists(file_path):
+            bad_names = {
+                'live': 'bible/kt/life'
+            }
+            if rc.extra_information[-1] in bad_names:
+                path2 = bad_names[rc.extra_information[-1]]
+            elif rc.path.startswith('bible/other/'):
+                path2 = re.sub(r'^bible/other/', r'bible/kt/', rc.path)
+            else:
+                path2 = re.sub(r'^bible/kt/', r'bible/other/', rc.path)
+            fix = 'rc://{0}/tw/dict/{1}'.format(self.lang_code, path2)
+            file_path = os.path.join(self.resources[rc.resource].repo_dir, rc.project, f'{path2}.md')
+        if os.path.isfile(file_path):
+            if fix:
+                self.add_bad_link(source_rc, rc, fix)
+            if rc.rc_link not in self.appendix_rcs:
+                tw_article_html = markdown2.markdown_path(file_path)
+                tw_article_html = self.increase_headers(tw_article_html)
+                tw_article_html = self.fix_tw_links(tw_article_html, rc.extra_information[0])
+                tw_article_html = f'''                
+    <article id="{rc.article_id}">
+        {tw_article_html}
+        {self.get_go_back_to_html(rc)}
+    </article>'''
+                rc.set_article(tw_article_html)
+        else:
+            if source_rc.rc_link not in self.bad_links:
+                self.bad_links[source_rc.rc_link] = {}
+            if rc.rc_link not in self.bad_links[source_rc.rc_link]:
+                self.bad_links[source_rc.rc_link][rc.rc_link] = None
+
+    def fix_tw_links(self, text, group):
+        text = re.sub(r'href="\.\./([^/)]+?)(\.md)*"', rf'href="rc://{self.lang_code}/tw/dict/bible/{group}/\1"', text,
+                      flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'href="\.\./([^)]+?)(\.md)*"', rf'href="rc://{self.lang_code}/tw/dict/bible/\1"', text,
+                      flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r'(\(|\[\[)(\.\./)*(kt|names|other)/([^)]+?)(\.md)*(\)|\]\])(?!\[)',
+                      rf'[[rc://{self.lang_code}/tw/dict/bible/\3/\4]]', text,
+                      flags=re.IGNORECASE | re.MULTILINE)
+        return text
 
 
 def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConverter]):
@@ -656,10 +845,12 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
             for resource_name in resource_names:
                 repo_name = f'{lang_code}_{resource_name}'
                 tag = getattr(args, resource_name)
-                resource = Resource(resource_name=resource_name, repo_name=repo_name, tag=tag, owner=owner, logo='obs')
+                resource = Resource(resource_name=resource_name, repo_name=repo_name, tag=tag, owner=owner)
                 resources[resource_name] = resource
             converter = pdf_converter_class(resources=resources, project_id=project_id, working_dir=working_dir,
                                             output_dir=output_dir, lang_code=lang_code, regenerate=regenerate)
             project_id_str = f'_{project_id}' if project_id else ''
             converter.logger.info(f'Starting PDF Converter for {resources.main.repo_name}_{resources.main.tag}{project_id_str}...')
             converter.run()
+
+

@@ -36,7 +36,6 @@ html, body {
 .manual-cover h2,
 .resource-title-page h1,
 section h1.section-header {
-
     string-set: heading1 content(), heading2 "", heading3 "", heading4 "", heading5 "";
 }
 
@@ -163,20 +162,24 @@ section h5.section-header {
 h1, h2, h3, h4, h5, h6 {
     page-break-before: auto !important;
     page-break-after: avoid !important;
+    break-before: auto !important;
     break-after: avoid-page !important;
 }
 
 section, article {
     clear: both;
     page-break-before: always;
+    break-before: page;
 }
 
 section > section:first-child, section > .section-header:first-child + section, section > article:first-child {
-    page-break-before: avoid !important
+    page-break-before: avoid !important;
+    break-before: avoid-page !important;
 }
 
 .cover {
     page-break-before: always;
+    break-before: page;
     padding-top: 100px;
     text-align: center;
 }
@@ -187,6 +190,7 @@ section > section:first-child, section > .section-header:first-child + section, 
 
 .page-break, .break {
     page-break-before: always !important;
+    break-before: page !important;
     clear: both;
 }
 

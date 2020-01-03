@@ -15,10 +15,11 @@ import re
 import markdown2
 from glob import glob
 from bs4 import BeautifulSoup
-from .pdf_converter import PdfConverter, run_converter
+from .pdf_converter import run_converter
+from .obs_sn_sq_pdf_converter import ObsSnSqPdfConverter
 
 
-class ObsSnPdfConverter(PdfConverter):
+class ObsSnPdfConverter(ObsSnSqPdfConverter):
 
     @property
     def name(self):
@@ -60,7 +61,7 @@ class ObsSnPdfConverter(PdfConverter):
                 obs_sn_html += f'<h2 class="section-header">{title}</h2>\n'
                 # HANDLE RC LINKS FOR OBS SN CHAPTERS
                 obs_sn_rc = f'rc://{self.lang_code}/obs-sn/help/{chapter_num}'
-                self.resource_data[obs_sn_rc] = {
+                self.rcs[obs_sn_rc] = {
                     'rc': obs_sn_rc,
                     'id': chapter_id,
                     'link': '#' + chapter_id,
@@ -98,7 +99,7 @@ class ObsSnPdfConverter(PdfConverter):
                         obs_sn_html += '<hr class="frame-divider"/>'
                     # HANDLE RC LINKS FOR OBS FRAMES
                     obs_rc = f'rc://{self.lang_code}/obs/bible/obs/{chapter_num}/{frame_num}'
-                    self.resource_data[obs_rc] = {
+                    self.rcs[obs_rc] = {
                         'rc': obs_rc,
                         'id': frame_id,
                         'link': '#' + frame_id,
@@ -106,7 +107,7 @@ class ObsSnPdfConverter(PdfConverter):
                     }
                     # HANDLE RC LINKS FOR OBS SN FRAMES
                     obs_sn_rc = f'rc://{self.lang_code}/obs-sn/help/obs/{chapter_num}/{frame_num}'
-                    self.resource_data[obs_sn_rc] = {
+                    self.rcs[obs_sn_rc] = {
                         'rc': obs_sn_rc,
                         'id': frame_id,
                         'link': '#' + frame_id,

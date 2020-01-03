@@ -53,7 +53,7 @@ class ObsSqPdfConverter(ObsSnSqPdfConverter):
             header['class'] = 'section-header'
             # HANDLE CHAPTER RC LINKS FOR SQ
             chapter_rc = f'rc://{self.lang_code}/obs-sq/help/{chapter_num}'
-            self.resource_data[chapter_rc] = {
+            self.rcs[chapter_rc] = {
                 'rc': chapter_rc,
                 'id': chapter_id,
                 'link': f'#{chapter_id}',
@@ -86,7 +86,7 @@ class ObsSqPdfConverter(ObsSnSqPdfConverter):
 '''
                     # HANDLE FRAME RC LINKS FOR OBS
                     obs_rc = f'rc://{self.lang_code}/obs/bible/obs/{chapter_num}/{frame_num}'
-                    self.resource_data[obs_rc] = {
+                    self.rcs[obs_rc] = {
                         'rc': obs_rc,
                         'id': frame_id,
                         'link': f'#{frame_id}',

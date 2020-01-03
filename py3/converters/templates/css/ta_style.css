@@ -1,43 +1,7 @@
-h1 {
-    display: block;
-    font-size: 2em;
-    font-weight: bold;
+hr {
+    display: none;
 }
 
-h2 {
-    display: block;
-    font-size: 1.4em;
-    font-weight: bold;
+.ta-understand-topic {
+    padding-top: 1em;
 }
-
-h3 {
-    display: block;
-    font-size: 1.2em;
-
-    font-weight: bold;
-}
-
-h4 {
-    display: block;
-    font-size: 1em;
-    font-weight: bold;
-}
-
-h5 {
-    display: block;
-    font-size: 1em;
-    font-weight: bold;
-}
-
-h6 {
-    display: block;
-    font-size: 0.75em;
-    font-weight: bold;
-}
-
-.section-header {
-    display: block;
-    font-size: 1.5em !important;
-    font-weight: bold;
-}
-
