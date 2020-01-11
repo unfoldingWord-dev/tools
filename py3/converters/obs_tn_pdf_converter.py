@@ -15,9 +15,8 @@ import re
 import markdown2
 from glob import glob
 from bs4 import BeautifulSoup
-from .rc_link import ResourceContainerLink
 from .pdf_converter import PdfConverter, run_converter
-from ..general_tools.file_utils import write_file, load_json_object, read_file
+from ..general_tools.file_utils import write_file, load_json_object
 
 TN_TITLES_TO_IGNORE = {
     'en': ['A Bible story from',
@@ -87,23 +86,20 @@ class ObsTnPdfConverter(PdfConverter):
                             fix = None
                             if term != item['id']:
                                 fix = term
-                            source_rc = f'tw_cat.json {chapter["id"]}/{frame["id"]}'
+                            source_rc_link = f'rc://{self.lang_code}/tw_cat/{chapter["id"]}/{frame["id"]}'
+                            source_rc = self.create_rc(source_rc_link)
                             self.add_bad_link(source_rc, item['id'], fix)
         return self._tw_cat
 
     def get_body_html(self):
         self.logger.info('Generating OBS TN html...')
-        tn_html = self.get_obs_tn_html()
-        ta_html = self.get_ta_html()
-        tw_html = self.get_tw_html()
-        body_html = '\n'.join([tn_html, tw_html, ta_html])
-        return body_html
+        return self.get_obs_tn_html()
 
     def get_obs_tn_html(self):
         obs_tn_html = f'''
 <section id="obs-sn">
     <div class="resource-title-page no-header">
-        <img src="images/{self.resources['obs'].logo}.png" class="logo" alt="UTN">
+        <img src="images/{self.resources['obs'].logo_file}" class="logo" alt="UTN">
         <h1 class="section-header">{self.simple_title}</h1>
     </div>
 '''
@@ -127,7 +123,6 @@ class ObsTnPdfConverter(PdfConverter):
                         frames.append(p.text)
                 for frame_idx, frame_html in enumerate(frames):
                     frame_num = str(frame_idx).zfill(2)
-                    frame_id = f'obs-tn-{chapter_num}-{frame_num}'
                     frame_title = f'{chapter_num}:{frame_num}'
                     notes_file = os.path.join(obs_tn_chapter_dir, f'{frame_num}.md')
                     notes_html = ''
@@ -157,20 +152,26 @@ class ObsTnPdfConverter(PdfConverter):
                         notes_html += '''
             </ul>
 '''
+                    # HANDLE RC LINKS FOR OBS FRAME
+                    frame_rc_link = f'rc://{self.lang_code}/obs/book/obs/{chapter_num}/{frame_num}'
+                    frame_rc = self.add_rc(frame_rc_link, title=frame_title)
                     if frame_html:
                         frame_html = f'''
-            <div id="{frame_id}-text" class="frame-text">
+            <div id="{frame_rc.article_id}" class="frame-text">
                 {frame_html}
             </div>
 '''
+                    # HANDLE RC LINKS FOR NOTES
+                    notes_rc_link = f'rc://{self.lang_code}/obs-tn/help/{chapter_num}/{frame_num}'
+                    notes_rc = self.add_rc(notes_rc_link, title=frame_title, article=notes_html)
                     if notes_html:
                         notes_html = f'''
-            <div id="{frame_id}-notes" class="frame-notes">
+            <div id="{notes_rc.article_id}-notes" class="frame-notes">
                 {notes_html}
             </div>
 '''
                     obs_tn_html += f'''
-        <div id="{frame_id}">
+        <div id="{notes_rc.article_id}">
             <h3>{frame_title}</h3>
             {frame_html}
             {notes_html}
@@ -178,15 +179,6 @@ class ObsTnPdfConverter(PdfConverter):
 '''
                     if frame_idx < len(frames) - 1:
                         obs_tn_html += '<hr class="frame-divider"/>\n'
-                    # HANDLE RC LINKS FOR FRAME
-                    frame_rc = f'rc://{self.lang_code}/obs-tn/help/{chapter_num}/{frame_num}'
-                    self.rcs[frame_rc] = {
-                        'rc': frame_rc,
-                        'id': frame_id,
-                        'link': f'#{frame_id}',
-                        'title': frame_title
-                    }
-                    self.crawl_ta_tw_deep_linking(notes_html, frame_rc)
                 obs_tn_html += '''
     </article>
 '''
@@ -195,72 +187,77 @@ class ObsTnPdfConverter(PdfConverter):
 '''
         return obs_tn_html
 
-    def has_tn_references(self, source_rc):
-        if source_rc.rc_link not in self.rc_references:
-            return False
-        for rc in self.rc_references[source_rc.rc_link]:
-            if rc.resource == 'obs-tn':
-                return True
-        return False
-
-    def get_go_back_to_html(self, rc):
-        if not self.has_tn_references(rc):
-            return ''
-        references = []
-        done = {}
-        for reference in self.rc_references[rc]:
-            if '/obs-tn/' in reference and reference not in done:
-                parts = reference[5:].split('/')
-                frame_id = f'obs-tn-{parts[3]}-{parts[4]}'
-                frame_title = f'{parts[3]}:{parts[4]}'
-                references.append(f'<a href="#{frame_id}">{frame_title}</a>')
-                done[reference] = True
-        go_back_to_html = ''
-        if len(references):
-            references_str = '; '.join(references)
-            go_back_to_html = f'''
-    <p class="go-back">
-        (<b>{self.translate('go_back_to')}:</b> {references_str})
-    </p>
-'''
-        return go_back_to_html
-
-    def fix_tw_links(self, text, group):
-        text = re.sub(r'href="\.\./([^/)]+?)(\.md)*"', rf'href="rc://{self.lang_code}/tw/dict/bible/{group}/\1"', text,
-                      flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'href="\.\./([^)]+?)(\.md)*"', rf'href="rc://{self.lang_code}/tw/dict/bible/\1"', text,
-                      flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'(\(|\[\[)(\.\./)*(kt|names|other)/([^)]+?)(\.md)*(\)|\]\])(?!\[)',
-                      rf'[[rc://{self.lang_code}/tw/dict/bible/\3/\4]]', text,
-                      flags=re.IGNORECASE | re.MULTILINE)
-        return text
-
-    def fix_ta_links(self, text, manual):
-        text = re.sub(r'href="\.\./([^/"]+)/01\.md"', rf'href="rc://{self.lang_code}/ta/man/{manual}/\1"', text,
-                      flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'href="\.\./\.\./([^/"]+)/([^/"]+)/01\.md"', rf'href="rc://{self.lang_code}/ta/man/\1/\2"', text,
-                      flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'href="([^# :/"]+)"', rf'href="rc://{self.lang_code}/ta/man/{manual}/\1"', text,
-                      flags=re.IGNORECASE | re.MULTILINE)
-        return text
-
     def save_bad_notes(self):
-        bad_notes = '<!DOCTYPE html><html lang="en-US"><head data-suburl=""><title>NON-MATCHING NOTES</title><meta charset="utf-8"></head><body><p>NON-MATCHING NOTES (i.e. not found in the frame text as written):</p><ul>'
-        for cf in sorted(self.bad_notes.keys()):
-            bad_notes += '<li><a href="{0}_html/{0}.html#obs-tn-{1}" title="See in the OBS tN Docs (HTML)" target="obs-tn-html">{1}</a><a href="https://git.door43.org/{6}/{2}_obs-tn/src/branch/{7}/content/{3}/{4}.md" style="text-decoration:none" target="obs-tn-git"><img src="http://www.myiconfinder.com/uploads/iconsets/16-16-65222a067a7152473c9cc51c05b85695-note.png" title="See OBS UTN note on DCS"></a><a href="https://git.door43.org/{6}/{2}_obs/src/branch/master/content/{3}.md" style="text-decoration:none" target="obs-git"><img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-16.png" title="See OBS story on DCS"></a>:<br/><i>{5}</i><br/><ul>'.format(
-                self.file_id, cf, self.lang_code, cf.split('-')[0], cf.split('-')[1], self.bad_notes[cf]['text'],
-                self.owner, DEFAULT_TAG)
-            for note in self.bad_notes[cf]['notes']:
+        bad_notes = f'''
+<!DOCTYPE html>
+<html lang="{self.lang_code}">
+    <head data-suburl="">
+        <title>NON-MATCHING NOTES</title>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <p>NON-MATCHING NOTES (i.e. not found in the frame text as written):</p>
+        <ul>
+'''
+        for cf in sorted(self.bad_links.keys()):
+            bad_notes += f'''
+<li>
+    <a href="{self.html_file}#obs-tn-{cf}" title="See in the OBS tN Docs (HTML)" target="obs-tn-html">{cf}</a>
+    <a href="https://git.door43.org/{self.main_resource.owner}/{self.lang_code}_obs-tn/src/branch/master/content/{cf.split('-')[0]}/{cf.split('-')[1]}.md" style="text-decoration:none" target="obs-tn-git">
+        <img src="http://www.myiconfinder.com/uploads/iconsets/16-16-65222a067a7152473c9cc51c05b85695-note.png" title="See OBS UTN note on DCS">
+    </a>
+    <a href="https://git.door43.org/{self.resources['obs'].owner}/{self.lang_code}_obs/src/branch/master/content/{cf.split('-')[0]}.md" style="text-decoration:none" target="obs-git">
+        <img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-16.png" title="See OBS story on DCS">
+    </a>:
+    <br/>
+    <i>{self.bad_links[cf]['text']}</i>
+    <br/>
+    <ul>
+'''
+            for note in self.bad_links[cf]['notes']:
                 for key in note.keys():
                     if note[key]:
-                        bad_notes += f'<li><b><i>{key}</i></b><br/>{note[key]} (QUOTE ISSUE)</li>'
+                        bad_notes += f'''
+        <li>
+            <b><i>{key}</i></b>
+            <br/>{note[key]} (QUOTE ISSUE)
+        </li>
+'''
                     else:
-                        bad_notes += f'<li><b><i>{key}</i></b></li>'
-            bad_notes += '</ul></li>'
-        bad_notes += "</u></body></html>"
+                        bad_notes += f'''
+        <li>
+            <b><i>{key}</i></b>
+        </li>
+'''
+            bad_notes += '''
+    </ul>
+</li>'''
+        bad_notes += '''
+        </ul>
+    </body>
+</html>
+'''
         save_file = os.path.join(self.output_dir, f'{self.file_id}_bad_notes.html')
         write_file(save_file, bad_notes)
         self.logger.info(f'BAD NOTES file can be found at {save_file}')
+
+    def fix_links(self, html):
+        # Changes references to chapter/frame in links
+        # <a href="1/10">Text</a> => <a href="rc://obs-sn/help/obs/01/10">Text</a>
+        # <a href="10-1">Text</a> => <a href="rc://obs-sn/help/obs/10/01">Text</a>
+        html = re.sub(r'href="(\d)/(\d+)"', r'href="0\1/\2"', html)  # prefix 0 on single-digit chapters
+        html = re.sub(r'href="(\d+)/(\d)"', r'href="\1/0\2"', html)  # prefix 0 on single-digit frames
+        html = re.sub(r'href="(\d\d)/(\d\d)"', fr'href="rc://{self.lang_code}/obs-tn/help/\1/\2"', html)
+
+        # Changes references to chapter/frame that are just chapter/frame prefixed with a #
+        # #1:10 => <a href="rc://en/obs/book/obs/01/10">01:10</a>
+        # #10/1 => <a href="rc://en/obs/book/obs/10/01">10:01</a>
+        # #10/12 => <a href="rc://en/obs/book/obs/10/12">10:12</a>
+        html = re.sub(r'#(\d)[:/-](\d+)', r'#0\1-\2', html)  # prefix 0 on single-digit chapters
+        html = re.sub(r'#(\d+)[:/-](\d)\b', r'#\1-0\2', html)  # prefix 0 on single-digit frames
+        html = re.sub(r'#(\d\d)[:/-](\d\d)', rf'<a href="rc://{self.lang_code}/obs-tn/help/\1/\2">\1:\2</a>', html)
+
+        return html
 
 
 if __name__ == '__main__':

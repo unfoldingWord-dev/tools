@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 #  Copyright (c) 2016 unfoldingWord
@@ -21,9 +21,6 @@ import argparse
 import markdown2
 from glob import glob
 from bs4 import BeautifulSoup
-
-reload(sys)
-sys.setdefaultencoding('utf8')
 
 twRoot = ''
 twOrder = ['kt', 'names', 'other']
@@ -81,7 +78,7 @@ def populateWords():
                 title = soup.h1.text
             else:
                 title = term
-                print title
+                print(title)
             for i in reversed(range(1, 4)):
                 for h in soup.select('h{0}'.format(i)):
                     h.name = 'h{0}'.format(i + 1)
@@ -94,8 +91,8 @@ def fix_content(content):
     for category in twOrder:
         for term in terms[category]:
             word = terms[category][term]
-            content = re.sub(ur'#{0}-{1}">{1}<'.format(category, term),
-                             ur'#{0}-{1}">{2}<'.format(category, term, word.title),
+            content = re.sub(r'#{0}-{1}">{1}<'.format(category, term),
+                             r'#{0}-{1}">{2}<'.format(category, term, word.title),
                              content)
     return content
 

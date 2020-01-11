@@ -15,7 +15,6 @@ import re
 import markdown2
 from bs4 import BeautifulSoup
 from .pdf_converter import PdfConverter, run_converter
-from ..general_tools.url_utils import download_file
 from ..general_tools.file_utils import write_file
 
 
@@ -40,9 +39,9 @@ class ObsSnSqPdfConverter(PdfConverter):
     def get_body_html(self):
         self.logger.info('Generating OBS SN SQ html...')
         obs_sn_sq_html = f'''
-<section id="obs-sn">
+<section id="{self.lang_code}-obs-sn">
     <div class="resource-title-page no-header">
-        <img src="images/{self.resources['obs'].logo}.png" class="logo" alt="UTN">
+        <img src="images/{self.resources['obs'].logo_file}" class="logo" alt="UTN">
         <h1 class="section-header">{self.simple_title}</h1>
     </div>
 '''
@@ -59,26 +58,18 @@ class ObsSnSqPdfConverter(PdfConverter):
 '''
         for chapter_num in range(1, 51):
             chapter_num = str(chapter_num).zfill(2)
-            chapter_id = f'obs-sn-sq-{chapter_num}'
             sn_chapter_dir = os.path.join(self.resources['obs-sn'].repo_dir, 'content', chapter_num)
             sq_chapter_file = os.path.join(self.resources['obs-sq'].repo_dir, 'content', f'{chapter_num}.md')
-            obs_chapter_data = self.get_obs_chapter_data(chapter_num, True)  # set to true to use local
+            obs_chapter_data = self.get_obs_chapter_data(chapter_num)
             chapter_title = obs_chapter_data['title']
             # HANDLE RC LINKS FOR OBS SN CHAPTER
-            obs_sn_chapter_rc = f'rc://{self.lang_code}/obs-sn/help/obs/{chapter_num}'
-            self.rcs[obs_sn_chapter_rc] = {
-                'rc': obs_sn_chapter_rc,
-                'id': chapter_id,
-                'link': f'#{chapter_id}',
-                'title': chapter_title
-            }
+            obs_sn_chapter_rc_link = f'rc://{self.lang_code}/obs-sn/help/obs/{chapter_num}'
+            obs_sn_chapter_rc = self.add_rc(obs_sn_chapter_rc_link, title=chapter_title)
             obs_sn_sq_html += f'''
-    <section id="{chapter_id}">
-        <h2 class="section-header reset-headers">{chapter_title}</h1>
-'''
-            obs_sn_sq_html += f'''
-        <section id="obs-sn-{chapter_num}" class="no-break">
-            <h3 class="section-header no-break">{self.translate('study_notes')}</h2>
+    <section id="{obs_sn_chapter_rc.article_id}">
+        <h2 class="section-header reset-headers">{chapter_title}</h2>
+        <section id="{obs_sn_chapter_rc.article_id}-notes" class="no-break">
+            <h3 class="section-header no-break">{self.translate('study_notes')}</h3>
 '''
             if 'bible_reference' in obs_chapter_data and obs_chapter_data['bible_reference']:
                 obs_sn_sq_html += f'''
@@ -88,26 +79,29 @@ class ObsSnSqPdfConverter(PdfConverter):
             for frame_idx, frame in enumerate(frames):
                 image = obs_chapter_data['images'][frame_idx]
                 frame_num = str(frame_idx + 1).zfill(2)
-                frame_id = f'obs-sn-{chapter_num}-{frame_num}'
                 frame_title = f'{chapter_num}:{frame_num}'
                 obs_sn_file = os.path.join(sn_chapter_dir, f'{frame_num}.md')
                 obs_text = re.sub(r'[\n\s]+', ' ', frame, flags=re.MULTILINE)
-                obs_sn_rc = f'rc://{self.lang_code}/obs-sn/help/obs/{chapter_num}/{frame_num}'
-                obs_rc = f'rc://{self.lang_code}/obs/book/obs/{chapter_num}/{frame_num}'
+                # HANDLE RC LINKS FOR OBS SN FRAME
+                obs_sn_rc_link = f'rc://{self.lang_code}/obs-sn/help/obs/{chapter_num}/{frame_num}'
+                obs_sn_rc = self.add_rc(obs_sn_rc_link, title=frame_title)
+                # HANDLE RC LINKS FOR OBS FRAME
+                obs_rc_link = f'rc://{self.lang_code}/obs/book/obs/{chapter_num}/{frame_num}'
+                self.add_rc(obs_rc_link, title=frame_title, article_id=obs_sn_rc.article_id)
                 if os.path.isfile(obs_sn_file):
                     notes_html = markdown2.markdown_path(obs_sn_file)
                     notes_html = self.increase_headers(notes_html, 3)
                     phrases = self.get_phrases_to_highlight(notes_html, 'h4')
                     obs_text = self.highlight_text_with_phrases(obs_text, phrases, obs_sn_rc)
+                    obs_sn_rc.set_article(notes_html)
                 else:
                     no_study_notes = self.translate('no_study_notes_for_this_frame')
                     notes_html = f'<div class="no-notes-message">({no_study_notes})</div>'
-                article_class = ' class="no-break"' if frame_idx == 0 else ''
                 obs_sn_sq_html += f'''
-        <article id="{frame_id}"{article_class}>
+        <article id="{obs_sn_rc.article_id}">
           <h4>{frame_title}</h4>
           <div class="obs-img-and-text">
-            <img src="images/{image}" class="obs-img"/>
+            <img src="{image}" class="obs-img"/>
             <div class="obs-text">
                 {obs_text}
             </div>
@@ -117,53 +111,31 @@ class ObsSnSqPdfConverter(PdfConverter):
           </div>
         </article>
 '''
-                # HANDLE RC LINKS FOR OBS SN FRAME
-                self.rcs[obs_sn_rc] = {
-                    'rc': obs_sn_rc,
-                    'id': frame_id,
-                    'link': f'#{frame_id}',
-                    'title': frame_title,
-                    'text': 'text'
-                }
-                # HANDLE RC LINKS FOR OBS FRAME
-                self.rcs[obs_rc] = {
-                    'rc': obs_rc,
-                    'id': frame_id,
-                    'link': f'#{frame_id}',
-                    'title': frame_title,
-                    'text': 'text'
-                }
             obs_sn_sq_html += '''
-        </section>
+    </section>
 '''
             if os.path.isfile(sq_chapter_file):
-                obs_sq_id = f'obs-sq-{chapter_num}'
-                study_questions_html = markdown2.markdown_path(sq_chapter_file)
-                study_questions_html = self.increase_headers(study_questions_html, 3)
+                obs_sq_title = f'{chapter_title} - {self.translate("study_questions")}'
+                obs_sq_html = markdown2.markdown_path(sq_chapter_file)
+                obs_sq_html = self.increase_headers(obs_sq_html, 3)
+                # HANDLE RC LINKS FOR OBS SQ
+                obs_sq_rc_link = f'rc://{self.lang_code}/obs-sq/help/obs/{chapter_num}'
+                obs_sq_rc = self.add_rc(obs_sq_rc_link, title=obs_sq_title, article=obs_sq_html)
                 obs_sn_sq_html += f'''
-        <article id="{obs_sq_id}">s
+        <article id="{obs_sq_rc.article_id}">
           <h3 class="section-header">{self.translate('study_questions')}</h3>
-          {study_questions_html}
+          {obs_sq_html}
         </article>
     </section>
 '''
-                # HANDLE RC LINKS FOR OBS SQ
-                obs_sq_rc = f'rc://{self.lang_code}/obs-sq/help/obs/{chapter_num}'
-                obs_sq_title = f'{chapter_title} - {self.translate("study_questions")}'
-                self.rcs[obs_sq_rc] = {
-                    'rc': obs_sq_rc,
-                    'id': obs_sq_id,
-                    'link': f'#{obs_sq_id}',
-                    'title': chapter_title,
-                    'text': 'text'
-                }
         obs_sn_sq_html += '''
 </section>
 '''
         return obs_sn_sq_html
 
-    def get_obs_chapter_data(self, chapter_num, download_images=False):
+    def get_obs_chapter_data(self, chapter_num):
         obs_chapter_data = {
+            'title': None,
             'frames': [],
             'images': [],
             'bible_reference': None
@@ -179,15 +151,7 @@ class ObsSnSqPdfConverter(PdfConverter):
                     obs_chapter_data['frames'].append(p.text)
                 elif p.img:
                     src = p.img['src'].split('?')[0]
-                    if download_images:
-                        basename = os.path.basename(src)
-                        obs_chapter_data['images'].append(basename)
-                        image_file = os.path.join(self.images_dir, basename)
-                        if not os.path.isfile(image_file):
-                            self.logger.info(f'Downloading {src}...')
-                            download_file(src, os.path.join(self.images_dir, basename))
-                    else:
-                        obs_chapter_data['images'].append(src)
+                    obs_chapter_data['images'].append(src)
                 else:
                     obs_chapter_data['bible_reference'] = p.text
         return obs_chapter_data
@@ -226,9 +190,8 @@ class ObsSnSqPdfConverter(PdfConverter):
 '''
         for rc in sorted(self.bad_links.keys()):
             rc_parts = rc[5:].split('/')
-            resource = rc[1]
-            chapter = rc[4]
-            frame = rc[5]
+            chapter = rc_parts[4]
+            frame = rc_parts[5]
             bad_notes += f'''
         <li>
             <a href="html/{self.file_id}.html#obs-sn-{chapter}" title="See in the OBS SN Docs (HTML)" target="obs-sn-html">{chapter}</a>

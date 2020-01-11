@@ -118,8 +118,7 @@ class TaConverter(object):
             self.get_articles()
             self.download_all_images()
 
-            prettierfied_html = prettierfier.prettify_html(self.soup.prettify())
-            write_file(html_file, prettierfied_html)
+            write_file(html_file, str(self.soup))
 
             self.logger.info("Copying style sheet files...")
             style_file = os.path.join(self.my_path, 'ta_style.css')

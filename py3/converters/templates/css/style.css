@@ -35,24 +35,16 @@ html, body {
 
 .manual-cover h2,
 .resource-title-page h1,
-section h1.section-header {
-    string-set: heading1 content(), heading2 "", heading3 "", heading4 "", heading5 "";
+h1.section-header {
+    string-set: heading-left content()
 }
 
-section h2.section-header {
-    string-set: heading2 content(), heading3 "", heading4 "", heading5 "";
+.heading-right {
+    string-set: heading-right content();
 }
 
-section h3.section-header {
-    string-set: heading3 " :: " content(), heading4 "", heading5 "";
-}
+.heading-right .heading-text {
 
-section h4.section-header {
-    string-set: heading4 " :: " content(), heading5 "";
-}
-
-section h5.section-header {
-    string-set: heading5 " :: " content(), heading3 " :: ...";
 }
 
 @page {
@@ -60,19 +52,28 @@ section h5.section-header {
     margin: 1.5cm;
 
     @top-left {
-        content: string(heading1);
+        content: string(heading-left);
         font-size: 12px;
         text-align: left;
         font-style: italic;
         white-space: nowrap;
-        line-height: 12px;
+        line-height: 14px;
+        height: 28px;
+        vertical-align: top;
+        margin: 12px 0;
+        padding-right: 10px;
     }
     @top-right {
-        content: string(heading2) string(heading3) string(heading4) string(heading5);
+        /*content: string(heading2) string(heading3) string(heading4) string(heading5);*/
+        content: string(heading-right);
         font-size: 12px;
         text-align: right;
         font-style: italic;
-        line-height: 12px;
+        line-height: 14px;
+        height: 28px;
+        vertical-align: top;
+        margin: 12px 0;
+        padding-left: 5px;
     }
     @bottom-center {
         content: counter(page) " / " counter(pages);
@@ -172,9 +173,39 @@ section, article {
     break-before: page;
 }
 
-section > section:first-child, section > .section-header:first-child + section, section > article:first-child {
+h1 {
+    font-size: 2em !important;
+}
+
+h2 {
+    font-size: 1.5em !important;
+}
+
+h3.section-header {
+    font-size: 1.4em;
+}
+
+h4.section-header {
+    font-size: 1.3em;
+}
+
+h5.section-header,
+h6.section-header {
+    font-size: 1.2em;
+}
+
+section > section:nth-of-type(1),
+section > article:nth-of-type(1),
+.section-header + section,
+.section-header + article
+{
     page-break-before: avoid !important;
     break-before: avoid-page !important;
+}
+
+section > article:nth-of-type(1) + section:nth-of-type(1) {
+    page-break-before: always !important;
+    break-before: page !important;
 }
 
 .cover {
@@ -395,7 +426,8 @@ code {
     padding-bottom: 1em;
 }
 
-.go-back {
+.go-back-to {
+    clear: both;
     padding-top: 1.5em;
 }
 
@@ -410,7 +442,6 @@ code {
 }
 
 .frame-text {
-    font-style: italic;
     font-size: 1.2em;
     padding: 1em 0;
 }
@@ -430,4 +461,8 @@ span.highlight span.highlight span.highlight {
 
 span.highlight.split {
     text-decoration: underline;
+}
+
+.ta-dependencies {
+    padding-top: 1em;
 }

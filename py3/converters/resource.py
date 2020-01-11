@@ -27,6 +27,7 @@ LOGO_MAP = {
     'obs-sn': 'obs',
     'obs-sq': 'obs'
 }
+RUN_LOCALLY = True
 
 
 class Resource(object):
@@ -80,9 +81,10 @@ class Resource(object):
                     if os.path.isdir(self.repo_dir):
                         break
         self.git = git.Git(self.repo_dir)
-        self.git.fetch()
+        if not RUN_LOCALLY:
+            self.git.fetch()
         self.git.checkout(self.tag)
-        if self.tag == DEFAULT_TAG:
+        if self.tag == DEFAULT_TAG and not RUN_LOCALLY:
             self.git.pull()
         self.commit = self.git.rev_parse('HEAD', short=10)
 
@@ -99,6 +101,10 @@ class Resource(object):
     @property
     def simple_title(self):
         return self.title.replace('unfoldingWord® ', '')
+
+    @property
+    def type(self):
+        return self.manifest['dublin_core']['type']
 
     @property
     def version(self):
