@@ -22,7 +22,7 @@ set -e # die if errors
 : ${TEMPLATE_ALL:="$MY_DIR/toc_template_all.xsl"}
 : ${LANGUAGE:="en"}
 : ${RESOURCE:="tw"}
-: ${TAG:="v10"}
+: ${TAG:="v11"}
 
 if [[ -z $WORKING_DIR ]]; then
     WORKING_DIR=$(mktemp -d -t "export_md_to_pdf.XXXXXX")
