@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-#  Copyright (c) 2019 unfoldingWord
+#  Copyright (c) 2020 unfoldingWord
 #  http://creativecommons.org/licenses/MIT/
 #  See LICENSE file for details.
 #

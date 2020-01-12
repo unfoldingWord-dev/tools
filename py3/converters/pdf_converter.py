@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-#  Copyright (c) 2019 unfoldingWord
+#  Copyright (c) 2020 unfoldingWord
 #  http://creativecommons.org/licenses/MIT/
 #  See LICENSE file for details.
 #
@@ -533,6 +533,10 @@ class PdfConverter:
                 processed_text += f'<span class="{highlight_classes}">{splits[1]}</span>'
                 if len(splits) > 2:
                     to_process_text = splits[-1]
+                else:
+                    to_process_text = ''
+            else:
+                to_process_text = ''
         if to_process_text:
             processed_text += to_process_text
         return processed_text

@@ -8,7 +8,7 @@
 #  Richard Mahn <rich.mahn@unfoldingword.org>
 
 """
-This script generates the HTML and PDF TA documents
+This script generates the HTML and PDF TQ documents
 """
 import os
 import yaml
@@ -16,7 +16,7 @@ from .pdf_converter import PdfConverter, run_converter
 from ..general_tools.file_utils import read_file
 
 
-class TaPdfConverter(PdfConverter):
+class TqPdfConverter(PdfConverter):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -138,4 +138,4 @@ class TaPdfConverter(PdfConverter):
 
 
 if __name__ == '__main__':
-    run_converter(['ta', 'tw'], TaPdfConverter)
+    run_converter(['tq'], TqPdfConverter)
