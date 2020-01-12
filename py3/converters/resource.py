@@ -27,7 +27,7 @@ LOGO_MAP = {
     'obs-sn': 'obs',
     'obs-sq': 'obs'
 }
-RUN_LOCALLY = True
+RUN_LOCALLY = False
 
 
 class Resource(object):
