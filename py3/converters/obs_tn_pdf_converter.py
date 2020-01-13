@@ -113,7 +113,6 @@ class ObsTnPdfConverter(PdfConverter):
     <article id="en-obs-tn-{chapter_num}">
         <h2 class="section-header">{chapter_data['title']}</h2>
 '''
-                obs_tn_html += f'<h2 class="section-header">{chapter_data["title"]}</h2>\n'
                 frames = [''] + chapter_data['frames']  # first item of '' if there are intro notes from the 00.md file
                 for frame_idx, frame_html in enumerate(frames):
                     frame_num = str(frame_idx).zfill(2)
@@ -143,7 +142,7 @@ class ObsTnPdfConverter(PdfConverter):
 
                     if frame_idx == len(frames) - 1:
                         if 'bible_reference' in chapter_data and chapter_data['bible_reference']:
-                            obs_tn_html += f'''
+                            notes_html += f'''
                                 <div class="bible_reference" class="no-break">{chapter_data['bible_reference']}</div>
                         '''
                     # Some OBS TN languages (e.g. English) do not have Translation Words in their TN article
@@ -161,7 +160,7 @@ class ObsTnPdfConverter(PdfConverter):
                         notes_html += '''
             </ul>
 '''
-                        notes_rc.set_article(notes_html)
+                    notes_rc.set_article(notes_html)
 
                     if frame_html:
                         frame_html = f'''
