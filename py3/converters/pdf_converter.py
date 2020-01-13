@@ -306,7 +306,7 @@ class PdfConverter:
     def generate_pdf(self):
         if self.regenerate or not os.path.exists(self.pdf_file):
             self.logger.info(f'Generating PDF file {self.pdf_file}...')
-            weasy = HTML(filename=self.html_file, base_url=f'file://{self.output_dir}/')
+            weasy = HTML(filename=self.html_file, base_url=f'file://{self.docs_dir}/')
             weasy.write_pdf(self.pdf_file)
             self.logger.info('Generated PDF file.')
             self.logger.info(f'PDF file located at {self.pdf_file}')
