@@ -179,54 +179,54 @@ class ObsSnSqPdfConverter(PdfConverter):
 
         return html
 
-    def save_bad_links_html(self):
-        bad_notes = '''
-<!DOCTYPE html>
-    <html lang="en-US">
-        <head>
-            <title>
-                NON-MATCHING NOTES
-            </title>
-            <meta charset="utf-8">
-        </head>
-<body>
-    <h1>NON-MATCHING NOTES (i.e. not found in the frame text as written):</h1>
-    <ul>
-'''
-        for rc in sorted(self.bad_links.keys()):
-            rc_parts = rc[5:].split('/')
-            chapter = rc_parts[4]
-            frame = rc_parts[5]
-            bad_notes += f'''
-        <li>
-            <a href="html/{self.file_commit_id}.html#obs-sn-{chapter}" title="See in the OBS SN Docs (HTML)" target="obs-sn-html">{chapter}</a>
-            <a href="https://git.door43.org/{self.main_resource.owner}/{self.main_resource.repo_name}/src/branch/{self.main_resource.tag}/content/{chapter}/{frame}.md" style="text-decoration:none" target="obs-sn-git">
-                <img src="http://www.myiconfinder.com/uploads/iconsets/16-16-65222a067a7152473c9cc51c05b85695-note.png" title="See OBS UTN note on DCS">
-            </a>
-            <a href="https://git.door43.org/{self.resources['obs'].owner}/{self.resources['obs'].repo_name}/src/branch/master/content/{chapter}.md" style="text-decoration:none" target="obs-git">
-                <img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-16.png" title="See OBS story on DCS">
-            </a>:<br/>
-            <i>{self.bad_links[rc]['text']}</i><br/>
-            <ul>
-'''
-            for note in self.bad_links[rc]['notes']:
-                for key in note.keys():
-                    if note[key]:
-                        bad_notes += f'<li><b><i>{key}</i></b><br/>{note[key]} (QUOTE ISSUE)</li>'
-                    else:
-                        bad_notes += f'<li><b><i>{key}</i></b></li>'
-            bad_notes += '''
-            </ul>
-        </li>
-'''
-        bad_notes += '''
-    </u>
-</body>
-</html>
-'''
-        save_file = os.path.join(self.output_dir, f'{self.file_commit_id}_bad_notes.html')
-        write_file(save_file, bad_notes)
-        self.logger.info(f'BAD NOTES file can be found at {save_file}')
+#     def save_bad_links_html(self):
+#         bad_notes = '''
+# <!DOCTYPE html>
+#     <html lang="en-US">
+#         <head>
+#             <title>
+#                 NON-MATCHING NOTES
+#             </title>
+#             <meta charset="utf-8">
+#         </head>
+# <body>
+#     <h1>NON-MATCHING NOTES (i.e. not found in the frame text as written):</h1>
+#     <ul>
+# '''
+#         for rc in sorted(self.bad_links.keys()):
+#             rc_parts = rc[5:].split('/')
+#             chapter = rc_parts[4]
+#             frame = rc_parts[5]
+#             bad_notes += f'''
+#         <li>
+#             <a href="html/{self.file_commit_id}.html#obs-sn-{chapter}" title="See in the OBS SN Docs (HTML)" target="obs-sn-html">{chapter}</a>
+#             <a href="https://git.door43.org/{self.main_resource.owner}/{self.main_resource.repo_name}/src/branch/{self.main_resource.tag}/content/{chapter}/{frame}.md" style="text-decoration:none" target="obs-sn-git">
+#                 <img src="http://www.myiconfinder.com/uploads/iconsets/16-16-65222a067a7152473c9cc51c05b85695-note.png" title="See OBS UTN note on DCS">
+#             </a>
+#             <a href="https://git.door43.org/{self.resources['obs'].owner}/{self.resources['obs'].repo_name}/src/branch/master/content/{chapter}.md" style="text-decoration:none" target="obs-git">
+#                 <img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-16.png" title="See OBS story on DCS">
+#             </a>:<br/>
+#             <i>{self.bad_links[rc]['text']}</i><br/>
+#             <ul>
+# '''
+#             for note in self.bad_links[rc]['notes']:
+#                 for key in note.keys():
+#                     if note[key]:
+#                         bad_notes += f'<li><b><i>{key}</i></b><br/>{note[key]} (QUOTE ISSUE)</li>'
+#                     else:
+#                         bad_notes += f'<li><b><i>{key}</i></b></li>'
+#             bad_notes += '''
+#             </ul>
+#         </li>
+# '''
+#         bad_notes += '''
+#     </u>
+# </body>
+# </html>
+# '''
+#         save_file = os.path.join(self.output_dir, f'{self.file_commit_id}_bad_notes.html')
+#         write_file(save_file, bad_notes)
+#         self.logger.info(f'BAD NOTES file can be found at {save_file}')
 
 
 if __name__ == '__main__':
