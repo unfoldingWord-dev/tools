@@ -328,7 +328,7 @@ class PdfConverter:
             for rc_links in sorted(self.bad_links[source_rc_links].keys()):
                 line = f'<li>{source_rc_links}: BAD RC - `{rc_links}`'
                 if self.bad_links[source_rc_links][rc_links]:
-                    line += f' - change to `{self.bad_links[source_rc_links][rc_links]}`'
+                    line += f' - `{self.bad_links[source_rc_links][rc_links]}`'
                 bad_links_html += f'{line}</li>\n'
         bad_links_html += '''
 </ul>
@@ -859,11 +859,11 @@ class PdfConverter:
             self.logger.error("NO FILE AT {0}".format(article_file))
             if os.path.isdir(article_dir):
                 if not os.path.isfile(article_file):
-                    self.add_bad_link(source_rc, rc.rc_link, '[dir exists but no 01.md file]')
+                    self.add_bad_link(source_rc, rc.rc_link, 'dir exists but no 01.md file')
                 else:
-                    self.add_bad_link(source_rc, rc.rc_link, '[01.md file exists but no content]')
+                    self.add_bad_link(source_rc, rc.rc_link, '01.md file exists but no content')
             else:
-                self.add_bad_link(source_rc, rc.rc_link, '[no corresponding article found]')
+                self.add_bad_link(source_rc, rc.rc_link, 'no corresponding article found')
             return
         top_box = ''
         bottom_box = ''
@@ -993,7 +993,7 @@ class PdfConverter:
                 path2 = re.sub(r'^bible/other/', r'bible/kt/', rc.path)
             else:
                 path2 = re.sub(r'^bible/kt/', r'bible/other/', rc.path)
-            fix = 'rc://{0}/tw/dict/{1}'.format(self.lang_code, path2)
+            fix = 'change to rc://{0}/tw/dict/{1}'.format(self.lang_code, path2)
             file_path = os.path.join(self.resources[rc.resource].repo_dir, rc.project, f'{path2}.md')
         if os.path.isfile(file_path):
             if fix:

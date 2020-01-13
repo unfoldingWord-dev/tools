@@ -86,7 +86,7 @@ class ObsTnPdfConverter(PdfConverter):
                         if not category or term != item['id']:
                             fix = None
                             if term != item['id']:
-                                fix = term
+                                fix = f'change to: {term}'
                             source_rc_link = f'rc://{self.lang_code}/tw_cat/{chapter["id"]}/{frame["id"]}'
                             source_rc = self.create_rc(source_rc_link)
                             self.add_bad_link(source_rc, item['id'], fix)
