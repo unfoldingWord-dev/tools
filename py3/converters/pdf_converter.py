@@ -234,7 +234,7 @@ class PdfConverter:
             os.makedirs(self.log_dir)
 
         css_path = os.path.join(self.converters_dir, 'templates/css')
-        subprocess.call(f'ln -sf "{css_path}" "{self.output_dir}"', shell=True)
+        subprocess.call(f'ln -sf "{css_path}" "{self.docs_dir}"', shell=True)
 
         index_path = os.path.join(self.converters_dir, 'index.php')
         subprocess.call(f'ln -sf "{index_path}" "{self.output_dir}"', shell=True)
