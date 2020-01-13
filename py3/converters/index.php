@@ -14,7 +14,7 @@ foreach($dirs as $dir) {
     $files = array();
     $subdir = opendir($dir); // open the cwd..also do an err check.
     while(false != ($subfile = readdir($dir))) {
-        if(($subfile != ".") and ($subfile != "..") and is_link()) {
+        if(($subfile != ".") and ($subfile != "..") and is_link($subfile)) {
                 $files[] = $subfile; // put in array.
         }
     }
