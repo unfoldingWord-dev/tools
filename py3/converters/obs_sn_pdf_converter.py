@@ -43,10 +43,7 @@ class ObsSnPdfConverter(ObsSnSqPdfConverter):
         for chapter in range(1, 51):
             chapter_num = str(chapter).zfill(2)
             chapter_data = obs_tools.get_obs_chapter_data(self.resources['obs'].repo_dir, chapter_num)
-            # HANDLE RC LINKS FOR OBS SN CHAPTERS
-            obs_sn_rc_link = f'rc://{self.lang_code}/obs-sn/help/{chapter_num}'
-            obs_sn_rc = self.add_rc(obs_sn_rc_link, title=chapter_data['title'])
-            obs_sn_html += f'<article id="{obs_sn_rc.article_id}">\n\n'
+            obs_sn_html += f'<article id="{self.lang_code}-obs-sn-{chapter_num}">\n\n'
             obs_sn_html += f'<h2 class="section-header">{chapter_data["title"]}</h2>\n'
             if 'bible_reference' in chapter_data and chapter_data['bible_reference']:
                 obs_sn_html += f'''
@@ -56,11 +53,8 @@ class ObsSnPdfConverter(ObsSnSqPdfConverter):
                 frame_num = str(frame_idx+1).zfill(2)
                 frame_title = f'{chapter_num}:{frame_num}'
 
-                obs_sn_html += f'<div id="{obs_sn_rc.article_id}" class="frame">\n'
-                obs_sn_html += f'<h3>{chapter_num}:{frame_num}</h3>\n'
                 frame_notes_file = os.path.join(self.resources['obs-sn'].repo_dir, 'content', chapter_num,
                                                 f'{frame_num}.md')
-
                 if os.path.isfile(frame_notes_file):
                     notes_html = markdown2.markdown_path(frame_notes_file)
                     notes_html = self.increase_headers(notes_html, 3)
@@ -81,14 +75,16 @@ class ObsSnPdfConverter(ObsSnSqPdfConverter):
                         obs_text = self.highlight_text_with_phrases(obs_text, phrases, obs_sn_rc)
 
                 obs_sn_html += f'''
+<div id="{obs_sn_rc.article_id}" class="frame">\n'
+    <h3>{frame_title}</h3>\n'
     <div id="{obs_sn_rc.article_id}-text" class="frame-text">
         {obs_text}
     </div>
     <div id="{obs_sn_rc.article_id}-notes" class="frame-notes">
         {notes_html}
     </div>
+</div>
 '''
-                obs_sn_html += '</div>\n\n'
                 if frame_idx < len(chapter_data['frames']) - 1:
                     obs_sn_html += '<hr class="frame-divider"/>'
             obs_sn_html += '</article>\n\n'
