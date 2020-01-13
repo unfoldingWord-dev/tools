@@ -82,21 +82,26 @@ class ObsSnSqPdfConverter(PdfConverter):
                 frame_title = f'{chapter_num}:{frame_num}'
                 obs_sn_file = os.path.join(sn_chapter_dir, f'{frame_num}.md')
                 obs_text = re.sub(r'[\n\s]+', ' ', frame, flags=re.MULTILINE)
-                # HANDLE RC LINKS FOR OBS SN FRAME
-                obs_sn_rc_link = f'rc://{self.lang_code}/obs-sn/help/obs/{chapter_num}/{frame_num}'
-                obs_sn_rc = self.add_rc(obs_sn_rc_link, title=frame_title)
-                # HANDLE RC LINKS FOR OBS FRAME
-                obs_rc_link = f'rc://{self.lang_code}/obs/book/obs/{chapter_num}/{frame_num}'
-                self.add_rc(obs_rc_link, title=frame_title, article_id=obs_sn_rc.article_id)
+
                 if os.path.isfile(obs_sn_file):
                     notes_html = markdown2.markdown_path(obs_sn_file)
                     notes_html = self.increase_headers(notes_html, 3)
-                    phrases = self.get_phrases_to_highlight(notes_html, 'h4')
-                    obs_text = self.highlight_text_with_phrases(obs_text, phrases, obs_sn_rc)
-                    obs_sn_rc.set_article(notes_html)
                 else:
                     no_study_notes = self.translate('no_study_notes_for_this_frame')
                     notes_html = f'<div class="no-notes-message">({no_study_notes})</div>'
+
+                # HANDLE RC LINKS FOR OBS SN FRAME
+                obs_sn_rc_link = f'rc://{self.lang_code}/obs-sn/help/obs/{chapter_num}/{frame_num}'
+                obs_sn_rc = self.add_rc(obs_sn_rc_link, title=frame_title, article=notes_html)
+                # HANDLE RC LINKS FOR OBS FRAME
+                obs_rc_link = f'rc://{self.lang_code}/obs/book/obs/{chapter_num}/{frame_num}'
+                self.add_rc(obs_rc_link, title=frame_title, article_id=obs_sn_rc.article_id)
+
+                if obs_text and notes_html:
+                    phrases = self.get_phrases_to_highlight(notes_html, 'h4')
+                    if phrases:
+                        obs_text = self.highlight_text_with_phrases(obs_text, phrases, obs_sn_rc)
+
                 obs_sn_sq_html += f'''
         <article id="{obs_sn_rc.article_id}">
           <h4>{frame_title}</h4>
@@ -194,7 +199,7 @@ class ObsSnSqPdfConverter(PdfConverter):
             frame = rc_parts[5]
             bad_notes += f'''
         <li>
-            <a href="html/{self.file_id}.html#obs-sn-{chapter}" title="See in the OBS SN Docs (HTML)" target="obs-sn-html">{chapter}</a>
+            <a href="html/{self.file_commit_id}.html#obs-sn-{chapter}" title="See in the OBS SN Docs (HTML)" target="obs-sn-html">{chapter}</a>
             <a href="https://git.door43.org/{self.main_resource.owner}/{self.main_resource.repo_name}/src/branch/{self.main_resource.tag}/content/{chapter}/{frame}.md" style="text-decoration:none" target="obs-sn-git">
                 <img src="http://www.myiconfinder.com/uploads/iconsets/16-16-65222a067a7152473c9cc51c05b85695-note.png" title="See OBS UTN note on DCS">
             </a>
@@ -219,7 +224,7 @@ class ObsSnSqPdfConverter(PdfConverter):
 </body>
 </html>
 '''
-        save_file = os.path.join(self.output_dir, f'{self.file_id}_bad_notes.html')
+        save_file = os.path.join(self.output_dir, f'{self.file_commit_id}_bad_notes.html')
         write_file(save_file, bad_notes)
         self.logger.info(f'BAD NOTES file can be found at {save_file}')
 

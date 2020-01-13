@@ -11,10 +11,7 @@
 This script generates the HTML and PDF OBS SN documents
 """
 import os
-import re
 import markdown2
-from glob import glob
-from bs4 import BeautifulSoup
 from .pdf_converter import run_converter
 from .obs_sn_sq_pdf_converter import ObsSnSqPdfConverter
 
@@ -53,27 +50,31 @@ class ObsSnPdfConverter(ObsSnSqPdfConverter):
             for frame_idx, obs_text in enumerate(chapter_data['frames']):
                 frame_num = str(frame_idx+1).zfill(2)
                 frame_title = f'{chapter_num}:{frame_num}'
-                # HANDLE RC LINKS FOR OBS SN FRAMES
-                obs_sn_rc_link = f'rc://{self.lang_code}/obs-sn/help/obs/{chapter_num}/{frame_num}'
-                obs_sn_rc = self.add_rc(obs_sn_rc_link, title=frame_title)
-                # HANDLE RC LINKS FOR OBS FRAMES
-                obs_rc_link = f'rc://{self.lang_code}/obs/bible/obs/{chapter_num}/{frame_num}'
-                self.add_rc(obs_rc_link, title=frame_title, article_id=obs_sn_rc.article_id)
+
                 obs_sn_html += f'<div id="{obs_sn_rc.article_id}" class="frame">\n'
                 obs_sn_html += f'<h3>{chapter_num}:{frame_num}</h3>\n'
-                notes_html = ''
                 frame_notes_file = os.path.join(self.resources['obs-sn'].repo_dir, 'content', chapter_num,
                                                 f'{frame_num}.md')
+
                 if os.path.isfile(frame_notes_file):
                     notes_html = markdown2.markdown_path(frame_notes_file)
                     notes_html = self.increase_headers(notes_html, 3)
-                if obs_text and notes_html:
-                    phrases = self.get_phrases_to_highlight(notes_html, 'h4')
-                    obs_text = self.highlight_text_with_phrases(obs_text, phrases, frame_title)
-                if not notes_html:
+                else:
                     no_study_notes = self.translate('no_study_notes_for_this_frame')
                     notes_html = f'<div class="no-notes-message">({no_study_notes})</div>'
-                obs_sn_rc.set_article(notes_html)
+
+                # HANDLE RC LINKS FOR OBS SN FRAMES
+                obs_sn_rc_link = f'rc://{self.lang_code}/obs-sn/help/obs/{chapter_num}/{frame_num}'
+                obs_sn_rc = self.add_rc(obs_sn_rc_link, title=frame_title, article=notes_html)
+                # HANDLE RC LINKS FOR OBS FRAMES
+                obs_rc_link = f'rc://{self.lang_code}/obs/bible/obs/{chapter_num}/{frame_num}'
+                self.add_rc(obs_rc_link, title=frame_title, article_id=obs_sn_rc.article_id)
+
+                if obs_text and notes_html:
+                    phrases = self.get_phrases_to_highlight(notes_html, 'h4')
+                    if phrases:
+                        obs_text = self.highlight_text_with_phrases(obs_text, phrases, obs_sn_rc)
+
                 obs_sn_html += f'''
     <div id="{obs_sn_rc.article_id}-text" class="frame-text">
         {obs_text}

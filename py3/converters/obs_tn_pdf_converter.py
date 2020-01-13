@@ -18,26 +18,26 @@ from bs4 import BeautifulSoup
 from .pdf_converter import PdfConverter, run_converter
 from ..general_tools.file_utils import write_file, load_json_object
 
+# Enter ignores in lowercase
 TN_TITLES_TO_IGNORE = {
-    'en': ['A Bible story from',
-           'Connecting Statement',
-           'Connecting Statement:',
-           'General Information',
-           'General Note'
+    'en': ['a bible story from',
+           'connecting statement',
+           'connecting statement:',
+           'general information',
+           'general note'
            ],
-    'fr': ['Information générale',
-           'Termes Importants',
-           'Une histoire biblique tirée de',
-           'Une histoire de la Bible tirée de',
-           'Une histoire de la Bible à partir',
-           'Une histoire de la Bible à partir de',
-           'Mots de Traduction',
-           'Nota geral',
-           'Déclaration de connexion',
-           'Cette histoire biblique est tirée',
-           'Une histoire biblique tirée de:',
-           'Informations générales',
-           'Information Générale'
+    'fr': ['information générale',
+           'termes importants',
+           'une histoire biblique tirée de',
+           'une histoire de la bible tirée de',
+           'une histoire de la bible à partir',
+           'une histoire de la bible à partir de',
+           'mots de traduction',
+           'nota geral',
+           'déclaration de connexion',
+           'cette histoire biblique est tirée',
+           'une histoire biblique tirée de:',
+           'informations générales'
            ]
 }
 
@@ -47,6 +47,7 @@ class ObsTnPdfConverter(PdfConverter):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._tw_cat = None
+        self.bad_notes = {}
 
     @property
     def tw_cat(self):
@@ -126,17 +127,27 @@ class ObsTnPdfConverter(PdfConverter):
                     frame_title = f'{chapter_num}:{frame_num}'
                     notes_file = os.path.join(obs_tn_chapter_dir, f'{frame_num}.md')
                     notes_html = ''
+
                     if os.path.isfile(notes_file):
                         notes_html = markdown2.markdown_path(notes_file)
                         notes_html = self.increase_headers(notes_html, 3)
                     if not frame_html and not notes_html:
                         continue
+
+                    # HANDLE RC LINKS FOR OBS FRAME
+                    frame_rc_link = f'rc://{self.lang_code}/obs/book/obs/{chapter_num}/{frame_num}'
+                    frame_rc = self.add_rc(frame_rc_link, title=frame_title)
+                    # HANDLE RC LINKS FOR NOTES
+                    notes_rc_link = f'rc://{self.lang_code}/obs-tn/help/{chapter_num}/{frame_num}'
+                    notes_rc = self.add_rc(notes_rc_link, title=frame_title, article=notes_html)
+
                     if frame_html:
                         frame_html = re.sub(r'[\n\s]+', ' ', frame_html, flags=re.MULTILINE)
                         if notes_html:
                             phrases = self.get_phrases_to_highlight(notes_html, 'h4')
-                            frame_html = self.highlight_text_with_phrases(frame_html, phrases, frame_title,
-                                                                          TN_TITLES_TO_IGNORE[self.lang_code])
+                            if phrases:
+                                frame_html = self.highlight_text_with_phrases(frame_html, phrases, notes_rc,
+                                                                              TN_TITLES_TO_IGNORE[self.lang_code])
                     # Some OBS TN languages (e.g. French) do not have Translation Words in their TN article.
                     # We need to add them ourselves from the tw_cat file
                     if notes_html and '/tw/' not in notes_html and chapter_num in self.tw_cat and \
@@ -145,25 +156,19 @@ class ObsTnPdfConverter(PdfConverter):
            <h3>{self.resources['tw'].simple_title}</h3>
            <ul>
 '''
-                        for rc in self.tw_cat[chapter_num][frame_num]:
+                        for rc_link in self.tw_cat[chapter_num][frame_num]:
                             notes_html += f'''
-                <li>[[{rc}]]</li>
+                <li>[[{rc_link}]]</li>
 '''
                         notes_html += '''
             </ul>
 '''
-                    # HANDLE RC LINKS FOR OBS FRAME
-                    frame_rc_link = f'rc://{self.lang_code}/obs/book/obs/{chapter_num}/{frame_num}'
-                    frame_rc = self.add_rc(frame_rc_link, title=frame_title)
                     if frame_html:
                         frame_html = f'''
             <div id="{frame_rc.article_id}" class="frame-text">
                 {frame_html}
             </div>
 '''
-                    # HANDLE RC LINKS FOR NOTES
-                    notes_rc_link = f'rc://{self.lang_code}/obs-tn/help/{chapter_num}/{frame_num}'
-                    notes_rc = self.add_rc(notes_rc_link, title=frame_title, article=notes_html)
                     if notes_html:
                         notes_html = f'''
             <div id="{notes_rc.article_id}-notes" class="frame-notes">
@@ -186,60 +191,6 @@ class ObsTnPdfConverter(PdfConverter):
 </section>
 '''
         return obs_tn_html
-
-    def save_bad_notes(self):
-        bad_notes = f'''
-<!DOCTYPE html>
-<html lang="{self.lang_code}">
-    <head data-suburl="">
-        <title>NON-MATCHING NOTES</title>
-        <meta charset="utf-8">
-    </head>
-    <body>
-        <p>NON-MATCHING NOTES (i.e. not found in the frame text as written):</p>
-        <ul>
-'''
-        for cf in sorted(self.bad_links.keys()):
-            bad_notes += f'''
-<li>
-    <a href="{self.html_file}#obs-tn-{cf}" title="See in the OBS tN Docs (HTML)" target="obs-tn-html">{cf}</a>
-    <a href="https://git.door43.org/{self.main_resource.owner}/{self.lang_code}_obs-tn/src/branch/master/content/{cf.split('-')[0]}/{cf.split('-')[1]}.md" style="text-decoration:none" target="obs-tn-git">
-        <img src="http://www.myiconfinder.com/uploads/iconsets/16-16-65222a067a7152473c9cc51c05b85695-note.png" title="See OBS UTN note on DCS">
-    </a>
-    <a href="https://git.door43.org/{self.resources['obs'].owner}/{self.lang_code}_obs/src/branch/master/content/{cf.split('-')[0]}.md" style="text-decoration:none" target="obs-git">
-        <img src="https://cdn3.iconfinder.com/data/icons/linecons-free-vector-icons-pack/32/photo-16.png" title="See OBS story on DCS">
-    </a>:
-    <br/>
-    <i>{self.bad_links[cf]['text']}</i>
-    <br/>
-    <ul>
-'''
-            for note in self.bad_links[cf]['notes']:
-                for key in note.keys():
-                    if note[key]:
-                        bad_notes += f'''
-        <li>
-            <b><i>{key}</i></b>
-            <br/>{note[key]} (QUOTE ISSUE)
-        </li>
-'''
-                    else:
-                        bad_notes += f'''
-        <li>
-            <b><i>{key}</i></b>
-        </li>
-'''
-            bad_notes += '''
-    </ul>
-</li>'''
-        bad_notes += '''
-        </ul>
-    </body>
-</html>
-'''
-        save_file = os.path.join(self.output_dir, f'{self.file_id}_bad_notes.html')
-        write_file(save_file, bad_notes)
-        self.logger.info(f'BAD NOTES file can be found at {save_file}')
 
     def fix_links(self, html):
         # Changes references to chapter/frame in links

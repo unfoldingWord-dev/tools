@@ -23,6 +23,7 @@ import sys
 import argparse
 import jsonpickle
 import yaml
+from collections import OrderedDict
 from typing import List, Type
 from bs4 import BeautifulSoup
 from abc import abstractmethod
@@ -55,13 +56,17 @@ class PdfConverter:
         self.regenerate = regenerate
         self.logger = logger
 
+        self.save_dir = None
+        self.log_dir = None
+        self.images_dir = None
+        self.docs_dir = None
+
         self.bad_links = {}
+        self.bad_highlights = {}
         self.rcs = {}
         self.appendix_rcs = {}
         self.all_rcs = {}
 
-        self.images_dir = None
-        self.save_dir = None
         self.html_file = None
         self.pdf_file = None
         self.generation_info = {}
@@ -99,9 +104,13 @@ class PdfConverter:
         return self.main_resource.version
 
     @property
-    def file_id(self):
+    def file_commit_id(self):
+        return f'{self.file_base_id}_{self.main_resource.commit}'
+
+    @property
+    def file_base_id(self):
         project_id_str = f'_{self.project_id}' if self.project_id else ''
-        return f'{self.lang_code}_{self.name}{project_id_str}_{self.main_resource.tag}_{self.main_resource.commit}'
+        return f'{self.lang_code}_{self.name}{project_id_str}_{self.main_resource.tag}'
 
     @property
     def project(self):
@@ -164,12 +173,22 @@ class PdfConverter:
             if bad_rc_link not in self.bad_links[source_rc.rc_link] or fix:
                 self.bad_links[source_rc.rc_link][bad_rc_link] = fix
 
+    def add_bad_highlight(self, rc, text, bad_highlights):
+        if rc:
+            if rc.rc_link not in self.bad_highlights:
+                self.bad_highlights[rc.rc_link] = {
+                    'rc': rc,
+                    'text': text,
+                    'bad_highlights': []
+                }
+            self.bad_highlights[rc.rc_link]['bad_highlights'].append(bad_highlights)
+
     def run(self):
         self.setup_dirs()
         self.setup_resources()
 
-        self.html_file = os.path.join(self.output_dir, f'{self.file_id}.html')
-        self.pdf_file = os.path.join(self.output_dir, f'{self.file_id}.pdf')
+        self.html_file = os.path.join(self.docs_dir, f'{self.file_commit_id}.html')
+        self.pdf_file = os.path.join(self.docs_dir, f'{self.file_commit_id}.pdf')
 
         self.setup_logging_to_file()
         self.determine_if_regeneration_needed()
@@ -193,6 +212,10 @@ class PdfConverter:
                 self.output_dir = self.working_dir
                 self.remove_working_dir = False
 
+        self.docs_dir = os.path.join(self.output_dir, 'docs')
+        if not os.path.isdir(self.docs_dir):
+            os.makedirs(self.docs_dir)
+
         self.images_dir = os.path.join(self.output_dir, 'images')
         if not os.path.isdir(self.images_dir):
             os.makedirs(self.images_dir)
@@ -201,19 +224,30 @@ class PdfConverter:
         if not os.path.isdir(self.save_dir):
             os.makedirs(self.save_dir)
 
+        self.log_dir = os.path.join(self.output_dir, 'log')
+        if not os.path.isdir(self.log_dir):
+            os.makedirs(self.log_dir)
+
         css_path = os.path.join(self.converters_dir, 'templates/css')
         subprocess.call(f'ln -sf "{css_path}" "{self.output_dir}"', shell=True)
 
     def setup_logging_to_file(self):
         LOGGER.setLevel('INFO')  # Set to 'INFO' for debugging
-        logger_handler = logging.FileHandler(os.path.join(self.output_dir, f'{self.file_id}_logger.log'))
+        log_file = os.path.join(self.log_dir, f'{self.file_commit_id}_logger.log')
+        logger_handler = logging.FileHandler(log_file)
+        link_file_path = os.path.join(self.log_dir, f'{self.file_base_id}_logger.log')
+        subprocess.call(f'ln -sf "{log_file}" "{link_file_path}"', shell=True)
+
         self.logger.addHandler(logger_handler)
-        logger_handler = logging.FileHandler(os.path.join(self.output_dir, f'{self.file_id}_weasyprint.log'))
+        log_file = os.path.join(self.log_dir, f'{self.file_commit_id}_weasyprint.log')
+        logger_handler = logging.FileHandler(log_file)
         LOGGER.addHandler(logger_handler)
+        link_file_path = os.path.join(self.log_dir, f'{self.file_base_id}_weasyprint.log')
+        subprocess.call(f'ln -sf "{log_file}" "{link_file_path}"', shell=True)
 
     def generate_html(self):
         if self.regenerate or not os.path.exists(self.html_file):
-            self.logger.info(f'Creating HTML file for {self.file_id}...')
+            self.logger.info(f'Creating HTML file for {self.file_commit_id}...')
 
             self.logger.info('Generating cover page HTML...')
             cover_html = self.get_cover_html()
@@ -251,12 +285,12 @@ class PdfConverter:
             html = html_template.safe_substitute(title=title, link=link, body=body)
             write_file(self.html_file, html)
 
-            link_file_name = '_'.join(self.file_id.split('_')[0:-1]) + '.html'
-            link_file_path = os.path.join(self.output_dir, link_file_name)
+            link_file_path = os.path.join(self.output_dir, f'{self.file_base_id}.html')
             subprocess.call(f'ln -sf "{self.html_file}" "{link_file_path}"', shell=True)
 
             self.save_resource_data()
             self.save_bad_links_html()
+            self.save_bad_highlights_html()
             self.logger.info('Generated HTML file.')
         else:
             self.logger.info(f'HTML file {self.html_file} is already there. Not generating. Use -r to force regeneration.')
@@ -268,8 +302,8 @@ class PdfConverter:
             weasy.write_pdf(self.pdf_file)
             self.logger.info('Generated PDF file.')
             self.logger.info(f'PDF file located at {self.pdf_file}')
-            link_file_name = '_'.join(self.file_id.split('_')[0:-1]) + '.pdf'
-            link_file_path = os.path.join(self.output_dir, link_file_name)
+
+            link_file_path = os.path.join(self.output_dir, f'{self.file_base_id}.pdf')
             subprocess.call(f'ln -sf "{self.pdf_file}" "{link_file_path}"', shell=True)
         else:
             self.logger.info(
@@ -295,10 +329,70 @@ class PdfConverter:
 
         with open(os.path.join(self.converters_dir, 'templates/template.html')) as template_file:
             html_template = string.Template(template_file.read())
-        html = html_template.safe_substitute(title=f'BAD LINKS FOR {self.file_id}', link='', body=bad_links_html)
-        bad_links_file = os.path.join(self.output_dir, f'{self.file_id}_bad_links.html')
-        write_file(bad_links_file, html)
-        self.logger.info(f'BAD LINKS HTML file can be found at {bad_links_file}')
+        html = html_template.safe_substitute(title=f'BAD LINKS FOR {self.file_commit_id}', link='', body=bad_links_html)
+        save_file = os.path.join(self.docs_dir, f'{self.file_commit_id}_bad_links.html')
+        write_file(save_file, html)
+
+        link_file_path = os.path.join(self.output_dir, f'{self.file_base_id}_bad_links.html')
+        subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
+
+        self.logger.info(f'BAD LINKS HTML file can be found at {save_file}')
+
+    def save_bad_highlights_html(self):
+        if not self.bad_highlights:
+            bad_highlights_html = 'NO BAD HIGHLIGHTS!'
+        else:
+            bad_highlights_html = f'''
+<!DOCTYPE html>
+<html lang="{self.lang_code}">
+    <head data-suburl="">
+        <title>NON-MATCHING NOTES</title>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <p>NON-MATCHING NOTES (i.e. not found in the frame text as written):</p>
+        <ul>
+'''
+            for rc_link in sorted(self.bad_highlights.keys()):
+                rc = self.bad_highlights[rc_link]['rc']
+                bad_highlights_html += f'''
+<li>
+    <a href="{self.html_file}#{rc.article_id}" title="See in the HTML" target="obs-tn-html">{rc.rc_link}</a>:
+    <br/>
+    <i>{self.bad_highlights[rc_link]['text']}</i>
+    <br/>
+    <ul>
+'''
+                for bad_highlights in self.bad_highlights[rc_link]['bad_highlights']:
+                    for key in bad_highlights.keys():
+                        if bad_highlights[key]:
+                            bad_highlights_html += f'''
+        <li>
+            <b><i>{key}</i></b>
+            <br/>{bad_highlights[key]} (QUOTE ISSUE)
+        </li>
+'''
+                        else:
+                            bad_highlights_html += f'''
+        <li>
+            <b><i>{key}</i></b>
+        </li>
+'''
+                bad_highlights_html += '''
+    </ul>
+</li>'''
+            bad_highlights_html += '''
+        </ul>
+    </body>
+</html>
+'''
+        save_file = os.path.join(self.docs_dir, f'{self.file_commit_id}_bad_highlights.html')
+        write_file(save_file, bad_highlights_html)
+
+        link_file_path = os.path.join(self.output_dir, f'{self.file_base_id}_bad_highlights.html')
+        subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
+
+        self.logger.info(f'BAD HIGHLIGHTS file can be found at {save_file}')
 
     def setup_resource(self, resource):
         resource.clone(self.working_dir)
@@ -316,7 +410,7 @@ class PdfConverter:
         # check if any commit hashes have changed
         old_info = self.get_previous_generation_info()
         if not old_info:
-            self.logger.info(f'Looks like this is a new commit of {self.file_id}. Generating PDF.')
+            self.logger.info(f'Looks like this is a new commit of {self.file_commit_id}. Generating PDF.')
             self.regenerate = True
         else:
             for resource in self.generation_info:
@@ -334,17 +428,33 @@ class PdfConverter:
     def save_resource_data(self):
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
-        save_file = os.path.join(self.save_dir, f'{self.file_id}_rcs.json')
+        save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_rcs.json')
         write_file(save_file, jsonpickle.dumps(self.rcs))
-        save_file = os.path.join(self.save_dir, f'{self.file_id}_appendix_rcs.json')
+        link_file_path = os.path.join(self.save_dir, f'{self.file_base_id}_rcs.json')
+        subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
+
+        save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_appendix_rcs.json')
         write_file(save_file, jsonpickle.dumps(self.appendix_rcs))
-        save_file = os.path.join(self.save_dir, f'{self.file_id}_bad_links.json')
-        write_file(save_file, self.bad_links)
-        save_file = os.path.join(self.save_dir, f'{self.file_id}_generation_info.json')
-        write_file(save_file, self.generation_info)
+        link_file_path = os.path.join(self.save_dir, f'{self.file_base_id}_appendix_rcs.json')
+        subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
+
+        save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_bad_links.json')
+        write_file(save_file, jsonpickle.dumps(self.bad_links))
+        link_file_path = os.path.join(self.save_dir, f'{self.file_base_id}_bad_links.json')
+        subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
+
+        save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_bad_highlights.json')
+        write_file(save_file, jsonpickle.dumps(self.bad_highlights))
+        link_file_path = os.path.join(self.save_dir, f'{self.file_base_id}_bad_highlights.json')
+        subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
+
+        save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_generation_info.json')
+        write_file(save_file, jsonpickle.dumps(self.generation_info))
+        link_file_path = os.path.join(self.save_dir, f'{self.file_base_id}_generation_info.json')
+        subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
 
     def get_previous_generation_info(self):
-        save_file = os.path.join(self.save_dir, f'{self.file_id}_generation_info.json')
+        save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_generation_info.json')
         if os.path.isfile(save_file):
             return load_json_object(save_file)
         else:
@@ -548,14 +658,9 @@ class PdfConverter:
             new_highlighted_text = self.highlight_text(highlighted_text, phrase)
             if new_highlighted_text != highlighted_text:
                 highlighted_text = new_highlighted_text
-            elif not ignore or phrase not in ignore:
-                if rc not in self.bad_links:
-                    self.bad_links[rc] = {
-                        'text': orig_text,
-                        'notes': []
-                    }
+            elif not ignore or phrase.lower() not in ignore:
                 # This is just to determine the fix for any terms that differ in curly/straight quotes
-                bad_note = {phrase: None}
+                bad_highlights = OrderedDict({phrase: None})
                 alt_phrase = [
                     # All curly quotes made straight
                     phrase.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
@@ -575,9 +680,9 @@ class PdfConverter:
                     phrase.replace('‘', "'")]
                 for alt_phrase in alt_phrase:
                     if orig_text != self.highlight_text(orig_text, alt_phrase):
-                        bad_note[phrase] = alt_phrase
+                        bad_highlights[phrase] = alt_phrase
                         break
-                self.bad_links[rc]['notes'].append(bad_note)
+                self.add_bad_highlight(rc, orig_text, bad_highlights)
         return highlighted_text
 
     @staticmethod
