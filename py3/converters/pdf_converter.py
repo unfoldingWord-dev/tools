@@ -351,7 +351,8 @@ class PdfConverter:
             return
 
         bad_highlights_html = f'''
-<h1>NON-MATCHING NOTES (i.e. not found in the frame text as written):</h1>
+<h1>BAD HIGHLIGHTS:</h1>
+<h2>(i.e. phrases not found in text as written)</h2>
 <ul>
 '''
         for rc_link in sorted(self.bad_highlights.keys()):
