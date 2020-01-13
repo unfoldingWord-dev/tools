@@ -60,7 +60,7 @@ class PdfConverter:
         self.save_dir = None
         self.log_dir = None
         self.images_dir = None
-        self.docs_dir = None
+        self.output_res_dir = None
 
         self.bad_links = {}
         self.bad_highlights = {}
@@ -188,8 +188,8 @@ class PdfConverter:
         self.setup_dirs()
         self.setup_resources()
 
-        self.html_file = os.path.join(self.docs_dir, f'{self.file_commit_id}.html')
-        self.pdf_file = os.path.join(self.docs_dir, f'{self.file_commit_id}.pdf')
+        self.html_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}.html')
+        self.pdf_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}.pdf')
 
         self.setup_logging_to_file()
         self.determine_if_regeneration_needed()
@@ -213,28 +213,24 @@ class PdfConverter:
                 self.output_dir = self.working_dir
                 self.remove_working_dir = False
 
-        self.output_resource_dir = os.path.join(self.output_dir, self.main_resource.resource_name)
-        if not os.path.isdir(self.output_resource_dir):
-            os.makedirs(self.output_resource_dir)
+        self.output_res_dir = os.path.join(self.output_dir, self.main_resource.resource_name)
+        if not os.path.isdir(self.output_res_dir):
+            os.makedirs(self.output_res_dir)
 
-        self.docs_dir = os.path.join(self.output_resource_dir, 'docs')
-        if not os.path.isdir(self.docs_dir):
-            os.makedirs(self.docs_dir)
-
-        self.images_dir = os.path.join(self.docs_dir, 'images')
+        self.images_dir = os.path.join(self.output_res_dir, 'images')
         if not os.path.isdir(self.images_dir):
             os.makedirs(self.images_dir)
 
-        self.save_dir = os.path.join(self.output_resource_dir, 'save')
+        self.save_dir = os.path.join(self.output_res_dir, 'save')
         if not os.path.isdir(self.save_dir):
             os.makedirs(self.save_dir)
 
-        self.log_dir = os.path.join(self.output_resource_dir, 'log')
+        self.log_dir = os.path.join(self.output_res_dir, 'log')
         if not os.path.isdir(self.log_dir):
             os.makedirs(self.log_dir)
 
         css_path = os.path.join(self.converters_dir, 'templates/css')
-        subprocess.call(f'ln -sf "{css_path}" "{self.docs_dir}"', shell=True)
+        subprocess.call(f'ln -sf "{css_path}" "{self.output_res_dir}"', shell=True)
 
         index_path = os.path.join(self.converters_dir, 'index.php')
         subprocess.call(f'ln -sf "{index_path}" "{self.output_dir}"', shell=True)
@@ -293,7 +289,7 @@ class PdfConverter:
             html = html_template.safe_substitute(title=title, link=link, body=body)
             write_file(self.html_file, html)
 
-            link_file_path = os.path.join(self.output_dir, f'{self.file_base_id}.html')
+            link_file_path = os.path.join(self.output_res_dir, f'{self.file_base_id}.html')
             subprocess.call(f'ln -sf "{self.html_file}" "{link_file_path}"', shell=True)
 
             self.save_resource_data()
@@ -306,12 +302,12 @@ class PdfConverter:
     def generate_pdf(self):
         if self.regenerate or not os.path.exists(self.pdf_file):
             self.logger.info(f'Generating PDF file {self.pdf_file}...')
-            weasy = HTML(filename=self.html_file, base_url=f'file://{self.docs_dir}/')
+            weasy = HTML(filename=self.html_file, base_url=f'file://{self.output_res_dir}/')
             weasy.write_pdf(self.pdf_file)
             self.logger.info('Generated PDF file.')
             self.logger.info(f'PDF file located at {self.pdf_file}')
 
-            link_file_path = os.path.join(self.output_dir, f'{self.file_base_id}.pdf')
+            link_file_path = os.path.join(self.output_res_dir, f'{self.file_base_id}.pdf')
             subprocess.call(f'ln -sf "{self.pdf_file}" "{link_file_path}"', shell=True)
         else:
             self.logger.info(
@@ -341,7 +337,7 @@ class PdfConverter:
         with open(os.path.join(self.converters_dir, 'templates/template.html')) as template_file:
             html_template = string.Template(template_file.read())
         html = html_template.safe_substitute(title=f'BAD LINKS FOR {self.file_commit_id}', link='', body=bad_links_html)
-        save_file = os.path.join(self.docs_dir, f'{self.file_commit_id}_bad_links.html')
+        save_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}_bad_links.html')
         write_file(save_file, html)
         subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
 
@@ -395,7 +391,7 @@ class PdfConverter:
         html = html_template.safe_substitute(title=f'BAD HIGHLIGHTS FOR {self.file_commit_id}', link='',
                                              body=bad_highlights_html)
 
-        save_file = os.path.join(self.docs_dir, f'{self.file_commit_id}_bad_highlights.html')
+        save_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}_bad_highlights.html')
         write_file(save_file, html)
         subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
 
