@@ -318,86 +318,85 @@ class PdfConverter:
                 f'PDF file {self.pdf_file} is already there. Not generating. Use -r to force regeneration.')
 
     def save_bad_links_html(self):
+        link_file_path = os.path.join(self.output_dir, f'{self.file_base_id}_bad_links.html')
+
         if not self.bad_links:
-            bad_links_html = 'NO BAD LINKS!'
-        else:
-            bad_links_html = '''
+            self.logger.info('No bad links for this version!')
+            subprocess.call(f'rm -f "{link_file_path}"', shell=True)
+            return
+
+        bad_links_html = '''
 <h1>BAD LINKS</h1>
 <ul>
 '''
-            for source_rc_links in sorted(self.bad_links.keys()):
-                for rc_links in sorted(self.bad_links[source_rc_links].keys()):
-                    line = f'<li>{source_rc_links}: BAD RC - `{rc_links}`'
-                    if self.bad_links[source_rc_links][rc_links]:
-                        line += f' - change to `{self.bad_links[source_rc_links][rc_links]}`'
-                    bad_links_html += f'{line}</li>\n'
-            bad_links_html += '''
+        for source_rc_links in sorted(self.bad_links.keys()):
+            for rc_links in sorted(self.bad_links[source_rc_links].keys()):
+                line = f'<li>{source_rc_links}: BAD RC - `{rc_links}`'
+                if self.bad_links[source_rc_links][rc_links]:
+                    line += f' - change to `{self.bad_links[source_rc_links][rc_links]}`'
+                bad_links_html += f'{line}</li>\n'
+        bad_links_html += '''
 </ul>
 '''
-
         with open(os.path.join(self.converters_dir, 'templates/template.html')) as template_file:
             html_template = string.Template(template_file.read())
         html = html_template.safe_substitute(title=f'BAD LINKS FOR {self.file_commit_id}', link='', body=bad_links_html)
         save_file = os.path.join(self.docs_dir, f'{self.file_commit_id}_bad_links.html')
         write_file(save_file, html)
-
-        link_file_path = os.path.join(self.output_dir, f'{self.file_base_id}_bad_links.html')
         subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
 
         self.logger.info(f'BAD LINKS HTML file can be found at {save_file}')
 
     def save_bad_highlights_html(self):
+        link_file_path = os.path.join(self.output_dir, f'{self.file_base_id}_bad_highlights.html')
+
         if not self.bad_highlights:
-            bad_highlights_html = 'NO BAD HIGHLIGHTS!'
-        else:
-            bad_highlights_html = f'''
-<!DOCTYPE html>
-<html lang="{self.lang_code}">
-    <head data-suburl="">
-        <title>NON-MATCHING NOTES</title>
-        <meta charset="utf-8">
-    </head>
-    <body>
-        <p>NON-MATCHING NOTES (i.e. not found in the frame text as written):</p>
+            self.logger.info('No bad highlights for this version!')
+            subprocess.call(f'rm -f "{link_file_path}"', shell=True)
+            return
+
+        bad_highlights_html = f'''
+<h1>NON-MATCHING NOTES (i.e. not found in the frame text as written):</h1>
+<ul>
+'''
+        for rc_link in sorted(self.bad_highlights.keys()):
+            rc = self.bad_highlights[rc_link]['rc']
+            bad_highlights_html += f'''
+    <li>
+        <a href="{self.html_file}#{rc.article_id}" title="See in the HTML" target="obs-tn-html">{rc.rc_link}</a>:
+        <br/>
+        <i>{self.bad_highlights[rc_link]['text']}</i>
+        <br/>
         <ul>
 '''
-            for rc_link in sorted(self.bad_highlights.keys()):
-                rc = self.bad_highlights[rc_link]['rc']
-                bad_highlights_html += f'''
-<li>
-    <a href="{self.html_file}#{rc.article_id}" title="See in the HTML" target="obs-tn-html">{rc.rc_link}</a>:
-    <br/>
-    <i>{self.bad_highlights[rc_link]['text']}</i>
-    <br/>
-    <ul>
+            for bad_highlights in self.bad_highlights[rc_link]['bad_highlights']:
+                for key in bad_highlights.keys():
+                    if bad_highlights[key]:
+                        bad_highlights_html += f'''
+            <li>
+                <b><i>{key}</i></b>
+                <br/>{bad_highlights[key]} (QUOTE ISSUE)
+            </li>
 '''
-                for bad_highlights in self.bad_highlights[rc_link]['bad_highlights']:
-                    for key in bad_highlights.keys():
-                        if bad_highlights[key]:
-                            bad_highlights_html += f'''
-        <li>
-            <b><i>{key}</i></b>
-            <br/>{bad_highlights[key]} (QUOTE ISSUE)
-        </li>
+                    else:
+                        bad_highlights_html += f'''
+            <li>
+                <b><i>{key}</i></b>
+            </li>
 '''
-                        else:
-                            bad_highlights_html += f'''
-        <li>
-            <b><i>{key}</i></b>
-        </li>
-'''
-                bad_highlights_html += '''
-    </ul>
-</li>'''
             bad_highlights_html += '''
         </ul>
-    </body>
-</html>
+    </li>'''
+        bad_highlights_html += '''
+</ul>
 '''
-        save_file = os.path.join(self.docs_dir, f'{self.file_commit_id}_bad_highlights.html')
-        write_file(save_file, bad_highlights_html)
+        with open(os.path.join(self.converters_dir, 'templates/template.html')) as template_file:
+            html_template = string.Template(template_file.read())
+        html = html_template.safe_substitute(title=f'BAD HIGHLIGHTS FOR {self.file_commit_id}', link='',
+                                             body=bad_highlights_html)
 
-        link_file_path = os.path.join(self.output_dir, f'{self.file_base_id}_bad_highlights.html')
+        save_file = os.path.join(self.docs_dir, f'{self.file_commit_id}_bad_highlights.html')
+        write_file(save_file, html)
         subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
 
         self.logger.info(f'BAD HIGHLIGHTS file can be found at {save_file}')
