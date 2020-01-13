@@ -75,8 +75,8 @@ class ObsSnPdfConverter(ObsSnSqPdfConverter):
                         obs_text = self.highlight_text_with_phrases(obs_text, phrases, obs_sn_rc)
 
                 obs_sn_html += f'''
-<div id="{obs_sn_rc.article_id}" class="frame">\n'
-    <h3>{frame_title}</h3>\n'
+<div id="{obs_sn_rc.article_id}" class="frame">
+    <h3>{frame_title}</h3>
     <div id="{obs_sn_rc.article_id}-text" class="frame-text">
         {obs_text}
     </div>
