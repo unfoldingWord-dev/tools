@@ -28,16 +28,18 @@ foreach($dirs as $dir) {
         }
     }
 
-    natsort($files); // sort.
+    if ($files) {
+        natsort($files); // sort.
 
-    echo "<h2>".$dir."</h2>\n";
-    echo "<p>\n";
-    foreach($files as $file) {
-        $filepath = './'.$dir.'/'.$file;
-        $realfile = basename(readlink($filepath));
-        echo '<a href="'.$filepath.'">'.$realfile.'</a> ('.date ("Y-m-d H:i:s", filemtime($filepath)).')<br/>'."\n";
+        echo "<h2>".$dir."</h2>\n";
+        echo "<p>\n";
+        foreach($files as $file) {
+            $filepath = './'.$dir.'/'.$file;
+            $realfile = basename(readlink($filepath));
+            echo '<a href="'.$filepath.'">'.$realfile.'</a> ('.date ("Y-m-d H:i:s", filemtime($filepath)).')<br/>'."\n";
+        }
+        echo "</p>\n";
     }
-    echo "</p>\n";
 }
 ?>
 </body>
