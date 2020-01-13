@@ -114,10 +114,6 @@ class ObsTnPdfConverter(PdfConverter):
         <h2 class="section-header">{chapter_data['title']}</h2>
 '''
                 obs_tn_html += f'<h2 class="section-header">{chapter_data["title"]}</h2>\n'
-                if 'bible_reference' in chapter_data and chapter_data['bible_reference']:
-                    obs_tn_html += f'''
-                        <div class="bible_reference" class="no-break">{chapter_data['bible_reference']}</div>
-                '''
                 frames = [''] + chapter_data['frames']  # first item of '' if there are intro notes from the 00.md file
                 for frame_idx, frame_html in enumerate(frames):
                     frame_num = str(frame_idx).zfill(2)
@@ -144,8 +140,14 @@ class ObsTnPdfConverter(PdfConverter):
                             if phrases:
                                 frame_html = self.highlight_text_with_phrases(frame_html, phrases, notes_rc,
                                                                               TN_TITLES_TO_IGNORE[self.lang_code])
-                    # Some OBS TN languages (e.g. French) do not have Translation Words in their TN article.
-                    # We need to add them ourselves from the tw_cat file
+
+                    if frame_idx == len(frames) - 1:
+                        if 'bible_reference' in chapter_data and chapter_data['bible_reference']:
+                            obs_tn_html += f'''
+                                <div class="bible_reference" class="no-break">{chapter_data['bible_reference']}</div>
+                        '''
+                    # Some OBS TN languages (e.g. English) do not have Translation Words in their TN article
+                    # while some do (e.g. French). We need to add them ourselves from the tw_cat file
                     if notes_html and '/tw/' not in notes_html and chapter_num in self.tw_cat and \
                             frame_num in self.tw_cat[chapter_num] and len(self.tw_cat[chapter_num][frame_num]):
                         notes_html += f'''
@@ -159,6 +161,8 @@ class ObsTnPdfConverter(PdfConverter):
                         notes_html += '''
             </ul>
 '''
+                        notes_rc.set_article(notes_html)
+
                     if frame_html:
                         frame_html = f'''
             <div id="{frame_rc.article_id}" class="frame-text">
@@ -171,6 +175,7 @@ class ObsTnPdfConverter(PdfConverter):
                 {notes_html}
             </div>
 '''
+
                     obs_tn_html += f'''
         <div id="{notes_rc.article_id}">
             <h3>{frame_title}</h3>
