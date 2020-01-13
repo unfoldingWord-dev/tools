@@ -328,7 +328,7 @@ class PdfConverter:
             for rc_links in sorted(self.bad_links[source_rc_links].keys()):
                 line = f'<li>{source_rc_links}: BAD RC - `{rc_links}`'
                 if self.bad_links[source_rc_links][rc_links]:
-                    line += f' - `{self.bad_links[source_rc_links][rc_links]}`'
+                    line += f' - {self.bad_links[source_rc_links][rc_links]}'
                 bad_links_html += f'{line}</li>\n'
         bad_links_html += '''
 </ul>
