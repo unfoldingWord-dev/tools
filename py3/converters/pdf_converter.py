@@ -221,7 +221,7 @@ class PdfConverter:
         if not os.path.isdir(self.docs_dir):
             os.makedirs(self.docs_dir)
 
-        self.images_dir = os.path.join(self.output_resource_dir, 'images')
+        self.images_dir = os.path.join(self.docs_dir, 'images')
         if not os.path.isdir(self.images_dir):
             os.makedirs(self.images_dir)
 
@@ -434,8 +434,6 @@ class PdfConverter:
                     self.regenerate = True
 
     def save_resource_data(self):
-        if not os.path.exists(self.save_dir):
-            os.makedirs(self.save_dir)
         save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_rcs.json')
         write_file(save_file, jsonpickle.dumps(self.rcs))
         link_file_path = os.path.join(self.save_dir, f'{self.file_base_id}_rcs.json')
@@ -456,13 +454,11 @@ class PdfConverter:
         link_file_path = os.path.join(self.save_dir, f'{self.file_base_id}_bad_highlights.json')
         subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
 
-        save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_generation_info.json')
+        save_file = os.path.join(self.save_dir, f'{self.file_base_id}_generation_info.json')
         write_file(save_file, jsonpickle.dumps(self.generation_info))
-        link_file_path = os.path.join(self.save_dir, f'{self.file_base_id}_generation_info.json')
-        subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
 
     def get_previous_generation_info(self):
-        save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_generation_info.json')
+        save_file = os.path.join(self.save_dir, f'{self.file_base_id}_generation_info.json')
         if os.path.isfile(save_file):
             return load_json_object(save_file)
         else:
