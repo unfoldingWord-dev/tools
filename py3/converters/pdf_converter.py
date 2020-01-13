@@ -212,7 +212,7 @@ class PdfConverter:
                 self.output_dir = self.working_dir
                 self.remove_working_dir = False
 
-        self.output_res_dir = os.path.join(self.output_dir, self.main_resource.resource_name)
+        self.output_res_dir = os.path.join(self.output_dir, self.name)
         if not os.path.isdir(self.output_res_dir):
             os.makedirs(self.output_res_dir)
 
