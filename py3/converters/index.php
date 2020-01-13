@@ -38,5 +38,6 @@ foreach($dirs as $dir) {
     }
     echo "</p>\n";
 }
+?>
 </body>
 </html>
