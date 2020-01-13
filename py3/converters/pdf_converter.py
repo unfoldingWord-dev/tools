@@ -56,6 +56,7 @@ class PdfConverter:
         self.regenerate = regenerate
         self.logger = logger
 
+        self.output_resource_dir = None
         self.save_dir = None
         self.log_dir = None
         self.images_dir = None
@@ -212,24 +213,31 @@ class PdfConverter:
                 self.output_dir = self.working_dir
                 self.remove_working_dir = False
 
-        self.docs_dir = os.path.join(self.output_dir, 'docs')
+        self.output_resource_dir = os.path.join(self.output_dir, self.main_resource.resource_name)
+        if not os.path.isdir(self.output_resource_dir):
+            os.makedirs(self.output_resource_dir)
+
+        self.docs_dir = os.path.join(self.output_resource_dir, 'docs')
         if not os.path.isdir(self.docs_dir):
             os.makedirs(self.docs_dir)
 
-        self.images_dir = os.path.join(self.output_dir, 'images')
+        self.images_dir = os.path.join(self.output_resource_dir, 'images')
         if not os.path.isdir(self.images_dir):
             os.makedirs(self.images_dir)
 
-        self.save_dir = os.path.join(self.output_dir, 'save')
+        self.save_dir = os.path.join(self.output_resource_dir, 'save')
         if not os.path.isdir(self.save_dir):
             os.makedirs(self.save_dir)
 
-        self.log_dir = os.path.join(self.output_dir, 'log')
+        self.log_dir = os.path.join(self.output_resource_dir, 'log')
         if not os.path.isdir(self.log_dir):
             os.makedirs(self.log_dir)
 
         css_path = os.path.join(self.converters_dir, 'templates/css')
         subprocess.call(f'ln -sf "{css_path}" "{self.output_dir}"', shell=True)
+
+        index_path = os.path.join(self.converters_dir, 'index.php')
+        subprocess.call(f'ln -sf "{index_path}" "{self.output_dir}"', shell=True)
 
     def setup_logging_to_file(self):
         LOGGER.setLevel('INFO')  # Set to 'INFO' for debugging
