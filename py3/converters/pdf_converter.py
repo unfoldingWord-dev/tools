@@ -56,7 +56,6 @@ class PdfConverter:
         self.regenerate = regenerate
         self.logger = logger
 
-        self.output_resource_dir = None
         self.save_dir = None
         self.log_dir = None
         self.images_dir = None
@@ -314,7 +313,7 @@ class PdfConverter:
                 f'PDF file {self.pdf_file} is already there. Not generating. Use -r to force regeneration.')
 
     def save_bad_links_html(self):
-        link_file_path = os.path.join(self.output_dir, f'{self.file_base_id}_bad_links.html')
+        link_file_path = os.path.join(self.output_res_dir, f'{self.file_base_id}_bad_links.html')
 
         if not self.bad_links:
             self.logger.info('No bad links for this version!')
@@ -344,7 +343,7 @@ class PdfConverter:
         self.logger.info(f'BAD LINKS HTML file can be found at {save_file}')
 
     def save_bad_highlights_html(self):
-        link_file_path = os.path.join(self.output_dir, f'{self.file_base_id}_bad_highlights.html')
+        link_file_path = os.path.join(self.output_res_dir, f'{self.file_base_id}_bad_highlights.html')
 
         if not self.bad_highlights:
             self.logger.info('No bad highlights for this version!')
