@@ -6,6 +6,7 @@
   </head>
 <body>
 <?php
+date_default_timezone_set('US/Eastern');
 $dirs = array();
 $dir = opendir("."); // open the cwd..also do an err check.
 while(false != ($file = readdir($dir))) {
