@@ -13,9 +13,8 @@ This script generates the HTML and PDF OBS SN & SQ documents
 import os
 import re
 import markdown2
-from bs4 import BeautifulSoup
 from .pdf_converter import PdfConverter, run_converter
-from ..general_tools.file_utils import write_file
+from ..general_tools import obs_tools
 
 
 class ObsSnSqPdfConverter(PdfConverter):
@@ -60,7 +59,7 @@ class ObsSnSqPdfConverter(PdfConverter):
             chapter_num = str(chapter_num).zfill(2)
             sn_chapter_dir = os.path.join(self.resources['obs-sn'].repo_dir, 'content', chapter_num)
             sq_chapter_file = os.path.join(self.resources['obs-sq'].repo_dir, 'content', f'{chapter_num}.md')
-            obs_chapter_data = self.get_obs_chapter_data(chapter_num)
+            obs_chapter_data = obs_tools.get_obs_chapter_data(self.resources['obs'].repo_dir, chapter_num)
             chapter_title = obs_chapter_data['title']
             # HANDLE RC LINKS FOR OBS SN CHAPTER
             obs_sn_chapter_rc_link = f'rc://{self.lang_code}/obs-sn/help/obs/{chapter_num}'
@@ -137,29 +136,6 @@ class ObsSnSqPdfConverter(PdfConverter):
 </section>
 '''
         return obs_sn_sq_html
-
-    def get_obs_chapter_data(self, chapter_num):
-        obs_chapter_data = {
-            'title': None,
-            'frames': [],
-            'images': [],
-            'bible_reference': None
-        }
-        obs_chapter_file = os.path.join(self.resources['obs'].repo_dir, 'content',  f'{chapter_num}.md')
-        if os.path.isfile(obs_chapter_file):
-            soup = BeautifulSoup(markdown2.markdown_path(os.path.join(self.resources['obs'].repo_dir,
-                                                                      'content', f'{chapter_num}.md')), 'html.parser')
-            obs_chapter_data['title'] = soup.h1.text
-            paragraphs = soup.find_all('p')
-            for idx, p in enumerate(paragraphs):  # iterate over loop [above sections]
-                if idx % 2 == 1:
-                    obs_chapter_data['frames'].append(p.text)
-                elif p.img:
-                    src = p.img['src'].split('?')[0]
-                    obs_chapter_data['images'].append(src)
-                else:
-                    obs_chapter_data['bible_reference'] = p.text
-        return obs_chapter_data
 
     def fix_links(self, html):
         # Changes references to chapter/frame in links

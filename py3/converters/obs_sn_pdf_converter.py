@@ -14,6 +14,7 @@ import os
 import markdown2
 from .pdf_converter import run_converter
 from .obs_sn_sq_pdf_converter import ObsSnSqPdfConverter
+from ..general_tools import obs_tools
 
 
 class ObsSnPdfConverter(ObsSnSqPdfConverter):
@@ -41,12 +42,16 @@ class ObsSnPdfConverter(ObsSnSqPdfConverter):
 '''
         for chapter in range(1, 51):
             chapter_num = str(chapter).zfill(2)
-            chapter_data = self.get_obs_chapter_data(chapter_num)
+            chapter_data = obs_tools.get_obs_chapter_data(self.resources['obs'].repo_dir, chapter_num)
             # HANDLE RC LINKS FOR OBS SN CHAPTERS
             obs_sn_rc_link = f'rc://{self.lang_code}/obs-sn/help/{chapter_num}'
             obs_sn_rc = self.add_rc(obs_sn_rc_link, title=chapter_data['title'])
             obs_sn_html += f'<article id="{obs_sn_rc.article_id}">\n\n'
             obs_sn_html += f'<h2 class="section-header">{chapter_data["title"]}</h2>\n'
+            if 'bible_reference' in chapter_data and chapter_data['bible_reference']:
+                obs_sn_html += f'''
+                    <div class="bible_reference" class="no-break">{chapter_data['bible_reference']}</div>
+            '''
             for frame_idx, obs_text in enumerate(chapter_data['frames']):
                 frame_num = str(frame_idx+1).zfill(2)
                 frame_title = f'{chapter_num}:{frame_num}'

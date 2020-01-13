@@ -14,9 +14,9 @@ import os
 import re
 import markdown2
 from glob import glob
-from bs4 import BeautifulSoup
 from .pdf_converter import PdfConverter, run_converter
-from ..general_tools.file_utils import write_file, load_json_object
+from ..general_tools.file_utils import load_json_object
+from ..general_tools import obs_tools
 
 # Enter ignores in lowercase
 TN_TITLES_TO_IGNORE = {
@@ -108,26 +108,22 @@ class ObsTnPdfConverter(PdfConverter):
         for obs_tn_chapter_dir in obs_tn_chapter_dirs:
             if os.path.isdir(obs_tn_chapter_dir):
                 chapter_num = os.path.basename(obs_tn_chapter_dir)
-                chapter_id = f'obs-tn-{chapter_num}'
-                soup = BeautifulSoup(
-                    markdown2.markdown_path(os.path.join(self.resources['obs'].repo_dir, 'content',
-                                                         f'{chapter_num}.md')), 'html.parser')
-                chapter_title = soup.h1.text
+                chapter_data = obs_tools.get_obs_chapter_data(self.resources['obs'].repo_dir, chapter_num)
                 obs_tn_html += f'''
-    <article id="{chapter_id}">
-        <h2 class="section-header">{chapter_title}</h2>
+    <article id="en-obs-tn-{chapter_num}">
+        <h2 class="section-header">{chapter_data['title']}</h2>
 '''
-                paragraphs = soup.find_all('p')
-                frames = ['']  # 0 is empty for the intro/title note
-                for paragraph_idx, p in enumerate(paragraphs):  # iterate over loop [above sections]
-                    if paragraph_idx % 2:
-                        frames.append(p.text)
+                obs_tn_html += f'<h2 class="section-header">{chapter_data["title"]}</h2>\n'
+                if 'bible_reference' in chapter_data and chapter_data['bible_reference']:
+                    obs_tn_html += f'''
+                        <div class="bible_reference" class="no-break">{chapter_data['bible_reference']}</div>
+                '''
+                frames = [''] + chapter_data['frames']  # first item of '' if there are intro notes from the 00.md file
                 for frame_idx, frame_html in enumerate(frames):
                     frame_num = str(frame_idx).zfill(2)
                     frame_title = f'{chapter_num}:{frame_num}'
                     notes_file = os.path.join(obs_tn_chapter_dir, f'{frame_num}.md')
                     notes_html = ''
-
                     if os.path.isfile(notes_file):
                         notes_html = markdown2.markdown_path(notes_file)
                         notes_html = self.increase_headers(notes_html, 3)
