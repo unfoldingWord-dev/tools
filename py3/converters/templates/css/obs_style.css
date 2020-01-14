@@ -70,12 +70,13 @@ html, body {
     font-size: 16px;
 }
 
-#contents h1 {
+#contents h1,
+article .section-header {
     font-size: 18px;
     font-weight: bold;
+    text-align: center;
 }
 
 article .section-header {
-    padding-top: 140px;
-    text-align: center;
+    padding-top: 170px;
 }
