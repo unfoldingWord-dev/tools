@@ -331,7 +331,7 @@ class PdfConverter:
 <ul>
 '''
         for source_rc_link in sorted(self.bad_links.keys()):
-            source_rc = self.bad_links[rc_link]['rc']
+            source_rc = self.bad_links[rc_link]['source_rc']
             for rc_link in sorted(self.bad_links[source_rc_link].keys()):
                 line = f'''
     <li>
@@ -372,7 +372,7 @@ class PdfConverter:
 <ul>
 '''
         for source_rc_link in sorted(self.bad_highlights.keys()):
-            source_rc = self.bad_highlights[source_rc_link]['rc']
+            source_rc = self.bad_highlights[source_rc_link]['source_rc']
             bad_highlights_html += f'''
     <li>
         <a href="{os.path.basename(self.html_file)}#{source_rc.article_id}" title="See in the HTML" target="{self.name}-html">
