@@ -54,12 +54,12 @@ html, body {
 }
 
 .cover {
-    padding-top: 140px;
+    padding-top: 100px;
     text-align: center;
 }
 
 .cover img {
-    width: 90%;
+    width: 100%;
 }
 
 #contents > ul > li > a {
