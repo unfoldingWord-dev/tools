@@ -110,7 +110,7 @@ class ObsTnPdfConverter(PdfConverter):
                 chapter_num = os.path.basename(obs_tn_chapter_dir)
                 chapter_data = obs_tools.get_obs_chapter_data(self.resources['obs'].repo_dir, chapter_num)
                 obs_tn_html += f'''
-    <article id="en-obs-tn-{chapter_num}">
+    <article id="{self.lang_code}-obs-tn-{chapter_num}">
         <h2 class="section-header">{chapter_data['title']}</h2>
 '''
                 frames = [''] + chapter_data['frames']  # first item of '' if there are intro notes from the 00.md file
@@ -143,7 +143,7 @@ class ObsTnPdfConverter(PdfConverter):
                     if frame_idx == len(frames) - 1:
                         if 'bible_reference' in chapter_data and chapter_data['bible_reference']:
                             notes_html += f'''
-                                <div class="bible_reference" class="no-break">{chapter_data['bible_reference']}</div>
+                                <div class="bible-reference" class="no-break">{chapter_data['bible_reference']}</div>
                         '''
                     # Some OBS TN languages (e.g. English) do not have Translation Words in their TN article
                     # while some do (e.g. French). We need to add them ourselves from the tw_cat file

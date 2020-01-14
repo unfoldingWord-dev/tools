@@ -47,8 +47,8 @@ class ObsSnPdfConverter(ObsSnSqPdfConverter):
             obs_sn_html += f'<h2 class="section-header">{chapter_data["title"]}</h2>\n'
             if 'bible_reference' in chapter_data and chapter_data['bible_reference']:
                 obs_sn_html += f'''
-                    <div class="bible_reference" class="no-break">{chapter_data['bible_reference']}</div>
-            '''
+                    <div class="bible-reference" class="no-break">{chapter_data['bible_reference']}</div>
+'''
             for frame_idx, obs_text in enumerate(chapter_data['frames']):
                 frame_num = str(frame_idx+1).zfill(2)
                 frame_title = f'{chapter_num}:{frame_num}'

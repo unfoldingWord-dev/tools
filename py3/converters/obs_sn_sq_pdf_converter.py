@@ -66,13 +66,13 @@ class ObsSnSqPdfConverter(PdfConverter):
             obs_sn_chapter_rc = self.add_rc(obs_sn_chapter_rc_link, title=chapter_title)
             obs_sn_sq_html += f'''
     <section id="{obs_sn_chapter_rc.article_id}">
-        <h2 class="section-header reset-headers">{chapter_title}</h2>
+        <h2 class="section-header">{chapter_title}</h2>
         <section id="{obs_sn_chapter_rc.article_id}-notes" class="no-break">
             <h3 class="section-header no-break">{self.translate('study_notes')}</h3>
 '''
             if 'bible_reference' in obs_chapter_data and obs_chapter_data['bible_reference']:
                 obs_sn_sq_html += f'''
-                    <div class="bible_reference" class="no-break">{obs_chapter_data['bible_reference']}</div>
+                    <div class="bible-reference" class="no-break">{obs_chapter_data['bible_reference']}</div>
             '''
             frames = obs_chapter_data['frames']
             for frame_idx, frame in enumerate(frames):

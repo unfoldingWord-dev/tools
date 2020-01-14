@@ -16,6 +16,7 @@ import markdown2
 from glob import glob
 from bs4 import BeautifulSoup
 from .pdf_converter import run_converter
+from ..general_tools import obs_tools
 from .obs_sn_sq_pdf_converter import ObsSnSqPdfConverter
 
 
@@ -53,7 +54,7 @@ class ObsSqPdfConverter(ObsSnSqPdfConverter):
             # HANDLE OBS SQ RC CHAPTER LINKS
             obs_sq_rc_link = f'rc://{self.lang_code}/obs-sq/help/{chapter_num}'
             obs_sq_rc = self.add_rc(obs_sq_rc_link, title=title, article=chapter_html)
-            chapter_data = self.get_obs_chapter_data(chapter_num)
+            chapter_data = obs_tools.get_obs_chapter_data(self.resources['obs'].repo_dir, chapter_num)
             if len(chapter_data['frames']):
                 frames_html = '<div class="obs-frames">\n'
                 for idx, frame in enumerate(chapter_data['frames']):
@@ -74,7 +75,18 @@ class ObsSqPdfConverter(ObsSnSqPdfConverter):
 '''
                 frames_html += '</div>\n'
                 header.insert_after(BeautifulSoup(frames_html, 'html.parser'))
-            article_html = f'<article id="{obs_sq_rc.article_id}">{str(soup)}</article>\n\n'
+                bible_reference_html = f'''
+    <div class="bible-reference">
+        {chapter_data['bible_reference']}
+    </div>
+'''
+                header.insert_after(BeautifulSoup(bible_reference_html, 'html.parser'))
+
+            article_html = f'''
+    <article id="{obs_sq_rc.article_id}">
+        {str(soup)}
+    </article>
+'''
             obs_sq_html += article_html
         return obs_sq_html
 

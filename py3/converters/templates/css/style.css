@@ -43,10 +43,6 @@ h1.section-header {
     string-set: heading-right content();
 }
 
-.heading-right .heading-text {
-
-}
-
 @page {
     size: letter portrait;
     margin: 1.5cm;
@@ -465,4 +461,9 @@ span.highlight.split {
 
 .ta-dependencies {
     padding-top: 1em;
+}
+
+.bible-reference {
+    font-style: italic;
+    padding: 10px 0;
 }

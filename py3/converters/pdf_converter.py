@@ -100,6 +100,10 @@ class PdfConverter:
         return self.main_resource.simple_title
 
     @property
+    def toc_title(self):
+        return f'<h1>{self.translate("table_of_contents")}</h1>'
+
+    @property
     def version(self):
         return self.main_resource.version
 
@@ -487,7 +491,7 @@ class PdfConverter:
     def get_toc_html(self, body_html):
         toc_html = f'''
 <article id="contents">
-    <h1>{self.translate('table_of_contents')}</h1>
+    {self.toc_title}
 '''
         prev_toc_level = 0
         soup = BeautifulSoup(body_html, 'html.parser')
@@ -545,7 +549,7 @@ class PdfConverter:
             version_title_html = f'<h2 id="cover-version">{self.translate("license.version")} {self.version}</h2>'
         cover_html = f'''
 <article id="main-cover" class="cover">
-    <img src="images/{self.main_resource.logo_file}" alt="UTN"/>
+    <img src="images/{self.main_resource.logo_file}" alt="{self.name.upper()}"/>
     <h1 id="cover-title">{self.title}</h1>
     {project_title_html}
     {version_title_html}
@@ -1026,7 +1030,7 @@ class PdfConverter:
         return text
 
 
-def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConverter]):
+def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConverter], logo_url=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-l', '--lang_code', dest='lang_codes', required=False, help='Language Code(s)',
                         action='append')
@@ -1057,7 +1061,10 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
             for resource_name in resource_names:
                 repo_name = f'{lang_code}_{resource_name}'
                 tag = getattr(args, resource_name)
-                resource = Resource(resource_name=resource_name, repo_name=repo_name, tag=tag, owner=owner)
+                logo = None
+                if logo_url and resource_name == resource_names[0]:
+                    logo = logo_url
+                resource = Resource(resource_name=resource_name, repo_name=repo_name, tag=tag, owner=owner, logo_url=logo)
                 resources[resource_name] = resource
             converter = pdf_converter_class(resources=resources, project_id=project_id, working_dir=working_dir,
                                             output_dir=output_dir, lang_code=lang_code, regenerate=regenerate)
