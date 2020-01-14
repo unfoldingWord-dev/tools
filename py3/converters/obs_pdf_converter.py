@@ -36,7 +36,10 @@ class ObsPdfConverter(PdfConverter):
 
     def get_body_html(self):
         self.logger.info('Generating OBS html...')
-        obs_html = ''
+        obs_html = '''
+<article class="blank-page">
+</article>        
+'''
         for chapter_num in range(1, 51):
             chapter_num = str(chapter_num).zfill(2)
             obs_chapter_data = obs_tools.get_obs_chapter_data(self.main_resource.repo_dir, chapter_num)
@@ -93,7 +96,7 @@ class ObsPdfConverter(PdfConverter):
         license_html = f'''
 <article id="license" class="no-footer">
   {front_html}
-<article>
+</article>
 '''
         return license_html
 
@@ -103,7 +106,7 @@ class ObsPdfConverter(PdfConverter):
         back_html = f'''
 <article id="back" class="no-footer">
   {back_html}
-<article>
+</article>
 '''
         return back_html
 
