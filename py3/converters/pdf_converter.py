@@ -287,8 +287,8 @@ class PdfConverter:
                 html_template = string.Template(template_file.read())
             title = f'{self.title} - v{self.version}'
             link = ''
-            personal_styles_file = os.path.join(self.output_dir, f'css/{self.name}_style.css')
-            if os.path.isfile(personal_styles_file):
+            resource_style_file = os.path.join(self.output_res_dir, f'css/{self.name}_style.css')
+            if os.path.isfile(resource_style_file):
                 link = f'<link href="css/{self.name}_style.css" rel="stylesheet">'
             body = '\n'.join([cover_html, license_html, toc_html, body_html])
             html = html_template.safe_substitute(title=title, link=link, body=body)
