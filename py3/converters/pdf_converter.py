@@ -331,7 +331,7 @@ class PdfConverter:
 <ul>
 '''
         for source_rc_link in sorted(self.bad_links.keys()):
-            source_rc = self.bad_links[rc_link]['source_rc']
+            source_rc = self.bad_links[source_rc_link]['source_rc']
             for rc_link in sorted(self.bad_links[source_rc_link].keys()):
                 line = f'''
     <li>
