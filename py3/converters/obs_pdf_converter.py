@@ -13,10 +13,22 @@ This script generates the HTML and PDF for OBS
 import os
 import markdown2
 from .pdf_converter import PdfConverter, run_converter
+from ..general_tools.file_utils import read_file
 from ..general_tools import obs_tools
 
 
 class ObsPdfConverter(PdfConverter):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._title = None
+
+    @property
+    def title(self):
+        if not self._title:
+            front_title_path = os.path.join(self.main_resource.repo_dir, 'content', 'front', 'title.md')
+            self._title = read_file(front_title_path).strip()
+        return self._title
 
     @property
     def toc_title(self):
@@ -30,37 +42,36 @@ class ObsPdfConverter(PdfConverter):
             obs_chapter_data = obs_tools.get_obs_chapter_data(self.main_resource.repo_dir, chapter_num)
             chapter_title = obs_chapter_data['title']
             obs_html += f'''
-<div class="obs-chapter-title-page obs-page">
+<article class="obs-chapter-title-page no-header-footer">
     <h1 id="{self.lang_code}-obs-{chapter_num}" class="section-header">{chapter_title}</h1>
-</div>
+</article>
 '''
             frames = obs_chapter_data['frames']
             for frame_idx in range(0, len(frames), 2):
                 obs_html += '''
-<table class="obs-page">
+<article class="obs-page">
 '''
                 for offset in range(0, 2 if len(frames) > frame_idx + 1 else 1):
                     image = obs_chapter_data['images'][frame_idx + offset]
                     frame_num = str(frame_idx + offset + 1).zfill(2)
                     obs_html += f'''
-    <tr class="obs-frame no-break">
-        <td>
-            <img src="{image}" class="obs-img no-break"/>
-            <div class="obs-text no-break">
-                {frames[frame_idx + offset]}
-            </div>
+    <div class="obs-frame no-break obs-frame-{'odd' if offset == 0 else 'even'}">
+        <img src="{image}" class="obs-img no-break"/>
+        <div class="obs-text no-break">
+            {frames[frame_idx + offset]}
+        </div>
 '''
-                    if frame_idx + 2 >= len(frames):
+                    if frame_idx + offset + 1 == len(frames):
                         obs_html += f'''
-            <div class="bible-reference no-break">{obs_chapter_data['bible_reference']}</div>
+        <div class="bible-reference no-break">{obs_chapter_data['bible_reference']}</div>
 '''
                     obs_html += '''
-        </td>
-    </tr>
+    </div>
 '''
                 obs_html += '''
-</table>
+</article>
 '''
+        obs_html += self.get_back_html()
         return obs_html
 
     def get_contributors_html(self):
@@ -68,40 +79,34 @@ class ObsPdfConverter(PdfConverter):
 
     def get_cover_html(self):
         cover_html = f'''
-<article id="main-cover" class="cover">
-    <img src="images/{self.main_resource.logo_file}" alt="{self.name.upper()}"/>
+<article id="main-cover" class="cover no-header-footer">
+    <img src="css/uw-obs-logo.png" alt="{self.name.upper()}"/>
+</article>
+<article class="blank-page no-footer">
 </article>
 '''
         return cover_html
 
     def get_license_html(self):
-        front_path = os.path.join(self.main_resource.repo_dir, 'contents', 'front.md')
-        front_html = markdown2
+        front_path = os.path.join(self.main_resource.repo_dir, 'content', 'front', 'intro.md')
+        front_html = markdown2.markdown_path(front_path)
         license_html = f'''
-<article id="license">
-    <h1>{self.translate('license.copyrights_and_licensing')}</h1>
+<article id="license" class="no-footer">
+  {front_html}
+<article>
 '''
-        for resource_name, resource in self.resources.items():
-            title = resource.title
-            version = resource.version
-            publisher = resource.publisher
-            issued = resource.issued
-
-            license_html += f'''
-    <div class="resource-info">
-      <div class="resource-title"><strong>{title}</strong></div>
-      <div class="resource-date"><strong>{self.translate('license.date')}:</strong> {issued}</div>
-      <div class="resource-version"><strong>{self.translate('license.version')}:</strong> {version}</div>
-      <div class="resource-publisher"><strong>{self.translate('license.published_by')}:</strong> {publisher}</div>
-    </div>
-'''
-        license_file = os.path.join(self.main_resource.repo_dir, 'LICENSE.md')
-        license_html += markdown2.markdown_path(license_file)
-        license_html += '</article>'
         return license_html
 
+    def get_back_html(self):
+        back_path = os.path.join(self.main_resource.repo_dir, 'content', 'back', 'intro.md')
+        back_html = markdown2.markdown_path(back_path)
+        back_html = f'''
+<article id="back" class="no-footer">
+  {back_html}
+<article>
+'''
+        return back_html
 
 
 if __name__ == '__main__':
-    logo_url = 'https://cdn.door43.org/obs/jpg/uWOBSverticallogo1200w.png'
-    run_converter(['obs'], ObsPdfConverter, logo_url=logo_url)
+    run_converter(['obs'], ObsPdfConverter)

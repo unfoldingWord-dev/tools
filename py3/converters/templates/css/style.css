@@ -1,33 +1,33 @@
 @font-face {
-  font-family: Noto Serif;
+  font-family: Noto Sans;
   font-weight: 400;
-  src: url(fonts/NotoSerif-Regular.ttf);
+  src: url(fonts/NotoSans-Regular.ttf);
 }
 @font-face {
-  font-family: Noto Serif;
+  font-family: Noto Sans;
   font-style: italic;
   font-weight: 400;
-  src: url(fonts/NotoSerif-Italic.ttf);
+  src: url(fonts/NotoSans-Italic.ttf);
 }
 @font-face {
-  font-family: Noto Serif;
+  font-family: Noto Sans;
   font-weight: 300;
-  src: url(fonts/NotoSerif-Light.ttf);
+  src: url(fonts/NotoSans-Light.ttf);
 }
 @font-face {
-  font-family: Noto Serif;
+  font-family: Noto Sans;
   font-style: italic;
   font-weight: 300;
-  src: url(fonts/NotoSerif-LightItalic.ttf);
+  src: url(fonts/NotoSans-LightItalic.ttf);
 }
 @font-face {
-  font-family: Noto Serif;
+  font-family: Noto Sans;
   font-weight: bold;
-  src: url(fonts/NotoSerif-Bold.ttf);
+  src: url(fonts/NotoSans-Bold.ttf);
 }
 
 html, body {
-    font-family: 'Noto Serif', sans-serif;
+    font-family: 'Noto Sans', sans-serif;
     font-size: 12px;
 }
 
@@ -41,6 +41,21 @@ h1.section-header {
 
 .heading-right {
     string-set: heading-right content();
+}
+
+.cover,
+#contents,
+.no-header {
+    page: no-header;
+}
+
+#main-cover,
+.no-header-footer {
+    page: no-header-footer;
+}
+
+.no-footer {
+    page: no-footer;
 }
 
 @page {
@@ -79,16 +94,6 @@ h1.section-header {
     }
 }
 
-.cover,
-#contents,
-.no-header {
-    page: no-header;
-}
-
-#main-cover {
-    page: no-header-footer;
-}
-
 @page no-header-footer {
     @top-left {
         content: '';
@@ -96,6 +101,12 @@ h1.section-header {
     @top-right {
         content: '';
     }
+    @bottom-center {
+        content: '';
+    }
+}
+
+@page no-footer {
     @bottom-center {
         content: '';
     }
@@ -167,6 +178,7 @@ section, article {
     clear: both;
     page-break-before: always;
     break-before: page;
+    overflow: auto;
 }
 
 h1 {
@@ -205,10 +217,12 @@ section > article:nth-of-type(1) + section:nth-of-type(1) {
 }
 
 .cover {
-    page-break-before: always;
     break-before: page;
-    padding-top: 100px;
     text-align: center;
+}
+
+.cover img {
+    padding-top: 100px;
 }
 
 .cover img, .resource-title-page img {
