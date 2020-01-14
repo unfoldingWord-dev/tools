@@ -173,19 +173,21 @@ class PdfConverter:
     def add_bad_link(self, source_rc, bad_rc_link, fix=None):
         if source_rc:
             if source_rc.rc_link not in self.bad_links:
-                self.bad_links[source_rc.rc_link] = {}
+                self.bad_links[source_rc.rc_link] = {
+                    'source_rc': source_rc
+                }
             if bad_rc_link not in self.bad_links[source_rc.rc_link] or fix:
                 self.bad_links[source_rc.rc_link][bad_rc_link] = fix
 
-    def add_bad_highlight(self, rc, text, bad_highlights):
-        if rc:
-            if rc.rc_link not in self.bad_highlights:
-                self.bad_highlights[rc.rc_link] = {
-                    'rc': rc,
+    def add_bad_highlight(self, source_rc, text, bad_highlights):
+        if source_rc:
+            if source_rc.rc_link not in self.bad_highlights:
+                self.bad_highlights[source_rc.rc_link] = {
+                    'source_rc': source_rc,
                     'text': text,
                     'bad_highlights': []
                 }
-            self.bad_highlights[rc.rc_link]['bad_highlights'].append(bad_highlights)
+            self.bad_highlights[source_rc.rc_link]['bad_highlights'].append(bad_highlights)
 
     def run(self):
         self.setup_dirs()
@@ -328,12 +330,22 @@ class PdfConverter:
 <h1>BAD LINKS</h1>
 <ul>
 '''
-        for source_rc_links in sorted(self.bad_links.keys()):
-            for rc_links in sorted(self.bad_links[source_rc_links].keys()):
-                line = f'<li>{source_rc_links}: BAD RC - `{rc_links}`'
-                if self.bad_links[source_rc_links][rc_links]:
-                    line += f' - {self.bad_links[source_rc_links][rc_links]}'
-                bad_links_html += f'{line}</li>\n'
+        for source_rc_link in sorted(self.bad_links.keys()):
+            source_rc = self.bad_links[rc_link]['rc']
+            for rc_link in sorted(self.bad_links[source_rc_link].keys()):
+                line = f'''
+    <li>
+        <a href="{os.path.basename(self.html_file)}#{source_rc.article_id}" title="See in the HTML" target="{self.name}-html">
+            {source_rc_link}
+        </a>: 
+        BAD RC - `{rc_link}`
+'''
+                if self.bad_links[source_rc_link][rc_link]:
+                    line += f' - {self.bad_links[source_rc_link][rc_link]}'
+                bad_links_html += f'''
+        {line}
+    </li>
+'''
         bad_links_html += '''
 </ul>
 '''
@@ -359,17 +371,19 @@ class PdfConverter:
 <h2>(i.e. phrases not found in text as written)</h2>
 <ul>
 '''
-        for rc_link in sorted(self.bad_highlights.keys()):
-            rc = self.bad_highlights[rc_link]['rc']
+        for source_rc_link in sorted(self.bad_highlights.keys()):
+            source_rc = self.bad_highlights[source_rc_link]['rc']
             bad_highlights_html += f'''
     <li>
-        <a href="{self.html_file}#{rc.article_id}" title="See in the HTML" target="obs-tn-html">{rc.rc_link}</a>:
+        <a href="{os.path.basename(self.html_file)}#{source_rc.article_id}" title="See in the HTML" target="{self.name}-html">
+            {source_rc.rc_link}
+        </a>:
         <br/>
-        <i>{self.bad_highlights[rc_link]['text']}</i>
+        <i>{self.bad_highlights[source_rc_link]['text']}</i>
         <br/>
         <ul>
 '''
-            for bad_highlights in self.bad_highlights[rc_link]['bad_highlights']:
+            for bad_highlights in self.bad_highlights[source_rc_link]['bad_highlights']:
                 for key in bad_highlights.keys():
                     if bad_highlights[key]:
                         bad_highlights_html += f'''
