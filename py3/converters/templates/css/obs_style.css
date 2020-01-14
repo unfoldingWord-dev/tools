@@ -49,7 +49,10 @@ html, body {
     display: inline;
 }
 
-.obs-text {
+.obs-text,
+#front,
+#back {
+    line-height: 1.2em;
     text-align: justify;
 }
 
