@@ -53,8 +53,8 @@ html, body {
     text-align: justify;
 }
 
-.cover, article .section-header {
-    padding-top: 170px;
+.cover {
+    padding-top: 140px;
     text-align: center;
 }
 
@@ -73,4 +73,9 @@ html, body {
 #contents h1 {
     font-size: 18px;
     font-weight: bold;
+}
+
+article .section-header {
+    padding-top: 140px;
+    text-align: center;
 }
