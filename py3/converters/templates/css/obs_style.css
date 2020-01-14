@@ -1,0 +1,51 @@
+html, body {
+    font-size: 14px;
+}
+
+@page {
+    size: 5.25in 8in;
+    margin: 28pt 18pt;
+    @top-left {
+        content: '';
+        height: 0;
+        margin: 0;
+        padding: 0;
+    }
+    @top-right {
+        content: '';
+        height: 0;
+        margin: 0;
+        padding: 0;
+    }
+    @bottom-center {
+        content: counter(page);
+    }
+}
+
+.obs-page {
+    page-break-before: always;
+    break-before: page;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    height: 100%;
+}
+
+.obs-frame {
+    height: 50%;
+    vertical-align: top;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+.obs-img {
+    width: 90%;
+    margin: 0;
+    padding: 0;
+    max-width: none;
+    max-height: none;
+    display: inline;
+}
+
+.obs-text {
+    overflow: hidden;
+}
