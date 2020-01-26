@@ -12,6 +12,7 @@ lastToken = None
 issuesFile = None
 usfmDir = ""
 usfmVersion = 2.4      # if version 3.0 or greater, tolerates unknown tokens
+suppress9 = False       # Suppress warnings about ASCII content
 
 # Set Path for files in support/
 rootdiroftools = os.path.dirname(os.path.abspath(__file__))
@@ -121,6 +122,9 @@ class State:
         return State.needVerseText
         
     def addText(self):
+#        if State.currMarker == QQ:
+#            State.currMarker = OTHER
+        State.currMarker = OTHER
         State.needVerseText = False
         State.textOkayHere = True
         
@@ -297,6 +301,16 @@ def takeText(t):
             reportError("  no preceding Token")
     state.addText()
 
+# Returns True if the specified string is ascii
+def isAscii(str):
+    try:
+        if str and len(str) > 0:
+            str.decode('ascii')
+        ascii = True
+    except UnicodeEncodeError as e:
+        ascii = False
+    return ascii
+
 # Returns true if token is part of a footnote
 def isFootnote(token):
     return token.isFS() or token.isFE() or token.isFR() or token.isFRE() or token.isFT() or token.isFP() or token.isFES() or token.isFEE()
@@ -357,6 +371,10 @@ def take(token):
         state.addQuote()
     elif token.isH() or token.isTOC1() or token.isTOC2() or token.isMT() or token.isIMT():
         state.addTitle(token.value)
+        if token.isMT() and isAscii(token.value) and not suppress9:
+            reportError("mt token has ASCII value in " + state.reference)
+    elif token.isTOC3() and (len(token.value) != 3 or not isAscii(token.value) or token.value.lower() != token.value):
+        reportError("Invalid toc3 value in " + state.reference)
     elif token.isUnknown():
         if token.value == "p":
             reportError("Orphaned paragraph marker after " + state.reference)
@@ -396,7 +414,7 @@ def verifyChapterAndVerseMarkers(text, book):
             str = str[:-1]
         reportError(book + ": missing space after verse number: " + str + " near " + state.reference)
 
-prefix_re = re.compile(r'C:\\DCS')
+prefix_re = re.compile(r'[CE]:\\DCS')
 
 # Corresponding entry point in tx-manager code is verify_contents_quiet()
 def verifyFile(filename):
@@ -406,12 +424,12 @@ def verifyFile(filename):
     str = input.read(-1)
     input.close()
 
-    shortname = filename
-    if prefix_re.match(filename):
-        shortname = "..." + filename[6:]
-    print "CHECKING " + shortname + ":"
+#    shortname = filename
+#    if prefix_re.match(filename):
+#        shortname = "..." + filename[6:]
+    print "CHECKING " + filename + ":"
     sys.stdout.flush()
-    verifyChapterAndVerseMarkers(str, shortname)
+    verifyChapterAndVerseMarkers(str, filename)
     for token in parseUsfm.parseString(str):
         take(token)
     verifyNotEmpty(filename)
@@ -444,7 +462,7 @@ def verifyDir(dirpath):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        source = r'E:\DCS\Indonesian\id_ayt'
+        source = r'E:\DCS\Nagamese\nag_isv'
     else:
         source = sys.argv[1]
         

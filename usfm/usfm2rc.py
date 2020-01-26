@@ -10,11 +10,13 @@
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
-en_rc_dir = r'C:\Users\Larry\AppData\Local\translationstudio\library\resource_containers'
-target_dir = r'C:\DCS\Papuan Malay\pmy_ulb'
+en_rc_dir = r'E:\Users\Larry\AppData\Local\translationstudio\library\resource_containers'
+target_dir = r'E:\DCS\Nagamese\nag_isv'
+projects = []
 
 import sys
 import os
+import operator
 
 # Set Path for files in support/
 rootdiroftools = os.path.dirname(os.path.abspath(__file__))
@@ -392,23 +394,6 @@ def convertFile(usfmpath, fname):
         state.usfmFile.close()
     return success
 
-def appendToManifest():
-    state = State()
-    path = makeManifestPath()
-    manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
-    manifest.write(u"  -\n")
-    manifest.write(u"    title: '" + state.title + u" '\n")
-    manifest.write(u"    versification: ufw\n")
-    manifest.write(u"    identifier: " + state.ID.lower() + u"\n")
-    manifest.write(u"    sort: " + str(usfm_verses.verseCounts[state.ID]['sort']) + u"\n")
-    manifest.write(u"    path: ./" + makeUsfmFilename(state.ID) + u"\n")
-    testament = u'nt'
-    if usfm_verses.verseCounts[state.ID]['sort'] < 40:
-        testament = u'ot'
-    manifest.write(u"    categories: [ 'bible-" + testament + u"' ]\n")
-    manifest.close()
-
-
 # Converts the book or books contained in the specified folder
 def convertFolder(folder):
     if not os.path.isdir(folder):
@@ -422,7 +407,7 @@ def convertFolder(folder):
             convertFolder(path)
         elif fname[-3:].lower() == 'sfm':
             if convertFile(path, fname):
-                appendToManifest()
+                appendToProjects()
             else:
                 printError("File cannot be converted: " + fname)
                 
@@ -438,6 +423,37 @@ def detect_by_bom(path, default):
             return enc
     return default
 
+# Appends information about the current book to the global projects list.
+def appendToProjects():
+    global projects
+    state = State()
+
+    sort = usfm_verses.verseCounts[state.ID]["sort"]
+    testament = u'nt'
+    if sort < 40:
+        testament = u'ot'
+    project = { "title": state.title, "id": state.ID.lower(), "sort": sort, \
+                "path": "./" + makeUsfmFilename(state.ID), \
+                "categories": "[ 'bible-" + testament + u"' ]" }
+    projects.append(project)
+
+# Sort the list of projects and write to projects.yaml
+def dumpProjects():
+    global projects
+    
+    projects.sort(key=operator.itemgetter('sort'))
+    path = makeManifestPath()
+    manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
+    for p in projects:
+        manifest.write(u"  -\n")
+        manifest.write(u"    title: '" + p['title'] + u"'\n")
+        manifest.write(u"    versification: 'ufw'\n")
+        manifest.write(u"    identifier: '" + p['id'] + u"'\n")
+        manifest.write(u"    sort: " + str(p['sort']) + "\n")
+        manifest.write(u"    path: '" + p['path'] + u"'\n")
+        manifest.write(u"    categories: " + p['categories'] + u"\n")
+    manifest.close()
+
 def printError(text):
     sys.stderr.write(text + '\n')
 
@@ -446,8 +462,9 @@ if __name__ == "__main__":
     if os.path.isfile( makeManifestPath() ):
         os.remove( makeManifestPath() )
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-         convertFolder(r'C:\DCS\Papuan Malay\ULB')
+         convertFolder(r'E:\DCS\Nagamese\ISV')
     else:       # the first command line argument is presumed to be the folder containing usfm files to be converted
         convertFolder(sys.argv[1])
 
+    dumpProjects()
     print "\nDone."

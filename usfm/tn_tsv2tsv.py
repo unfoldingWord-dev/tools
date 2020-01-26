@@ -3,20 +3,18 @@
 # It edits the files in these ways:
 #    Sets the OrigQuote column values to match what is in the English tN.
 #    Removes leading and trailing spaces from each field value.
-#    Specify target output folder.
-#    Standardizes the names of book folders in the target folder.
-#    Ensures blank lines surrounding markdown headers.
-#    Makes a manifest.txt file to be pasted into manifest.yaml.
-#    Fixes links of this form 'rc://en/'
+#    Supplies missing tab between 4-character ID column and the next column.
+#    Converts links of the form "rc://en/...."
 
 # Global variables
-language_code = u'kn'
-target_dir = r'C:\DCS\Kannada\kn_tn_tsv'
-english_dir = r'C:\DCS\English\en_tn'    # English tN
+language_code = u'ml'
+target_dir = r'E:\DCS\Malayalam\ml_tN.lversaw\Stage 3'
+english_dir = r'E:\DCS\English\en_tn'    # English tN
 book = u''
 chapter = 0
 verse = 0
 issuesFile = None
+sourceDir = ""
 
 import re
 import io
@@ -30,13 +28,14 @@ badheading_re = re.compile(r'#[^# ]', re.UNICODE)
 # Reports an error if there is anything wrong with the header row
 def checkHeader(row, key, path):
     if key != u"ID.Verse.Chapter":
-        reportError("Invalid labels in header row", path, "")
+        reportError("Invalid labels in header row", path, "", None)
     if len(row) != 9:
-        reportError("Wrong number of columns (" + str(len(row)) + ") in header row", path, "")
+        reportError("Wrong number of columns (" + str(len(row)) + ") in header row", path, "", None)
 
 # Checks the specified non-header row values.
 # Reports errors.
-def checkRow(row, key, path):
+# nColumns must be >= 4 or this function will fail
+def checkRow(row, nColumns, key, path):
     global book
     global chapter
     global verse
@@ -45,7 +44,7 @@ def checkRow(row, key, path):
     if not book:
         book = row[0]
     if row[0] != book:
-        reportError("Bad book name (" + row[0] + ")", path, key)
+        reportError("Bad book name (" + row[0] + ")", path, key, row[0:4])
 
     if row[1] != u'front':
         try:
@@ -53,28 +52,34 @@ def checkRow(row, key, path):
             if c == chapter + 1:
                 chapter = c
             elif c != chapter:
-                reportError("Non-sequential chapter number", path, key)
+                reportError("Non-sequential chapter number", path, key, row[0:4])
         except ValueError as e:
             c = 0
-            reportError("Non-numeric chapter number", path, key)
+            reportError("Non-numeric chapter number", path, key, row[0:4])
     if row[2] == u'intro':
         verse = 0
     else:
         try:
 #           Based on 10/29/19 discussion on Zulip, the verse order in TSV file is not important.
 #           if int(row[2]) < verse:
-#               reportError("Verse number out of order", path, key)
+#               reportError("Verse number out of order", path, key, row[0:4])
             verse = int(row[2])
         except ValueError as e:
-            reportError("Non-numeric verse number", path, key)
-
+            reportError("Non-numeric verse number", path, key, row[0:4])
     if len(row[3]) != 4:
-        reportError("Invalid ID", path, key)
-    if len(row) != 9:
-        reportError("Wrong number of columns (" + str(len(row)) + ")", path, key)
-    if badheading_re.search(row[8]):
-        reportError("Missing space after hash mark(s)", path, key)
+        reportError("Invalid ID", path, key, row[0:4])
 
+    if nColumns == 9:
+        if not isAscii(row[4]):
+            reportError("Invalid SupportReference (column 5)", path, key, row[0:4])
+        if len(row[5].strip()) > 0 and isAscii(row[5]):
+            reportError("Invalid OrigQuote (column 6)", path, key, row[0:4])
+        if row[6] not in {u'0', u'1', u'2'}:
+            reportError("Invalid Occurrence (column 7)", path, key, row[0:4])
+        if badheading_re.search(row[8]):
+            reportError("Missing space after hash mark(s)", path, key, row[0:4])
+    else:
+        reportError("Wrong number of columns (" + str(nColumns) + ")", path, key, row[0:4])
 
 englishlink_re = re.compile(r'rc://en/', re.UNICODE)
 
@@ -91,7 +96,12 @@ def convertFile(path, fname):
         data = tsv.tsvRead(path)
         heading = True
         for row in data:
-            if len(row) > 3:
+            nColumns = len(row)
+            if nColumns > 3:
+                if nColumns == 8 and len(row[3]) > 4: # A common problem in Gujarati tN, where the ID column is merged with the next column.
+                    reportError("Wrong number of columns (8); ID column is invalid", path, key, row[0:4])
+                    row = fixID(row)
+                    nColumns = 9
                 try:
                     verse = int(row[2])
                 except ValueError as e:
@@ -104,35 +114,36 @@ def convertFile(path, fname):
                 if not key in english:
                     row[2] = str(verse-1)
                     key = tsv.make_key(row, [3,2,1])
-                try:
-                    origquote = english[key][5]
-                except KeyError as e:
-                    # If row no longer exists in the English notes, delete the snippet but keep the note.
-                    # Based on Zulip discussion, Jesse, Larry S on 10/29/19.
-                    row[2] = str(verse)     # back to original verse number
-                    row[5] = u''            # OrigQuote is no longer valid
-                else:
-                    row[5] = origquote
-                    row[6] = english[key][6]    # Occurrence
-                while len(row) < 9:
-                    row.append(u'')
+                if nColumns == 9:
+                    # Update OrigQuote to current value from English tN
+                    try:
+                        origquote = english[key][5]
+                    except KeyError as e:
+                        # If row no longer exists in the English notes, delete the snippet but keep the note.
+                        # Based on Zulip discussion, Jesse, Larry S on 10/29/19.
+                        row[2] = str(verse)     # back to original verse number
+                        row[5] = u''            # OrigQuote is no longer valid
+                    else:
+                        row[5] = origquote
+                        row[6] = english[key][6]    # Occurrence
                 if heading:
                     checkHeader(row, key, path)
                     heading = False
                     chapter = 0     # Do this here in case header is corrupted
                     verse = 0
                 else:
-                    checkRow(row, key, path)
-                    if englishlink_re.search(row[8]):
-                        new = u"rc://" + language_code + r"/"
+                    checkRow(row, nColumns, key, path)
+                    if nColumns > 8 and englishlink_re.search(row[8]):
+                        new = u"rc://*/"
                         row[8] = row[8].replace(u"rc://en/", new)
             else:
-                reportError("Not enough columns in row", path, key)
+                key = row[0][0:3] + u"... "
+                reportError("Wrong number of columns (" + str(nColumns) + ")", path, key, None)
 
         targetpath = os.path.join(target_dir, fname)
         tsv.tsvWrite(data, targetpath)
     else:
-        reportError("No such file: " + shortname(englishPath), path, "")
+        reportError("No such file in English notes: " + shortname(englishPath), path, "", None)
 
 # Converts the file or files contained in the specified folder
 def convert(dir):
@@ -161,30 +172,50 @@ def openIssuesFile():
                 os.rename(path, bakpath)
         issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
     return issuesFile
-    
-prefix_re = re.compile(r'C:\\DCS')
 
+# The fix applies if column 3 has more than four characters, and the row has exactly 8 columns to start.
+# This output row should have 9 columns and column 3 is four characters long.
+def fixID(row):
+    if len(row) == 8 and len(row[3]) > 4:
+        col4 = row[3][4:]
+        row.insert(4, col4)
+        row[3] = row[3][0:4]
+    return row
+   
 def shortname(longpath):
     shortname = longpath
-    if prefix_re.match(longpath):
-        shortname = "..." + longpath[6:]
+    if sourceDir in longpath:
+        shortname = longpath[len(sourceDir)+1:]
     return shortname
 
-# Writes error message to stderr and to issues.txt.
-def reportError(msg, path, key):
+# Returns True if the specified string is ascii
+def isAscii(str):
     try:
-        sys.stderr.write(shortname(path) + ": " + key + ": " + msg + ".\n")
+        if str and len(str) > 0:
+            str.decode('ascii')
+        ascii = True
+    except UnicodeEncodeError as e:
+        ascii = False
+    return ascii
+
+# Writes error message to stderr and to issues.txt.
+def reportError(msg, path, key, locater):
+    issue = shortname(path) + ": (" + key + "): " + msg + ".\n"
+    try:
+        if locater and len(locater) > 3:
+            issue = shortname(path) + ": " + locater[0] + " " + locater[1] + ":" + locater[2] + " ID=(" + locater[3] + "): " + msg + ".\n"
+            sys.stderr.write(issue)
     except UnicodeEncodeError as e:
         sys.stderr.write(shortname(path) + ": (Unicode...): " + msg + "\n")
  
-    issues = openIssuesFile()       
-    issues.write(shortname(path) + u": " + key + u": " + msg + u".\n")
+    issues = openIssuesFile()
+    issues.write(issue)
 
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        source = r'C:\DCS\Kannada\TSV\Stage 3'
+        source = r'E:\DCS\Malayalam\ml_tn.str'
     else:       # the first command line argument presumed to be a folder
         source = sys.argv[1]
 
@@ -195,7 +226,7 @@ if __name__ == "__main__":
         sourceDir = os.path.dirname(source)
         convert(sourceDir)
     else:
-        reportError("File not found: " + source + '\n') 
+        reportError("File not found: " + source + '\n', sourceDir, "", None) 
 
     if issuesFile:
         issuesFile.close()

@@ -22,7 +22,7 @@ import operator
 
 # Global variables
 en_rc_dir = r'E:\Users\Larry\AppData\Local\translationstudio\library\resource_containers'
-target_dir = r'E:\DCS\Hindi\hi_irv'
+target_dir = r'E:\DCS\Punjabi\pa_irv'
 projects = []
 
 class State:
@@ -34,7 +34,7 @@ class State:
     toc2 = u""
     toc3 = u""
     mt = u""
-    title = u""
+    title = u""         # updates to the best non-ascii title if any, or best ascii title 
     postHeader = u""
     reference = u""
     usfmFile = 0
@@ -79,6 +79,7 @@ class State:
         State.identification = id
         if len(id) >= 3:
             State.ID = id[0:3].upper()
+        if not projectExists(State.ID):
             State.chapter = 0
             State.verse = 0
             State.reference = id
@@ -86,7 +87,31 @@ class State:
             # Open output USFM file for writing.
             usfmPath = os.path.join(target_dir, makeUsfmFilename(State.ID))
             State.usfmFile = io.open(usfmPath, "tw", buffering=1, encoding='utf-8', newline='\n')
-       
+        else:
+            raise DuplicateBook(State.ID)
+
+    # Finds the best values for h, toc1, toc2, and mt1.
+    # Prefers non-ascii values for all fields.
+    # Sets these values in the State
+    def optimizeTitles(self):
+        if isAscii(State.title) and not isAscii(State.mt):
+            State.title = State.mt
+        elif isAscii(State.title) and not isAscii(State.toc1):
+            State.title = State.toc1
+        elif isAscii(State.title) and not isAscii(State.h):
+            State.title = State.h
+        elif isAscii(State.title) and not isAscii(State.toc2):
+            State.title = State.toc2
+
+        if State.h == "" or (isAscii(State.h) and not isAscii(State.title)):
+            State.h = State.title
+        if State.toc1 == "" or (isAscii(State.toc1) and not isAscii(State.title)):
+            State.toc1 = State.title
+        if State.toc2 == "" or (isAscii(State.toc2) and not isAscii(State.title)):
+            State.toc2 = State.title
+        if State.mt == "" or (isAscii(State.mt) and not isAscii(State.title)):
+            State.mt = State.title
+        
     def reset(self):
         State.ID = u""
         State.rem = u""
@@ -97,6 +122,33 @@ class State:
         State.mt = u""
         State.postHeader = u""
         State.reference = u""
+
+class DuplicateBook(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+#        return repr(self.value)
+        return self.value
+
+# Returns True if the specified string is ascii
+def isAscii(str):
+    try:
+        if str and len(str) > 0:
+            str.decode('ascii')
+        ascii = True
+    except UnicodeEncodeError as e:
+        ascii = False
+    return ascii
+
+# Returns True if the project already exists in the array of projects.
+def projectExists(id):
+    exists = False
+    global projects
+    for p in projects:
+        if p['id'] == id.lower():
+            exists = True
+            break
+    return exists
 
 # Returns path name for usfm file
 def makeUsfmFilename(id):
@@ -163,33 +215,22 @@ def take(line):
 
     global lastToken
     lastToken = token
-     
+
 # Writes a corrected USFM header to the new USFM file, then writes the body.
 def writeUsfm(body):
     state = State()
-    h = state.h
-    toc1 = state.toc1
-    toc2 = state.toc2
-    mt = state.mt
-    if not h:
-        h = state.title
-    if not toc1:
-        toc1 = state.title
-    if not toc2:
-        toc2 = state.title
-    if not mt:
-        mt = state.title
+    state.optimizeTitles()
     # sys.stdout.write(u"Starting to write header.\n")
     state.usfmFile.write(u"\\id " + state.identification)
     state.usfmFile.write(u"\n\\usfm 3.0")
     state.usfmFile.write(u"\n\\ide UTF-8")
     if state.rem:
         state.usfmFile.write(u"\n\\rem " + state.rem)
-    state.usfmFile.write(u"\n\\h " + h)
-    state.usfmFile.write(u"\n\\toc1 " + toc1)
-    state.usfmFile.write(u"\n\\toc2 " + toc2)
+    state.usfmFile.write(u"\n\\h " + state.h)
+    state.usfmFile.write(u"\n\\toc1 " + state.toc1)
+    state.usfmFile.write(u"\n\\toc2 " + state.toc2)
     state.usfmFile.write(u"\n\\toc3 " + state.ID.lower())
-    state.usfmFile.write(u"\n\\mt1 " + mt)      # safest to use \mt1 always. When \mt2 exists, \mt1 is required.
+    state.usfmFile.write(u"\n\\mt1 " + state.mt)    # safest to use \mt1 always. When \mt2 exists, \mt1 is required.
     
     # Write post-header if any
     state.usfmFile.write(u'\n')
@@ -197,8 +238,11 @@ def writeUsfm(body):
     state.usfmFile.write(u'\n')
     for line in body:
         state.usfmFile.write(line)
+    if line[-1] != u'\n':
+        state.usfmFile.write(u'\n')
     state.usfmFile.close()
 
+# Makes minor corrections to specified usfm file and copies to properly named usfm file at target_dir.
 def convertFile(usfmpath, fname):
     state = State()
     state.reset()
@@ -206,15 +250,20 @@ def convertFile(usfmpath, fname):
     print "CONVERTING " + fname + ":"
     sys.stdout.flush()
     input = io.open(usfmpath, "tr", 1, encoding="utf-8")
-    line = input.readline()
-    while line[0:3] != u"\\c ":
-        take(line)
+    try:
         line = input.readline()
-    body = []
-    body.append(line)
-    body += input.readlines()    # read the remainder of the usfm file
-    input.close
-    writeUsfm(body)
+        while line[0:3] != u"\\c ":
+            take(line)
+            line = input.readline()
+        body = []
+        body.append(line)
+        body += input.readlines()    # read the remainder of the usfm file
+        input.close
+        writeUsfm(body)
+    except DuplicateBook as dup:
+        input.close
+        raise
+        printError("Multiple SFM files for book: " + str(dup))
     return True
 
 # Appends information about the current book to the global projects list.
@@ -245,13 +294,12 @@ def convertFolder(folder):
         if os.path.isdir(path) and fname[0] != '.':
             convertFolder(path)
         elif fname[-3:].lower() == 'sfm':
-            usfmcount += 1
-            if usfmcount < 2:
+            try:
                 convertFile(path, fname)
                 appendToProjects()
-            else:
-                printError("Extra USFM file found. Script allows only one in folder: " + folder)
-                
+            except DuplicateBook as dup:
+                printError("Multiple SFM files for book: " + str(dup))
+            
 # Sort the list of projects and write to projects.yaml
 def dumpProjects():
     global projects
@@ -277,7 +325,7 @@ if __name__ == "__main__":
     if os.path.isfile( makeManifestPath() ):
         os.remove( makeManifestPath() )
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-         convertFolder(r'E:\DCS\Hindi\IRV')
+         convertFolder(r'E:\DCS\Punjabi\IRV')
     else:       # the first command line argument is presumed to be the folder containing usfm files to be converted
         convertFolder(sys.argv[1])
     dumpProjects()
