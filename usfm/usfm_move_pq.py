@@ -14,14 +14,14 @@ import string
 import sys
 
 # Globals
-nChanged = 0
-max_changes = 1
+nChanged = 0            # number of files changed
+max_changes = 66
 filename_re = re.compile(r'.*\.usfm$')
 
 # wholestring is used with whole file matches
 wholestring = re.compile(r'\n(\\[pq][1-9]*?)\n(\\s[0-9])\n', flags=re.UNICODE+re.DOTALL)
 
-prefix_re = re.compile(r'C:\\DCS')
+prefix_re = re.compile(r'E:\\DCS')
 
 def shortname(longpath):
     shortname = longpath
@@ -71,7 +71,7 @@ def convertFolder(folder):
 # Processes all .txt files in specified directory, one at a time
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        folder = r'C:\DCS\Papuan Malay\pmy_ulb'
+        folder = r'E:\DCS\Urdu-Deva\ur-deva_irv'
     else:
         folder = sys.argv[1]
 

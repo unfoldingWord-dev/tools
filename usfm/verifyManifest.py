@@ -24,7 +24,8 @@
 #     other valid relation strings may also be predefined in this script
 #   rights value is 'CC BY-SA 4.0' 
 #   source has no extraneous fields
-#   source.identifier matches project type identifier above#   source.language is 'en' (Warning if not)
+#   source.identifier matches project type identifier above
+#   source.language is 'en' (Warning if not)
 #   source.version is a string
 #   subject is one of the predefined strings and corresponds to project type identifier
 #   title is a non-empty string
@@ -40,6 +41,7 @@
 #   project paths exist
 #
 # Also checks for extraneous files in the folder with the manifest file.
+# Verifies presence of media.yaml file for OBS projects.
 
 # Globals
 issuesFile = None
@@ -175,7 +177,7 @@ def verifyCore(core):
         reportError(u"Invalid value for rights: " + core['rights'])
     verifySource(core['source'])
     verifySubject(core['subject'])
-    verifyStringField(core, u'title', 3)
+    verifyTitle(core['title'])
     verifyType(core['type'])
     verifyVersion(core['version'], core['source'][0]['version'])
 
@@ -194,6 +196,10 @@ def verifyDir(dirpath):
     else:
         reportError("No manifest.yaml file in: " + dirpath)
     verifyCleanDir(dirpath)
+    if projtype == 'obs':
+        mediapath = os.path.join(dirpath, "media.yaml")
+        if not os.path.isfile(mediapath):
+            reportError("Missing media.yaml file in: " + dirpath)
 
 # Manifest file verification
 def verifyFile(path):
@@ -300,9 +306,9 @@ def verifyProject(project):
     elif projtype == u'tw':
         if project['title'] != u'translationWords':
             reportError(u"Invalid project:title: " + project['title'])
-    elif projtype in [u'ulb', u'udb', u'ust', u'iev', u'irv']:
+    elif projtype in {u'ulb', u'udb', u'ust', u'iev', u'irv'}:
         bookinfo = usfm_verses.verseCounts[project['identifier'].upper()]
-        if project['sort'] != bookinfo['sort']:
+        if int(project['sort']) != bookinfo['sort']:
             reportError(u"Incorrect project:sort: " + str(project['sort']))
         if project['versification'] != u'ufw':
             reportError(u"Invalid project:versification: " + project['versification'])
@@ -387,21 +393,21 @@ def verifyRelations(relation):
         
 # Validates the source field, which is an array of exactly one dictionary.
 def verifySource(source):
-    if len(source) != 1:
-        reportError(u"Invalid source spec: should be an array of one dictionary of three fields.")
-    if len(source) > 0:
-        verifyKeys(u"source[0]", source[0], [u'language', u'identifier', u'version'])
+    if not source or len(source) < 1:
+        reportError(u"Invalid source spec: should be an array of dictionary of three fields.")
+    for dict in source:
+        verifyKeys(u"source[x]", dict, [u'language', u'identifier', u'version'])
 
-    global projtype
-    if source[0]['identifier'] != projtype and projtype in {u'obs', u'obs-tn', u'obs-tq', u'tn', u'tq', u'tw', u'udb', u'ulb', u'ult', u'ust'}:
-        reportError("Incorrect source:identifier: " + source[0]['identifier'])
-    if source[0]['identifier'] != u'tn' and projtype == u'tn-tsv':
-        reportError("Incorrect source:identifier for tn-tsv project: " + source[0]['identifier'])
-    if source[0]['language'] == u'English':
-        reportError("Use language code in source:language, not \'" + source[0]['language'] + u'\'')
-    elif source[0]['language'] != u'en':
-        reportError("Possible bad source:language: " + source[0]['language'])
-    verifyStringField(source[0], u'version', 1)
+        global projtype
+        if dict['identifier'] != projtype and projtype in {u'obs', u'obs-tn', u'obs-tq', u'tn', u'tq', u'tw', u'udb', u'ulb', u'ult', u'ust'}:
+            reportError("Incorrect source:identifier: " + dict['identifier'])
+        if dict['identifier'] != u'tn' and projtype == u'tn-tsv':
+            reportError("Incorrect source:identifier for tn-tsv project: " + dict['identifier'])
+        if dict['language'] == u'English':
+            reportError("Use language code in source:language, not \'" + dict['language'] + u'\'')
+        elif dict['language'] != u'en':
+            reportError("Possible bad source:language: " + dict['language'])
+        verifyStringField(dict, u'version', 1)
     
 # Validates that the specified key is a string of specified minimum length.
 # Returns False if there is a problem.
@@ -431,10 +437,8 @@ def verifySubject(subject):
         failure = (subject not in {u'Translation Notes', u'TSV Translation Notes'})
     elif projtype == u'tq':
         failure = (subject != u'Translation Questions')
-    elif projtype in [u'ulb', u'udb', u'ust', u'iev']:
+    elif projtype in {u'ulb', u'udb', u'ust', u'iev', u'irv'}:
         failure = (subject not in {u'Bible', u'Aligned Bible'})
-    elif projtype == u'irv':
-        failure = (subject != u'Aligned Bible')
     elif projtype == u'obs':
         failure = (subject != u'Open Bible Stories')
     elif projtype == u'obs-tq':
@@ -445,7 +449,18 @@ def verifySubject(subject):
         sys.stdout.write("Verify subject manually.\n")
     if failure:
         reportError(u"Invalid subject: " + subject)
-    
+
+# Verifies that the title
+def verifyTitle(title):
+    if (type(title) != str and type(title) != unicode):
+        reportError(u"Incorrect type for title field: " + str(title))
+    elif len(title) < 3:
+        reportError(u"String value too short for title: " + title)
+    if projtype in {'iev', 'udb', 'ust'} and (u"Literal" in title or u"Revised" in title):
+        reportError(u"Title contradicts project type: " + title)
+    elif projtype in {'irv', 'ulb', 'ult'} and (u"Easy" in title or u"Dynamic" in title):
+        reportError(u"Title contradicts project type: " + title)
+
 def verifyType(type):
     failure = False
     if projtype == u'ta':
@@ -465,8 +480,10 @@ def verifyType(type):
 
 def verifyVersion(version, sourceversion):
     parts = version.rsplit(u'.', 1)
-    if sourceversion < 20 and parts[0] != sourceversion or int(parts[-1]) < 1:
-        reportError(u"Invalid version: " + version)
+    if int(sourceversion) < 100 and (len(parts) < 2 or parts[0] != sourceversion or int(parts[-1]) < 1):
+        reportError(u"Invalid version: " + version + "; Source version is " + sourceversion)
+    if int(sourceversion) >= 100 and (len(parts) > 1 or int(parts[0]) > 99):
+        reportError(u"Invalid version: " + version + ". Source version is " + sourceversion)
 
 # Returns True if the file has a BOM
 def has_bom(path):
@@ -479,7 +496,7 @@ def has_bom(path):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        manifestDir = r'E:\DCS\Assamese\as_obs-tn'
+        manifestDir = r'E:\DCS\Gujarati\gu_tn'
     else:
         manifestDir = sys.argv[1]
 

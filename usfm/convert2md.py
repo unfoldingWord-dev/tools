@@ -42,10 +42,10 @@ class State:
 
     def addLine(self, line):
         State.prevlinetype = State.currlinetype
-        if line and line[0] == u'#':
-            State.currlinetype = HEADING
-        elif not line:
+        if not line or len(line.strip()) == 0:
             State.currlinetype = BLANKLINE
+        elif line and line[0] == u'#':
+            State.currlinetype = HEADING
         elif listitem_re.match(line):
             State.currlinetype = LIST_ITEM
         elif olistitem_re.match(line) or badolistitem_re.match(line):
@@ -82,12 +82,13 @@ def convertJson(inputPath, mdPath, shortname):
     f.close()
 
     if len(notes) > 0:
-        n = 0   # used in error messages below
+        nIn = 0   # used in error messages below
+        nOut = 0
     
         # Open output .md file for writing.
         mdFile = io.open(mdPath, "tw", buffering=1, encoding='utf-8', newline='\n')
         for note in notes:
-            n += 1
+            nIn += 1
             if keepNote(note):
                 titlestr = unicode(note['title']).strip()
                 titlestr = titlestr.replace(u"#", u"%")
@@ -97,10 +98,13 @@ def convertJson(inputPath, mdPath, shortname):
                 body = body.replace(u'•', u'*')     # this stmt doesn't work in normalize() function!?
                 body = body.replace(u"#", u"%")
                 body = normalize(body)
+                if nOut > 0:
+                    mdFile.write(u'\n')
                 mdFile.write(u'# ' + title + u'\n\n')
-                mdFile.write(body + u'\n\n')
+                mdFile.write(body + u'\n')
+                nOut += 1
                 if abs(len(title) - len(titlestr)) > 12 or len(body) - len(bodystr) > 16 or len(body) - len(bodystr) < -50:
-                    sys.stderr.write("Manually check conversion of note " + str(n) + " in " + shortname(inputPath) + ".\n")
+                    sys.stderr.write("Manually check conversion of note " + str(nIn) + " in " + shortname(inputPath) + ".\n")
                     sys.stderr.write("  Length difference of title: " + str(len(title) - len(titlestr)) + "\n")
                     sys.stderr.write("  Length difference of body: " + str(len(body) - len(bodystr)) + "\n")
                     sys.stderr.flush()
@@ -122,12 +126,12 @@ def md2md(inputPath, mdPath, langcode, shortname):
     input = io.open(inputPath, "tr", 1, encoding=enc)
     lines = input.readlines(-1)
     input.close
-    hash = u''
 
     if len(lines) > 0:
         state = State()
         state.newFile()
-        nIn = 0   # used in error messages
+        nIn = 0
+        nOut = 0
         # Open output .md file for writing.
         mdFile = io.open(mdPath, "tw", buffering=1, encoding='utf-8', newline='\n')
         for line in lines:
@@ -135,7 +139,7 @@ def md2md(inputPath, mdPath, langcode, shortname):
             line = line.rstrip()
             if blankheading_re.match(line):
                 line = u""
-                # sys.stderr.write("Removed empty heading: " + shortname(mdPath) + "\n")
+                sys.stderr.write("Removed empty heading: " + shortname(mdPath) + " at line: " + str(nIn) + ". Must check manually.\n")
 #             if len(line) > 0:
 #                 if not hash:       # Find the first character in the file, should be a hash mark
 #                     hash = line[0]
@@ -145,7 +149,14 @@ def md2md(inputPath, mdPath, langcode, shortname):
 #                     sys.stderr.write("File does not begin with heading: "  + shortname(mdPath) + "\n")                    
             if nIn == 1 and forgothash_re.match(line):
                 line = u"# " + line
-            convertLine(line, nIn, mdFile, inputPath, shortname)
+            if len(line.strip()) == 0:
+                if nOut == 0:     # skip blank lines at top of input file
+                    sys.stderr.write("Removing blank line at top of file: " + shortname(mdPath) + "\n")
+                elif state.currlinetype == BLANKLINE:
+                    sys.stderr.write("Conslidating blank lines in: " + shortname(mdPath) + "\n")
+            else:
+                convertLine(line, nIn, mdFile, inputPath, shortname)
+                nOut += 1
         mdFile.close()
         statinfo = os.stat(mdPath)
         if statinfo.st_size == 0:
@@ -158,8 +169,8 @@ closedheading_re = re.compile(r'(#+[ \t]+.*?)#+\s*$', re.UNICODE)
 
 # Fix poorly formed header lines
 def fixHeadings(line):
-    line = re.sub(r'^#+[ \t][ \t]+', u'# ', line)     # remove extra spaces/tabs after hash mark
-    line = re.sub(r'^\*+[ \t][ \t]+', u'* ', line)    # remove extra spaces/tabs after asterisk
+    line = re.sub(r'#+[\s][\s]+', u'# ', line, count=1, flags=re.UNICODE)     # remove extra spaces/tabs after hash mark
+    line = re.sub(r'\*+[\s][\s]+', u'* ', line, count=1, flags=re.UNICODE)    # remove extra spaces/tabs after asterisk
     
     # ensure space after hash(es)
     hashes = hashes_re.match(line)
@@ -272,6 +283,7 @@ def normalize(ustr):
     str = str.replace(u"[[[[", u"[[")
     str = str.replace(u"[[[", u"[[")
     str = str.replace(u"\t", u" ")
+    str = re.sub(r'\] *\(', u'](', str)
     str = re.sub(r'\n *-', u'\n*', str)
     str = re.sub(r'&nbsp;', u' ', str, count=0)
     
@@ -286,7 +298,6 @@ def normalize(ustr):
     # Left brackets
     str = re.sub(r'^\[?:?en:', u'[[:en:', str)   # fix missing bracket at beginning of string
     bad = bad8_re.match(str)
-    n = 0
     while bad:
         str = bad.group(1) + u"[[:en:" + bad.group(2)
         bad = bad8_re.match(str)

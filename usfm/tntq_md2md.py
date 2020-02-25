@@ -10,8 +10,8 @@
 
 # Global variables
 resource_type = 'tn'
-language_code = u'id'
-target_dir = r'C:\DCS\Indonesian\id_tn'
+language_code = u'pmy'
+target_dir = r'E:\DCS\PapuanMalay\pmy_tn'
 projects = []
 
 import re
@@ -173,14 +173,14 @@ def convert(dir):
     if not convertBook(dir):
         for directory in os.listdir(dir):
             folder = os.path.join(dir, directory)
-            if os.path.isdir(folder):
+            if os.path.isdir(folder) and directory[0] != ".":
                 convertBook(folder)
     dumpProjects()
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        convert(r'C:\DCS\Indonesian\TN')
+        convert(r'E:\DCS\PapuanMalay\TN')
     else:       # the first command line argument presumed to be a folder
         convert(sys.argv[1])
 

@@ -11,10 +11,11 @@ import os
 import codecs
 import string
 import sys
+import shutil
 
 # Globals
-target_dir = r'C:\DCS\Ache\guq_obs'
-en_contentdir = r'C:\DCS\English\en_obs\content'
+target_dir = r'E:\DCS\Arli\rmy-x-vwa_obs'
+en_contentdir = r'E:\DCS\English\en_obs\content'
 
 # Merges the contents of each file in the folder, into output mdfile.
 # Intersperses image links between text from each file if it can.
@@ -164,6 +165,8 @@ def convertStories(masterfolder):
         os.mkdir(contentpath)
 
     for subdir in os.listdir(masterfolder):
+        if subdir[0] == '.':
+            continue
         folder = os.path.join(masterfolder, subdir)
         if os.path.isdir(folder):
             if subdir == "front" or subdir == "back":
@@ -171,19 +174,32 @@ def convertStories(masterfolder):
                 renameTitle(contentpath, subdir)
             elif re.match(r'[0-5][0-9]$', subdir):
                 convertStory(folder, subdir, contentpath)
-            
+  
+# Copies front/intro.md from English content if missing in target
+# Copies back/intro.md from English content if missing in target
+def copyIntroFile(target, dir):
+    folder = os.path.join(target, dir)
+    if not os.path.isdir(folder):
+        os.mkdir(folder)
+
+    intropath = os.path.join(folder, "intro.md")
+    if not os.path.isfile(intropath):
+        enfolder = os.path.join(en_contentdir, dir)
+        enpath = os.path.join(enfolder, "intro.md")
+        shutil.copyfile(enpath, intropath)
 
 # Processes all .txt files in specified directory, one at a time
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] == '.':       # use current directory
-        folder = os.getcwd()
-    elif sys.argv[1] == 'hard-coded-path':
-        folder = r'C:\DCS\Ache\guq_obs_text_obs'
+    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
+        folder = r'E:\DCS\Arli\OBS'
     else:
         folder = sys.argv[1]
 
     if folder and os.path.isdir(folder):
         convertStories(folder)
-        sys.stdout.write("\nCarefully check file names and files in front and back folders.\n")
+        contentdir = os.path.join(target_dir, "content")
+        copyIntroFile(contentdir, "front")
+        copyIntroFile(contentdir, "back")
+#        sys.stdout.write("\nCarefully check file names and files in front and back folders.\n")
     else:
         sys.stderr.write("Usage: python obs_mergetxt2md.py <folder>\n  Use . for current folder.\n")

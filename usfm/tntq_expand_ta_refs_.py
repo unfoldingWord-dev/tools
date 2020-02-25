@@ -15,7 +15,7 @@ import sys
 # Globals
 nChanged = 0
 max_changes = 11111
-language_code = u'as'
+language_code = u'hr'
 filename_re = re.compile(r'.*\.md$')
 
 # keystring is used in line-by-line, but is searched against the whole file once only
@@ -59,7 +59,7 @@ def convertByLine(path):
     for line in lines:
         count += 1
         for i in range(len(inlinekey)):
-            good_ref = u' [[rc://' + language_code + u'/ta/man/translate/' + newstring[i]
+            good_ref = u' [[rc://*/ta/man/translate/' + newstring[i]
             sub = inlinekey[i].search(line)
             while sub:
                 line = line[0:sub.start()] + good_ref + sub.group(1) + u']]' + line[sub.end():]
@@ -112,7 +112,7 @@ def convertFolder(folder):
 # Processes all .txt files in specified directory, one at a time
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        folder = r'E:\DCS\Assamese\as_obs-tn\content'
+        folder = r'E:\DCS\Croatian\hr_tn'
     else:
         folder = sys.argv[1]
 

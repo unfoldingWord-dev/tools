@@ -13,8 +13,8 @@
 # This script doesn't do anything if the files are .md files already.
 
 # Global variables
-language_code = u'ehr'
-target_dir = r'C:\DCS\Croatian\hr_tn'
+language_code = u'hr'
+target_dir = r'E:\DCS\Croatian\hr_tn'
 projects = []
 translators = []
 source_versions = []
@@ -204,7 +204,7 @@ def convert(dir):
 if __name__ == "__main__":
     resource_type = target_dir[-2:].lower()
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        convert(r'C:\DCS\Croatian\TN.newest')
+        convert(r'E:\DCS\Croatian\TN.newest')
     else:       # the first command line argument presumed to be a folder
         convert(sys.argv[1])
 
