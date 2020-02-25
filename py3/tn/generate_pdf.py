@@ -986,6 +986,7 @@ class TnConverter(object):
                 new_html += '<div class="verse"><span class="v-num" id="{0}-{1}-ch-{2}-v-{3}"><sup><strong>{4}</strong></sup></span>{5}'.\
                     format(resource, str(self.book_number).zfill(3), str(chapter).zfill(3), str(verse_num).zfill(3),
                            verse_num, verse_text)
+                
         new_html += footer_html
         return new_html
 

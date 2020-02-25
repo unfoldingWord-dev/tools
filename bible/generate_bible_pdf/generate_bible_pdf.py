@@ -194,7 +194,7 @@ class BibleConverter(object):
 </head>
 <body>
   <div style="text-align:center;padding-top:200px" class="break" id="cover">
-    <img src="https://unfoldingword.org/assets/img/icon-{0}.png" width="120">
+    <img src="'https://cdn.door43.org/assets/uw-icons/logo-{0}-256.png" width="120">
     <h1>{1}</h1>
     <h2>{2}</h2>
     <h3>Version {3}</h3>
