@@ -15,30 +15,27 @@ from __future__ import unicode_literals, print_function
 import os
 import sys
 import re
-import pprint
 import logging
 import argparse
 import tempfile
 import markdown
-import shutil
 import subprocess
-import csv
-import codecs
 import json
 import dateutil.parser
 from glob import glob
 from bs4 import BeautifulSoup
 from usfm_tools.transform import UsfmTransform
-from ...general_tools.file_utils import write_file, read_file, load_json_object, unzip, load_yaml_object
+from ...general_tools.file_utils import write_file, read_file, unzip, load_yaml_object
 from ...general_tools.url_utils import download_file
-from ...general_tools.bible_books import BOOK_NUMBERS, BOOK_CHAPTER_VERSES
-from ...general_tools.usfm_utils import usfm3_to_usfm2
-from ...catalog.v3.catalog import UWCatalog
+from ...general_tools.bible_books import BOOK_NUMBERS
+from ...general_tools.usfm_utils import unalign_usfm
 
 _print = print
 
+
 def print(obj):
     _print(json.dumps(obj, ensure_ascii=False, indent=2).encode('utf-8'))
+
 
 class BibleConverter(object):
 
@@ -110,7 +107,7 @@ class BibleConverter(object):
                 self.book_id = p['identifier']
                 self.book_title = p['title']
                 self.book_number = BOOK_NUMBERS[self.book_id]
-                if int(self.book_number) < 41 or (self.books and p['identifier'] not in self.books):
+                if self.books and p['identifier'] not in self.books:
                     continue
                 self.filename_base = '{0}_{1}_{2}-{3}_v{4}'.format(self.lang_code, self.resource_id, self.book_number.zfill(2), self.book_id.upper(), self.version)
                 self.logger.info('Creating PDF for {0} {1} ({2}-{3})...'.format(self.resource_id.upper(), self.book_title, self.book_number, self.book_id))
@@ -149,7 +146,7 @@ class BibleConverter(object):
     def download_resource_files(self):
         if not os.path.isdir(os.path.join(self.bible_dir)):
             # zip_url = self.resource['formats'][0]['url']
-            zip_url = 'https://git.door43.org/Door43-Catalog/{0}_{1}/archive/{2}.zip'.format(self.lang_code, self.resource_id, self.tag)
+            zip_url = 'https://git.door43.org/unfoldingword/{0}_{1}/archive/{2}.zip'.format(self.lang_code, self.resource_id, self.tag)
             self.extract_files_from_url(zip_url)
 
     def extract_files_from_url(self, url):
@@ -290,7 +287,7 @@ class BibleConverter(object):
 
     def get_bible_body_html(self):
         usfm_conversion_path = os.path.join(self.working_dir, '{0}_{1}_usfm_conversion'.format(self.lang_code, self.resource_id), '{0}'.
-                                format(self.book_id))
+                                            format(self.book_id))
         filename_base = '{0}-{1}'.format(self.book_number, self.book_id.upper())
         html_file = os.path.join(usfm_conversion_path, '{0}.html'.format(filename_base))
         if not os.path.exists(usfm_conversion_path):
@@ -301,7 +298,7 @@ class BibleConverter(object):
                 usfm_file_base = os.path.basename(usfm_file)
                 if filename_base in usfm_file_base or (self.book_id == 'nt' and int(usfm_file_base.split('-')[0]) > 40):
                     usfm3 = read_file(usfm_file)
-                    usfm2 = usfm3_to_usfm2(usfm3)
+                    usfm2 = unalign_usfm(usfm3)
                     write_file(os.path.join(usfm_conversion_path, usfm_file_base), usfm2)
             UsfmTransform.buildSingleHtml(usfm_conversion_path, usfm_conversion_path, filename_base)
         html = read_file(html_file)
@@ -315,7 +312,7 @@ class BibleConverter(object):
     @staticmethod
     def increase_headers(text, increase_depth=1):
         if text:
-            for num in range(5,0,-1):
+            for num in range(5, 0, -1):
                 text = re.sub(r'<h{0}>\s*(.+?)\s*</h{0}>'.format(num), r'<h{0}>\1</h{0}>'.format(num+increase_depth), text, flags=re.MULTILINE)
         return text
 
@@ -325,6 +322,7 @@ class BibleConverter(object):
             for num in range(minimum_header, minimum_header+10):
                 text = re.sub(r'<h{0}>\s*(.+?)\s*</h{0}>'.format(num), r'<h{0}>\1</h{0}>'.format(num-decrease if (num-decrease) <= 5 else 5), text, flags=re.MULTILINE)
         return text
+
 
 def main(resource_id, lang_code, books, working_dir, output_dir, tag):
     """
