@@ -101,7 +101,7 @@ class BibleConverter(object):
         self.publisher = self.resource['publisher']
         self.issued =  dateutil.parser.parse(self.resource['issued']).strftime('%Y-%m-%d')
         projects = self.manifest['projects']
-        if not self.books or 'nt' not in self.books:
+        if not self.books or ('nt' not in self.books and 'ot' not in self.books):
             for p in projects:
                 self.project = p
                 self.book_id = p['identifier']
@@ -124,24 +124,30 @@ class BibleConverter(object):
                     self.logger.info("Generating PDF {0}...".format(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))))
                     self.generate_bible_pdf()
         else:
-                self.project = None
-                self.book_number = '0'
+            self.project = None
+            self.book_number = '0'
+            if 'nt' in self.books:
                 self.book_id = 'nt'
                 self.book_title = 'New Testament'
-                self.filename_base = '{0}_{1}_{2}_v{3}'.format(self.lang_code, self.resource_id, self.book_id.upper(), self.version)
-                self.logger.info('Creating PDF for {0} {1} ({2})...'.format(self.resource_id.upper(), self.book_title, self.book_id))
-                if not os.path.isdir(self.html_dir):
-                    os.makedirs(self.html_dir)
-                if True or not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
-                    self.logger.info("Generating Body HTML...")
-                    self.generate_bible_html()
-                    self.logger.info("Generating Cover HTML...")
-                    self.generate_cover_html()
-                    self.logger.info("Generating License HTML...")
-                    self.generate_license_html()
-                if True or not os.path.exists(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))):
-                    self.logger.info("Generating PDF {0}...".format(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))))
-                    self.generate_bible_pdf()
+            else:
+                self.book_id = 'ot'
+                self.book_title = 'Old Testament'
+
+            self.filename_base = '{0}_{1}_{2}_v{3}'.format(self.lang_code, self.resource_id, self.book_id.upper(), self.version)
+            self.logger.info('Creating PDF for {0} {1} ({2})...'.format(self.resource_id.upper(), self.book_title, self.book_id))
+            if not os.path.isdir(self.html_dir):
+                os.makedirs(self.html_dir)
+            if True or not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
+                self.logger.info("Generating Body HTML...")
+                self.generate_bible_html()
+                self.logger.info("Generating Cover HTML...")
+                self.generate_cover_html()
+                self.logger.info("Generating License HTML...")
+                self.generate_license_html()
+            if True or not os.path.exists(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))):
+                self.logger.info(
+                    "Generating PDF {0}...".format(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))))
+                self.generate_bible_pdf()
 
     def download_resource_files(self):
         if not os.path.isdir(os.path.join(self.bible_dir)):
@@ -296,7 +302,9 @@ class BibleConverter(object):
             usfm_files = glob(os.path.join(self.bible_dir, '*.usfm'))
             for usfm_file in usfm_files:
                 usfm_file_base = os.path.basename(usfm_file)
-                if filename_base in usfm_file_base or (self.book_id == 'nt' and int(usfm_file_base.split('-')[0]) > 40):
+                if filename_base in usfm_file_base or \
+                        (self.book_id == 'nt' and int(usfm_file_base.split('-')[0]) > 40) or \
+                        (self.book_id == 'ot' and int(usfm_file_base.split('-')[0]) < 40):
                     usfm3 = read_file(usfm_file)
                     usfm2 = unalign_usfm(usfm3)
                     write_file(os.path.join(usfm_conversion_path, usfm_file_base), usfm2)
