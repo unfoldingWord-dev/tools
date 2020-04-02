@@ -11,7 +11,7 @@
 # heading levels.
 #
 # This script also removes leading spaces from the first markdown header in each row.
-# Also removes double quotes that surround lines that should begin with just a markdown header.
+# Also removes double quotes that surround fields that should begin with just a markdown header.
 # Adds space after markdown header hash marks, if missing.
 #
 # This script was written for TSV notes files.
@@ -21,29 +21,15 @@
 import re       # regular expression module
 import io
 import os
-import string
 import sys
+import tsv
 
 # Globals
-max_files = 999      # How many files do you want to process
-source_dir = r'E:\DCS\Malayalam\TN\Mar-20'  # Where are the files located
+max_files = 99     # How many files do you want to process
+source_dir = r'E:\DCS\Bengali\TN\Stage 3'  # Where are the files located
 
 nProcessed = 0
 filename_re = re.compile(r'.*\.tsv$')
-hash_re = re.compile(r'(#+) ', flags=re.UNICODE)
-
-# Each inlinekey is matched against each line of a file.
-# The matches occur in sequence, so the result of one match impacts the next.
-inlinekey = []
-inlinekey.append( re.compile(r'\t"(#.*)" *$', flags=re.UNICODE) )
-inlinekey.append( re.compile(r'\<br\> +(#.*)$', flags=re.UNICODE) )
-inlinekey.append( re.compile(r'#([^# \n].*)', flags=re.UNICODE) )
-
-# Strings to replace with
-newstring = []
-newstring.append( '\t' )
-newstring.append( '<br>' )
-newstring.append( '# ' )
 
 
 def shortname(longpath):
@@ -67,68 +53,67 @@ def shuffle(truelevel, nmarks, currlevel):
         nmarks -= 1
     return newlevel    
 
+header_re = re.compile(r'(#+) ', flags=re.UNICODE)
+
 # Converts and returns a single line
-def convertLine(line):
+def fixHeadingLevels(note):
     currlevel = 0
     truelevel = [0,1,2,3,4,5,6,7,8,9]
-    header = hash_re.search(line, 0)
+    header = header_re.search(note, 0)
     while header:
         nmarks = len(header.group(1))
         newlevel = shuffle(truelevel, nmarks, currlevel)
         if newlevel != nmarks:
-            line = line[0:header.start()] + '#' * newlevel + line[header.end()-1:]
+            note = note[0:header.start()] + '#' * newlevel + note[header.end()-1:]
         currlevel = newlevel
-        header = hash_re.search(line, header.start() + newlevel + 1)
-    return line
+        header = header_re.search(note, header.start() + newlevel + 1)
+    return note
 
-# Fixes the heading levels for the specified file.
-def fixHeadingLevels(path):
-    input = io.open(path, "tr", 1, encoding="utf-8")
-    lines = input.readlines()
-    input.close()
 
+hash_re = re.compile(r'#([^# \n].*)')    # missing space after #
+
+def fixSpacing(note):
+    note = re.sub(r'\<br\> +#', "<br>#", note, 0)   # Remove spaces before markdown headers
+    while sub := hash_re.search(note):              # Add space after # where missing
+        note = note[0:sub.start()] + "# " + sub.group(1) + u'\n'
+    return note
+
+# The fix applies if column 3 has more than four characters, and the row has exactly 8 columns to start.
+# The fix assumes that the first four characters are valid and should have been followed by a tab.
+# This output row should have 9 columns and column 3 should have four characters.
+# This fixes a common problem with Gujarati tN files.
+def fixID(row):
+    if len(row) == 8 and len(row[3]) > 4:
+        col4 = row[3][4:]
+        row.insert(4, col4)
+        row[3] = row[3][0:4]
+    return row
+ 
+def cleanRow(row):
+    i = 0
+    while i < len(row):
+        row[i] = row[i].strip('" ')     # remove leading and trailing spaces and quotes  
+        i += 1
+    if len(row) == 8 and len(row[3]) > 4: # A common problem in Gujarati tN, where the ID column is merged with the next column.
+        row = fixID(row)
+    if len(row) == 9:
+        row[8] = row[8].replace("rc://en/", "rc://*/")
+        row[8] = fixSpacing(row[8])     # fix spacing around hash marks
+        row[8] = fixHeadingLevels(row[8])
+    return row
+
+def cleanFile(path):
     bakpath = path + ".orig"
     if not os.path.isfile(bakpath):
         os.rename(path, bakpath)
-    output = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
-    for line in lines:
-        if "##" in line:
-            line = convertLine(line)
-        output.write(line)
-    output.close
 
-# Removes leading spaces from markdown headers.
-# Removes double quotes that surround lines that should begin with just a markdown header.
-# Adds space after markdown header hash marks, if missing.
-def fixSpacing(path):
-    input = io.open(path, "tr", 1, encoding="utf-8-sig")
-    lines = input.readlines()
-    input.close()
-    bakpath = path + ".orig"
-    if not os.path.isfile(bakpath):
-        os.rename(path, bakpath)
-    count = 0
-    output = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
-    for line in lines:
-        count += 1
-        for i in range(len(inlinekey)):
-            while sub := inlinekey[i].search(line):
-                line = line[0:sub.start()] + newstring[i] + sub.group(1) + '\n'
-        output.write(line)
-    output.close
-    
-# Puts a single .tsv file through all cleanup steps.
-def convertFile(path):
-    global nProcessed
-    
-    sys.stdout.write("Processing " + shortname(path) + "\n")
-    sys.stdout.flush()
-    fixSpacing(path)
-    fixHeadingLevels(path)
-    nProcessed += 1
+    data = tsv.tsvRead(bakpath)
+    for row in data:
+        row = cleanRow(row)
+    tsv.tsvWrite(data, path)
 
 # Recursive routine to convert all files under the specified folder
-def convertFolder(folder):
+def cleanFolder(folder):
     global nProcessed
     global max_files
     if nProcessed >= max_files:
@@ -137,9 +122,10 @@ def convertFolder(folder):
     for entry in os.listdir(folder):
         path = os.path.join(folder, entry)
         if os.path.isdir(path) and entry[0] != '.':
-            convertFolder(path)
+            cleanFolder(path)
         elif filename_re.match(entry):
-            convertFile(path)
+            cleanFile(path)
+            nProcessed += 1
         if nProcessed >= max_files:
             break
 
@@ -149,10 +135,12 @@ if __name__ == "__main__":
         source_dir = sys.argv[1]
 
     if source_dir and os.path.isdir(source_dir):
-        convertFolder(source_dir)
+        cleanFolder(source_dir)
         sys.stdout.write("Done. Processed " + str(nProcessed) + " files.\n")
-    elif os.path.isfile(source_dir):
-        convertByLine(source_dir)
+    elif filename_re.match(source_dir) and os.path.isfile(source_dir):
+        path = source_dir
+        source_dir = os.path.dirname(path)
+        cleanFile(path)
         sys.stdout.write("Done. Processed 1 file.\n")
     else:
         sys.stderr.write("Usage: python tsv_cleanup.py <folder>\n  Use . for current folder.\n")

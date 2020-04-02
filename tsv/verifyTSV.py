@@ -17,12 +17,12 @@
 # A lot of these checks are done by tsv2rc.py as well.
 
 # Globals
-source_dir = "E:\DCS\Malayalam\ml_tn"
-language_code = 'ml'
+source_dir = r'E:\DCS\Bengali\TN\Stage 3'   # Where are the files located
+language_code = 'bn'
 gateway_language = 'en'
-#ta_dir = r'E:\DCS\English\en_tA'    # English tA
-ta_dir = r'E:\DCS\Hindi\hi_tA'    # Use Target language tA if available
-obs_dir = r'E:\DCS\Malayalam\ml_obs\content'    # should end in 'content'
+ta_dir = r'E:\DCS\English\en_tA'    # English tA
+#ta_dir = r'E:\DCS\Hindi\hi_tA'    # Use Target language tA if available
+obs_dir = r'E:\DCS\Telugu\te_obs\content'    # should end in 'content'
 
 suppress1 = False    # Suppress warnings about text before first heading
 suppress2 = False    # Suppress warnings about blank headings
@@ -228,7 +228,7 @@ def take(line):
 #            state.report2()
     if state.currlinetype == HEADING:
         if state.md_lineno > 1 and state.prevlinetype != BLANKLINE and state.prevlinetype != HEADING:
-            reportError("missing line break before heading")
+            reportError("missing blank line before heading")
         if badheading_re.match(line):
             reportError("space(s) before heading")
         elif closedHeading_re.match(line):
@@ -255,12 +255,12 @@ def take(line):
             reportError("item number not followed by period")
         if olistitem_re.match(line):
             if state.prevlinetype in { TEXT, HEADING }:
-                reportError("missing line break before ordered list")
+                reportError("missing blank line before ordered list")
             i = state.md_lineno - 1
             if i > 1 and state.linetype[i-1] == BLANKLINE and state.linetype[i-2] == ORDEREDLIST_ITEM and not suppress8:
                 reportError("invalid ordered list style")
     if line.find('# #') != -1:
-        reportError('Heading syntax error')
+        reportError('Heading syntax error: # #')
     if headjam_re.search(line):
         reportError("Missing space after hash mark(s)")
     if len(line) > 2 and line[0:2] == '% ':
@@ -420,15 +420,15 @@ def checkHeader(row, key):
     if key != "ID.Verse.Chapter":
         reportError("Invalid column headers, columns 2-4", key)
     if row[4] != "SupportReference":
-        reportError("Invalid column 4 header")
-    if row[5] != "OrigQuote":
         reportError("Invalid column 5 header")
-    if row[6] != "Occurrence":
+    if row[5] != "OrigQuote":
         reportError("Invalid column 6 header")
-    if row[7] != "GLQuote":
+    if row[6] != "Occurrence":
         reportError("Invalid column 7 header")
-    if row[8] != "OccurrenceNote":
+    if row[7] != "GLQuote":
         reportError("Invalid column 8 header")
+    if row[8] != "OccurrenceNote":
+        reportError("Invalid column 9 header")
 
 def verifyGLQuote(quote, verse):
     if verse == "intro":

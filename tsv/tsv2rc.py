@@ -12,12 +12,13 @@
 # files before converting the files with this script.
 # Maybe also run verifyTSV.py, to catch most errors
 # before conversion.
+# Then run verifyTSV.py on the target dir.
 ######################################################
 
 # Global variables
-language_code = 'ml'
-target_dir = r'E:\DCS\Malayalam\ml_tn'
-source_dir = r'E:\DCS\Malayalam\TN\Mar-20'
+language_code = 'te'
+target_dir = r'E:\DCS\Telugu\temp'
+source_dir = r'E:\DCS\Telugu\TN\Mar-20\te_tn_41-MAT.tsv'
 english_dir = r'E:\DCS\English\en_tn'    # English tN
 
 book = ''
@@ -258,6 +259,10 @@ if __name__ == "__main__":
     if os.path.isdir(source_dir):
         convert(source_dir)
         dumpProjects()
+    elif source_dir[-4:] == ".tsv" and os.path.isfile(source_dir):
+        path = source_dir
+        source_dir = os.path.dirname(path)
+        convertFile(path, os.path.basename(path))
     else:
         reportError("Invalid directory: " + source_dir) 
 
