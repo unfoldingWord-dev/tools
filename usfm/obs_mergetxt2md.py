@@ -35,16 +35,16 @@ def merge(image_list, folder, mdfile):
         chunk = input.read().strip()
         if chunk:
             if images_inline and chunksOut < len(image_list):
-                mdfile.write(u"\n" + image_list[chunksOut])
-            mdfile.write(u"\n")
-            mdfile.write(chunk + u"\n")
+                mdfile.write("\n" + image_list[chunksOut])
+            mdfile.write("\n")
+            mdfile.write(chunk + "\n")
         chunksOut += 1
         input.close()
 
     if not images_inline:
-        mdfile.write(u"\n\n")
+        mdfile.write("\n\n")
         for image in image_list:
-            mdfile.write(image + u"\n")
+            mdfile.write(image + "\n")
 
 
 # Returns the list of chunk file names
@@ -94,10 +94,10 @@ def outputTitle(titlepath, mdfile):
         line = line.strip()
         if line:
             if titleLinesOut == 0:
-                mdfile.write(u"# " + line + u"\n")      # title
+                mdfile.write("# " + line + "\n")      # title
                 titleLinesOut = 1
             elif titleLinesOut == 1:
-                mdfile.write(u"## " + line + u"\n")      # subtitle
+                mdfile.write("## " + line + "\n")      # subtitle
                 break
     
 # Outputs the contents of refpath, enclosed with underscores.
@@ -109,7 +109,7 @@ def outputReference(refpath, mdfile):
     for line in lines:
         line = line.strip()
         if line:
-            mdfile.write(u"\n_" + line + u"_\n")
+            mdfile.write("\n_" + line + "_\n")
 
 import shutil
 

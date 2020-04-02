@@ -11,7 +11,7 @@
 
 # Global variables
 en_rc_dir = r'E:\Users\Larry\AppData\Local\translationstudio\library\resource_containers'
-target_dir = r'E:\DCS\Nagamese\nag_isv'
+target_dir = r'E:\DCS\Kannada\kn_iev'
 projects = []
 
 import sys
@@ -29,21 +29,21 @@ import codecs
 import re
 
 class State:
-    ID = u""
-    rem = u""
-    h = u""
-    toc1 = u""
-    toc2 = u""
-    toc3 = u""
-    mt = u""
-    title = u""
-    sts = u""
-    postHeader = u""
+    ID = ""
+    rem = ""
+    h = ""
+    toc1 = ""
+    toc2 = ""
+    toc3 = ""
+    mt = ""
+    title = ""
+    sts = ""
+    postHeader = ""
     chapter = 0
     verse = 0
     needPp = False
     s5marked = False
-    reference = u""
+    reference = ""
     usfmFile = 0
     chunks = []
     chunkIndex = 0
@@ -80,7 +80,7 @@ class State:
             
     def addPostHeader(self, key, value):
         if key:
-            State.postHeader += u"\n\\" + key + u" "
+            State.postHeader += "\n\\" + key + " "
         if value:
             State.postHeader += value
 
@@ -137,20 +137,20 @@ class State:
         return State.s5marked
 
     def reset(self):
-        State.ID = u""
-        State.rem = u""
-        State.h = u""
-        State.toc1 = u""
-        State.toc2 = u""
-        State.toc3 = u""
-        State.mt = u""
-        State.sts = u""
-        State.postHeader = u""
+        State.ID = ""
+        State.rem = ""
+        State.h = ""
+        State.toc1 = ""
+        State.toc2 = ""
+        State.toc3 = ""
+        State.mt = ""
+        State.sts = ""
+        State.postHeader = ""
         State.chapter = 0
         State.verse = 0
         State.needPp = True     # need at least one \p marker after \c 1 in each book
         State.s5marked = False
-        State.reference = u""
+        State.reference = ""
 
 chunk_re = re.compile(r'([0-9]{2,3}).usx')
 
@@ -186,15 +186,15 @@ def getDefaultName(id):
            
 def printToken(token):
         if token.isV():
-            print "Verse number " + token.value
+            print("Verse number " + token.value)
         elif token.isC():
-            print "Chapter " + token.value
+            print("Chapter " + token.value)
         elif token.isS():
-            sys.stdout.write(u"Section heading: " + token.value)
+            sys.stdout.write("Section heading: " + token.value)
         elif token.isTEXT():
-            print "Text: <" + token.value + ">"
+            print("Text: <" + token.value + ">")
         else:
-            print token
+            print(token)
 
 def takeAsIs(key, value):
     state = State()
@@ -203,9 +203,9 @@ def takeAsIs(key, value):
         # sys.stdout.write(u"addPostHeader(" + key + u", " + str(len(value)) + u")\n")
     else:
         # sys.stdout.write(u"takeAsIs(" + key + u"," + str(len(value)) + u"), chapter is " + str(state.chapter) + u"\n")
-        state.usfmFile.write(u"\n\\" + key)
+        state.usfmFile.write("\n\\" + key)
         if value:
-            state.usfmFile.write(u" " + value)    
+            state.usfmFile.write(" " + value)    
 
 # Treats the token as the book title if no \mt has been encountered yet.
 # Calls takeAsIs() otherwise.
@@ -222,7 +222,7 @@ def takeP():
     state = State()
     if state.getChunkVerse() != state.verse + 1:
         state.addP()
-        state.usfmFile.write(u"\n\\p")
+        state.usfmFile.write("\n\\p")
     else:
         state.holdP()
 
@@ -231,17 +231,17 @@ def addSection(v):
     vn = int(v)
     if state.getChunkVerse() == vn:
         if vn > 1 and not state.hasS5():
-            state.usfmFile.write(u"\n\\s5")
+            state.usfmFile.write("\n\\s5")
         state.advanceChunk()
     if state.needPp:
-        state.usfmFile.write(u"\n\\p")
+        state.usfmFile.write("\n\\p")
         state.addP()
 
 def takeS5():
     state = State()
     if state.chapter > 0:   # avoid copying \s5 before chapter 1 to simplify writing of header and other chapter 1 handling
         state.addS5()
-        state.usfmFile.write(u"\n\\s5")
+        state.usfmFile.write("\n\\s5")
 
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 def takeV(v):
@@ -258,15 +258,15 @@ def takeV(v):
         v = v.strip("-")    # A verse marker like this has occurred:  \v 19-
         state.addVerse(v)
         addSection(v)
-    state.usfmFile.write(u"\n\\v " + v)
+    state.usfmFile.write("\n\\v " + v)
     
 def takeText(t):
     state = State()
     # sys.stdout.write(u"takeText(" + str(len(t)) + u")\n")
     if state.chapter < 1:       # header has not been written, add text to post-header
-        state.addPostHeader(u"", t)
+        state.addPostHeader("", t)
     else:
-        state.usfmFile.write(u" " + t)
+        state.usfmFile.write(" " + t)
         
 # Insert an s5 marker before writing any chapter marker.
 # Before writing chapter 1, we output the USFM header.
@@ -280,8 +280,8 @@ def takeC(c):
         writeHeader()
 #    state.usfmFile.write(u"\n")
     if not state.hasS5():
-        state.usfmFile.write(u"\n\n\\s5")
-    state.usfmFile.write(u"\n\\c " + c)
+        state.usfmFile.write("\n\n\\s5")
+    state.usfmFile.write("\n\\c " + c)
     
 def take(token):
     state = State()
@@ -311,7 +311,7 @@ def take(token):
         state.addTOC3(token.value)
     elif token.isMT():
         state.addMT(token.value)
-    elif token.isIMT() or token.isMTE():
+    elif token.is_imt() or token.isMTE():
         takeMTX(token.type, token.value)
     elif token.isIDE():
         x = 0       # do nothing
@@ -340,22 +340,22 @@ def writeHeader():
     if not mt:
         mt = state.title
     # sys.stdout.write(u"Starting to write header.\n")
-    state.usfmFile.write(u"\\id " + state.ID)
+    state.usfmFile.write("\\id " + state.ID)
     if state.sts and state.sts != state.ID:
-        state.usfmFile.write(u" " + state.sts)
-    state.usfmFile.write(u"\n\\ide UTF-8")
+        state.usfmFile.write(" " + state.sts)
+    state.usfmFile.write("\n\\ide UTF-8")
     if state.rem:
-        state.usfmFile.write(u"\n\\rem " + state.rem)
-    state.usfmFile.write(u"\n\\h " + h)
-    state.usfmFile.write(u"\n\\toc1 " + toc1)
-    state.usfmFile.write(u"\n\\toc2 " + toc2)
-    state.usfmFile.write(u"\n\\toc3 " + state.ID.lower())
-    state.usfmFile.write(u"\n\\mt1 " + mt)      # safest to use \mt1 always. When \mt2 exists, \mt1 us required.
+        state.usfmFile.write("\n\\rem " + state.rem)
+    state.usfmFile.write("\n\\h " + h)
+    state.usfmFile.write("\n\\toc1 " + toc1)
+    state.usfmFile.write("\n\\toc2 " + toc2)
+    state.usfmFile.write("\n\\toc3 " + state.ID.lower())
+    state.usfmFile.write("\n\\mt1 " + mt)      # safest to use \mt1 always. When \mt2 exists, \mt1 us required.
     
     # Write post-header if any
     if state.postHeader:
         state.usfmFile.write(state.postHeader)
-    state.usfmFile.write(u'\n')     # blank line between header and chapter 1
+    state.usfmFile.write('\n')     # blank line between header and chapter 1
 
 backslash_re = re.compile(r'\\\s')
 jammed_re = re.compile(r'(\\v [-0-9]+[^-\s0-9])', re.UNICODE)
@@ -379,18 +379,17 @@ def convertFile(usfmpath, fname):
     state = State()
     state.reset()
     
-    # detect file encoding
-    enc = detect_by_bom(usfmpath, default="utf-8")
-    input = io.open(usfmpath, "tr", 1, encoding=enc)
+    input = io.open(usfmpath, "tr", 1, encoding="utf-8-sig")
     str = input.read(-1)
     input.close
 
-    print "CONVERTING " + fname + ":"
+    print("CONVERTING " + fname + ":")
     sys.stdout.flush()
     success = isParseable(str, fname)
     if success:
         for token in parseUsfm.parseString(str):
             take(token)
+        state.usfmFile.write("\n")    
         state.usfmFile.close()
     return success
 
@@ -411,30 +410,18 @@ def convertFolder(folder):
             else:
                 printError("File cannot be converted: " + fname)
                 
-
-def detect_by_bom(path, default):
-    with open(path, 'rb') as f:
-        raw = f.read(4)
-    for enc,boms in \
-            ('utf-8-sig',(codecs.BOM_UTF8)),\
-            ('utf-16',(codecs.BOM_UTF16_LE,codecs.BOM_UTF16_BE)),\
-            ('utf-32',(codecs.BOM_UTF32_LE,codecs.BOM_UTF32_BE)):
-        if any(raw.startswith(bom) for bom in boms):
-            return enc
-    return default
-
 # Appends information about the current book to the global projects list.
 def appendToProjects():
     global projects
     state = State()
 
     sort = usfm_verses.verseCounts[state.ID]["sort"]
-    testament = u'nt'
+    testament = 'nt'
     if sort < 40:
-        testament = u'ot'
+        testament = 'ot'
     project = { "title": state.title, "id": state.ID.lower(), "sort": sort, \
                 "path": "./" + makeUsfmFilename(state.ID), \
-                "categories": "[ 'bible-" + testament + u"' ]" }
+                "categories": "[ 'bible-" + testament + "' ]" }
     projects.append(project)
 
 # Sort the list of projects and write to projects.yaml
@@ -445,13 +432,13 @@ def dumpProjects():
     path = makeManifestPath()
     manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
     for p in projects:
-        manifest.write(u"  -\n")
-        manifest.write(u"    title: '" + p['title'] + u"'\n")
-        manifest.write(u"    versification: 'ufw'\n")
-        manifest.write(u"    identifier: '" + p['id'] + u"'\n")
-        manifest.write(u"    sort: " + str(p['sort']) + "\n")
-        manifest.write(u"    path: '" + p['path'] + u"'\n")
-        manifest.write(u"    categories: " + p['categories'] + u"\n")
+        manifest.write("  -\n")
+        manifest.write("    title: '" + p['title'] + "'\n")
+        manifest.write("    versification: 'ufw'\n")
+        manifest.write("    identifier: '" + p['id'] + "'\n")
+        manifest.write("    sort: " + str(p['sort']) + "\n")
+        manifest.write("    path: '" + p['path'] + "'\n")
+        manifest.write("    categories: " + p['categories'] + "\n")
     manifest.close()
 
 def printError(text):
@@ -462,9 +449,9 @@ if __name__ == "__main__":
     if os.path.isfile( makeManifestPath() ):
         os.remove( makeManifestPath() )
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-         convertFolder(r'E:\DCS\Nagamese\ISV')
+         convertFolder(r'E:\DCS\Kannada\IEV')
     else:       # the first command line argument is presumed to be the folder containing usfm files to be converted
         convertFolder(sys.argv[1])
 
     dumpProjects()
-    print "\nDone."
+    print("\nDone.")

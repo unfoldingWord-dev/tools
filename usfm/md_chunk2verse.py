@@ -16,7 +16,7 @@
 
 # Global variables
 resource_type = 'tq'
-language_code = u'fr'
+language_code = 'fr'
 target_dir = r'C:\DCS\French\fr_tq'
 max_changes = 1800
 
@@ -111,7 +111,7 @@ def linkedVerses(ustr, chap, path):
 
     link = link_re.match(ustr)
     while link:
-        ustr = link.group(1) + u' ' + link.group(4)
+        ustr = link.group(1) + ' ' + link.group(4)
         if link.group(2) == chap:   # must be a valid link
             vv = link.group(3)      # the verse(s)
             range = range_re.match(vv)
@@ -158,7 +158,7 @@ def parseNotes(alllines):
     note = ""
     notes = []
     for line in alllines:
-        if line[0] == u'#':
+        if line[0] == '#':
             if note:
                 notes.append(note)  # capture preceding note
             note = line     # first line of new note
@@ -201,15 +201,15 @@ def writeChapter(notekeeper):
     # print notekeeper.verseDict.values()
     
     chapDir = makeChapterDir(notekeeper.book, notekeeper.chapter)
-    for verse in notekeeper.verseDict.keys():
+    for verse in list(notekeeper.verseDict.keys()):         # would this work: verse in notekeeper.verseDict
         versePath = os.path.join(chapDir, ("%02d" % verse) + ".md")
         verseFile = io.open(versePath, "tw", buffering=1, encoding='utf-8', newline='\n')
         addline = False
         for note in notekeeper.verseDict[verse]:
-            if addline and note[0] != u'\n':
-                verseFile.write(u'\n')
+            if addline and note[0] != '\n':
+                verseFile.write('\n')
             verseFile.write( note )
-            addline = (note[-2:] != u'\n\n')
+            addline = (note[-2:] != '\n\n')
         verseFile.close()
 
     statinfo = os.stat(versePath)
@@ -265,4 +265,4 @@ if __name__ == "__main__":
     else:       # the first command line argument presumed to be a folder
         convert(sys.argv[1])
 
-    print "\nDone. Made", nSplits, "file splits."
+    print("\nDone. Made", nSplits, "file splits.")

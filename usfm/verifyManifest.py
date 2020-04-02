@@ -47,7 +47,7 @@
 issuesFile = None
 manifestDir = None
 nIssues = 0
-projtype = u''
+projtype = ''
 
 from datetime import datetime
 from datetime import date
@@ -79,7 +79,7 @@ def openIssuesFile():
 def reportError(msg):
     global nIssues
     try:
-        sys.stderr.write(msg + u'\n')
+        sys.stderr.write(msg + '\n')
     except UnicodeEncodeError as e:
         sys.stderr.write("See error message in manifest-issues.txt. It contains Unicode.\n")
 
@@ -89,92 +89,94 @@ def reportError(msg):
 # This function validates the project entries for a tA project.
 # tA projects should have four projects entries, each with specific content
 def verifyAcademyProject(project):
-    if len(project['categories']) != 1 or project['categories'][0] != u'ta':
-        reportError(u"Invalid project:categories: " + project['categories'][0])
+    if len(project['categories']) != 1 or project['categories'][0] != 'ta':
+        reportError("Invalid project:categories: " + project['categories'][0])
 
     section = project['identifier']
-    if section == u'intro':
-        if project['title'] != u"Introduction to translationAcademy":
-            reportError(u"Invalid project:title: " + project['title'])
+    if section == 'intro':
+        if project['title'] != "Introduction to translationAcademy":
+            reportError("Invalid project:title: " + project['title'])
         if project['sort'] != 0:
-            reportError(u"Invalid project:sort: " + str(project['sort']))
-    elif section == u'process':
-        if project['title'] != u"Process Manual":
-            reportError(u"Invalid project:title: " + project['title'])
+            reportError("Invalid project:sort: " + str(project['sort']))
+    elif section == 'process':
+        if project['title'] != "Process Manual":
+            reportError("Invalid project:title: " + project['title'])
         if project['sort'] != 1:
-            reportError(u"Invalid project:sort: " + str(project['sort']))
-    elif section == u'translate':
-        if project['title'] != u"Translation Manual":
-            reportError(u"Invalid project:title: " + project['title'])
+            reportError("Invalid project:sort: " + str(project['sort']))
+    elif section == 'translate':
+        if project['title'] != "Translation Manual":
+            reportError("Invalid project:title: " + project['title'])
         if project['sort'] != 2:
-            reportError(u"Invalid project:sort: " + str(project['sort']))
-    elif section == u'checking':
-        if project['title'] != u"Checking Manual":
-            reportError(u"Invalid project:title: " + project['title'])
+            reportError("Invalid project:sort: " + str(project['sort']))
+    elif section == 'checking':
+        if project['title'] != "Checking Manual":
+            reportError("Invalid project:title: " + project['title'])
         if project['sort'] != 3:
-            reportError(u"Invalid project:sort: " + str(project['sort']))
+            reportError("Invalid project:sort: " + str(project['sort']))
     else:
         reportError("Invalid project:identifier: " + section)
 
 # Verifies the checking section of the manifest.
 def verifyChecking(checking):
-    verifyKeys(u'checking', checking, [u'checking_entity', u'checking_level'])
-    if 'checking_entity' in checking.keys():
+    verifyKeys('checking', checking, ['checking_entity', 'checking_level'])
+    if 'checking_entity' in list(checking.keys()):      # would this work: 'checking_entity' in checking
         if len(checking['checking_entity']) < 1:
             reportError("Missing checking_entity.")
         for c in checking['checking_entity']:
-            if (type(c) != str and type(c) != unicode) or len(c) < 3:
-                reportError(u"Invalid checking_entity: " + unicode(c))
-    if u'checking_level' in checking.keys():
-        if type(checking['checking_level']) != str:
-            reportError(u'checking_level must be a string')
-        elif checking['checking_level'] != u'3':
-            reportError(u"Invalid value for checking_level: " + checking['checking_level'])
+            if not isinstance(c, str) or len(c) < 3:
+                reportError("Invalid checking_entity: " + str(c))
+    if 'checking_level' in list(checking.keys()):      # would this work: 'checking_entity' in checking
+        if not isinstance(checking['checking_level'], str):
+            reportError('checking_level must be a string')
+        elif checking['checking_level'] != '3':
+            reportError("Invalid value for checking_level: " + checking['checking_level'])
+
+badname_re = re.compile(r'.*\d\d\d\d+.*\.md$')
 
 # Checks for extraneous files in the directory... recursive
 def verifyCleanDir(dirpath):
-    for f in os.listdir(dirpath):
-        path = os.path.join(dirpath, f)
+    for fname in os.listdir(dirpath):
+        path = os.path.join(dirpath, fname)
 #        if os.path.isfile(path):
-        if f == "manifest-issues.txt":
-            reportError("Extraneous file: " + f)
-        elif (f.find("temp") >= 0 or f.find("tmp") >= 0 or f.find("orig") >= 0 \
-or f.find("Copy") >= 0 or f.find(".txt") >= 0 or f.find("projects") >= 0):
-            reportError("Possible extraneous file: " + f)
-        if os.path.isdir(path) and f != ".git":
+        if (fname.find("temp") >= 0 or fname.find("tmp") >= 0 or fname.find("orig") >= 0 \
+            or fname.find("Copy") >= 0 or fname.find(".txt") >= 0 or fname.find("projects") >= 0):
+            reportError("Possible extraneous file: " + shortname(path))
+        elif badname_re.match(fname):
+            reportError("Likely misnamed file: " + shortname(path))
+        if os.path.isdir(path) and fname != ".git":
             verifyCleanDir(path)
 
 # Verifies the contributors list
 def verifyContributors(core):
-    if u'contributor' in core.keys():
-        if len(core[u'contributor']) < 1:
-            reportError(u"Missing contributors!")
-        for c in core[u'contributor']:
-            if (type(c) != str and type(c) != unicode) or len(c) < 3:
-                reportError(u"Invalid contributor name: " + unicode(c))
+    if 'contributor' in list(core.keys()):      # would this work: 'contributor' in core
+        if len(core['contributor']) < 1:
+            reportError("Missing contributors!")
+        for c in core['contributor']:
+            if not isinstance(c, str) or len(c) < 3:
+                reportError("Invalid contributor name: " + str(c))
 
 # Checks the dublin_core of the manifest
 def verifyCore(core):
-    verifyKeys(u"dublin_core", core, [u'conformsto', u'contributor', u'creator', u'description', u'format', \
-        u'identifier', u'issued', u'modified', u'language', u'publisher', u'relation', u'rights', \
-        u'source', u'subject', u'title', u'type', u'version'])
+    verifyKeys("dublin_core", core, ['conformsto', 'contributor', 'creator', 'description', 'format', \
+        'identifier', 'issued', 'modified', 'language', 'publisher', 'relation', 'rights', \
+        'source', 'subject', 'title', 'type', 'version'])
 
     # Check project identifier first because it is used to validate some other fields
     verifyIdentifier(core)  # Sets the projtype global
-    if u'conformsto' in core.keys() and core['conformsto'] != u'rc0.2':
-        reportError(u"Invalid value for conformsto: " + core['conformsto'])
+    if 'conformsto' in list(core.keys()) and core['conformsto'] != 'rc0.2':     # would this work: 'conforms_to' in core
+        reportError("Invalid value for conformsto: " + core['conformsto'])
     verifyContributors(core)
-    verifyStringField(core, u'creator', 3)
+    verifyStringField(core, 'creator', 3)
     verifyDates(core['issued'], core['modified'])
     verifyFormat(core)
-    verifyLanguage(core[u'language'])
+    verifyLanguage(core['language'])
     
     pub = core['publisher']
-    if pub.lower().find(u'unfolding') >= 0 and core['language']['identifier'] != u'en':
-        reportError(u"Invalid publisher: " + pub)
-    verifyRelations(core[u'relation'])
-    if u'rights' in core.keys() and core['rights'] != u'CC BY-SA 4.0':
-        reportError(u"Invalid value for rights: " + core['rights'])
+    if pub.lower().find('unfolding') >= 0 and core['language']['identifier'] != 'en':
+        reportError("Invalid publisher: " + pub)
+    verifyRelations(core['relation'])
+    if 'rights' in list(core.keys()) and core['rights'] != 'CC BY-SA 4.0':  # would this work: 'rights' in core
+        reportError("Invalid value for rights: " + core['rights'])
     verifySource(core['source'])
     verifySubject(core['subject'])
     verifyTitle(core['title'])
@@ -185,9 +187,9 @@ def verifyDates(issued, modified):
     issuedate = datetime.strptime(issued, "%Y-%m-%d").date()
     moddate = datetime.strptime(modified, "%Y-%m-%d").date()
     if moddate != date.today():
-        reportError(u"Wrong date - modified: " + modified)
+        reportError("Wrong date - modified: " + modified)
     if issuedate > moddate:
-        reportError(u"Dates wrong - issued: " + issued + u", modified: " + modified)
+        reportError("Dates wrong - issued: " + issued + ", modified: " + modified)
 
 def verifyDir(dirpath):
     path = os.path.join(dirpath, "manifest.yaml")
@@ -204,78 +206,76 @@ def verifyDir(dirpath):
 # Manifest file verification
 def verifyFile(path):
     if has_bom(path):
-        reportError(u"manifest.yaml file has a Byte Order Mark. Remove it.")
+        reportError("manifest.yaml file has a Byte Order Mark. Remove it.")
     manifestFile = io.open(path, "tr", encoding='utf-8')
     manifest = yaml.safe_load(manifestFile)
     manifestFile.close()
-    verifyKeys(u"", manifest, [u'dublin_core', u'checking', u'projects'])
-    verifyCore(manifest[u'dublin_core'])
-    verifyChecking(manifest[u'checking'])
+    verifyKeys("", manifest, ['dublin_core', 'checking', 'projects'])
+    verifyCore(manifest['dublin_core'])
+    verifyChecking(manifest['checking'])
     verifyProjects(manifest['projects'])
 
 # Verifies format field is a valid string, depending on project type.
-# Done with iev, irv, obs, obs-tn, obs-tq, ta, tq, tn, tw, tsv, ulb, udb, ust
+# Done with iev, irv, isv, obs, obs-tn, obs-tq, ta, tq, tn, tw, tsv, ulb, udb, ust
 def verifyFormat(core):
     global projtype
-    if verifyStringField(core, u'format', 8):
-        format = core[u'format']
-        if projtype in {u'tn'}:
-            if format == u'text/tsv':
-                projtype = u'tn-tsv'
-                print "projtype = " + projtype
-            elif format != u'text/markdown':
-                reportError(u"Invalid format: " + format)
-        elif projtype in {u'ta', u'tq', u'tw', u'obs', u'obs-tn', u'obs-tq'}:
-            if format != u'text/markdown':
-                reportError(u"Invalid format: " + format)
-        elif projtype in [u'ulb', u'udb', u'iev']:
-            if format not in {u'text/usfm', u'text/usfm3'}:
-                reportError(u"Invalid format: " + format)
-        elif projtype in [u'ust', u'irv']:
-            if format != u'text/usfm3':
-                reportError(u"Invalid format: " + format)
+    if verifyStringField(core, 'format', 8):
+        format = core['format']
+        if projtype in {'tn'}:
+            if format == 'text/tsv':
+                projtype = 'tn-tsv'
+                print("projtype = " + projtype)
+            elif format != 'text/markdown':
+                reportError("Invalid format: " + format)
+        elif projtype in {'ta', 'tq', 'tw', 'obs', 'obs-tn', 'obs-tq'}:
+            if format != 'text/markdown':
+                reportError("Invalid format: " + format)
+        elif projtype in {'ulb', 'udb', 'iev', 'isv'}:
+            if format not in {'text/usfm', 'text/usfm3'}:
+                reportError("Invalid format: " + format)
+        elif projtype in ['ust', 'irv']:
+            if format != 'text/usfm3':
+                reportError("Invalid format: " + format)
         else:
-            reportError(u"Unable to validate format because script does not yet support project type: " + projtype)
+            reportError("Unable to validate format because script does not yet support project type: " + projtype)
             
 # Validates the dublin_core:identifier field in several ways.
 # Sets the global projtype variable which is used by subsequent checks.
 def verifyIdentifier(core):
     global projtype
     global manifestDir
-    if verifyStringField(core, u'identifier', 2):
-        id = core[u'identifier']
-        if id not in {u'tn', u'tq', u'tw', u'ulb', u'udb', u'ust', u'ta', u'obs', u'obs-tn', u'obs-tq', u'iev', u'irv'}:
-            reportError(u"Invalid id: " + id)
+    if verifyStringField(core, 'identifier', 2):
+        id = core['identifier']
+        if id not in {'tn', 'tq', 'tw', 'ulb', 'udb', 'ust', 'ta', 'obs', 'obs-tn', 'obs-tq', 'iev', 'irv', 'isv'}:
+            reportError("Invalid id: " + id)
         else:
             projtype = id
-            print "projtype = " + projtype
+            print("projtype = " + projtype)
         parts = manifestDir.rsplit('_', 1)
         if id.lower() != parts[-1].lower():     # last part of directory name should match the projtype string
-            reportError(u"Project identifier (" + id + ") does not match last part of directory name: " + parts[-1].lower())
+            reportError("Project identifier (" + id + ") does not match last part of directory name: " + parts[-1].lower())
 
 # Verify that the specified fields exist and no others.
 def verifyKeys(group, dict, keys):
     for key in keys:
-        if key not in dict.keys():
-            reportError(u'Missing field: ' + group + u':' + key)
+        if key not in list(dict.keys()):      # would this work: key not in dict
+            reportError('Missing field: ' + group + ':' + key)
     for field in dict:
         if field not in keys:
-            reportError(u"Extra field: " + group + u":" + field)
+            reportError("Extra field: " + group + ":" + field)
 
 # Validate the language field and its subfields.
 def verifyLanguage(language):
-    verifyKeys(u"language", language, [u'direction', u'identifier', u'title'])
-    if u'direction' in language.keys():
-        if language[u'direction'] != u'ltr' and language[u'direction'] != u'rtl':
-            reportError(u"Incorrect language direction: " + language[u'direction'])
-    if u'identifier' in language.keys():
-        if language[u'identifier'] != getLanguageId():
-            reportError(u"Wrong language identifier: " + language[u'identifier'])
-    if verifyStringField(language, u'title', 3):
-        try:
-            sys.stdout.write("Remember to localize language title: " + language[u'title'] + u'\n')
-        except UnicodeEncodeError as e:
-            x = 1  # No error; the UnicodeEncodeError exception is evidence of a localized language title.
+    verifyKeys("language", language, ['direction', 'identifier', 'title'])
+    if 'direction' in list(language.keys()):      # would this work: 'direction' in language
+        if language['direction'] != 'ltr' and language['direction'] != 'rtl':
+            reportError("Incorrect language direction: " + language['direction'])
+    if 'identifier' in list(language.keys()):      # would this work: 'identifier' in language
+        if language['identifier'] != getLanguageId():
+            reportError("Wrong language identifier: " + language['identifier'])
+    if verifyStringField(language, 'title', 3):
+        if language['title'].isascii():
+            sys.stdout.write("Remember to localize language title: " + language['title'] + '\n')
 
 # Verifies that the project contains the six required fields and no others.
 # Verifies that the path exists.
@@ -288,58 +288,58 @@ def verifyProject(project):
     fullpath = os.path.join(manifestDir, project['path'])
     if len(project['path']) < 5 or not os.path.exists(fullpath):
         reportError("Invalid path: " + project['path'])
-    if projtype == u'ta':
+    if projtype == 'ta':
         verifyAcademyProject(project)
-    elif projtype in {u'tn', u'tq'}:
+    elif projtype in {'tn', 'tq'}:
         bookinfo = usfm_verses.verseCounts[project['identifier'].upper()]
         if project['sort'] != bookinfo['sort']:
-            reportError(u"Incorrect project:sort: " + str(project['sort']))
+            reportError("Incorrect project:sort: " + str(project['sort']))
         if len(project['categories']) != 0:
-            reportError(u"Categories list should be empty: project:categories")
-    elif projtype == u'tn-tsv':
+            reportError("Categories list should be empty: project:categories")
+    elif projtype == 'tn-tsv':
         bookinfo = usfm_verses.verseCounts[project['identifier'].upper()]
         if project['sort'] != bookinfo['sort']:
-            reportError(u"Incorrect project:sort: " + str(project['sort']))
+            reportError("Incorrect project:sort: " + str(project['sort']))
         cat = project['categories'][0]
-        if len(project['categories']) != 1 or cat not in {u'bible-ot', u'bible-nt'}:
-            reportError(u"Invalid project:categories: " + cat)
-    elif projtype == u'tw':
-        if project['title'] != u'translationWords':
-            reportError(u"Invalid project:title: " + project['title'])
-    elif projtype in {u'ulb', u'udb', u'ust', u'iev', u'irv'}:
+        if len(project['categories']) != 1 or cat not in {'bible-ot', 'bible-nt'}:
+            reportError("Invalid project:categories: " + cat)
+    elif projtype == 'tw':
+        if project['title'] != 'translationWords':
+            reportError("Invalid project:title: " + project['title'])
+    elif projtype in {'ulb', 'udb', 'ust', 'iev', 'irv', 'isv'}:
         bookinfo = usfm_verses.verseCounts[project['identifier'].upper()]
         if int(project['sort']) != bookinfo['sort']:
-            reportError(u"Incorrect project:sort: " + str(project['sort']))
-        if project['versification'] != u'ufw':
-            reportError(u"Invalid project:versification: " + project['versification'])
+            reportError("Incorrect project:sort: " + str(project['sort']))
+        if project['versification'] != 'ufw':
+            reportError("Invalid project:versification: " + project['versification'])
         if len(project['identifier']) != 3:
-            reportError(u"Invalid project:identifier: " + project['identifier'])
+            reportError("Invalid project:identifier: " + project['identifier'])
         cat = project['categories'][0]
-        if len(project['categories']) != 1 or not (cat == u'bible-ot' or cat == u'bible-nt'):
-            reportError(u"Invalid project:categories: " + cat)
-    elif projtype == u'obs':
+        if len(project['categories']) != 1 or not (cat == 'bible-ot' or cat == 'bible-nt'):
+            reportError("Invalid project:categories: " + cat)
+    elif projtype == 'obs':
         if project['categories']:
-            reportError(u"Should be blank: project:categories")
+            reportError("Should be blank: project:categories")
         if project['versification']:
-            reportError(u"Should be blank: project:versification")
-        if project['identifier'] != u'obs':
-            reportError(u"Invalid project:identifier: " + project['identifier'])
-        if project['title'] != u'Open Bible Stories':
-            reportError(u"Invalid project:title: " + project['title'])
-    elif projtype == u'obs-tn':
+            reportError("Should be blank: project:versification")
+        if project['identifier'] != 'obs':
+            reportError("Invalid project:identifier: " + project['identifier'])
+        if project['title'] != 'Open Bible Stories':
+            reportError("Invalid project:title: " + project['title'])
+    elif projtype == 'obs-tn':
         if project['categories'] and len(project['categories']) != 0:
-            reportError(u"Categories list should be empty: project:categories")
-        if project['identifier'] != u'obs':
-            reportError(u"Invalid project:identifier: " + project['identifier'])
-        if project['title'] != u'Open Bible Stories Translation Notes' and project['title'] != u'OBS translationNotes':
-            reportError(u"Invalid project:title: " + project['title'])
-    elif projtype == u'obs-tq':
+            reportError("Categories list should be empty: project:categories")
+        if project['identifier'] != 'obs':
+            reportError("Invalid project:identifier: " + project['identifier'])
+        if project['title'] != 'Open Bible Stories Translation Notes' and project['title'] != 'OBS translationNotes':
+            reportError("Invalid project:title: " + project['title'])
+    elif projtype == 'obs-tq':
         if project['categories']:
-            reportError(u"Categories list should be empty: projects:categories")
-        if project['identifier'] != u'obs':
-            reportError(u"Invalid project:identifier: " + project['identifier'])
-        if project['title'] != u'Open Bible Stories Translation Questions':
-            reportError(u"Invalid project:title: " + project['title'])
+            reportError("Categories list should be empty: projects:categories")
+        if project['identifier'] != 'obs':
+            reportError("Invalid project:identifier: " + project['identifier'])
+        if project['title'] != 'Open Bible Stories Translation Questions':
+            reportError("Invalid project:title: " + project['title'])
     else:
         sys.stdout.write("Verify each project entry manually.\n")   # temp until all projtypes are supported
 
@@ -348,142 +348,149 @@ def verifyProject(project):
 # Verifies the projects list
 def verifyProjects(projects):
     if not projects:
-        reportError(u'Empty projects list')
+        reportError('Empty projects list')
     else:
         global projtype
         nprojects = len(projects)
         if nprojects < 1:
-            reportError(u'Empty projects list')
-        if projtype in [u'obs', u'obs-tn', u'obs-tq', u'tw'] and nprojects != 1:
-            reportError(u"There should be exactly 1 project listed under projects.")
-        elif projtype == u'ta' and nprojects != 4:
-            reportError(u"There should be exactly 4 projects listed under projects.")
-        elif projtype in {u'tn', u'tn-tsv', u'ulb', u'udb', u'ust', u'iev', u'irv'} and nprojects not in (27,39,66):
-            reportError(u"Number of projects listed: " + str(nprojects))
+            reportError('Empty projects list')
+        if projtype in ['obs', 'obs-tn', 'obs-tq', 'tw'] and nprojects != 1:
+            reportError("There should be exactly 1 project listed under projects.")
+        elif projtype == 'ta' and nprojects != 4:
+            reportError("There should be exactly 4 projects listed under projects.")
+        elif projtype in {'tn', 'tn-tsv', 'ulb', 'udb', 'ust', 'iev', 'irv', 'isv'} and nprojects not in (27,39,66):
+            reportError("Number of projects listed: " + str(nprojects))
             
         for p in projects:
             verifyProject(p)
 
 # NOT DONE - need to support UHG-type entries
 def verifyRelation(rel):
-    if (type(rel) != str and type(rel) != unicode):
-        reportError(u"Relation element is not a string: " + str(rel))
+    if not isinstance(rel, str):
+        reportError("Relation element is not a string: " + str(rel))
     elif len(rel) < 5:
-        reportError(u"Invalid value for relation element: " + rel)
+        reportError("Invalid value for relation element: " + rel)
     else:
-        parts = rel.split(u'/')
+        parts = rel.split('/')
         if len(parts) != 2:
-            reportError(u"Invalid format for relation element: " + rel)
+            reportError("Invalid format for relation element: " + rel)
         else:
             global projtype
-            if parts[0] != getLanguageId() and parts[0] != u"el-x-koine":
-                reportError(u"Incorrect language code for relation element: " + rel)
-            if parts[1] not in {u'obs', u'obs-tn', u'obs-tq', u'tn', u'tq', u'tw', u'ta', u'udb', u'ulb', u'ust', u'iev', u'irv'}:
-                if parts[1][0:4] != u'ugnt':
-                    reportError(u"Invalid project code in relation element: " + rel)
+            if parts[0] != getLanguageId() and parts[0] != "el-x-koine":
+                reportError("Incorrect language code for relation element: " + rel)
+            if parts[1] not in {'obs', 'obs-tn', 'obs-tq', 'tn', 'tq', 'tw', 'ta', 'udb', 'ulb', 'ust', 'iev', 'irv', 'isv'}:
+                if parts[1][0:4] != 'ugnt':
+                    reportError("Invalid project code in relation element: " + rel)
             if parts[1] == projtype:
-                reportError(u"Project code in relation element is same as current project: " + rel)
+                reportError("Project code in relation element is same as current project: " + rel)
 
 # The relation element is a list of strings.
 def verifyRelations(relation):
+    uhg = False
     if len(relation) < 1:
-        reportError(u"Missing relations in: relation")
+        reportError("Missing relations in: relation")
     for r in relation:
         verifyRelation(r)
+        if projtype == 'tn-tsv':
+            parts = r.split('/')
+            if len(parts) == 2 and parts[0] == 'el-x-koine' and 'ugnt?v=' in parts[1]:
+                uhg = True
+    if projtype == 'tn-tsv' and not uhg:
+        reportError("Must reference 'el-x-koine/ugnt?v=...' in relation")
         
 # Validates the source field, which is an array of exactly one dictionary.
 def verifySource(source):
     if not source or len(source) < 1:
-        reportError(u"Invalid source spec: should be an array of dictionary of three fields.")
+        reportError("Invalid source spec: should be an array of dictionary of three fields.")
     for dict in source:
-        verifyKeys(u"source[x]", dict, [u'language', u'identifier', u'version'])
+        verifyKeys("source[x]", dict, ['language', 'identifier', 'version'])
 
         global projtype
-        if dict['identifier'] != projtype and projtype in {u'obs', u'obs-tn', u'obs-tq', u'tn', u'tq', u'tw', u'udb', u'ulb', u'ult', u'ust'}:
+        if dict['identifier'] != projtype and projtype in {'obs', 'obs-tn', 'obs-tq', 'tn', 'tq', 'tw', 'udb', 'ulb', 'ult', 'ust'}:
             reportError("Incorrect source:identifier: " + dict['identifier'])
-        if dict['identifier'] != u'tn' and projtype == u'tn-tsv':
+        if dict['identifier'] != 'tn' and projtype == 'tn-tsv':
             reportError("Incorrect source:identifier for tn-tsv project: " + dict['identifier'])
-        if dict['language'] == u'English':
-            reportError("Use language code in source:language, not \'" + dict['language'] + u'\'')
-        elif dict['language'] != u'en':
+        if dict['language'] == 'English':
+            reportError("Use language code in source:language, not \'" + dict['language'] + '\'')
+        elif dict['language'] != 'en':
             reportError("Possible bad source:language: " + dict['language'])
-        verifyStringField(dict, u'version', 1)
+        verifyStringField(dict, 'version', 1)
     
 # Validates that the specified key is a string of specified minimum length.
 # Returns False if there is a problem.
 def verifyStringField(dict, key, minlength):
     success = True
-    if key in dict.keys():
-        if (type(dict[key]) != str and type(dict[key]) != unicode):
-            reportError(u"Value must be a string: " + key + u": " + str(dict[key]))
+    if key in list(dict.keys()):      # would this work: key in dict
+        if not isinstance(dict[key], str):
+            reportError("Value must be a string: " + key + ": " + str(dict[key]))
             success = False
         elif len(dict[key]) < minlength:
-            reportError(u"Invalid value for " + key + u": " + dict[key])
+            reportError("Invalid value for " + key + ": " + dict[key])
             success = False
     return success
 
 # Validates the subject field
 def verifySubject(subject):
     failure = False
-    if projtype == u'ta':
-        failure = (subject != u'Translation Academy')
-    elif projtype == u'tw':
-        failure = (subject != u'Translation Words')
-    elif projtype == u'tn':
-        failure = (subject != u'Translation Notes')
-    elif projtype == u'tn-tsv':
-        failure = (subject != u'TSV Translation Notes')
-    elif projtype == u'tn':
-        failure = (subject not in {u'Translation Notes', u'TSV Translation Notes'})
-    elif projtype == u'tq':
-        failure = (subject != u'Translation Questions')
-    elif projtype in {u'ulb', u'udb', u'ust', u'iev', u'irv'}:
-        failure = (subject not in {u'Bible', u'Aligned Bible'})
-    elif projtype == u'obs':
-        failure = (subject != u'Open Bible Stories')
-    elif projtype == u'obs-tq':
-        failure = (subject != u'OBS Translation Questions')
-    elif projtype == u'obs-tn':
-        failure = (subject != u'OBS Translation Notes')
+    if projtype == 'ta':
+        failure = (subject != 'Translation Academy')
+    elif projtype == 'tw':
+        failure = (subject != 'Translation Words')
+    elif projtype == 'tn':
+        failure = (subject != 'Translation Notes')
+    elif projtype == 'tn-tsv':
+        failure = (subject != 'TSV Translation Notes')
+    elif projtype == 'tn':
+        failure = (subject not in {'Translation Notes', 'TSV Translation Notes'})
+    elif projtype == 'tq':
+        failure = (subject != 'Translation Questions')
+    elif projtype in {'ulb', 'udb', 'ust', 'iev', 'irv', 'isv'}:
+        failure = (subject not in {'Bible', 'Aligned Bible'})
+    elif projtype == 'obs':
+        failure = (subject != 'Open Bible Stories')
+    elif projtype == 'obs-tq':
+        failure = (subject != 'OBS Translation Questions')
+    elif projtype == 'obs-tn':
+        failure = (subject != 'OBS Translation Notes')
     else:
         sys.stdout.write("Verify subject manually.\n")
     if failure:
-        reportError(u"Invalid subject: " + subject)
+        reportError("Invalid subject: " + subject)
 
 # Verifies that the title
 def verifyTitle(title):
-    if (type(title) != str and type(title) != unicode):
-        reportError(u"Incorrect type for title field: " + str(title))
+    if not isinstance(title, str):
+        reportError("Incorrect type for title field: " + str(title))
     elif len(title) < 3:
-        reportError(u"String value too short for title: " + title)
-    if projtype in {'iev', 'udb', 'ust'} and (u"Literal" in title or u"Revised" in title):
-        reportError(u"Title contradicts project type: " + title)
-    elif projtype in {'irv', 'ulb', 'ult'} and (u"Easy" in title or u"Dynamic" in title):
-        reportError(u"Title contradicts project type: " + title)
+        reportError("String value too short for title: " + title)
+    if projtype in {'iev', 'udb', 'ust'} and ("Literal" in title or "Revised" in title):
+        reportError("Title contradicts project type: " + title)
+    elif projtype in {'irv', 'isv', 'ulb', 'ult'} and ("Easy" in title or "Dynamic" in title):
+        reportError("Title contradicts project type: " + title)
 
 def verifyType(type):
     failure = False
-    if projtype == u'ta':
-        failure = (type != u'man')
-    elif projtype == u'tw':
-        failure = (type != u'dict')
-    elif projtype in {u'tn', u'tn-tsv', u'tq', u'obs-tn', u'obs-tq'}:
-        failure = (type != u'help')
-    elif projtype in [u'ulb', u'udb', u'ust', u'iev', u'irv']:
-        failure = (type != u'bundle')
-    elif projtype == u'obs':
-        failure = (type != u'book')
+    if projtype == 'ta':
+        failure = (type != 'man')
+    elif projtype == 'tw':
+        failure = (type != 'dict')
+    elif projtype in {'tn', 'tn-tsv', 'tq', 'obs-tn', 'obs-tq'}:
+        failure = (type != 'help')
+    elif projtype in {'ulb', 'udb', 'ust', 'iev', 'irv', 'isv'}:
+        failure = (type != 'bundle')
+    elif projtype == 'obs':
+        failure = (type != 'book')
     else:
         sys.stdout.write("Verify type manually.\n")
     if failure:
-        reportError(u"Invalid type: " + type)
+        reportError("Invalid type: " + type)
 
 def verifyVersion(version, sourceversion):
-    parts = version.rsplit(u'.', 1)
+    parts = version.rsplit('.', 1)
     if int(sourceversion) < 100 and (len(parts) < 2 or parts[0] != sourceversion or int(parts[-1]) < 1):
-        reportError(u"Invalid version: " + version + "; Source version is " + sourceversion)
+        reportError("Invalid version: " + version + "; Source version is " + sourceversion)
     if int(sourceversion) >= 100 and (len(parts) > 1 or int(parts[0]) > 99):
-        reportError(u"Invalid version: " + version + ". Source version is " + sourceversion)
+        reportError("Invalid version: " + version + ". Source version is " + sourceversion)
 
 # Returns True if the file has a BOM
 def has_bom(path):
@@ -493,6 +500,13 @@ def has_bom(path):
         if raw.startswith(bom):
             return True
     return False
+
+def shortname(longpath):
+    shortname = longpath
+    if manifestDir in longpath:
+        shortname = longpath[len(manifestDir)+1:]
+    return shortname
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
@@ -508,6 +522,6 @@ if __name__ == "__main__":
     if issuesFile:
         issuesFile.close()
     if nIssues == 0:
-        print "Done, no issues found.\n"
+        print("Done, no issues found.\n")
     else:
-        print "Finished checking, found " + str(nIssues) + " issues.\n"
+        print("Finished checking, found " + str(nIssues) + " issues.\n")

@@ -22,21 +22,21 @@ import operator
 
 # Global variables
 en_rc_dir = r'E:\Users\Larry\AppData\Local\translationstudio\library\resource_containers'
-target_dir = r'E:\DCS\Punjabi\pa_irv'
+target_dir = r'E:\DCS\Hindi\hi_irv'
 projects = []
 
 class State:
-    ID = u""
-    identification = u""
-    rem = u""
-    h = u""
-    toc1 = u""
-    toc2 = u""
-    toc3 = u""
-    mt = u""
-    title = u""         # updates to the best non-ascii title if any, or best ascii title 
-    postHeader = u""
-    reference = u""
+    ID = ""
+    identification = ""
+    rem = ""
+    h = ""
+    toc1 = ""
+    toc2 = ""
+    toc3 = ""
+    mt = ""
+    title = ""         # updates to the best non-ascii title if any, or best ascii title 
+    postHeader = ""
+    reference = ""
     usfmFile = 0
     
     def addTOC1(self, toc):
@@ -71,7 +71,7 @@ class State:
     
     def addPostHeader(self, key, value):
         if key:
-            State.postHeader += u"\n\\" + key + u" "
+            State.postHeader += "\n\\" + key + " "
         if value:
             State.postHeader += value
 
@@ -94,34 +94,34 @@ class State:
     # Prefers non-ascii values for all fields.
     # Sets these values in the State
     def optimizeTitles(self):
-        if isAscii(State.title) and not isAscii(State.mt):
+        if State.title.isascii() and not State.mt.isascii():
             State.title = State.mt
-        elif isAscii(State.title) and not isAscii(State.toc1):
+        elif State.title.isascii() and not State.toc1.isascii():
             State.title = State.toc1
-        elif isAscii(State.title) and not isAscii(State.h):
+        elif State.title.isascii() and not State.h.isascii():
             State.title = State.h
-        elif isAscii(State.title) and not isAscii(State.toc2):
+        elif State.title.isascii() and not State.toc2.isascii():
             State.title = State.toc2
 
-        if State.h == "" or (isAscii(State.h) and not isAscii(State.title)):
+        if State.h == "" or (State.h.isascii() and not State.title.isascii()):
             State.h = State.title
-        if State.toc1 == "" or (isAscii(State.toc1) and not isAscii(State.title)):
+        if State.toc1 == "" or (State.toc1.isascii() and not State.title.isascii()):
             State.toc1 = State.title
-        if State.toc2 == "" or (isAscii(State.toc2) and not isAscii(State.title)):
+        if State.toc2 == "" or (State.toc2.isascii() and not State.title.isascii()):
             State.toc2 = State.title
-        if State.mt == "" or (isAscii(State.mt) and not isAscii(State.title)):
+        if State.mt == "" or (State.mt.isascii() and not State.title.isascii()):
             State.mt = State.title
         
     def reset(self):
-        State.ID = u""
-        State.rem = u""
-        State.h = u""
-        State.toc1 = u""
-        State.toc2 = u""
-        State.toc3 = u""
-        State.mt = u""
-        State.postHeader = u""
-        State.reference = u""
+        State.ID = ""
+        State.rem = ""
+        State.h = ""
+        State.toc1 = ""
+        State.toc2 = ""
+        State.toc3 = ""
+        State.mt = ""
+        State.postHeader = ""
+        State.reference = ""
 
 class DuplicateBook(Exception):
     def __init__(self, value):
@@ -129,16 +129,6 @@ class DuplicateBook(Exception):
     def __str__(self):
 #        return repr(self.value)
         return self.value
-
-# Returns True if the specified string is ascii
-def isAscii(str):
-    try:
-        if str and len(str) > 0:
-            str.decode('ascii')
-        ascii = True
-    except UnicodeEncodeError as e:
-        ascii = False
-    return ascii
 
 # Returns True if the project already exists in the array of projects.
 def projectExists(id):
@@ -190,23 +180,23 @@ def take(line):
         marker = token.group(1)
         value = token.group(2)
 
-        if marker == u"id":
+        if marker == "id":
             state.addID(value)
-        elif marker == u"ide" or marker == u"usfm":
+        elif marker == "ide" or marker == "usfm":
             value = 0       # do nothing
-        elif marker == u"h":
+        elif marker == "h":
             state.addH(value)
-        elif marker == u"toc1":
+        elif marker == "toc1":
             state.addTOC1(value)
-        elif marker == u"toc2":
+        elif marker == "toc2":
             state.addTOC2(value)
-        elif marker == u"toc3":
+        elif marker == "toc3":
             state.addTOC3(value)
-        elif marker == u"mt":
+        elif marker == "mt":
             state.addMT(value)
-        elif marker == u"mt1":
+        elif marker == "mt1":
             state.addMT1(value)
-        elif marker == u"imt" or marker == u"mte":
+        elif marker == "imt" or marker == "mte":
             takeMTX(marker, value)
         else:
             # sys.stdout.write("Taking other token: ")
@@ -221,25 +211,25 @@ def writeUsfm(body):
     state = State()
     state.optimizeTitles()
     # sys.stdout.write(u"Starting to write header.\n")
-    state.usfmFile.write(u"\\id " + state.identification)
-    state.usfmFile.write(u"\n\\usfm 3.0")
-    state.usfmFile.write(u"\n\\ide UTF-8")
+    state.usfmFile.write("\\id " + state.identification)
+    state.usfmFile.write("\n\\usfm 3.0")
+    state.usfmFile.write("\n\\ide UTF-8")
     if state.rem:
-        state.usfmFile.write(u"\n\\rem " + state.rem)
-    state.usfmFile.write(u"\n\\h " + state.h)
-    state.usfmFile.write(u"\n\\toc1 " + state.toc1)
-    state.usfmFile.write(u"\n\\toc2 " + state.toc2)
-    state.usfmFile.write(u"\n\\toc3 " + state.ID.lower())
-    state.usfmFile.write(u"\n\\mt1 " + state.mt)    # safest to use \mt1 always. When \mt2 exists, \mt1 is required.
+        state.usfmFile.write("\n\\rem " + state.rem)
+    state.usfmFile.write("\n\\h " + state.h)
+    state.usfmFile.write("\n\\toc1 " + state.toc1)
+    state.usfmFile.write("\n\\toc2 " + state.toc2)
+    state.usfmFile.write("\n\\toc3 " + state.ID.lower())
+    state.usfmFile.write("\n\\mt1 " + state.mt)    # safest to use \mt1 always. When \mt2 exists, \mt1 is required.
     
     # Write post-header if any
-    state.usfmFile.write(u'\n')
+    state.usfmFile.write('\n')
     state.usfmFile.write(state.postHeader)
-    state.usfmFile.write(u'\n')
+    state.usfmFile.write('\n')
     for line in body:
         state.usfmFile.write(line)
-    if line[-1] != u'\n':
-        state.usfmFile.write(u'\n')
+    if line[-1] != '\n':
+        state.usfmFile.write('\n')
     state.usfmFile.close()
 
 # Makes minor corrections to specified usfm file and copies to properly named usfm file at target_dir.
@@ -247,12 +237,12 @@ def convertFile(usfmpath, fname):
     state = State()
     state.reset()
     
-    print "CONVERTING " + fname + ":"
+    print("CONVERTING " + fname + ":")
     sys.stdout.flush()
     input = io.open(usfmpath, "tr", 1, encoding="utf-8")
     try:
         line = input.readline()
-        while line[0:3] != u"\\c ":
+        while line[0:3] != "\\c ":
             take(line)
             line = input.readline()
         body = []
@@ -272,12 +262,12 @@ def appendToProjects():
     state = State()
 
     sort = usfm_verses.verseCounts[state.ID]["sort"]
-    testament = u'nt'
+    testament = 'nt'
     if sort < 40:
-        testament = u'ot'
+        testament = 'ot'
     project = { "title": state.title, "id": state.ID.lower(), "sort": str(sort), \
                 "path": "./" + makeUsfmFilename(state.ID), \
-                "categories": "[ 'bible-" + testament + u"' ]" }
+                "categories": "[ 'bible-" + testament + "' ]" }
     projects.append(project)
 
 # Converts the book or books contained in the specified folder
@@ -308,13 +298,13 @@ def dumpProjects():
     path = makeManifestPath()
     manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
     for p in projects:
-        manifest.write(u"  -\n")
-        manifest.write(u"    title: '" + p['title'] + u"'\n")
-        manifest.write(u"    versification: 'ufw'\n")
-        manifest.write(u"    identifier: '" + p['id'] + u"'\n")
-        manifest.write(u"    sort: " + str(p['sort']) + "\n")
-        manifest.write(u"    path: '" + p['path'] + u"'\n")
-        manifest.write(u"    categories: " + p['categories'] + u"\n")
+        manifest.write("  -\n")
+        manifest.write("    title: '" + p['title'] + "'\n")
+        manifest.write("    versification: 'ufw'\n")
+        manifest.write("    identifier: '" + p['id'] + "'\n")
+        manifest.write("    sort: " + str(p['sort']) + "\n")
+        manifest.write("    path: '" + p['path'] + "'\n")
+        manifest.write("    categories: " + p['categories'] + "\n")
     manifest.close()
 
 def printError(text):
@@ -325,9 +315,9 @@ if __name__ == "__main__":
     if os.path.isfile( makeManifestPath() ):
         os.remove( makeManifestPath() )
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-         convertFolder(r'E:\DCS\Punjabi\IRV')
+         convertFolder(r'E:\DCS\Hindi\IRV.newest')
     else:       # the first command line argument is presumed to be the folder containing usfm files to be converted
         convertFolder(sys.argv[1])
     dumpProjects()
 
-    print "\nDone."
+    print("\nDone.")

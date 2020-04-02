@@ -4,17 +4,21 @@
 # Uses parseUsfm module.
 # Place this script in the USFM-Tools folder.
 
-import sys
-import os
-
 # Global variables
+usfmVersion = 2     # if version 3.0 or greater, tolerates unknown tokens and verse fragments
+suppress1 = False       # Suppress warnings about empty verses and verse fragments
+suppress9 = False       # Suppress warnings about ASCII content
+
+if usfmVersion >= 3.0:
+    suppress1 = True
+
 lastToken = None
 issuesFile = None
 usfmDir = ""
-usfmVersion = 2.4      # if version 3.0 or greater, tolerates unknown tokens
-suppress9 = False       # Suppress warnings about ASCII content
 
 # Set Path for files in support/
+import os
+import sys
 rootdiroftools = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(rootdiroftools,'support'))
 
@@ -25,6 +29,9 @@ import codecs
 # import chardet # $ pip install chardet
 import usfm_verses
 import re
+if usfmVersion >= 3.0:
+    import usfm_utils
+
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
 # Marker types
@@ -35,7 +42,7 @@ OTHER = 9
 
 class State:
     IDs = []
-    ID = u""
+    ID = ""
     titles = []
     chapter = 0
     nParagraphs = 0
@@ -43,8 +50,8 @@ class State:
     lastVerse = 0
     needVerseText = False
     textOkayHere = False
-    reference = u""
-    lastRef = u""
+    reference = ""
+    lastRef = ""
     errorRefs = set()
     currMarker = OTHER
     
@@ -183,7 +190,7 @@ def reportError(msg):
         sys.stderr.write(state.reference + ": (Unicode...)\n")
  
     issues = openIssuesFile()       
-    issues.write(msg + u".\n")
+    issues.write(msg + ".\n")
 
 # Verifies that at least one book title is specified, other than the Engligh book title.
 # This method is called just before chapter 1 begins, so there has been every
@@ -211,7 +218,7 @@ def verifyVerseCount():
 def verifyNotEmpty(filename):
     state = State()
     if not state.ID or state.chapter == 0:
-        reportError(filename + u" -- may be empty, or open in another program.")
+        reportError(filename + " -- may be empty, or open in another program.")
 
 def verifyChapterCount():
     state = State()
@@ -220,15 +227,15 @@ def verifyChapterCount():
 
 def printToken(token):
     if token.isV():
-        print "Verse number " + token.value
+        print("Verse number " + token.value)
     elif token.isC():
-        print "Chapter " + token.value
+        print("Chapter " + token.value)
     elif token.isP():
-        print "Paragraph " + token.value
+        print("Paragraph " + token.value)
     elif token.isTEXT():
-        print "Text: <" + token.value + ">"
+        print("Text: <" + token.value + ">")
     else:
-        print token
+        print(token)
 
 def takeID(id):
     state = State()
@@ -279,7 +286,7 @@ def takeV(v):
         state.addError(state.reference)
     elif state.verse == state.lastVerse:
         reportError("Duplicated verse: " + state.reference)
-    elif state.verse == state.lastVerse + 2 and not isOptional(state.reference):
+    elif state.verse == state.lastVerse + 2 and not isOptional(state.reference, True):
         if state.addError(state.lastRef):
             reportError("Missing verse between: " + state.lastRef + " and " + state.reference)
     elif state.verse > state.lastVerse + 2 and state.addError(state.lastRef):
@@ -301,35 +308,36 @@ def takeText(t):
             reportError("  no preceding Token")
     state.addText()
 
-# Returns True if the specified string is ascii
-def isAscii(str):
-    try:
-        if str and len(str) > 0:
-            str.decode('ascii')
-        ascii = True
-    except UnicodeEncodeError as e:
-        ascii = False
-    return ascii
-
 # Returns true if token is part of a footnote
 def isFootnote(token):
-    return token.isFS() or token.isFE() or token.isFR() or token.isFRE() or token.isFT() or token.isFP() or token.isFES() or token.isFEE()
+    return token.isF_S() or token.isF_E() or token.isFR() or token.isFR_E() or token.isFT() or token.isFP() or token.isFE_S() or token.isFE_E()
 
 # Returns true if token is part of a cross reference
 def isCrossRef(token):
-    return token.isXS() or token.isXE() or token.isXO() or token.isXT()
+    return token.isX_S() or token.isX_E() or token.isXO() or token.isXT()
 
-# Returns True if the specified reference immediately FOLLOWS a verse that does not appear in some manuscripts.
-# Does not handle optional passages, such as John 7:53-8:11, or Mark 16:9-20.
-def isOptional(ref):
-#   return ref in { 'MAT 17:21', 'MAT 18:11', 'MAT 23:14', 'MRK 7:16', 'MRK 9:44', 'MRK 9:46', 'MRK 11:26', 'MRK 15:28', 'MRK 16:9', 'MRK 16:12', 'MRK 16:14', 'MRK 16:17', 'MRK 16:19', 'LUK 17:36', 'LUK 23:17', 'JHN 5:4', 'JHN 7:53', 'JHN 8:1', 'JHN 8:4', 'JHN 8:7', 'JHN 8:9', 'ACT 8:37', 'ACT 15:34', 'ACT 24:7', 'ACT 28:29', 'ROM 16:24' }
-    return ref in { 'MAT 17:22', 'MAT 18:12', 'MAT 23:15', 'MRK 7:17', 'MRK 9:45', 'MRK 9:47', 'MRK 11:27', 'MRK 15:29', 'LUK 17:37', 'LUK 23:18', 'JHN 5:5', 'ACT 8:38', 'ACT 15:35', 'ACT 24:8', 'ACT 28:30', 'ROM 16:25' }
+# Returns True if the specified verse reference is an optional verse.
+# Pass previous=True to check the previous verse.
+def isOptional(ref, previous=False):
+    if previous:
+        # Returns True if the specified reference immediately FOLLOWS a verse that does not appear in some manuscripts.
+        # Does not handle optional passages, such as John 7:53-8:11, or Mark 16:9-20.
+        return ref in { 'MAT 17:22', 'MAT 18:12', 'MAT 23:15', 'MRK 7:17', 'MRK 9:45', 'MRK 9:47',\
+'MRK 11:27', 'MRK 15:29', 'LUK 17:37', 'LUK 23:18', 'JHN 5:5', 'ACT 8:38', 'ACT 15:35',\
+'ACT 24:8', 'ACT 28:30', 'ROM 16:25' }
+    else:
+        # May not handle the optional John 7:53-8:11 passage
+        return ref in { 'MAT 17:21', 'MAT 18:11', 'MAT 23:14', 'MRK 7:16', 'MRK 9:44', 'MRK 9:46',\
+'MRK 16:9', 'MRK 16:10', 'MRK 16:11', 'MRK 16:12', 'MRK 16:13', 'MRK 16:14', 'MRK 16:15', 'MRK 16:16',\
+'MRK 16:17', 'MRK 16:18', 'MRK 16:19', 'MRK 16:20', 
+'MRK 11:26', 'MRK 15:28', 'LUK 17:36', 'LUK 23:17', 'JHN 5:4', 'JHN 7:53', 'JHN 8:1', 'ACT 8:37', 'ACT 15:34',\
+'ACT 24:7', 'ACT 28:29', 'ROM 16:24' }
 
 def isPoetry(token):
     return token.isQ() or token.isQ1() or token.isQA() or token.isSP()
 
 def isIntro(token):
-    return token.is_is1() or token.is_ip() or token.is_iot() or token.is_io1()
+    return token.is_is() or token.is_ip() or token.is_iot() or token.is_io()
     
 def isTextCarryingToken(token):
     return token.isB() or token.isM() or token.isD() or isFootnote(token) or isCrossRef(token) or isPoetry(token) or isIntro(token)
@@ -341,10 +349,10 @@ def take(token):
     state = State()
     if isFootnote(token):
         state.addText()     # footnote replaces need for text
-    if state.needText() and not isTextCarryingToken(token):
+    if state.needText() and not isTextCarryingToken(token) and not suppress1 and not isOptional(state.reference):
         if not token.isTEXT():
             reportError("Empty verse: " + state.reference)
-        elif len(token.value) < 7:
+        elif len(token.value) < 7:      # Text follows verse marker but is very short
             reportError("Verse fragment: " + state.reference)
     if token.isID():
         takeID(token.value)
@@ -369,11 +377,11 @@ def take(token):
         takeSection()
     elif token.isQ() or token.isQ1() or token.isQ2() or token.isQ3():
         state.addQuote()
-    elif token.isH() or token.isTOC1() or token.isTOC2() or token.isMT() or token.isIMT():
+    elif token.isH() or token.isTOC1() or token.isTOC2() or token.isMT() or token.is_imt():
         state.addTitle(token.value)
-        if token.isMT() and isAscii(token.value) and not suppress9:
+        if token.isMT() and token.value.isascii() and not suppress9:
             reportError("mt token has ASCII value in " + state.reference)
-    elif token.isTOC3() and (len(token.value) != 3 or not isAscii(token.value) or token.value.lower() != token.value):
+    elif token.isTOC3() and (len(token.value) != 3 or not token.value.isascii() or token.value.lower() != token.value):
         reportError("Invalid toc3 value in " + state.reference)
     elif token.isUnknown():
         if token.value == "p":
@@ -414,20 +422,15 @@ def verifyChapterAndVerseMarkers(text, book):
             str = str[:-1]
         reportError(book + ": missing space after verse number: " + str + " near " + state.reference)
 
-prefix_re = re.compile(r'[CE]:\\DCS')
-
 # Corresponding entry point in tx-manager code is verify_contents_quiet()
 def verifyFile(filename):
-    # detect file encoding
-    enc = detect_by_bom(filename, default="utf-8")
-    input = io.open(filename, "tr", 1, encoding=enc)
+    input = io.open(filename, "tr", 1, encoding="utf-8-sig")
     str = input.read(-1)
     input.close()
+    if usfmVersion >= 3.0:
+        str = usfm_utils.usfm3_to_usfm2(str)
 
-#    shortname = filename
-#    if prefix_re.match(filename):
-#        shortname = "..." + filename[6:]
-    print "CHECKING " + filename + ":"
+    print("CHECKING " + filename + ":")
     sys.stdout.flush()
     verifyChapterAndVerseMarkers(str, filename)
     for token in parseUsfm.parseString(str):
@@ -436,20 +439,8 @@ def verifyFile(filename):
     verifyVerseCount()      # for the last chapter
     verifyChapterCount()
     state = State()
-    state.addID(u"")
+    state.addID("")
     sys.stderr.flush()
-    # print "FINISHED CHECKING.\n"
-
-def detect_by_bom(path, default):
-    with open(path, 'rb') as f:
-        raw = f.read(4)
-    for enc,boms in \
-            ('utf-8-sig',(codecs.BOM_UTF8)),\
-            ('utf-16',(codecs.BOM_UTF16_LE,codecs.BOM_UTF16_BE)),\
-            ('utf-32',(codecs.BOM_UTF32_LE,codecs.BOM_UTF32_BE)):
-        if any(raw.startswith(bom) for bom in boms):
-            return enc
-    return default
 
 def verifyDir(dirpath):
     for f in os.listdir(dirpath):
@@ -462,7 +453,7 @@ def verifyDir(dirpath):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        source = r'E:\DCS\Nagamese\nag_isv'
+        source = r'E:\DCS\Kannada\temp'
     else:
         source = sys.argv[1]
         
@@ -477,4 +468,4 @@ if __name__ == "__main__":
     
     if issuesFile:
         issuesFile.close()
-    print "Done.\n"
+    print("Done.\n")

@@ -9,7 +9,7 @@
 #    md2md()
 
 # Global variables
-g_langcode = u''
+g_langcode = ''
 g_mdPath = ''
 pages = []
 g_multilist = False     # Support multi-level lists. By default, spaces before asterisk are removed.
@@ -44,7 +44,7 @@ class State:
         State.prevlinetype = State.currlinetype
         if not line or len(line.strip()) == 0:
             State.currlinetype = BLANKLINE
-        elif line and line[0] == u'#':
+        elif line and line[0] == '#':
             State.currlinetype = HEADING
         elif listitem_re.match(line):
             State.currlinetype = LIST_ITEM
@@ -72,8 +72,7 @@ def json2md(inputPath, mdPath, langcode, shortname):
 
 def convertJson(inputPath, mdPath, shortname):
     notes = []
-    enc = detect_by_bom(inputPath, default="utf-8")
-    f = io.open(inputPath, "tr", 1, encoding=enc)
+    f = io.open(inputPath, "tr", 1, encoding="utf-8-sig")
     try:
         notes = json.load(f)
     except ValueError as e:
@@ -90,18 +89,18 @@ def convertJson(inputPath, mdPath, shortname):
         for note in notes:
             nIn += 1
             if keepNote(note):
-                titlestr = unicode(note['title']).strip()
-                titlestr = titlestr.replace(u"#", u"%")
+                titlestr = str(note['title']).strip()
+                titlestr = titlestr.replace("#", "%")
                 title = normalizeTitle(titlestr)
-                bodystr = unicode(note['body']).strip()
-                body = bodystr.replace(u'●', u'*')     # this stmt doesn't work in normalize() function!?
-                body = body.replace(u'•', u'*')     # this stmt doesn't work in normalize() function!?
-                body = body.replace(u"#", u"%")
+                bodystr = str(note['body']).strip()
+                body = bodystr.replace('●', '*')     # this stmt doesn't work in normalize() function!?
+                body = body.replace('•', '*')     # this stmt doesn't work in normalize() function!?
+                body = body.replace("#", "%")
                 body = normalize(body)
                 if nOut > 0:
-                    mdFile.write(u'\n')
-                mdFile.write(u'# ' + title + u'\n\n')
-                mdFile.write(body + u'\n')
+                    mdFile.write('\n')
+                mdFile.write('# ' + title + '\n\n')
+                mdFile.write(body + '\n')
                 nOut += 1
                 if abs(len(title) - len(titlestr)) > 12 or len(body) - len(bodystr) > 16 or len(body) - len(bodystr) < -50:
                     sys.stderr.write("Manually check conversion of note " + str(nIn) + " in " + shortname(inputPath) + ".\n")
@@ -122,8 +121,7 @@ def md2md(inputPath, mdPath, langcode, shortname):
     g_langcode = langcode
     g_mdPath = mdPath
 
-    enc = detect_by_bom(inputPath, default="utf-8")
-    input = io.open(inputPath, "tr", 1, encoding=enc)
+    input = io.open(inputPath, "tr", 1, encoding="utf-8-sig")
     lines = input.readlines(-1)
     input.close
 
@@ -138,7 +136,7 @@ def md2md(inputPath, mdPath, langcode, shortname):
             nIn += 1
             line = line.rstrip()
             if blankheading_re.match(line):
-                line = u""
+                line = ""
                 sys.stderr.write("Removed empty heading: " + shortname(mdPath) + " at line: " + str(nIn) + ". Must check manually.\n")
 #             if len(line) > 0:
 #                 if not hash:       # Find the first character in the file, should be a hash mark
@@ -148,7 +146,7 @@ def md2md(inputPath, mdPath, langcode, shortname):
 #                 elif nOut == 1 and hash != u'#':
 #                     sys.stderr.write("File does not begin with heading: "  + shortname(mdPath) + "\n")                    
             if nIn == 1 and forgothash_re.match(line):
-                line = u"# " + line
+                line = "# " + line
             if len(line.strip()) == 0:
                 if nOut == 0:     # skip blank lines at top of input file
                     sys.stderr.write("Removing blank line at top of file: " + shortname(mdPath) + "\n")
@@ -169,8 +167,8 @@ closedheading_re = re.compile(r'(#+[ \t]+.*?)#+\s*$', re.UNICODE)
 
 # Fix poorly formed header lines
 def fixHeadings(line):
-    line = re.sub(r'#+[\s][\s]+', u'# ', line, count=1, flags=re.UNICODE)     # remove extra spaces/tabs after hash mark
-    line = re.sub(r'\*+[\s][\s]+', u'* ', line, count=1, flags=re.UNICODE)    # remove extra spaces/tabs after asterisk
+    line = re.sub(r'#+[\s][\s]+', '# ', line, count=1, flags=re.UNICODE)     # remove extra spaces/tabs after hash mark
+    line = re.sub(r'\*+[\s][\s]+', '* ', line, count=1, flags=re.UNICODE)    # remove extra spaces/tabs after asterisk
     
     # ensure space after hash(es)
     hashes = hashes_re.match(line)
@@ -179,13 +177,13 @@ def fixHeadings(line):
         pattern = strHashes + nospace
         jam = re.match(pattern, line)
         if jam:
-            line = strHashes + u" " + jam.group(1)
+            line = strHashes + " " + jam.group(1)
         line = uncloseHeading(line)
     return line
 
 def fixBullets(line):
-    line = line.replace(u'\x2E', u'*')
-    line = line.replace(u'\xE2\x80\xA2', u'*')
+    line = line.replace('\x2E', '*')
+    line = line.replace('\xE2\x80\xA2', '*')
     return line
 
 # Changes heading style from opened to closed, by removing closing hash marks
@@ -193,8 +191,7 @@ def uncloseHeading(line):
     closed = closedheading_re.match(line)
     if closed:
         line = closed.group(1)
-    return line
-
+    return line.rstrip()
 
 # Converts a line of markdown to a properly formatted line of markdown.
 def convertLine(line, nIn, mdFile, path, shortname):
@@ -221,24 +218,12 @@ def convertLine(line, nIn, mdFile, path, shortname):
             needblank = True
 
     if needblank:
-        mdFile.write(u'\n')
-    mdFile.write(line + u'\n')
+        mdFile.write('\n')
+    mdFile.write(line.rstrip() + '\n')
     
-    if len(line) - origlen > 15 or len(line) - origlen < -25:
+    if len(line) - origlen > 15 or len(line) - origlen < -33:
         sys.stderr.write("Manually check conversion of line " + str(nIn) + " in " + shortname(path) + ".\n")
         sys.stderr.write("  Length difference: " + str(len(line) - origlen) + "\n")
-
-def detect_by_bom(path, default):
-    with open(path, 'rb') as f:
-        raw = f.read(4)
-    for enc,boms in \
-            ('utf-8-sig',(codecs.BOM_UTF8)),\
-            ('utf-16',(codecs.BOM_UTF16_LE,codecs.BOM_UTF16_BE)),\
-            ('utf-32',(codecs.BOM_UTF32_LE,codecs.BOM_UTF32_BE)):
-        if any(raw.startswith(bom) for bom in boms):
-            return enc
-    return default
-
 
 # Returns a boolean value indicating whether the specified note should be converted.
 def keepNote(note):
@@ -270,57 +255,58 @@ list3_re = re.compile(r'^\*([^ \*].*)', flags=re.UNICODE+re.DOTALL)      # no sp
 
 # This function is used by both md2md() and json2md().
 # Cleans up the string destined for markdown file.
-# Converts improper links [[:en:ta...]] to the current format.
+# Converts improper links ( [[:en:ta...]] and others) to the current format.
 # Converts &nbsp; to space character
 # Returns fixed string.
 def normalize(ustr):
     # Poorly formed links
-    str = ustr.replace(u"[en:", u"[:en:")
-    str = str.replace(u"[ en:", u"[:en:")
-    str = str.replace(u"[: en:", u"[:en:")
-    str = str.replace(u"]]]]", u"]]")
-    str = str.replace(u"]]]", u"]]")
-    str = str.replace(u"[[[[", u"[[")
-    str = str.replace(u"[[[", u"[[")
-    str = str.replace(u"\t", u" ")
-    str = re.sub(r'\] *\(', u'](', str)
-    str = re.sub(r'\n *-', u'\n*', str)
-    str = re.sub(r'&nbsp;', u' ', str, count=0)
+    str = ustr.replace("[en:", "[:en:")
+    str = str.replace("[ en:", "[:en:")
+    str = str.replace("[: en:", "[:en:")
+    str = str.replace("]]]]", "]]")
+    str = str.replace("]]]", "]]")
+    str = str.replace("[[[[", "[[")
+    str = str.replace("[[[", "[[")
+    str = str.replace("\t", " ")
+    str = re.sub(r'\] *\(', '](', str)
+    str = re.sub(r'\n *-', '\n*', str)
+    str = re.sub(r'&nbsp;', ' ', str, count=0)
     
     if not g_multilist:
-        str = re.sub(r'    *', u'  ', str)   # reduce runs of 3 or more spaces
-        str = re.sub(r'\n +\*', u'\n*', str)     # removes spaces before asterisk, although they are required in multi-level lists (uncommon)
+        str = re.sub(r'    *', '  ', str)   # reduce runs of 3 or more spaces
+        str = re.sub(r'\n +\*', '\n*', str)     # removes spaces before asterisk, although they are required in multi-level lists (uncommon)
     
-    str = re.sub(r'\n +\#', u'\n#', str)       # removes spaces before hash marks (new 5/30/19)
-    str = re.sub(r'\n\*  +', u'\n* ', str)     # removes excess spaces after asterisk
-    str = re.sub(r':\n\* ', u':\n\n* ', str)   # adds blank line at start of list
+    str = re.sub(r'\n +\#', '\n#', str)       # removes spaces before hash marks (new 5/30/19)
+    str = re.sub(r'\n\*  +', '\n* ', str)     # removes excess spaces after asterisk
+    str = re.sub(r':\n\* ', ':\n\n* ', str)   # adds blank line at start of list
+    str = re.sub(r'#  +', '# ', str)     # removes extra spaces following hash mark
 
     # Left brackets
-    str = re.sub(r'^\[?:?en:', u'[[:en:', str)   # fix missing bracket at beginning of string
+    str = re.sub(r'^\[?:?en:', '[[:en:', str)   # fix missing bracket at beginning of string
     bad = bad8_re.match(str)
     while bad:
-        str = bad.group(1) + u"[[:en:" + bad.group(2)
+        str = bad.group(1) + "[[:en:" + bad.group(2)
         bad = bad8_re.match(str)
     bad = bad9_re.match(str)
     while bad:
-        str = bad.group(1) + u" [[:en:" + bad.group(2)
+        str = bad.group(1) + " [[:en:" + bad.group(2)
         bad = bad9_re.match(str)
 
     # Right brackets
     bad = bad0_re.match(str)
     if bad:
-        str = bad.group(1) + u"]]"
+        str = bad.group(1) + "]]"
     bad = bad1_re.match(str)
     while bad:
-        str = bad.group(1) + u"]]" + bad.group(2)
+        str = bad.group(1) + "]]" + bad.group(2)
         bad = bad1_re.match(str)
     bad = bad2_re.match(str)
     while bad:
-        str = bad.group(1) + u"]]" + bad.group(2)
+        str = bad.group(1) + "]]" + bad.group(2)
         bad = bad2_re.match(str)
     bad = bad4_re.match(str)
     while bad:
-        str = bad.group(1) + u"]] " + bad.group(2)
+        str = bad.group(1) + "]] " + bad.group(2)
         bad = bad4_re.match(str)
 
     # Unordered lists
@@ -330,37 +316,50 @@ def normalize(ustr):
 #        bad = list0_re.match(str)
     bad = list1_re.match(str)
     while bad:
-        str = bad.group(1) + u'\n\n* ' + bad.group(2)
+        str = bad.group(1) + '\n\n* ' + bad.group(2)
         bad = list1_re.match(str)
     bad = list2_re.match(str)
     while bad:
-        str = bad.group(1) + u'\n\n' + bad.group(2)
+        str = bad.group(1) + '\n\n' + bad.group(2)
         bad = list2_re.match(str)
     bad = list3_re.match(str)   # no space after asterisk at beginning of string
     if bad:
-        str = u'* ' + bad.group(1)
+        str = '* ' + bad.group(1)
 
     if g_langcode != "en":
         url = enurl_re.match(str)
         while url:
-            str = url.group(1) + u"*" + url.group(2)
+            str = url.group(1) + "*" + url.group(2)
             url = enurl_re.match(str)
 
     # Fix what's inside the note links and tA links
+    str = fixFullLinks(str)
+    str = fixHttpLinks(str)
+    str = fixBadRelativePath(str)
+    return str
+
+httplink_re = re.compile(r'(.*)https://git.door43.org/Door43/en-tw/src/master/content/(\w+/\w+)\.md(.*)', re.UNICODE)   # r'(.*)(\[\[:en:[^\n\]]*\]\])(.*)'
+# Fixes old style https:// links to English tWords
+def fixHttpLinks(str):
+    while link := httplink_re.match(str):
+        str = link.group(1) + "[[rc://*/tw/dict/bible/" + link.group(2) + "]]" + link.group(3)
+    return str
+
+
+# Fixes links containing [[:en:
+def fixFullLinks(str):
     link = link_re.match(str)
     while link:
         linkstr = normalizeLink(link.group(2))      # group(2) is a full link [[:en:...]]
         # sys.stdout.write("linkstr: " + linkstr + '. link.group(1)[-1:]: ' + link.group(1)[-1:] + '.\n')
         str = link.group(1) + linkstr + link.group(3)
         link = link_re.match(str)
-        
-    str = fixBadRelativePath(str)
     return str
 
 def normalizeLink(linkstr):
     lastpart = linkstr[5:-2]      # Strip [[:en, leaving  :ta:....  or  :bible:....
-    lastpart = lastpart.replace(u'\n', u'')
-    if lastpart.find(u"bible:notes") > 0:
+    lastpart = lastpart.replace('\n', '')
+    if lastpart.find("bible:notes") > 0:
         linkstr = normalizeNoteLink(lastpart)
     else:
         linkstr = normalizeTaLink(lastpart)
@@ -387,7 +386,7 @@ def normalizeNoteLink(lastpart):
     if ref:
         linkstr = readable + buildFileRef(ref.group(1), ref.group(2), ref.group(3))
     else:
-        linkstr = u"[linkerror" + lastpart + u"]"    # revert to old style link, to be dealt with manually
+        linkstr = "[linkerror" + lastpart + "]"    # revert to old style link, to be dealt with manually
     return linkstr        
 
 # Builds the most readable verse reference possible from the specified parameters, in square brackets.
@@ -396,7 +395,7 @@ def buildBriefRef(bookId, chapter, verse):
         chapter = chapter[1:]
     while verse[0] == '0':
         verse = verse[1:]
-    return u'[' + bookId.upper() + u' ' + chapter + u':' + verse + u']'
+    return '[' + bookId.upper() + ' ' + chapter + ':' + verse + ']'
 
 readable_re = re.compile(r'(.*) (\d+:\d+[-\d]*)', flags=re.UNICODE)
 # Builds the most readable verse reference possible from the specified parameters, in square brackets.
@@ -405,9 +404,9 @@ def buildReadableRef(bookId, reference):
     # sys.stdout.write("buildReadableRef(" + bookId + ", " + reference + ")\n")
     ref = readable_re.match(reference)
     if ref:
-        str = u'[' + ref.group(1) + u' ' + ref.group(2) + u']'
+        str = '[' + ref.group(1) + ' ' + ref.group(2) + ']'
     else:
-        str = u'[' + bookId.upper() + u' ' + reference + u']'
+        str = '[' + bookId.upper() + ' ' + reference + ']'
     return str
 
 # Builds a relative path to the referent .md file, in parentheses. 
@@ -418,14 +417,14 @@ def buildFileRef(bookId, chapter, chunk):
     partialpath1 = '/' + bookId.lower() + '/' + chapter + '/'
     partialpath2 = '\\' + bookId.lower() + '\\' + chapter + '\\'
     if g_mdPath.find(partialpath1) > 0 or g_mdPath.find(partialpath2) > 0:    # same book and chapter
-        str = u'(./' + chunk + u'.md)'
+        str = '(./' + chunk + '.md)'
     else:
         partialpath1 = '/' + bookId.lower() + '/'
         partialpath2 = '\\' + bookId.lower() + '\\'
         if g_mdPath.find(partialpath1) > 0 or g_mdPath.find(partialpath2) > 0:     # same book
-            str = u'(../' + chapter + u'/' + chunk + u'.md)'
+            str = '(../' + chapter + '/' + chunk + '.md)'
         else:
-            str = u'(../../' + bookId.lower() + u'/' + chapter + u'/' + chunk + u'.md)'
+            str = '(../../' + bookId.lower() + '/' + chapter + '/' + chunk + '.md)'
     return str
 
 # Adds the appropriate number of leading 0s to the name
@@ -443,14 +442,14 @@ def leadZeros(bookId, name):
 # Fixes language code.
 def normalizeTaLink(lastpart):
     lastpart = lastpart.lower()
-    lastpart = lastpart.replace(u' ', u'')
-    lastpart = lastpart.replace(u':', u'/')
-    lastpart = lastpart.replace(u'_', u'-')
-    lastpart = lastpart.replace(u'/vol1/', u'/man/')
-    lastpart = lastpart.replace(u'/vol2/', u'/man/')
-    lastpart = re.sub(r'\|[^\]]*', u'', lastpart, flags=re.UNICODE)
+    lastpart = lastpart.replace(' ', '')
+    lastpart = lastpart.replace(':', '/')
+    lastpart = lastpart.replace('_', '-')
+    lastpart = lastpart.replace('/vol1/', '/man/')
+    lastpart = lastpart.replace('/vol2/', '/man/')
+    lastpart = re.sub(r'\|[^\]]*', '', lastpart, flags=re.UNICODE)
 
-    goodlink = u"[[rc://" + u"*" + lastpart + u"]]"
+    goodlink = "[[rc://" + "*" + lastpart + "]]"
     return goodlink
 
 badbita_re = re.compile(r'(.*\()(bita-.*?)(\).*)', flags=re.UNICODE+re.DOTALL)     # matches a bad relative path in tA link to bita parts
@@ -461,11 +460,11 @@ badfigs_re = re.compile(r'(.*\()(figs-.*?)(\).*)', flags=re.UNICODE+re.DOTALL)  
 def fixBadRelativePath(str):
     bad = badbita_re.match(str)
     while bad:
-        str = bad.group(1) + u"../" + bad.group(2) + u"/01.md" + bad.group(3)
+        str = bad.group(1) + "../" + bad.group(2) + "/01.md" + bad.group(3)
         bad = badbita_re.match(str)
     bad = badfigs_re.match(str)
     while bad:
-        str = bad.group(1) + u"../" + bad.group(2) + u"/01.md" + bad.group(3)
+        str = bad.group(1) + "../" + bad.group(2) + "/01.md" + bad.group(3)
         bad = badfigs_re.match(str)
     return str
 
@@ -473,7 +472,7 @@ def fixBadRelativePath(str):
 # Returns the specified title with newlines removed
 def normalizeTitle(titlestr):
     if not titlestr:
-        titlestr = u"X"     # null titles cause warnings
-    titlestr = titlestr.replace(u'\n', u' ')
-    titlestr = titlestr.replace(u'\r', u' ')
+        titlestr = "X"     # null titles cause warnings
+    titlestr = titlestr.replace('\n', ' ')
+    titlestr = titlestr.replace('\r', ' ')
     return normalize(titlestr)

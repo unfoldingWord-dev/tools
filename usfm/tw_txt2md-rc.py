@@ -94,4 +94,4 @@ if __name__ == "__main__":
         if not os.path.isdir(target_dir):
             os.mkdir(target_dir)
         convertFolder(folder)
-    print "\nDone."
+    print("\nDone.")

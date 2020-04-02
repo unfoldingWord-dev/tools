@@ -17,8 +17,8 @@ import sys
 # Globals
 # Heading to the added where needed.
 # Include hash marks, word for "Definition" in target language, and 2 newlines
-h2_terms = u"## Famaritana\n\n"     # व्याख्या:  व्याख्या: व्याख्या: व्याख्या:  व्याख्या: 
-h2_names = u"## Facts \n\n"  # तथ्य: तथ्य: तथ्य: 
+h2_terms = "## Famaritana\n\n"     # व्याख्या:  व्याख्या: व्याख्या: व्याख्या:  व्याख्या: 
+h2_names = "## Facts \n\n"  # तथ्य: तथ्य: तथ्य: 
 
 max_changes = 1111
 nChanged = 0

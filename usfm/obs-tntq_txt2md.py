@@ -7,9 +7,9 @@
 #    Fixes links of this form [[:en:...]]
 
 # Global variables
-language_code = u'ilo'
-target_dir = r'C:\Users\Larry\Documents\GitHub\Ilocano\ilo_obs-tq\content'
-ta_dir = r'C:\Users\Larry\Documents\GitHub\English\en_ta'
+language_code = 'sw'
+target_dir = r'E:\DCS\Swahili\sw_obs_tn\content'
+ta_dir = r'C:\DCS\Croatian\hr_tA'
 
 import re
 import io
@@ -38,12 +38,12 @@ def isChunk(filename):
 def isChapter(dirname):
     return dirname != '00' and re.match('[0-5][0-9]$', dirname)
 
-prefix_re = re.compile(r'C:\\Users\\Larry\\Documents\\GitHub')
+prefix_re = re.compile(r'C:\\DCS')
 
 def shortname(longpath):
     shortname = longpath
     if prefix_re.match(longpath):
-        shortname = "..." + longpath[31:]
+        shortname = "..." + longpath[6:]
     return shortname
 
 def dumpArticles(dir):
@@ -62,7 +62,7 @@ def dumpArticles(dir):
 def convertFile(chap, fname, fullpath):
     if os.access(fullpath, os.F_OK):
         mdPath = makeMdPath(chap, fname)
-        convert2md.json2md(fullpath, mdPath, ta_dir, language_code, shortname)
+        convert2md.json2md(fullpath, mdPath, language_code, shortname)
 
 # This method is called to convert the text files in the specified chapter folder
 # If it is not a chapter folder
@@ -84,11 +84,10 @@ def convert(path):
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        sys.stderr.write("Usage: python txt2md <folder>\n  Use . for current folder.\n")
-    elif sys.argv[1] == 'hard-coded-path':
-        convert(r'C:\Users\Larry\Documents\GitHub\Ilocano\TQ-OBS\ilo_obs_text_tq_l3')
-    else:       # the first command line argument presumed to be a folder
-        convert(sys.argv[1])
+    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
+        source = r'E:\DCS\Swahili\sw_obs-tn'
+    else:
+        source = sys.argv[1]
+    convert(source)
 
-    print "\nDone."
+    print("\nDone.")

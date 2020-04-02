@@ -11,7 +11,7 @@ import re
 def cleanupChunk(directory, filename):
     dot = filename.find('.')
     verse = filename[0:dot]
-    chapter = u""
+    chapter = ""
     if verse == "01":
         chapter = directory
     ext = filename[dot:]
@@ -41,7 +41,7 @@ def lacksMarkers(input, wantChapter, wantVerse):
     foundC = False
     foundV = False
     foundText = False
-    markerExpr = re.compile(u'\\\\[a-z0-9]+[ \n\t]+[\d]{0,3}')
+    markerExpr = re.compile('\\\\[a-z0-9]+[ \n\t]+[\d]{0,3}')
 
     line = input.readline()
     while line and not foundV and not foundText:
@@ -79,7 +79,7 @@ def lacksMarkers(input, wantChapter, wantVerse):
 def ensureFirstMarkers(input, output, missingChapter, missingVerse):
     foundV = False
     changes = (missingChapter or missingVerse)
-    markerExpr = re.compile(u'\\\\[a-z0-9]+[ \n\t]+[\d]{0,3}')
+    markerExpr = re.compile('\\\\[a-z0-9]+[ \n\t]+[\d]{0,3}')
 
     line = input.readline()
     while line and (missingChapter or missingVerse):
@@ -90,11 +90,11 @@ def ensureFirstMarkers(input, output, missingChapter, missingVerse):
             marker = s[match.start():match.end()]
             # print "WRITING MARKER: <" + marker + ">"
             if marker[0:2] == "\\v" and missingChapter:
-                output.write(u"\\c " + missingChapter + u"\n")
+                output.write("\\c " + missingChapter + "\n")
                 missingChapter = ""
                 missingVerse = ""
                 foundV = True
-            output.write(marker + u'\n')
+            output.write(marker + '\n')
             s = s[match.end():].lstrip()    # s has everything after the marker
             # print "S AFTER STRIPPING PREV MATCH: <" + s + ">"
             match = markerExpr.match(s)
@@ -105,19 +105,19 @@ def ensureFirstMarkers(input, output, missingChapter, missingVerse):
             
         if len(s) > 1:    # Found text before verse marker appeared, or verse marker was found
             if missingChapter:
-                output.write(u"\\c " + missingChapter + u"\n")
+                output.write("\\c " + missingChapter + "\n")
                 missingChapter = ""
             if missingVerse:
-                output.write(u"\\v " + missingVerse + u"\n")
+                output.write("\\v " + missingVerse + "\n")
                 missingVerse = ""
-            output.write(s + u"\n")
+            output.write(s + "\n")
         line = input.readline()
 
     if missingChapter:
-        output.write(u"\\c " + missingChapter + u"\n")
+        output.write("\\c " + missingChapter + "\n")
         missingChapter = ""
     if missingVerse:
-        output.write(u"\\v " + missingVerse + u"\n")
+        output.write("\\v " + missingVerse + "\n")
         missingVerse = ""
     while line:
         # print "COPYING: " + line
@@ -168,13 +168,13 @@ def combineLines(lines):
                     section = section + "\n" + line
     return section
 
-cvExpr = re.compile(u'\\\\[cv] [0-9]+')
+cvExpr = re.compile('\\\\[cv] [0-9]+')
 
 # Prepends an s5 marker before the first chapter or verse marker.
 def addSectionMarker(section):
     marker = cvExpr.search(section)
     if marker:
-        newsection = section[0:marker.start()] + u'\\s5\n' + section[marker.start():]
+        newsection = section[0:marker.start()] + '\\s5\n' + section[marker.start():]
     else:
         newsection = section    # this should rarely occur
     return newsection
@@ -202,11 +202,11 @@ def fixPunctuationSpacing(section):
     section = section.replace(" ?", "?")
     section = section.replace(" !", "!")
     section = section.replace(" )", ")")
-    section = section.replace(u" »", u"»")
-    section = section.replace(u" ›", u"›")
+    section = section.replace(" »", "»")
+    section = section.replace(" ›", "›")
 
     # Then add space after punctuation where needed
-    jammed = re.compile(u"[.?!;:,)][^ .?!;:,)'‘’›»\"]")
+    jammed = re.compile("[.?!;:,)][^ .?!;:,)'‘’›»\"]")
     match = jammed.search(section, 0)
     while match:
         if match.end() < len(section) and section[match.end()-1] != '\n':
@@ -218,11 +218,11 @@ def fixPunctuationSpacing(section):
 # Inserts space between \c and the chapter number if needed
 def fixChapterMarkers(section):
     pos = 0
-    match = re.search(u'\\\\c[0-9]', section, 0)
+    match = re.search('\\\\c[0-9]', section, 0)
     while match:
         section = section[:match.end()-1] + ' ' + section[match.end()-1:]
         pos = match.end()
-        match = re.search(u'\\\\c[0-9]', section, pos)
+        match = re.search('\\\\c[0-9]', section, pos)
     return section
     
 # Fixes the format of verse markers in the section
@@ -230,7 +230,7 @@ def fixChapterMarkers(section):
 # Converts "\v 10 10" or "\v10 10" or "\v10" to "\v 10"
 def fixVerseMarkers(section):
     # Ensure space after each \v
-    jammed = re.compile(u'\\\\v[0-9]')
+    jammed = re.compile('\\\\v[0-9]')
     match = jammed.search(section, 0)
     while match:
         section = section[:match.end()-1] + ' ' + section[match.end()-1:]
@@ -240,7 +240,7 @@ def fixVerseMarkers(section):
     # Take care of repeated verse numbers
     tokenlist = re.split('(\\\\v [0-9]+ [0-9]+)', section)
     section = ""
-    repeatedVerseNumber = re.compile(u'\\\\v [0-9]+ [0-9]+')
+    repeatedVerseNumber = re.compile('\\\\v [0-9]+ [0-9]+')
     for token in tokenlist:
         if repeatedVerseNumber.match(token):
             parts = re.split(' ', token)
@@ -250,14 +250,14 @@ def fixVerseMarkers(section):
         section = section + token
 
     # Ensure space after each verse number
-    jammed = re.compile(u'\\\\v [0-9]+[^ \n0123456789]')
+    jammed = re.compile('\\\\v [0-9]+[^ \n0123456789]')
     match = jammed.search(section)
     while match:
         section = section[:match.end()-1] + ' ' + section[match.end()-1:]
         match = jammed.search(section)
 
     # Eliminate duplicate verse markers
-    vm = re.compile(u'(\\\\v [0-9]+)')
+    vm = re.compile('(\\\\v [0-9]+)')
     tokenlist = re.split(vm, section)
     section = ""
     lastVerseMarker = ""
@@ -267,7 +267,7 @@ def fixVerseMarkers(section):
                 lastVerseMarker = token
                 section = section + token
             else:
-                print "REMOVED DUPLICATE VERSE MARKER: " + token
+                print("REMOVED DUPLICATE VERSE MARKER: " + token)
         else:
             section = section + token
     
@@ -283,7 +283,7 @@ def convertFile(directory, filename):
     input = io.open(directory + "/" + filename, "tr", 1, encoding='utf-8')
     lines = input.readlines()
     input.close()
-    section = u"\n" + combineLines(lines)
+    section = "\n" + combineLines(lines)
     section = addSectionMarker(section)
     section = addParagraphMarker(section)
     # Most texts already have paragraph markers after chapter markers
@@ -340,7 +340,7 @@ def convertBook():
             usfmFile.write(line)
         introFile.close()
 
-        print "CREATING: " + pathComponents[-1] + ".usfm"
+        print("CREATING: " + pathComponents[-1] + ".usfm")
         for directory in os.listdir(os.getcwd()):
             if isChapter(directory):
                 sys.stdout.write(directory + " ")
@@ -348,7 +348,7 @@ def convertBook():
                 for filename in os.listdir(directory):
                     if isChunk(filename):
                         cleanupChunk(directory, filename)
-                        section = convertFile(directory, filename) + u'\n'
+                        section = convertFile(directory, filename) + '\n'
                         usfmFile.write(section)
                         restoreOrigFile(directory, filename)
                 # Process misnamed 00.txt file last, if it exists
@@ -357,7 +357,7 @@ def convertBook():
                 #     usfmFile.write(section)
         # Wrap up
         usfmFile.close()
-        print "\nFINISHED: " + pathComponents[-1]
+        print("\nFINISHED: " + pathComponents[-1])
 
 
 # Processes each directory and its files one at a time
@@ -365,6 +365,6 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: python txt2USFM <folder>\n  Use . for current folder.\n")
     elif sys.argv[1] == 'hard-coded-path':
-        convertFolder(r'C:\Users\Larry\Documents\GitHub\Cebuano\ceb_2ti_text_ulb_L3')
+        convertFolder(r'E:\DCS\HLs\Komo\kmw_heb_text_reg')
     else:
         convertFolder(sys.argv[1])

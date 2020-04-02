@@ -10,8 +10,8 @@
 
 # Global variables
 resource_type = 'tn'
-language_code = u'pmy'
-target_dir = r'E:\DCS\PapuanMalay\pmy_tn'
+language_code = 'ne'
+target_dir = r'E:\DCS\Nepali\ne_tn'
 projects = []
 
 import re
@@ -72,9 +72,9 @@ def getBookTitle(id):
 # Appends information about the current book to the global projects list.
 def appendToProjects(bookId, bookTitle):
     global projects
-    title = bookTitle + u" translationNotes"
+    title = bookTitle + " translationNotes"
     if resource_type == 'tq':
-        title = bookTitle + u" translationQuestions"
+        title = bookTitle + " translationQuestions"
     project = { "title": title, "id": bookId.lower(), "sort": usfm_verses.verseCounts[bookId]["sort"], \
                 "path": "./" + bookId.lower() }
     projects.append(project)
@@ -87,13 +87,13 @@ def dumpProjects():
     path = makeManifestPath()
     manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
     for p in projects:
-        manifest.write(u"  -\n")
-        manifest.write(u"    title: '" + p['title'] + u"'\n")
-        manifest.write(u"    versification: ''\n")
-        manifest.write(u"    identifier: '" + p['id'] + u"'\n")
-        manifest.write(u"    sort: " + str(p['sort']) + "\n")
-        manifest.write(u"    path: '" + p['path'] + u"'\n")
-        manifest.write(u"    categories: []\n")
+        manifest.write("  -\n")
+        manifest.write("    title: '" + p['title'] + "'\n")
+        manifest.write("    versification: ''\n")
+        manifest.write("    identifier: '" + p['id'] + "'\n")
+        manifest.write("    sort: " + str(p['sort']) + "\n")
+        manifest.write("    path: '" + p['path'] + "'\n")
+        manifest.write("    categories: []\n")
     manifest.close()
 
 # Returns path of temporary manifest file block listing projects converted
@@ -180,8 +180,8 @@ def convert(dir):
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        convert(r'E:\DCS\PapuanMalay\TN')
+        convert(r'E:\DCS\Nepali\TN')
     else:       # the first command line argument presumed to be a folder
         convert(sys.argv[1])
 
-    print "\nDone."
+    print("\nDone.")

@@ -17,7 +17,7 @@
 
 # Global variables
 resource_type = 'tq'
-language_code = u'ur-deva'
+language_code = 'ur-deva'
 target_dir = r'C:\Users\Larry\Documents\GitHub\Urdu-Deva\TQ.intermediate'
 
 import re
@@ -97,14 +97,14 @@ range_re = re.compile(r'([0-9]+)-([0-9]+)')
 # Returns list of verses indicated in the links, if any.
 # Also returns the string minus any passage links.
 def linkedVerses(str, chap, path):
-    ustr = unicode(str).strip()
+    ustr = str(str).strip()
     if chap[0] == '0':
         chap = chap[1:]
     verses = []
 
     link = link_re.match(ustr)
     while link:
-        ustr = link.group(1) + u' ' + link.group(4)
+        ustr = link.group(1) + ' ' + link.group(4)
         if link.group(2) == chap:   # must be a valid link
             vv = link.group(3)      # the verse(s)
             range = range_re.match(vv)
@@ -176,11 +176,11 @@ def writeChapter(notekeeper):
     # print notekeeper.verseList.values()
     
     chapDir = makeChapterDir(notekeeper.book, notekeeper.chapter)
-    for verse in notekeeper.verseList.keys():
+    for verse in list(notekeeper.verseList.keys()):         # would this work: verse in notekeeper.verseList
         versePath = os.path.join(chapDir, ("%02d" % verse) + ".txt")
         verseFile = io.open(versePath, "tw", buffering=1, encoding='utf-8', newline='\n')
         cards = json.dumps(notekeeper.verseList[verse])
-        verseFile.write( unicode(cards) )
+        verseFile.write( str(cards) )
         verseFile.close()
 
     verseFile.close()
@@ -237,4 +237,4 @@ if __name__ == "__main__":
     else:       # the first command line argument presumed to be a folder
         convert(sys.argv[1])
 
-    print "\nDone. Made", nSplits, "file splits."
+    print("\nDone. Made", nSplits, "file splits.")

@@ -13,30 +13,28 @@ import sys
 
 # Globals
 nChanged = 0
-max_changes = 111
+max_changes = 1111
 #filename_re = re.compile(r'[0-9]*\.md$')
 filename_re = re.compile(r'.*\.md$')
 yes_backup = True
 
 # wholestring is used with whole file matches
-wholestring = re.compile(r'^##+ +(.*?$)', flags=re.UNICODE+re.MULTILINE)
+wholestring = re.compile(r'  \[\[', flags=re.UNICODE)
 
-# keystring is used in line-by-line, but is searched against the whole file once only
+# keystring is used only in line-by-line. It is searched against the entire file one time.
 keystring = []
-keystring.append( re.compile(r'^# [\*\_]', flags=re.UNICODE+re.MULTILINE) )
-
+keystring.append( re.compile(r'[ \t]\n', flags=re.UNICODE+re.MULTILINE) )
 
 # Each element of inlinekey is matched against each line of a file.
 # The matches occur in sequence, so the result of one match impacts the next.
 inlinekey = []
-inlinekey.append( re.compile(r'# +[\*]+([^\*]*)[\*]+ *$', re.UNICODE))
-inlinekey.append( re.compile(r'# +[_]+([^\_]*)[_]+ *$', flags=re.UNICODE))
+inlinekey.append( re.compile(r'.', re.UNICODE))
+#inlinekey.append( re.compile(r'# +[_]+([^\_]*)[_]+ *$', flags=re.UNICODE))
 
 # Strings to replace with
 # whole file matches use newstring[0]
 newstring = []
-newstring.append( u'# ' )
-newstring.append( u'# ' )
+newstring.append('' )
 
 # Copies lines from input to output.
 # Modifies targeted input lines before writing them to output.
@@ -57,12 +55,12 @@ def convertByLine(path):
         for i in range(len(inlinekey)):
             sub = inlinekey[i].match(line)
             if sub:
-                line = newstring[i] + sub.group(1) + u'\n'
+                line = line.rstrip() + "\n"
 #            while sub:
 #                line = line[0:sub.start()] + newstring[i] + sub.group(1) + u'\n'
 #                line = sub.group(1) + u"" + sub.group(2)
 #                line = line[0:sub.start()] + newstring[i] + sub.group(1) + u' ' + line[sub.end():]
-                sub = inlinekey[i].search(line)
+#                sub = inlinekey[i].search(line)
         output.write(line)
     output.close
     
@@ -78,6 +76,7 @@ def convertFileByLines(path):
         if key.search(alltext):
             convertme = True
             break
+    # Convert the file if there are any lines to change
     if convertme:
         convertByLine(path)
         nChanged += 1    
@@ -116,7 +115,7 @@ def classic_pattern(mdpath):
         if len(line.strip()) == 0:
             continue
         if heading_re.match(line):      # we found a heading
-            headingLevel = line.count(u'#', 0, 5)
+            headingLevel = line.count('#', 0, 5)
             if prevHeadingLevel != 1 and headingLevel != 1:
                 classic = False
             elif prevHeadingLevel == 1 and headingLevel == 1:
@@ -160,7 +159,7 @@ def classic_pattern2(mdpath):
         if len(line.strip()) == 0:
             continue
         if heading_re.match(line):      # we found a heading
-            headingLevel = line.count(u'#', 0, 5)
+            headingLevel = line.count('#', 0, 5)
             if prevHeadingLevel > 0:
                 classic = False
             elif headingLevel > maxHeadingLevel:
@@ -182,10 +181,12 @@ def classic_pattern2(mdpath):
 def convertWholeFile(mdpath):
     global nChanged
 
-    found = classic_pattern(mdpath)
-#    found = wholestring.match(alltext)
+#    found = classic_pattern(mdpath)
+    input = io.open(mdpath, "tr", 1, encoding="utf-8-sig")
+    alltext = input.read()
+    found = wholestring.search(alltext)
     if found:
-        input = io.open(mdpath, "tr", 1, encoding="utf-8")
+        input = io.open(mdpath, "tr", 1, encoding="utf-8-sig")
         alltext = input.read()
         input.close()
         if yes_backup:
@@ -195,10 +196,8 @@ def convertWholeFile(mdpath):
         output = io.open(mdpath, "tw", buffering=1, encoding='utf-8', newline='\n')
         
         # Use a loop for multiple replacements per file
-        found = wholestring.search(alltext)
         while found:
-         # if found:
-            output.write(alltext[0:found.start()] + found.group(1))
+            output.write(alltext[0:found.start()] + newstring[0])
             alltext = alltext[found.end():]
             found = wholestring.search(alltext)
         output.write(alltext)
@@ -206,7 +205,7 @@ def convertWholeFile(mdpath):
         sys.stdout.write("Converted " + shortname(mdpath) + "\n")
         nChanged += 1    
 
-sub_re = re.compile(u'figs-active]] passive', re.UNICODE)
+sub_re = re.compile('figs-questions?', re.UNICODE)
 #sub_re = re.compile(r'<o:p> *</o:p>', re.UNICODE)
 #sub_re = re.compile(r'</?o:p>', re.UNICODE)
 #sub_re = re.compile(r'<!-- -->', re.UNICODE)
@@ -214,7 +213,7 @@ sub_re = re.compile(u'figs-active]] passive', re.UNICODE)
 #sub_re = re.compile(r'rc://en/', re.UNICODE)
 #sub_re = re.compile(r'[Ll]ih?at[\s]*\:+[\s]*\n+[\s]*\[\[', re.UNICODE)
 #sub_re = re.compile(r'# +[\*]+(.*)[\*]+', re.UNICODE)
-replacement = u'figs-activepassive]]'
+replacement = 'figs-rquestion'
 
 # Stream edit the file by a simple, regular expression substitution
 # To do only one substitution per file, change the count argument to re.sub(), below.
@@ -237,9 +236,9 @@ def convertFileBySub(path):
         nChanged += 1    
 
 def convertFile(path):
-#    convertFileByLines(path)
+    convertFileByLines(path)
 #    convertWholeFile(path)
-    convertFileBySub(path)
+#    convertFileBySub(path)
 
 
 # Recursive routine to convert all files under the specified folder
@@ -262,7 +261,7 @@ def convertFolder(folder):
 # Processes all .txt files in specified directory, one at a time
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        path = r'E:\DCS\Croatian\hr_tn\lev'
+        path = r'E:\DCS\Spanish\es-419_obs-tn\content'
     else:
         path = sys.argv[1]
 

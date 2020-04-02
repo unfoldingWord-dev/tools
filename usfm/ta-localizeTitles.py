@@ -67,7 +67,7 @@ def rewriteToc(folder):
                 if linkmatch:
                     newtitle = fetchTitle(folder, line[linkmatch.end(0):].rstrip())
                 if newtitle:
-                    output.write(title_match + newtitle + u"\"\n")
+                    output.write(title_match + newtitle + "\"\n")
                 else:
                     output.write(title_line)
                 title_line = ""

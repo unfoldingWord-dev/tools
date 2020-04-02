@@ -5,7 +5,7 @@
 #    Uses convert2md.md2md() to convert links and things.
 
 # Global variables
-language_code = u'pmy'
+language_code = 'pmy'
 resource_type = 'tw'    # should be ta or tw
 target_dir = r'C:\DCS\Papuan Malay\pmy_tw'
 source_dir = r'C:\DCS\Papuan Malay\pmy_tw.temp'      # Source and target directories must be at the same level
@@ -96,4 +96,4 @@ if __name__ == "__main__":
     else:       # the first command line argument presumed to be a folder
         convertDir(sys.argv[1])
 
-    print "\nDone."
+    print("\nDone.")

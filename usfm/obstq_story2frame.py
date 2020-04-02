@@ -11,7 +11,7 @@
 
 # Global variables
 resource_type = 'obs-tq'
-language_code = u'hi'
+language_code = 'hi'
 target_dir = r'C:\Users\Larry\Documents\GitHub\Hindi\OBS-TQ.intermediate\content'
 
 import re
@@ -85,13 +85,13 @@ link_re = re.compile(r'(.*)\[(\d+)-(\d+)\],?(.*)', re.UNICODE)
 # Returns list of frames indicated by the links, if any.
 # Also returns the string minus any frame links.
 def linkedFrames(str, story, shortpath):
-    ustr = unicode(str).strip()
+    ustr = str(str).strip()
     storynum = int(story)
     frames = []
 
     link = link_re.match(ustr)
     while link:
-        ustr = link.group(1) + u' ' + link.group(4)
+        ustr = link.group(1) + ' ' + link.group(4)
         if int(link.group(2)) == storynum:   # must be a valid link
             frames.append( int(link.group(3)) )
         else:
@@ -107,15 +107,15 @@ def writeStoryQAs(notekeeper, strStory):
     # print notekeeper.frameList.values()
     
     storyDir = makeStoryDir(strStory)
-    for frame in notekeeper.frameList.keys():
+    for frame in list(notekeeper.frameList.keys()):     # would this work: frame in notekeeper.frameList
         framePath = os.path.join(storyDir, ("%02d" % frame) + ".md")
         frameFile = io.open(framePath, "tw", buffering=1, encoding='utf-8', newline='\n')
         started = False
         for qaPair in notekeeper.frameList[frame]:
             if started:
-                frameFile.write(u"\n")
-            frameFile.write(u"# " + qaPair[0] + u"\n")
-            frameFile.write(qaPair[1] + u"\n")
+                frameFile.write("\n")
+            frameFile.write("# " + qaPair[0] + "\n")
+            frameFile.write(qaPair[1] + "\n")
             started = True
         frameFile.close()
 
@@ -131,8 +131,8 @@ def convertQAs(lines, strStory, shortpath):
     global nSplits
     notekeeper = NoteKeeper(strStory)
     n = 0   # used in error messages below
-    question = u''
-    answer = u''
+    question = ''
+    answer = ''
     for line in lines:
         n += 1
         line = line.strip()
@@ -142,7 +142,7 @@ def convertQAs(lines, strStory, shortpath):
             if qmatch:
                 if question:
                     sys.stderr.write("Unanswered question in: " + shortpath + '\n')
-                question = qmatch.group(1).rstrip(u"_ ")
+                question = qmatch.group(1).rstrip("_ ")
             elif amatch:
                 if answer:
                     sys.stderr.write("Orphaned answer in: " + shortpath + '\n')
@@ -157,8 +157,8 @@ def convertQAs(lines, strStory, shortpath):
                 for frame in frames:
                     notekeeper.addNote(question.strip(), answer.strip(), frame)
                 nSplits += len(frames)
-            question = u''
-            answer = u''
+            question = ''
+            answer = ''
 
     if len(notekeeper.frameList) > 0:
         writeStoryQAs(notekeeper, strStory)
@@ -199,4 +199,4 @@ if __name__ == "__main__":
     else:       # the first command line argument presumed to be a folder
         convert(sys.argv[1])
 
-    print "\nDone. Made", nSplits, "file splits."
+    print("\nDone. Made", nSplits, "file splits.")

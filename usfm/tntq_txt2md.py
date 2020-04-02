@@ -13,8 +13,10 @@
 # This script doesn't do anything if the files are .md files already.
 
 # Global variables
-language_code = u'hr'
+language_code = 'hr'
 target_dir = r'E:\DCS\Croatian\hr_tn'
+source_dir = r'E:\DCS\Croatian\TN.newest'
+
 projects = []
 translators = []
 source_versions = []
@@ -72,9 +74,9 @@ def getBookTitle(id):
 # Appends information about the current book to the global projects list.
 def appendToProjects(bookId, bookTitle):
     global projects
-    title = bookTitle + u" translationNotes"
+    title = bookTitle + " translationNotes"
     if resource_type == 'tq':
-        title = bookTitle + u" translationQuestions"
+        title = bookTitle + " translationQuestions"
     project = { "title": title, "id": bookId.lower(), "sort": usfm_verses.verseCounts[bookId]["sort"], \
                 "path": "./" + bookId.lower() }
     projects.append(project)
@@ -130,13 +132,13 @@ def dumpProjects():
     path = makeManifestPath()
     manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
     for p in projects:
-        manifest.write(u"  -\n")
-        manifest.write(u"    title: '" + p['title'] + u"'\n")
-        manifest.write(u"    versification: ''\n")
-        manifest.write(u"    identifier: '" + p['id'] + u"'\n")
-        manifest.write(u"    sort: " + str(p['sort']) + "\n")
-        manifest.write(u"    path: '" + p['path'] + u"'\n")
-        manifest.write(u"    categories: []\n")
+        manifest.write("  -\n")
+        manifest.write("    title: '" + p['title'] + "'\n")
+        manifest.write("    versification: ''\n")
+        manifest.write("    identifier: '" + p['id'] + "'\n")
+        manifest.write("    sort: " + str(p['sort']) + "\n")
+        manifest.write("    path: '" + p['path'] + "'\n")
+        manifest.write("    categories: []\n")
     manifest.close()
 
 def dumpTranslators():
@@ -146,13 +148,13 @@ def dumpTranslators():
     path = os.path.join(target_dir, "translators.txt")
     f = io.open(path, 'tw', encoding='utf-8', newline='\n')
     for name in contribs:
-        f.write(u'    - "' + name + u'"\n')
+        f.write('    - "' + name + '"\n')
     
     # Also dump the list of source versions used
-    f.write(u'\n\nSource versions used:\n')
+    f.write('\n\nSource versions used:\n')
     for version in source_versions:
         f.write(version + ' ')
-    f.write(u'\n')
+    f.write('\n')
     f.close()
 
 # Converts .txt file in fullpath location to .md file in target dir.
@@ -203,9 +205,11 @@ def convert(dir):
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
     resource_type = target_dir[-2:].lower()
-    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        convert(r'E:\DCS\Croatian\TN.newest')
-    else:       # the first command line argument presumed to be a folder
-        convert(sys.argv[1])
+    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
+        source_dir = sys.argv[1]
 
-    print "\nDone."
+    if source_dir and os.path.isdir(source_dir):
+        convert(source_dir)
+        sys.stdout.write("Done.\n")
+    else:
+        sys.stderr.write("Usage: python tntq_txt2md.py <folder>\n  Use . for current folder or hard code the path.\n")

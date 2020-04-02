@@ -25,23 +25,23 @@ def merge(image_list, txtfile, mdfile):
         line = line.strip()
         if line:
             if titleLinesOut == 0:
-                mdfile.write(u"# " + line + u"\n")      # title
+                mdfile.write("# " + line + "\n")      # title
                 titleLinesOut = 1
             elif titleLinesOut == 1:
-                mdfile.write(u"## " + line + u"\n")      # subtitle
+                mdfile.write("## " + line + "\n")      # subtitle
                 titleLinesOut = 2
             elif chunksOut < nChunks:
                 if images_inline and chunksOut < len(image_list):
-                    mdfile.write(u"\n" + image_list[chunksOut])
-                mdfile.write(u"\n")
-                mdfile.write(line + u"\n")
+                    mdfile.write("\n" + image_list[chunksOut])
+                mdfile.write("\n")
+                mdfile.write(line + "\n")
                 chunksOut += 1
             else:
-                mdfile.write(u"\n" + line + u"\n")
+                mdfile.write("\n" + line + "\n")
                 chunksOut += 1  # necessary?
                 
     if not images_inline:
-        mdfile.write(u"\n\n")
+        mdfile.write("\n\n")
         for image in image_list:
             mdfile.write(image)
                 

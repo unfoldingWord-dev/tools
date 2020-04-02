@@ -42,14 +42,16 @@ def file_qualifies(lines):
 # Returns True if the line is to be kept, False if not.
 # Redefine this function to obtain desired behavior.
 def keeper(line, count):
-    global prevlost
+#    global prevlost
 #    global nlines
     keep = True
-    if prevlost:
-        keep = False
-    elif lose_re.match(line):
-        keep = False
-        prevlost = True
+    if line[0:8] == "![Image]":
+       keep = False 
+#    if prevlost:
+#        keep = False
+#    elif lose_re.match(line):
+#        keep = False
+#        prevlost = True
     return keep
 
 # Copies selected lines from input to output.
@@ -117,7 +119,7 @@ def convertFolder(folder):
 # Processes all .txt files in specified directory, one at a time
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        path = r'C:\DCS\PapuanMalay\pmy_tn.work'
+        path = r'E:\DCS\Spanish\es-419_obs-tn\content'
     else:
         path = sys.argv[1]
 

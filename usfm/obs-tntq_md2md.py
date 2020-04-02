@@ -7,8 +7,8 @@
 
 # Global variables
 resource_type = 'obs-tn'
-language_code = u'ne'
-target_dir = r'E:\DCS\Nepali\ne_obs-tn\content'    # path should end with "\content"
+language_code = 'es-419'
+target_dir = r'E:\DCS\Spanish\es-419_obs-tn\content\temp'    # path should end with "\content"
 
 import re
 import io
@@ -61,8 +61,8 @@ def convert(source_dir):
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        convert(r'E:\DCS\Nepali\OBSTN\content')
+        convert(r'E:\DCS\Spanish\OBSTN\content')
     else:       # the first command line argument presumed to be a folder
         convert(sys.argv[1])
 
-    print "\nDone."
+    print("\nDone.")

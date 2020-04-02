@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# This program moves standalone \p and \q markers which occur just before an \s# marker
+# This program moves standalone \p \m and \q markers which occur just before an \s# marker
 # to the next line after the \s# marker.
-# This is to avoid the annoying Door43 warning message, "useless \q# markers before \s# markers"
+# This is to avoid the Door43 warning message, "useless \q# markers before \s# markers"
 # Outputs .usfm files of the same name in the same location.
 # Backs up the original files to .usfm.orig files.
 
@@ -15,18 +15,17 @@ import sys
 
 # Globals
 nChanged = 0            # number of files changed
-max_changes = 66
+max_changes = 8
+sourceDir = r'E:\DCS\Kannada\kn_iev'
 filename_re = re.compile(r'.*\.usfm$')
 
 # wholestring is used with whole file matches
-wholestring = re.compile(r'\n(\\[pq][1-9]*?)\n(\\s[0-9])\n', flags=re.UNICODE+re.DOTALL)
-
-prefix_re = re.compile(r'E:\\DCS')
+wholestring = re.compile(r'\n(\\[pqm][1-9]*?)\n(\\s[0-9])\n', flags=re.UNICODE+re.DOTALL)
 
 def shortname(longpath):
     shortname = longpath
-    if prefix_re.match(longpath):
-        shortname = "..." + longpath[6:]
+    if sourceDir in longpath:
+        shortname = longpath[len(sourceDir)+1:]
     return shortname
 
 
@@ -43,7 +42,7 @@ def convertWholeFile(mdpath):
             os.rename(mdpath, bakpath)
         output = io.open(mdpath, "tw", buffering=1, encoding='utf-8', newline='\n')
         while found:
-            output.write( alltext[0:found.start()] + u'\n' + found.group(2) + u'\n' + found.group(1) + u'\n' )
+            output.write( alltext[0:found.start()] + '\n' + found.group(2) + '\n' + found.group(1) + '\n' )
             alltext = alltext[found.end():]
             found = wholestring.search(alltext)
         output.write(alltext)
@@ -70,13 +69,10 @@ def convertFolder(folder):
 
 # Processes all .txt files in specified directory, one at a time
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        folder = r'E:\DCS\Urdu-Deva\ur-deva_irv'
-    else:
-        folder = sys.argv[1]
-
-    if folder and os.path.isdir(folder):
-        convertFolder(folder)
+    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
+        sourceDir = sys.argv[1]
+    if sourceDir and os.path.isdir(sourceDir):
+        convertFolder(sourceDir)
         sys.stdout.write("Done. Changed " + str(nChanged) + " files.\n")
     else:
         sys.stderr.write("Usage: python usfm_move_pq.py <folder>\n  Use . for current folder.\n")
