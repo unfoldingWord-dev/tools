@@ -10,9 +10,11 @@
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
-en_rc_dir = r'E:\Users\Larry\AppData\Local\translationstudio\library\resource_containers'
-target_dir = r'E:\DCS\Kannada\kn_iev'
+en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
+target_dir = r'E:\DCS\Bangwinji\tmp'
+source_dir = r'E:\DCS\Bangwinji'
 projects = []
+lastToken = None
 
 import sys
 import os
@@ -185,16 +187,16 @@ def getDefaultName(id):
     return en_name
            
 def printToken(token):
-        if token.isV():
-            print("Verse number " + token.value)
-        elif token.isC():
-            print("Chapter " + token.value)
-        elif token.isS():
-            sys.stdout.write("Section heading: " + token.value)
-        elif token.isTEXT():
-            print("Text: <" + token.value + ">")
-        else:
-            print(token)
+    if token.isV():
+        print("Verse number " + token.value)
+    elif token.isC():
+        print("Chapter " + token.value)
+    elif token.isS():
+        sys.stdout.write("Section heading: " + token.value)
+    elif token.isTEXT():
+        print("Text: <" + token.value + ">")
+    else:
+        print(token)
 
 def takeAsIs(key, value):
     state = State()
@@ -282,13 +284,23 @@ def takeC(c):
     if not state.hasS5():
         state.usfmFile.write("\n\n\\s5")
     state.usfmFile.write("\n\\c " + c)
+ 
+# Handle the unmarked chapter label
+def takeCL(cl):
+    state = State()
+    state.usfmFile.write("\n\\cl " + cl)
     
 def take(token):
+    global lastToken
+
     state = State()
     if token.isV():
         takeV(token.value)
     elif token.isTEXT():
-        takeText(token.value)
+        if lastToken.isC():
+            takeCL(token.value)
+        else:
+            takeText(token.value)
     elif token.isC():
         takeC(token.value)
     elif token.isP():
@@ -322,7 +334,6 @@ def take(token):
         # print token
         takeAsIs(token.type, token.value)
 
-    global lastToken
     lastToken = token
      
 def writeHeader():
@@ -448,10 +459,8 @@ def printError(text):
 if __name__ == "__main__":
     if os.path.isfile( makeManifestPath() ):
         os.remove( makeManifestPath() )
-    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-         convertFolder(r'E:\DCS\Kannada\IEV')
-    else:       # the first command line argument is presumed to be the folder containing usfm files to be converted
-        convertFolder(sys.argv[1])
-
+    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
+        source_dir = sys.argv[1]
+    convertFolder(source_dir)
     dumpProjects()
     print("\nDone.")

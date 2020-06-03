@@ -45,7 +45,7 @@
 
 # Globals
 issuesFile = None
-manifestDir = None
+manifestDir = r'E:\DCS\Croatian\hr_tq'
 nIssues = 0
 projtype = ''
 
@@ -125,10 +125,10 @@ def verifyChecking(checking):
         for c in checking['checking_entity']:
             if not isinstance(c, str) or len(c) < 3:
                 reportError("Invalid checking_entity: " + str(c))
-    if 'checking_level' in list(checking.keys()):      # would this work: 'checking_entity' in checking
+    if 'checking_level' in list(checking.keys()):      # would this work: 'checking_level' in checking
         if not isinstance(checking['checking_level'], str):
             reportError('checking_level must be a string')
-        elif checking['checking_level'] != '3':
+        elif checking['checking_level'] != '3' and projtype != 'reg':
             reportError("Invalid value for checking_level: " + checking['checking_level'])
 
 badname_re = re.compile(r'.*\d\d\d\d+.*\.md$')
@@ -216,7 +216,7 @@ def verifyFile(path):
     verifyProjects(manifest['projects'])
 
 # Verifies format field is a valid string, depending on project type.
-# Done with iev, irv, isv, obs, obs-tn, obs-tq, ta, tq, tn, tw, tsv, ulb, udb, ust
+# Done with iev, irv, isv, obs, obs-tn, obs-tq, reg, ta, tq, tn, tw, tsv, ulb, udb, ust
 def verifyFormat(core):
     global projtype
     if verifyStringField(core, 'format', 8):
@@ -230,7 +230,7 @@ def verifyFormat(core):
         elif projtype in {'ta', 'tq', 'tw', 'obs', 'obs-tn', 'obs-tq'}:
             if format != 'text/markdown':
                 reportError("Invalid format: " + format)
-        elif projtype in {'ulb', 'udb', 'iev', 'isv'}:
+        elif projtype in {'ulb', 'udb', 'iev', 'isv', 'reg'}:
             if format not in {'text/usfm', 'text/usfm3'}:
                 reportError("Invalid format: " + format)
         elif projtype in ['ust', 'irv']:
@@ -246,7 +246,7 @@ def verifyIdentifier(core):
     global manifestDir
     if verifyStringField(core, 'identifier', 2):
         id = core['identifier']
-        if id not in {'tn', 'tq', 'tw', 'ulb', 'udb', 'ust', 'ta', 'obs', 'obs-tn', 'obs-tq', 'iev', 'irv', 'isv'}:
+        if id not in {'tn', 'tq', 'tw', 'ulb', 'udb', 'ust', 'ta', 'obs', 'obs-tn', 'obs-tq', 'iev', 'irv', 'isv', 'reg'}:
             reportError("Invalid id: " + id)
         else:
             projtype = id
@@ -272,7 +272,7 @@ def verifyLanguage(language):
             reportError("Incorrect language direction: " + language['direction'])
     if 'identifier' in list(language.keys()):      # would this work: 'identifier' in language
         if language['identifier'] != getLanguageId():
-            reportError("Wrong language identifier: " + language['identifier'])
+            reportError("Language identifier (" + language['identifier'] + ") does not match first part of directory name: " + os.path.basename(manifestDir))
     if verifyStringField(language, 'title', 3):
         if language['title'].isascii():
             sys.stdout.write("Remember to localize language title: " + language['title'] + '\n')
@@ -306,7 +306,7 @@ def verifyProject(project):
     elif projtype == 'tw':
         if project['title'] != 'translationWords':
             reportError("Invalid project:title: " + project['title'])
-    elif projtype in {'ulb', 'udb', 'ust', 'iev', 'irv', 'isv'}:
+    elif projtype in {'ulb', 'udb', 'ust', 'iev', 'irv', 'isv', 'reg'}:
         bookinfo = usfm_verses.verseCounts[project['identifier'].upper()]
         if int(project['sort']) != bookinfo['sort']:
             reportError("Incorrect project:sort: " + str(project['sort']))
@@ -358,7 +358,7 @@ def verifyProjects(projects):
             reportError("There should be exactly 1 project listed under projects.")
         elif projtype == 'ta' and nprojects != 4:
             reportError("There should be exactly 4 projects listed under projects.")
-        elif projtype in {'tn', 'tn-tsv', 'ulb', 'udb', 'ust', 'iev', 'irv', 'isv'} and nprojects not in (27,39,66):
+        elif projtype in {'tn', 'tn-tsv', 'ulb', 'udb', 'ust', 'iev', 'irv', 'isv', 'reg'} and nprojects not in (27,39,66):
             reportError("Number of projects listed: " + str(nprojects))
             
         for p in projects:
@@ -387,7 +387,7 @@ def verifyRelation(rel):
 # The relation element is a list of strings.
 def verifyRelations(relation):
     uhg = False
-    if len(relation) < 1:
+    if len(relation) < 1 and projtype != 'reg':
         reportError("Missing relations in: relation")
     for r in relation:
         verifyRelation(r)
@@ -407,7 +407,9 @@ def verifySource(source):
 
         global projtype
         if dict['identifier'] != projtype and projtype in {'obs', 'obs-tn', 'obs-tq', 'tn', 'tq', 'tw', 'udb', 'ulb', 'ult', 'ust'}:
-            reportError("Incorrect source:identifier: " + dict['identifier'])
+            reportError("Inappropriate Source:identifier (" + dict['identifier'] + ") for project type: " + projtype)
+        if dict['identifier'] != 'ulb' and projtype == 'reg':
+            reportError("Incorrect Source:identifier for reg project: " + dict['identifier'])
         if dict['identifier'] != 'tn' and projtype == 'tn-tsv':
             reportError("Incorrect source:identifier for tn-tsv project: " + dict['identifier'])
         if dict['language'] == 'English':
@@ -444,7 +446,7 @@ def verifySubject(subject):
         failure = (subject not in {'Translation Notes', 'TSV Translation Notes'})
     elif projtype == 'tq':
         failure = (subject != 'Translation Questions')
-    elif projtype in {'ulb', 'udb', 'ust', 'iev', 'irv', 'isv'}:
+    elif projtype in {'ulb', 'udb', 'ust', 'iev', 'irv', 'isv', 'reg'}:
         failure = (subject not in {'Bible', 'Aligned Bible'})
     elif projtype == 'obs':
         failure = (subject != 'Open Bible Stories')
@@ -476,7 +478,7 @@ def verifyType(type):
         failure = (type != 'dict')
     elif projtype in {'tn', 'tn-tsv', 'tq', 'obs-tn', 'obs-tq'}:
         failure = (type != 'help')
-    elif projtype in {'ulb', 'udb', 'ust', 'iev', 'irv', 'isv'}:
+    elif projtype in {'ulb', 'udb', 'ust', 'iev', 'irv', 'isv', 'reg'}:
         failure = (type != 'bundle')
     elif projtype == 'obs':
         failure = (type != 'book')
@@ -509,9 +511,7 @@ def shortname(longpath):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        manifestDir = r'E:\DCS\Gujarati\gu_tn'
-    else:
+    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         manifestDir = sys.argv[1]
 
     if os.path.isdir(manifestDir):

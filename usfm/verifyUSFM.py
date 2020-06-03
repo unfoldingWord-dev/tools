@@ -1,32 +1,29 @@
 # -*- coding: utf-8 -*-
-
 # Script for verifying proper USFM.
-# Uses parseUsfm module.
-# Place this script in the USFM-Tools folder.
+# Reports errors to stderr and issues.txt.
+# Set source_dir and usfmVersion to run.
 
 # Global variables
+source_dir = r'C:\DCS\Bangwinji\bsj_reg'
 usfmVersion = 2     # if version 3.0 or greater, tolerates unknown tokens and verse fragments
-suppress1 = False       # Suppress warnings about empty verses and verse fragments
-suppress9 = False       # Suppress warnings about ASCII content
+suppress1 = False      # Suppress warnings about empty verses and verse fragments
+suppress9 = True       # Suppress warnings about ASCII content
 
 if usfmVersion >= 3.0:
     suppress1 = True
 
 lastToken = None
 issuesFile = None
-usfmDir = ""
 
 # Set Path for files in support/
 import os
 import sys
-rootdiroftools = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(rootdiroftools,'support'))
+#rootdiroftools = os.path.dirname(os.path.abspath(__file__))
+#sys.path.append(os.path.join(rootdiroftools,'support'))
 
-#from subprocess import Popen, PIPE, call
 import parseUsfm
 import io
 import codecs
-# import chardet # $ pip install chardet
 import usfm_verses
 import re
 if usfmVersion >= 3.0:
@@ -94,25 +91,6 @@ class State:
         State.textOkayHere = True
         State.currMarker = PP
 
-    # supports a span of verses, e.g. 3-4, if needed. Passes the verse(s) on to addVerse()
-    def addVerses(self, vv):
-        vlist = []
-        if vv.find('-') > 0:
-            vv_range = vv_re.search(vv)
-            if vv_range:
-                vn = int(vv_range.group(1))
-                vnEnd = int(vv_range.group(2))
-                while vn <= vnEnd:
-                    vlist.append(vn)
-                    vn += 1
-            else:
-                reportError("Problem in verse range near " + State.reference)
-        else:
-            vlist.append(int(vv))
-            
-        for vn in vlist:
-            self.addVerse(str(vn))
-
     def addVerse(self, v):
         State.lastVerse = State.verse
         State.verse = int(v)
@@ -164,6 +142,12 @@ class State:
     def bookTitleEnglish(self, id):
         return usfm_verses.verseCounts[id]['en_name']
 
+def shortname(longpath):
+    shortname = longpath
+    if source_dir in longpath:
+        shortname = longpath[len(source_dir)+1:]
+    return shortname
+
 # If issues.txt file is not already open, opens it for writing.
 # First renames existing issues.txt file to issues-oldest.txt unless
 # issues-oldest.txt already exists.
@@ -171,10 +155,10 @@ class State:
 def openIssuesFile():
     global issuesFile
     if not issuesFile:
-        global usfmDir
-        path = os.path.join(usfmDir, "issues.txt")
+        global source_dir
+        path = os.path.join(source_dir, "issues.txt")
         if os.path.exists(path):
-            bakpath = os.path.join(usfmDir, "issues-oldest.txt")
+            bakpath = os.path.join(source_dir, "issues-oldest.txt")
             if not os.path.exists(bakpath):
                 os.rename(path, bakpath)
         issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
@@ -192,7 +176,7 @@ def reportError(msg):
     issues = openIssuesFile()       
     issues.write(msg + ".\n")
 
-# Verifies that at least one book title is specified, other than the Engligh book title.
+# Verifies that at least one book title is specified, other than the English book title.
 # This method is called just before chapter 1 begins, so there has been every
 # opportunity for the book title to be specified.
 def verifyBookTitle():
@@ -271,26 +255,43 @@ def takeSection():
     elif state.currMarker == QQ:
         reportError("Warning: \"useless \q before \s marker\" at: " + state.reference)
 
-def takeV(v):
+# Receives a string containing a verse number or range of verse numbers.
+# Reports errors related to the verse number(s), such as missing or duplicated verses.
+def takeV(vstr):
     state = State()
-    state.addVerses(v)
-    if len(state.IDs) == 0 and state.chapter == 0:
-        reportError("Missing ID before verse: " + v)
-    if state.chapter == 0:
-        reportError("Missing chapter tag: " + state.reference)
-    if state.verse == 1 and state.nParagraphs == 0:
-        reportError("Missing paragraph marker before: " + state.reference)
+    vlist = []
+    if vstr.find('-') > 0:
+        vv_range = vv_re.search(vstr)
+        if vv_range:
+            vn = int(vv_range.group(1))
+            vnEnd = int(vv_range.group(2))
+            while vn <= vnEnd:
+                vlist.append(vn)
+                vn += 1
+        else:
+            reportError("Problem in verse range near " + State.reference)
+    else:
+        vlist.append(int(vstr))
 
-    if state.verse < state.lastVerse and state.addError(state.lastRef):
-        reportError("Verse out of order: " + state.reference + " after " + state.lastRef)
-        state.addError(state.reference)
-    elif state.verse == state.lastVerse:
-        reportError("Duplicated verse: " + state.reference)
-    elif state.verse == state.lastVerse + 2 and not isOptional(state.reference, True):
-        if state.addError(state.lastRef):
-            reportError("Missing verse between: " + state.lastRef + " and " + state.reference)
-    elif state.verse > state.lastVerse + 2 and state.addError(state.lastRef):
-        reportError("Missing verses between: " + state.lastRef + " and " + state.reference)
+    for vn in vlist:
+        v = str(vn)
+        state.addVerse(str(vn))
+        if len(state.IDs) == 0 and state.chapter == 0:
+            reportError("Missing ID before verse: " + v)
+        if state.chapter == 0:
+            reportError("Missing chapter tag: " + state.reference)
+        if state.verse == 1 and state.nParagraphs == 0:
+            reportError("Missing paragraph marker before: " + state.reference)
+        if state.verse < state.lastVerse and state.addError(state.lastRef):
+            reportError("Verse out of order: " + state.reference + " after " + state.lastRef)
+            state.addError(state.reference)
+        elif state.verse == state.lastVerse:
+            reportError("Duplicated verse number: " + state.reference)
+        elif state.verse == state.lastVerse + 2 and not isOptional(state.reference, True):
+            if state.addError(state.lastRef):
+                reportError("Missing verse between: " + state.lastRef + " and " + state.reference)
+        elif state.verse > state.lastVerse + 2 and state.addError(state.lastRef):
+            reportError("Missing verses between: " + state.lastRef + " and " + state.reference)
  
 def takeText(t):
     state = State()
@@ -306,6 +307,8 @@ def takeText(t):
             reportError("  preceding Token.type was " + lastToken.getType())
         else:
             reportError("  no preceding Token")
+    if "<" in t and not ">" in t:
+        reportError("Angle bracket not closed at " + state.reference)
     state.addText()
 
 # Returns true if token is part of a footnote
@@ -401,70 +404,70 @@ bad_verse_re3 = re.compile(r'(\\v\s*[-0-9]+[^-\d\s])', re.UNICODE)
 # Receives the text of an entire book as input.
 # Reports bad patterns.
 # Can't report verse references because we haven't started to parse the book yet.
-def verifyChapterAndVerseMarkers(text, book):
+def verifyChapterAndVerseMarkers(text, path):
     state = State()
     for badactor in bad_chapter_re1.finditer(text):
-        reportError(book + ": missing newline before chapter marker: " + badactor.group(1))
+        reportError(shortname(path) + ": missing newline before chapter marker: " + badactor.group(1))
     for badactor in bad_chapter_re2.finditer(text):
-        reportError(book + ": missing space before chapter number: " + badactor.group(0))
+        reportError(shortname(path) + ": missing space before chapter number: " + badactor.group(0))
     for badactor in bad_chapter_re3.finditer(text):
-        reportError(book + ": missing space after chapter number: " + badactor.group(1))
+        reportError(shortname(path) + ": missing space after chapter number: " + badactor.group(1))
     for badactor in bad_verse_re1.finditer(text):
         str = badactor.group(1)
         if str[0] < ' ' or str[0] > '~': # not printable ascii
             str = str[1:]
-        reportError(book + ": missing space before verse marker: " + str)
+        reportError(shortname(path) + ": missing space before verse marker: " + str)
     for badactor in bad_verse_re2.finditer(text):
-        reportError(book + ": missing space before verse number: " + badactor.group(0))
+        reportError(shortname(path) + ": missing space before verse number: " + badactor.group(0))
     for badactor in bad_verse_re3.finditer(text):
         str = badactor.group(1)
-        if str[-1] < ' ' or str[-1] > '~': # not printable ascii
-            str = str[:-1]
-        reportError(book + ": missing space after verse number: " + str + " near " + state.reference)
+#        if str[-1] < ' ' or str[-1] > '~': # not printable ascii
+#            str = str[:-1]
+        reportError(shortname(path) + ": missing space after verse number: (" + str + ")")
 
 # Corresponding entry point in tx-manager code is verify_contents_quiet()
-def verifyFile(filename):
-    input = io.open(filename, "tr", 1, encoding="utf-8-sig")
+def verifyFile(path):
+    input = io.open(path, "tr", 1, encoding="utf-8-sig")
     str = input.read(-1)
     input.close()
     if usfmVersion >= 3.0:
         str = usfm_utils.usfm3_to_usfm2(str)
 
-    print("CHECKING " + filename + ":")
+    print("CHECKING " + shortname(path))
     sys.stdout.flush()
-    verifyChapterAndVerseMarkers(str, filename)
+    verifyChapterAndVerseMarkers(str, path)
     for token in parseUsfm.parseString(str):
         take(token)
-    verifyNotEmpty(filename)
+    verifyNotEmpty(path)
     verifyVerseCount()      # for the last chapter
     verifyChapterCount()
     state = State()
     state.addID("")
     sys.stderr.flush()
 
+# Verifies all .usfm files under the specified folder.
 def verifyDir(dirpath):
     for f in os.listdir(dirpath):
-        path = os.path.join(dirpath, f)
-        if os.path.isdir(path):
-            # It's a directory, recurse into it
-            verifyDir(path)
-        elif os.path.isfile(path) and path[-3:].lower() == 'sfm':
-            verifyFile(path)
+        if f[0] != '.':         # ignore hidden files
+            path = os.path.join(dirpath, f)
+            if os.path.isdir(path):
+                # It's a directory, recurse into it
+                verifyDir(path)
+            elif os.path.isfile(path) and path[-3:].lower() == 'sfm':
+                verifyFile(path)
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        source = r'E:\DCS\Kannada\temp'
+    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
+        source_dir = sys.argv[1]
+    
+    if os.path.isdir(source_dir):
+        verifyDir(source_dir)
+    elif os.path.isfile(source_dir):
+        path = source_dir
+        source_dir = os.path.dirname(path)
+        verifyFile(path)
     else:
-        source = sys.argv[1]
-        
-    if os.path.isdir(source):
-        usfmDir = source
-        verifyDir(source)
-    elif os.path.isfile(source):
-        usfmDir = os.path.dirname(source)
-        verifyFile(source)
-    else:
-        reportError("File not found: " + source)
+        reportError("File not found: " + source_dir)
     
     if issuesFile:
         issuesFile.close()
