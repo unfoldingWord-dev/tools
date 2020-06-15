@@ -10,44 +10,47 @@
 #    Converts multiple books at once.
 
 # Global variables
-contributors = []
-target_dir = r'E:\DCS\HLs\Komo\kmw_heb_reg'
+target_dir = r'C:\DCS\Swahili\work'
+source_dir = r'C:\DCS\Swahili\ULB'
+mark_chunks = True     # Should be true for GL source text
 
 import usfm_verses
 import re
+import operator
+import io
+import os
 
 verseMarker_re = re.compile(r'[ \n\t]*\\v *[\d]', re.UNICODE)
 chapMarker_re = re.compile(r'\\c *[\d]{1,3}', re.UNICODE)
+contributors = []
+projects = []
 
 # Copies named file to XX-orig.txt.
 # Calls ensureMarkers() to put in missing chapter and verse markers.
-# @param verserange is a set of verse number strings that should exist in the file.
+# @param verserange is a list of verse number strings that should exist in the file.
 # On exit, the named file contains the improved chunk.
 # On exit, XX-orig.txt contains the original chunk, if different.
 def cleanupChunk(directory, filename, verserange):
     dot = filename.find('.')
-    verse = filename[0:dot]
+    verse_start = filename[0:dot]
     path = directory + "/" + filename
-    input = io.open(path, "tr", 1, encoding='utf-8')
+    input = io.open(path, "tr", 1, encoding='utf-8-sig')
     text = input.read(-1)
     input.close()
 
     chapter = ""
-    if int(verse) == 1 and lacksChapter(text):
+    if int(verse_start) == 1 and lacksChapter(text):
         chapter = directory.lstrip('0')
     if len(verseMarker_re.findall(text)) >= len(verserange):     # there are enough verse markers
         verserange = {}
-    # lacking = lacksMarkers(input, chapter.lstrip('0'), verse.lstrip('0'))  # returns (lacksC, lacksV) pair
-    # input.seek(0)
-    # changed = ensureFirstMarkers(input, output, lacking[0], lacking[1])
     if chapter or verserange:
         ext = filename[dot:]
-        tmpPath = directory + "/" + verse + "-orig" + ext
+        tmpPath = directory + "/" + verse_start + "-orig" + ext
         if os.access(tmpPath, os.F_OK):
             os.remove(tmpPath)
         os.rename(path, tmpPath)
         output = io.open(path, "tw", 1, encoding='utf-8', newline='\n')
-        ensureMarkers(text, output, chapter, int(verse), verserange)
+        ensureMarkers(text, output, chapter, int(verse_start), verserange)
         output.close()
     # if not changed:
         # # Restore the original file
@@ -67,6 +70,7 @@ number_re =     re.compile(r'[^v][ \n]([\d]{1,3}[ \n])', re.UNICODE+re.DOTALL)
 
 # Writes chapter marker at beginning of file if needed.
 # Write initial verse marker and number at beginning of file if needed.
+# verserange is a list of verse number strings that must be artificially supplied
 # Finds orphaned verse numbers and inserts \v before them.
 def ensureMarkers(text, output, missingChapter, firstverse, verserange):
     # foundV = False
@@ -79,118 +83,30 @@ def ensureMarkers(text, output, missingChapter, firstverse, verserange):
     else:
         chap = chapMarker_re.search(text)
         if chap:
-            output.write(text[0:chap.end()])
+            output.write(text[0:chap.end()] + '\n')
             text = text[chap.end():]
         initialVerse = verseMarker_re.match(text)
         if not initialVerse:
-            text = "\\v " + str(firstverse) + " " + text      # insert initial verse marker
-        number = numberMatch_re.match(text)
+            verses = ""
+            if len(verserange) == 1:
+                verses = "\\v " + verserange[0] + "\n"
+            else:
+                verses += "\\v " + verserange[0] + "-" + verserange[-1] + " \n"
+            text = verses + text      # insert initial verse marker
+        number = numberMatch_re.match(text)          # matches orphaned number at beginning of the string
         if not number:
-            number = number_re.search(text)
+            number = number_re.search(text)          # finds orphaned number anywhere in string
         while number:
             # verse = number.group(1)
             verse = number.group(1)[0:-1]
-            if verse in verserange:
+            if verse in verserange:         # outputs \v then the number
                 output.write(text[0:number.start(1)] + "\\v " + number.group(1))
             else:
-                output.write(text[0:number.end()])
+                output.write(text[0:number.end()])  # outputs number without inserting \v
             text = text[number.end():]
             number = number_re.search(text)
         output.write(text)
 
-
-# Looks for \c marker missing before wantChapter, and/or \v missing before wantVerse
-# @param input is a file handle
-# @param wantChapter is chapter number expected, or "" if not at the beginning of chapter
-# @parma wantVerse is always the first verse expected in the file
-# This function returns a pair where the first item is the missing chapter, or "", and the
-# second item is the missing verse, or "".
-""" def lacksMarkers(input, wantChapter, wantVerse):
-    foundV = False
-    foundText = False
-    markerExpr = re.compile(r'\\\\[a-z0-9]+[ \n\t]+[\d]{0,3}')
-
-    line = input.readline()
-    while line and not foundV and not foundText:
-        s = line.lstrip()
-        match = markerExpr.search(s)
-        while match and not foundV:
-            # Peel off and output leading USF markers
-            marker = s[match.start():match.end()]
-            # print "WRITING MARKER: <" + marker + ">"
-            if marker[0:2] == "\\c" and not foundV:
-                wantChapter = ""
-            elif marker[0:2] == "\\v" and not foundText:
-                foundV = True
-                wantVerse = ""
-            s = s[match.end():].lstrip()    # s has everything after the marker
-            # print "S AFTER STRIPPING PREV MATCH: <" + s + ">"
-            match = markerExpr.match(s)
-
-        # At this point, S contains the remainder of the input on the current line
-            
-        if len(s) > 1 and not foundV:
-            # At this point we have a non-empty string with no leading markers
-            foundText = True
-        else:
-            # The line was blank or had markers only
-            line = input.readline()
-    return (wantChapter, wantVerse)
- """
-
-# Many input files are missing the first verse marker.
-# This function prepends a verse marker if missing. The verse number is based on the file name.
-# Since all 01.txt input files start a new chapter, they should all start with a chapter marker.
-# This method makes it so.
-# Returns True if any missing markers were corrected.
-""" def ensureFirstMarkers(input, output, missingChapter, missingVerse):
-    foundV = False
-    changes = (missingChapter or missingVerse)
-    markerExpr = re.compile(r'\\\\[a-z0-9]+[ \n\t]+[\d]{0,3}')
-
-    line = input.readline()
-    while line and (missingChapter or missingVerse):
-        s = line.lstrip()
-        match = markerExpr.match(s)
-        while match and not foundV:
-            # Peel off and output leading USF markers
-            marker = s[match.start():match.end()]
-            # print "WRITING MARKER: <" + marker + ">"
-            if marker[0:2] == "\\v" and missingChapter:
-                output.write(u"\\c " + missingChapter + u"\n")
-                missingChapter = ""
-                missingVerse = ""
-                foundV = True
-            output.write(marker + u'\n')
-            s = s[match.end():].lstrip()    # s has everything after the marker
-            # print "S AFTER STRIPPING PREV MATCH: <" + s + ">"
-            match = markerExpr.match(s)
-
-        # At this point the output file contains everything up to where a verse marker
-        # or text is found.
-        # S contains everything in the current line not yet written to the output file.
-            
-        if len(s) > 1:    # Found text before verse marker appeared, or verse marker was found
-            if missingChapter:
-                output.write(u"\\c " + missingChapter + u"\n")
-                missingChapter = ""
-            if missingVerse:
-                output.write(u"\\v " + missingVerse + u"\n")
-                missingVerse = ""
-            output.write(s + u"\n")
-        line = input.readline()
-
-    if missingChapter:
-        output.write(u"\\c " + missingChapter + u"\n")
-        missingChapter = ""
-    if missingVerse:
-        output.write(u"\\v " + missingVerse + u"\n")
-        missingVerse = ""
-    while line:
-        output.write(line)
-        line = input.readline()
-    return changes
- """
 # Restores files that were renamed to XX-orig.txt by cleanupCheck().
 # Renames fixed XX.txt file to XX-fixed.txt.
 def restoreOrigFile(directory, filename):
@@ -206,10 +122,11 @@ def restoreOrigFile(directory, filename):
         os.rename(path, fixPath)
         os.rename(tmpPath, path)
 
-
 # Does a first pass on a list of lines to eliminate unwanted line breaks,
 # tabs, and extra whitespace. Places most markers at the beginning of lines.
+# Inserts chapter label if needed.
 # May perform other first pass cleanup tasks.
+# Returns single string containing newlines.
 def combineLines(lines):
     section = ""
     for line in lines:
@@ -222,8 +139,8 @@ def combineLines(lines):
         line = line.replace(" \\s", "\n\\s")
         line = line.replace("\\v", "\n\\v")
         # line = line.replace(" \\v", "\n\\v")
-        line = line.strip(" \t\r\n")    # strip trailing spaces
-
+        line = line.strip(" \t\r\n")    # strip leading and trailing spaces
+        
         if line:    # disregard lines that reduced to nothing
             if len(section) == 0:
                 section = line
@@ -245,26 +162,38 @@ def addSectionMarker(section):
         newsection = section    # this should rarely occur
     return newsection
 
-# Adds a paragraph marker after each chapter marker
-# Where a chapter does not start a new paragraph (like John 8), manually
-# replace the paragraph marker with \nb.
-def addParagraphMarker(section):
-    tokenlist = re.split('(\\\\c [0-9]+)', section)
-    marked = ""
-    for token in tokenlist:
-        if re.match('\\\\c [0-9]+', token):
-            token = token + "\n\\p"   # add paragraph mark after each chapter marker
-        marked = marked + token
-    return marked
+labeledChapter_re = re.compile(r'(\\c +[\d]{1,3}) +(.+?)$', re.UNICODE+re.MULTILINE)
+chapter_re = re.compile(r'(\\c +[\d]{1,3})', re.UNICODE)
+
+# Prepends section marker if needed.
+# Append chapter label if needed
+# Appends paragraph marker if needed.
+# Returns modified section.
+def augmentChapter(section):
+    if mark_chunks:
+        section = addSectionMarker(section)
+    chap = labeledChapter_re.search(section)
+    if chap:
+        section = section[:chap.start()] + chap.group(1) + "\n\\cl " + chap.group(2) + "\n\\p" + section[chap.end():]
+    else:
+        chap = chapter_re.match(section)
+        if chap:
+            section = section[:chap.start()] + chap.group(1) + "\n\\p" + section[chap.end():]
+    return section          
+
+spacedot_re = re.compile(r'[^0-9] \.')
+commadot_re = re.compile(r'[^0-9] ,')
 
 # Removes extraneous space before clause ending punctuation and adds space after
 # sentence/clause end if needed.
 def fixPunctuationSpacing(section):
     # First remove space before most punctuation
-    section = section.replace(" .", ".")
+    section = spacedot_re.sub(". ", section)
+    section = commadot_re.sub(", ", section)
+#    section = section.replace(" .", ".")
+#    section = section.replace(" ,", ",")
     section = section.replace(" ;", ";")
     section = section.replace(" :", ":")
-    section = section.replace(" ,", ",")
     section = section.replace(" ?", "?")
     section = section.replace(" !", "!")
     section = section.replace(" )", ")")
@@ -272,7 +201,7 @@ def fixPunctuationSpacing(section):
     section = section.replace(" �", "�")
 
     # Then add space after punctuation where needed
-    jammed = re.compile("[.?!;:,)][^ .?!;:,)'����\"]")
+    jammed = re.compile("[.?!;:,)][^ .?!;:,)'�\"]")
     match = jammed.search(section, 0)
     while match:
         if match.end() < len(section) and section[match.end()-1] != '\n':
@@ -343,20 +272,14 @@ def fixVerseMarkers(section):
     # print "D. section length is " + str(len(section))
     return section
     
-import io
-import os
-
-# Accepts a directory, and single file name which contains one chunk.
-# Reads all the lines from that file and converts the text to a single
+# Reads all the lines from the specified file and converts the text to a single
 # USFM section.
 def convertFile(txtPath):
-    input = io.open(txtPath, "tr", 1, encoding='utf-8')
+    input = io.open(txtPath, "tr", 1, encoding='utf-8-sig')
     lines = input.readlines()
     input.close()
-    section = "\n" + combineLines(lines)
-    section = addSectionMarker(section)
-    section = addParagraphMarker(section)
-    # Most texts already have paragraph markers after chapter markers
+    section = "\n" + combineLines(lines)    # fixes white space
+    section = augmentChapter(section)
     section = fixPunctuationSpacing(section)
     section = fixChapterMarkers(section)
     section = fixVerseMarkers(section)
@@ -418,34 +341,43 @@ def getBookTitle():
     if not os.path.isfile(path):
         path = os.path.join("00", "title.txt")
     if os.path.isfile(path):
-        f = io.open(path, "tr", 1, encoding='utf-8')
+        f = io.open(path, "tr", 1, encoding='utf-8-sig')
         bookTitle = f.readline()
         f.close()
     else:
         sys.stderr.write("   Can't open " + path + "!\n")
     return bookTitle 
 
-def appendToManifest(bookId, bookTitle):
-    path = makeManifestPath()
-    manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
-    manifest.write("  -\n")
-    manifest.write("    title: '" + bookTitle + " '\n")
-    manifest.write("    versification: ufw\n")
-    manifest.write("    identifier: '" + bookId.lower() + "'\n")
-    manifest.write("    sort: " + str(usfm_verses.verseCounts[bookId]['sort']) + "\n")
-    manifest.write("    path: ./" + makeUsfmFilename(bookId) + "\n")
+# Appends information about the current book to the global projects list.
+def appendToProjects(bookId, bookTitle):
+    global projects
     testament = 'nt'
     if usfm_verses.verseCounts[bookId]['sort'] < 40:
         testament = 'ot'
-    manifest.write("    categories: [ 'bible-" + testament + "' ]\n")
-    manifest.close()
+    project = { "title": bookTitle, "id": bookId.lower(), "sort": usfm_verses.verseCounts[bookId]["sort"], \
+                "path": "./" + makeUsfmFilename(bookId), "category": "[ 'bible-" + testament + "' ]" }
+    projects.append(project)
 
-prefix_re = re.compile(r'C:\\DCS')
+def dumpProjects():
+    global projectts
+    projects.sort(key=operator.itemgetter('sort'))
+
+    path = makeManifestPath()
+    manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
+    for p in projects:
+        manifest.write("  -\n")
+        manifest.write("    title: '" + p['title'] + "'\n")
+        manifest.write("    versification: ufw\n")
+        manifest.write("    identifier: '" + p['id'] + "'\n")
+        manifest.write("    sort: " + str(p['sort']) + "\n")
+        manifest.write("    path: '" + p['path'] + "'\n")
+        manifest.write("    categories: " + p['category'] + "\n")
+    manifest.close()
 
 def shortname(longpath):
     shortname = longpath
-    if prefix_re.match(longpath):
-        shortname = "..." + longpath[6:]
+    if source_dir in longpath:
+        shortname = longpath[len(source_dir)+1:]
     return shortname
 
 def convertFolder(folder):
@@ -466,7 +398,7 @@ def convertFolder(folder):
         bookTitle = getBookTitle()
         if bookId and bookTitle:
             convertBook(bookId, bookTitle)   # converts the pieces in the current folder
-            appendToManifest(bookId, bookTitle)
+            appendToProjects(bookId, bookTitle)
             # sys.stdout.write("\n")
             # sys.stdout.flush()
  
@@ -536,14 +468,14 @@ def listChunks(chap):
 
 # Compiles a list of verse number strings that should be in the specified chunk
 def makeVerseRange(chunks, i, bookId, chapter):
-    verserange = { chunks[i].lstrip('0') }
+    verserange = [ chunks[i].lstrip('0') ]
     if i+1 < len(chunks):
         limit = int(chunks[i+1])
     else:           # last chunk
         limit = usfm_verses.verseCounts[bookId]['verses'][chapter-1] + 1
     v = int(chunks[i]) + 1
     while v < limit:
-        verserange.add(str(v))
+        verserange.append(str(v))
         v += 1
     return verserange
 
@@ -588,12 +520,15 @@ def convert(dir):
             if isBookFolder(folder):
                 convertFolder(folder)
     dumpContributors()    
+    dumpProjects()
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        convert(r'E:\DCS\HLs\Komo\kmw_heb_text_reg')
-    else:       # the first command line argument presumed to be a folder
-        convert(sys.argv[1])
-
-    print("\nDone.")
+    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
+        source_dir = sys.argv[1]
+    
+    if os.path.isdir(source_dir):
+        convert(source_dir)
+        print("\nDone.")
+    else:
+        print("Not a valid folder: " + source_dir + '\n')
