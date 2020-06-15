@@ -4,13 +4,16 @@
 # Set source_dir and usfmVersion to run.
 
 # Global variables
-source_dir = r'C:\DCS\Bangwinji\bsj_reg'
+source_dir = r'C:\DCS\Swahili\sw_ulb\09-1SA.usfm'
+language_code = 'sw'
 usfmVersion = 2     # if version 3.0 or greater, tolerates unknown tokens and verse fragments
 suppress1 = False      # Suppress warnings about empty verses and verse fragments
-suppress9 = True       # Suppress warnings about ASCII content
+sup = False       # Suppress warnings about ASCII content
 
 if usfmVersion >= 3.0:
     suppress1 = True
+if language_code in {'hr','id','nag','pmy','sw'}:    # ASCII content
+    suppress9 = True
 
 lastToken = None
 issuesFile = None
@@ -42,9 +45,10 @@ class State:
     ID = ""
     titles = []
     chapter = 0
-    nParagraphs = 0
     verse = 0
     lastVerse = 0
+    needPP = False
+    needQQ = False
     needVerseText = False
     textOkayHere = False
     reference = ""
@@ -77,7 +81,7 @@ class State:
     def addChapter(self, c):
         State.lastChapter = State.chapter
         State.chapter = int(c)
-        State.nParagraphs = 0
+        State.needPP = True
         State.lastVerse = 0
         State.verse = 0
         State.needVerseText = False
@@ -87,7 +91,7 @@ class State:
         State.currMarker = OTHER
     
     def addParagraph(self):
-        State.nParagraphs += 1
+        State.needPP = False
         State.textOkayHere = True
         State.currMarker = PP
 
@@ -99,6 +103,19 @@ class State:
         State.lastRef = State.reference
         State.reference = State.ID + " " + str(State.chapter) + ":" + v
         State.currMarker = OTHER
+
+    def addPoetryHeading(self):
+        State.textOkayHere = True
+        State.needQQ = True
+
+    def addPoetry(self):
+        State.needQQ = False
+        State.currMarker = QQ
+        State.textOkayHere = True
+    
+    # Resets needQQ flag so that errors are not repeated verse after verse
+    def resetPoetry(self):
+        State.needQQ = False
 
     def textOkay(self):
         return State.textOkayHere
@@ -112,10 +129,6 @@ class State:
         State.currMarker = OTHER
         State.needVerseText = False
         State.textOkayHere = True
-        
-    def addQuote(self):
-        State.textOkayHere = True
-        State.currMarker = QQ
 
     
     # Adds the specified reference to the set of error references
@@ -280,8 +293,11 @@ def takeV(vstr):
             reportError("Missing ID before verse: " + v)
         if state.chapter == 0:
             reportError("Missing chapter tag: " + state.reference)
-        if state.verse == 1 and state.nParagraphs == 0:
-            reportError("Missing paragraph marker before: " + state.reference)
+        if state.verse == 1 and state.needPP:
+            reportError("Need paragraph marker before: " + state.reference)
+        if state.needQQ:
+            reportError("Need \\q or \\p after poetry heading before: " + state.reference)
+            state.resetPoetry()
         if state.verse < state.lastVerse and state.addError(state.lastRef):
             reportError("Verse out of order: " + state.reference + " after " + state.lastRef)
             state.addError(state.reference)
@@ -293,9 +309,16 @@ def takeV(vstr):
         elif state.verse > state.lastVerse + 2 and state.addError(state.lastRef):
             reportError("Missing verses between: " + state.lastRef + " and " + state.reference)
  
+punctuation_re = re.compile("[.?!;:,][^ )'�\"]")
+
+def reportPunctuation(text):
+    if punctuation_re.search(text):
+        state = State()
+        reportError("Bad punctuation at " + state.reference)
+
 def takeText(t):
-    state = State()
     global lastToken
+    state = State()
     if not state.textOkay() and not isTextCarryingToken(lastToken):
         if t[0] == '\\':
             reportError("Uncommon or invalid marker near " + state.reference)
@@ -309,6 +332,7 @@ def takeText(t):
             reportError("  no preceding Token")
     if "<" in t and not ">" in t:
         reportError("Angle bracket not closed at " + state.reference)
+    reportPunctuation(t)
     state.addText()
 
 # Returns true if token is part of a footnote
@@ -337,7 +361,8 @@ def isOptional(ref, previous=False):
 'ACT 24:7', 'ACT 28:29', 'ROM 16:24' }
 
 def isPoetry(token):
-    return token.isQ() or token.isQ1() or token.isQA() or token.isSP()
+    return token.isQ() or token.isQ1() or token.isQA() or token.isSP() or token.isQR() or \
+token.isQC() or token.isD()
 
 def isIntro(token):
     return token.is_is() or token.is_ip() or token.is_iot() or token.is_io()
@@ -378,8 +403,10 @@ def take(token):
         takeText(token.value)
     elif token.isS5() or token.isS():
         takeSection()
+    elif token.isQA():
+        state.addPoetryHeading()
     elif token.isQ() or token.isQ1() or token.isQ2() or token.isQ3():
-        state.addQuote()
+        state.addPoetry()
     elif token.isH() or token.isTOC1() or token.isTOC2() or token.isMT() or token.is_imt():
         state.addTitle(token.value)
         if token.isMT() and token.value.isascii() and not suppress9:
@@ -403,27 +430,48 @@ bad_verse_re3 = re.compile(r'(\\v\s*[-0-9]+[^-\d\s])', re.UNICODE)
 
 # Receives the text of an entire book as input.
 # Reports bad patterns.
-# Can't report verse references because we haven't started to parse the book yet.
 def verifyChapterAndVerseMarkers(text, path):
     state = State()
     for badactor in bad_chapter_re1.finditer(text):
-        reportError(shortname(path) + ": missing newline before chapter marker: " + badactor.group(1))
+        reportError(path + ": missing newline before chapter marker: " + badactor.group(1))
     for badactor in bad_chapter_re2.finditer(text):
-        reportError(shortname(path) + ": missing space before chapter number: " + badactor.group(0))
+        reportError(path + ": missing space before chapter number: " + badactor.group(0))
     for badactor in bad_chapter_re3.finditer(text):
-        reportError(shortname(path) + ": missing space after chapter number: " + badactor.group(1))
+        reportError(path + ": missing space after chapter number: " + badactor.group(1))
     for badactor in bad_verse_re1.finditer(text):
         str = badactor.group(1)
         if str[0] < ' ' or str[0] > '~': # not printable ascii
             str = str[1:]
-        reportError(shortname(path) + ": missing space before verse marker: " + str)
+        reportError(path + ": missing space before verse marker: " + str)
     for badactor in bad_verse_re2.finditer(text):
-        reportError(shortname(path) + ": missing space before verse number: " + badactor.group(0))
+        reportError(path + ": missing space before verse number: " + badactor.group(0))
     for badactor in bad_verse_re3.finditer(text):
         str = badactor.group(1)
 #        if str[-1] < ' ' or str[-1] > '~': # not printable ascii
 #            str = str[:-1]
-        reportError(shortname(path) + ": missing space after verse number: (" + str + ")")
+        reportError(path + ": missing space after verse number: (" + str + ")")
+
+orphantext_re = re.compile(r'\n\n[^\\]', re.UNICODE)
+
+# Receives the text of an entire book as input.
+# Verifies things that are better done as a whole file.
+# Can't report verse references because we haven't started to parse the book yet.
+def verifyWholeFile(str, path):
+    verifyChapterAndVerseMarkers(str, path)
+
+    lines = str.split('\n')
+    orphans = orphantext_re.search(str)
+    if orphans:
+        reportOrphans(lines, path)
+        
+def reportOrphans(lines, path):
+    prevline = "xx"
+    lineno = 0
+    for line in lines:
+        lineno += 1
+        if not prevline and line[0] != '\\':
+            reportError(path + ": stray text at line " + str(lineno))
+        prevline = line
 
 # Corresponding entry point in tx-manager code is verify_contents_quiet()
 def verifyFile(path):
@@ -435,7 +483,7 @@ def verifyFile(path):
 
     print("CHECKING " + shortname(path))
     sys.stdout.flush()
-    verifyChapterAndVerseMarkers(str, path)
+    verifyWholeFile(str, shortname(path))
     for token in parseUsfm.parseString(str):
         take(token)
     verifyNotEmpty(path)
