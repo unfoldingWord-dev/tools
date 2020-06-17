@@ -4,11 +4,11 @@
 # Set source_dir and usfmVersion to run.
 
 # Global variables
-source_dir = r'C:\DCS\Swahili\sw_ulb\09-1SA.usfm'
-language_code = 'sw'
+source_dir = r'C:\DCS\Bangwinji\bsj_reg'
+language_code = 'bsj'
 usfmVersion = 2     # if version 3.0 or greater, tolerates unknown tokens and verse fragments
 suppress1 = False      # Suppress warnings about empty verses and verse fragments
-sup = False       # Suppress warnings about ASCII content
+suppress9 = True       # Suppress warnings about ASCII content
 
 if usfmVersion >= 3.0:
     suppress1 = True
