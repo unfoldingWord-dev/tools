@@ -1,6 +1,4 @@
-# coding: latin-1
-#### ###### -*- coding: utf-8 -*-
-
+# -*- coding: utf-8 -*-
 # This script converts text files from tStudio to USFM Resource Container format.
 #    Parses manifest.json to get the book ID.
 #    Outputs list of contributors gleaned from all manifest.json files.
@@ -10,9 +8,9 @@
 #    Converts multiple books at once.
 
 # Global variables
-target_dir = r'C:\DCS\Swahili\work'
-source_dir = r'C:\DCS\Swahili\ULB'
-mark_chunks = True     # Should be true for GL source text
+target_dir = r'C:\DCS\Amo\work'
+source_dir = r'C:\DCS\Amo\NT\amo_mat_text_reg'
+mark_chunks = False     # Should be true for GL source text
 
 import usfm_verses
 import re
@@ -20,7 +18,9 @@ import operator
 import io
 import os
 
-verseMarker_re = re.compile(r'[ \n\t]*\\v *[\d]', re.UNICODE)
+verseMarker_re = re.compile(r'[ \n\t]*\\v *([\d]{1,3})', re.UNICODE)
+numbers_re =     re.compile(r'[ \n]([\d]{1,3})[ \n]', re.UNICODE)
+numberstart_re = re.compile(r'([\d]{1,3})[ \n]', re.UNICODE)
 chapMarker_re = re.compile(r'\\c *[\d]{1,3}', re.UNICODE)
 contributors = []
 projects = []
@@ -38,19 +38,19 @@ def cleanupChunk(directory, filename, verserange):
     text = input.read(-1)
     input.close()
 
-    chapter = ""
+    missing_chapter = ""
     if int(verse_start) == 1 and lacksChapter(text):
-        chapter = directory.lstrip('0')
-    if len(verseMarker_re.findall(text)) >= len(verserange):     # there are enough verse markers
-        verserange = {}
-    if chapter or verserange:
+        missing_chapter = directory.lstrip('0')
+    missing_verses = lackingVerses(text, verserange, numbers_re, directory, filename)
+    missing_markers = lackingVerses(text, verserange, verseMarker_re, directory, filename)
+    if missing_chapter or missing_verses or missing_markers:
         ext = filename[dot:]
         tmpPath = directory + "/" + verse_start + "-orig" + ext
         if os.access(tmpPath, os.F_OK):
             os.remove(tmpPath)
         os.rename(path, tmpPath)
         output = io.open(path, "tw", 1, encoding='utf-8', newline='\n')
-        ensureMarkers(text, output, chapter, int(verse_start), verserange)
+        ensureMarkers(text, output, missing_chapter, verse_start, missing_verses, missing_markers)
         output.close()
     # if not changed:
         # # Restore the original file
@@ -65,20 +65,34 @@ def lacksChapter(text):
         text = text[0:verseMarker.start()]
     return (not chapMarker_re.search(text))
 
+# Searches for the expected verse numbers in the string
+# Returns list of verse numbers (marked or unmarked) missing from the string
+def lackingVerses(str, verserange, expr_re, directory, filename):
+    missing_verses = []
+    numbers = expr_re.findall(str)
+#    if len(numbers) < len(verserange):     # not enough verse numbers
+    versenumbers_found = []
+    for vn in numbers:
+        if vn in verserange:
+            versenumbers_found.append(vn)
+    for verse in verserange:
+        if not verse in versenumbers_found:
+            missing_verses.append(verse)
+    return missing_verses
+
 numberMatch_re = re.compile(r'[ \n\t]*([\d]{1,3}[ \n])', re.UNICODE+re.DOTALL)
-number_re =     re.compile(r'[^v][ \n]([\d]{1,3}[ \n])', re.UNICODE+re.DOTALL)
+untaggednumber_re =     re.compile(r'[^v][ \n]([\d]{1,3}[ \n])', re.UNICODE+re.DOTALL)
 
 # Writes chapter marker at beginning of file if needed.
 # Write initial verse marker and number at beginning of file if needed.
-# verserange is a list of verse number strings that must be artificially supplied
 # Finds orphaned verse numbers and inserts \v before them.
-def ensureMarkers(text, output, missingChapter, firstverse, verserange):
+def ensureMarkers(text, output, missingChapter, verse_start, missingVerses, missingMarkers):
     # foundV = False
     # foundText = False
     # markerExpr = re.compile(r'\\\\[a-z0-9]+[ \n\t]+[\d]{0,3}')
     if missingChapter:
         output.write("\\c " + missingChapter + '\n')
-    if not verserange:
+    if not (missingVerses or missingMarkers):
         output.write(text)
     else:
         chap = chapMarker_re.search(text)
@@ -87,24 +101,26 @@ def ensureMarkers(text, output, missingChapter, firstverse, verserange):
             text = text[chap.end():]
         initialVerse = verseMarker_re.match(text)
         if not initialVerse:
+            initialVerse = numberstart_re.match(text)
+        if not initialVerse and missingVerses[0] == verse_start:
             verses = ""
-            if len(verserange) == 1:
-                verses = "\\v " + verserange[0] + "\n"
+            if len(missingVerses) == 1:
+                verses = "\\v " + missingVerses[0] + "\n"
             else:
-                verses += "\\v " + verserange[0] + "-" + verserange[-1] + " \n"
+                verses += "\\v " + missingVerses[0] + "-" + missingVerses[-1] + " \n"
             text = verses + text      # insert initial verse marker
         number = numberMatch_re.match(text)          # matches orphaned number at beginning of the string
         if not number:
-            number = number_re.search(text)          # finds orphaned number anywhere in string
+            number = untaggednumber_re.search(text)          # finds orphaned number anywhere in string
         while number:
             # verse = number.group(1)
             verse = number.group(1)[0:-1]
-            if verse in verserange:         # outputs \v then the number
+            if verse in missingMarkers:         # outputs \v then the number
                 output.write(text[0:number.start(1)] + "\\v " + number.group(1))
             else:
-                output.write(text[0:number.end()])  # outputs number without inserting \v
+                output.write(text[0:number.end()])  # leaves number as is
             text = text[number.end():]
-            number = number_re.search(text)
+            number = untaggednumber_re.search(text)
         output.write(text)
 
 # Restores files that were renamed to XX-orig.txt by cleanupCheck().
@@ -130,19 +146,14 @@ def restoreOrigFile(directory, filename):
 def combineLines(lines):
     section = ""
     for line in lines:
-        line = line.strip(" \t\r\n")    # strip leading and trailing whitespace
         line = line.replace("\t", " ")
         line = line.replace("   ", " ")
         line = line.replace("  ", " ")
-        line = line.replace(" \\c", "\n\\c")
-        line = line.replace(" \\p", "\n\\p")
-        line = line.replace(" \\s", "\n\\s")
-        line = line.replace("\\v", "\n\\v")
-        # line = line.replace(" \\v", "\n\\v")
-        line = line.strip(" \t\r\n")    # strip leading and trailing spaces
-        
+        line = line.replace(" \\", "\n\\")
+        line = line.strip()    # strip leading and trailing whitespace
+
         if line:    # disregard lines that reduced to nothing
-            if len(section) == 0:
+            if not section:
                 section = line
             else:
                 if line[0] != '\\':
@@ -151,7 +162,7 @@ def combineLines(lines):
                     section = section + "\n" + line
     return section
 
-cvExpr = re.compile('\\\\[cv] [0-9]+')
+cvExpr = re.compile(r'\\[cv] [0-9]+')
 
 # Prepends an s5 marker before the first chapter or verse marker.
 def addSectionMarker(section):
@@ -162,8 +173,8 @@ def addSectionMarker(section):
         newsection = section    # this should rarely occur
     return newsection
 
-labeledChapter_re = re.compile(r'(\\c +[\d]{1,3}) +(.+?)$', re.UNICODE+re.MULTILINE)
-chapter_re = re.compile(r'(\\c +[\d]{1,3})', re.UNICODE)
+# labeledChapter_re = re.compile(r'(\\c +[\d]{1,3}) +(.+?)$', re.UNICODE+re.MULTILINE)
+chapter_re = re.compile(r'\n\\c +[0-9]+[ \n]*', re.UNICODE)
 
 # Prepends section marker if needed.
 # Append chapter label if needed
@@ -172,13 +183,13 @@ chapter_re = re.compile(r'(\\c +[\d]{1,3})', re.UNICODE)
 def augmentChapter(section):
     if mark_chunks:
         section = addSectionMarker(section)
-    chap = labeledChapter_re.search(section)
+#    chap = labeledChapter_re.search(section)
+#    if chap:
+#        section = section[:chap.start()] + chap.group(1) + "\n\\cl " + chap.group(2) + "\n\\p" + section[chap.end():]
+#    else:
+    chap = chapter_re.match(section)
     if chap:
-        section = section[:chap.start()] + chap.group(1) + "\n\\cl " + chap.group(2) + "\n\\p" + section[chap.end():]
-    else:
-        chap = chapter_re.match(section)
-        if chap:
-            section = section[:chap.start()] + chap.group(1) + "\n\\p" + section[chap.end():]
+        section = section[:chap.end()].rstrip() + "\n\\p\n" + section[chap.end():].lstrip()
     return section          
 
 spacedot_re = re.compile(r'[^0-9] \.')
@@ -504,7 +515,6 @@ def convertBook(bookId, bookTitle):
         #     usfmFile.write(section)
     # Wrap up
     usfmFile.close()
-    # print "\nFINISHED: " + usfmPath
 
 # Converts the book or books contained in the specified folder
 def convert(dir):
