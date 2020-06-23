@@ -8,8 +8,8 @@
 #    Converts multiple books at once.
 
 # Global variables
-target_dir = r'C:\DCS\Amo\work'
-source_dir = r'C:\DCS\Amo\NT\amo_mat_text_reg'
+target_dir = r'C:\DCS\Bangwinji\bsj_reg'
+source_dir = r'C:\DCS\Bangwinji\NT'
 mark_chunks = False     # Should be true for GL source text
 
 import usfm_verses
@@ -19,6 +19,7 @@ import io
 import os
 
 verseMarker_re = re.compile(r'[ \n\t]*\\v *([\d]{1,3})', re.UNICODE)
+verseTags_re = re.compile(r'\\v +[^1-9]', re.UNICODE)
 numbers_re =     re.compile(r'[ \n]([\d]{1,3})[ \n]', re.UNICODE)
 numberstart_re = re.compile(r'([\d]{1,3})[ \n]', re.UNICODE)
 chapMarker_re = re.compile(r'\\c *[\d]{1,3}', re.UNICODE)
@@ -33,7 +34,7 @@ projects = []
 def cleanupChunk(directory, filename, verserange):
     dot = filename.find('.')
     verse_start = filename[0:dot]
-    path = directory + "/" + filename
+    path = os.path.join(directory, filename)
     input = io.open(path, "tr", 1, encoding='utf-8-sig')
     text = input.read(-1)
     input.close()
@@ -41,21 +42,26 @@ def cleanupChunk(directory, filename, verserange):
     missing_chapter = ""
     if int(verse_start) == 1 and lacksChapter(text):
         missing_chapter = directory.lstrip('0')
-    missing_verses = lackingVerses(text, verserange, numbers_re, directory, filename)
-    missing_markers = lackingVerses(text, verserange, verseMarker_re, directory, filename)
+    missing_verses = lackingVerses(text, verserange, numbers_re)
+    missing_markers = lackingVerses(text, verserange, verseMarker_re)
     if missing_chapter or missing_verses or missing_markers:
-        ext = filename[dot:]
-        tmpPath = directory + "/" + verse_start + "-orig" + ext
-        if os.access(tmpPath, os.F_OK):
-            os.remove(tmpPath)
-        os.rename(path, tmpPath)
+        bakpath = path + ".orig"
+        if not os.path.isfile(bakpath):
+            os.rename(path, bakpath)
+
+#        ext = filename[dot:]
+#        tmpPath = directory + "/" + verse_start + "-orig" + ext
+#        if os.access(tmpPath, os.F_OK):
+#            os.remove(tmpPath)
+#        os.rename(path, tmpPath)
+        if verseTags_re.search(text):
+            if missing_verses:
+                text = ensureNumbers(text, missing_verses)
+                missing_verses = lackingVerses(text, verserange, numbers_re)
+        text = ensureMarkers(text, missing_chapter, verse_start, missing_verses, missing_markers)
         output = io.open(path, "tw", 1, encoding='utf-8', newline='\n')
-        ensureMarkers(text, output, missing_chapter, verse_start, missing_verses, missing_markers)
+        output.write(text)
         output.close()
-    # if not changed:
-        # # Restore the original file
-        # os.remove(path)
-        # os.rename(tmpPath, path)
 
 # Returns True unchanged if there is no \c marker before the first verse marker.
 # Returns False if \c marker precedes first verse marker.
@@ -65,9 +71,9 @@ def lacksChapter(text):
         text = text[0:verseMarker.start()]
     return (not chapMarker_re.search(text))
 
-# Searches for the expected verse numbers in the string
+# Searches for the expected verse numbers in the string using the specified expression.
 # Returns list of verse numbers (marked or unmarked) missing from the string
-def lackingVerses(str, verserange, expr_re, directory, filename):
+def lackingVerses(str, verserange, expr_re):
     missing_verses = []
     numbers = expr_re.findall(str)
 #    if len(numbers) < len(verserange):     # not enough verse numbers
@@ -83,26 +89,28 @@ def lackingVerses(str, verserange, expr_re, directory, filename):
 numberMatch_re = re.compile(r'[ \n\t]*([\d]{1,3}[ \n])', re.UNICODE+re.DOTALL)
 untaggednumber_re =     re.compile(r'[^v][ \n]([\d]{1,3}[ \n])', re.UNICODE+re.DOTALL)
 
+
 # Writes chapter marker at beginning of file if needed.
 # Write initial verse marker and number at beginning of file if needed.
 # Finds orphaned verse numbers and inserts \v before them.
-def ensureMarkers(text, output, missingChapter, verse_start, missingVerses, missingMarkers):
-    # foundV = False
-    # foundText = False
-    # markerExpr = re.compile(r'\\\\[a-z0-9]+[ \n\t]+[\d]{0,3}')
+# missingVerses is a list of verse numbers (in string format) not found in the string
+# missingMarkers is a list of verse markers (e.g. "\v 1") not found in the string
+# Returns corrected string.
+def ensureMarkers(text, missingChapter, verse_start, missingVerses, missingMarkers):
+    goodstr = ""
     if missingChapter:
-        output.write("\\c " + missingChapter + '\n')
+        goodstr = "\\c " + missingChapter + '\n'
     if not (missingVerses or missingMarkers):
-        output.write(text)
+        goodstr += text
     else:
         chap = chapMarker_re.search(text)
         if chap:
-            output.write(text[0:chap.end()] + '\n')
+            goodstr += text[0:chap.end()] + '\n'
             text = text[chap.end():]
         initialVerse = verseMarker_re.match(text)
         if not initialVerse:
             initialVerse = numberstart_re.match(text)
-        if not initialVerse and missingVerses[0] == verse_start:
+        if not initialVerse and missingVerses and missingVerses[0] == verse_start:
             verses = ""
             if len(missingVerses) == 1:
                 verses = "\\v " + missingVerses[0] + "\n"
@@ -116,27 +124,37 @@ def ensureMarkers(text, output, missingChapter, verse_start, missingVerses, miss
             # verse = number.group(1)
             verse = number.group(1)[0:-1]
             if verse in missingMarkers:         # outputs \v then the number
-                output.write(text[0:number.start(1)] + "\\v " + number.group(1))
+                goodstr += text[0:number.start(1)] + "\\v " + number.group(1)
             else:
-                output.write(text[0:number.end()])  # leaves number as is
+                goodstr += text[0:number.end()]   # leaves number as is
             text = text[number.end():]
             number = untaggednumber_re.search(text)
-        output.write(text)
+        goodstr += text
+    return goodstr
+
+def ensureNumbers(text, missingVerses):
+    missi = 0
+    while missi < len(missingVerses):
+        versetag = verseTags_re.search(text)
+        if versetag:
+            text = text[0:versetag.end()-1] + missingVerses[missi] + " " + text[versetag.end()-1:]
+        missi += 1
+    return text
 
 # Restores files that were renamed to XX-orig.txt by cleanupCheck().
 # Renames fixed XX.txt file to XX-fixed.txt.
-def restoreOrigFile(directory, filename):
-    dot = filename.find('.')
-    verse = filename[0:dot]
-    ext = filename[dot:]
-    path = directory + "/" + filename
-    tmpPath = directory + "/" + verse + "-orig" + ext
-    if os.access(tmpPath, os.F_OK):
-        fixPath = directory + "/" + verse + "-fixed" + ext
-        if os.access(fixPath, os.F_OK):
-            os.remove(fixPath)
-        os.rename(path, fixPath)
-        os.rename(tmpPath, path)
+#def restoreOrigFile(directory, filename):
+#    dot = filename.find('.')
+#    verse = filename[0:dot]
+#    ext = filename[dot:]
+#    path = directory + "/" + filename
+#    tmpPath = directory + "/" + verse + "-orig" + ext
+#    if os.access(tmpPath, os.F_OK):
+#        fixPath = directory + "/" + verse + "-fixed" + ext
+#        if os.access(fixPath, os.F_OK):
+#            os.remove(fixPath)
+#        os.rename(path, fixPath)
+#        os.rename(tmpPath, path)
 
 # Does a first pass on a list of lines to eliminate unwanted line breaks,
 # tabs, and extra whitespace. Places most markers at the beginning of lines.
@@ -507,7 +525,7 @@ def convertBook(bookId, bookTitle):
             cleanupChunk(chap, filename, makeVerseRange(chunks, i, bookId, int(chap)))
             section = convertFile(txtPath) + '\n'
             usfmFile.write(section)
-            restoreOrigFile(chap, filename)
+#            restoreOrigFile(chap, filename)
             i += 1
         # Process misnamed 00.txt file last, if it exists
         # if os.access(chap + "/00.txt", os.F_OK):
