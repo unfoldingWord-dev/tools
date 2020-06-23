@@ -8,11 +8,12 @@ source_dir = r'C:\DCS\Bangwinji\bsj_reg'
 language_code = 'bsj'
 usfmVersion = 2     # if version 3.0 or greater, tolerates unknown tokens and verse fragments
 suppress1 = False      # Suppress warnings about empty verses and verse fragments
-suppress9 = True       # Suppress warnings about ASCII content
+suppress2 = False      # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
+suppress9 = True      # Suppress warnings about ASCII content
 
 if usfmVersion >= 3.0:
     suppress1 = True
-if language_code in {'hr','id','nag','pmy','sw'}:    # ASCII content
+if language_code in {'ha','hr','id','nag','pmy','sw'}:    # ASCII content
     suppress9 = True
 
 lastToken = None
@@ -21,9 +22,6 @@ issuesFile = None
 # Set Path for files in support/
 import os
 import sys
-#rootdiroftools = os.path.dirname(os.path.abspath(__file__))
-#sys.path.append(os.path.join(rootdiroftools,'support'))
-
 import parseUsfm
 import io
 import codecs
@@ -110,6 +108,7 @@ class State:
 
     def addPoetry(self):
         State.needQQ = False
+        State.needPP = False
         State.currMarker = QQ
         State.textOkayHere = True
     
@@ -293,7 +292,7 @@ def takeV(vstr):
             reportError("Missing ID before verse: " + v)
         if state.chapter == 0:
             reportError("Missing chapter tag: " + state.reference)
-        if state.verse == 1 and state.needPP:
+        if state.verse == 1 and state.needPP and not suppress2:
             reportError("Need paragraph marker before: " + state.reference)
         if state.needQQ:
             reportError("Need \\q or \\p after poetry heading before: " + state.reference)
@@ -309,7 +308,7 @@ def takeV(vstr):
         elif state.verse > state.lastVerse + 2 and state.addError(state.lastRef):
             reportError("Missing verses between: " + state.lastRef + " and " + state.reference)
  
-punctuation_re = re.compile("[.?!;:,][^ )'�\"]")
+punctuation_re = re.compile(r'[\.\?!;\:,][^ \)\'’"”]')
 
 def reportPunctuation(text):
     if punctuation_re.search(text):
@@ -416,8 +415,10 @@ def take(token):
     elif token.isUnknown():
         if token.value == "p":
             reportError("Orphaned paragraph marker after " + state.reference)
+        elif token.value == "v":
+            reportError("Unnumbered verse after " + state.reference)
         elif usfmVersion < 3.0:
-            reportError("Unknown USFM token following " + state.reference)
+            reportError("Invalid USFM token (\\" + token.value + ") following " + state.reference)
         
     lastToken = token
 
@@ -469,7 +470,7 @@ def reportOrphans(lines, path):
     lineno = 0
     for line in lines:
         lineno += 1
-        if not prevline and line[0] != '\\':
+        if not prevline and line and line[0] != '\\':
             reportError(path + ": stray text at line " + str(lineno))
         prevline = line
 
