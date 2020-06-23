@@ -68,10 +68,10 @@ sts     = usfmTokenValue("sts", phrase)
 r       = usfmTokenValue("r", phrase)
 p       = usfmToken("p")
 pc      = usfmToken("pc")
-
 pi      = usfmToken('pi')
 pi1     = usfmToken('pi1')
 pi2     = usfmToken('pi2')
+cls     = usfmToken('cls')
 
 b       = usfmToken("b")
 c       = usfmTokenNumber("c")
@@ -175,6 +175,10 @@ nd_s     = usfmToken('nd')
 nd_e     = usfmEndToken('nd')
 pn_s    = usfmToken("pn")
 pn_e    = usfmEndToken("pn")
+rq_s     = usfmToken('rq')
+rq_e     = usfmEndToken('rq')
+w_s     = usfmToken('w')
+w_e     = usfmEndToken('w')
 pbr     = usfmBackslashToken('\\\\')
 mi      = usfmToken('mi')
 
@@ -259,6 +263,7 @@ element =  MatchFirst([ide, id,
                        p,
                        pc,
                        pi, pi1, pi2,
+                       cls,
                        mi,
                        b,
                        ca_s, ca_e,
@@ -304,6 +309,8 @@ element =  MatchFirst([ide, id,
                        sp,
                        add_s, add_e,
                        pn_s, pn_e,
+                       rq_s, rq_e,
+                       w_s, w_e,
                        tl_s, tl_e,
                        is0, is1, is2, is3,
                        ip, ipi,
@@ -397,6 +404,7 @@ def createToken(t):
         'pi':   PIToken,
         'pi1':  PI1Token,
         'pi2':  PI2Token,
+        'cls':  CLSToken,
 
         'b':    BToken,
 
@@ -467,6 +475,8 @@ def createToken(t):
         'add':  ADDStartToken, 'add*': ADDEndToken,
         'nd':   NDStartToken, 'nd*':  NDEndToken,
         'pn':   PNStartToken, 'pn*': PNEndToken,
+        'rq':   RQStartToken, 'rq*': RQEndToken,
+        'w':    WStartToken, 'w*': WEndToken,
         'sc':   SCStartToken, 'sc*':  SCEndToken,
         'm':    MToken,
         '\\\\': EscapedToken,
@@ -559,6 +569,7 @@ class UsfmToken:
     def isPI(self):     return False
     def isPI1(self):    return False
     def isPI2(self):    return False
+    def isCLS(self):    return False
     def isS(self):      return False
     def isS2(self):     return False
     def isS3(self):     return False
@@ -641,6 +652,10 @@ class UsfmToken:
     def isNDE(self):    return False
     def isPNS(self):    return False
     def isPNE(self):    return False
+    def isRQS(self):    return False
+    def isRQE(self):    return False
+    def isWS(self):    return False
+    def isWE(self):    return False
     def isTLS(self):    return False
     def isTLE(self):    return False
     def isB(self):      return False
@@ -1143,6 +1158,24 @@ class PNEndToken(UsfmToken):
         return printer.renderPN_E(self)
     def isPNE(self):      return True
 
+class RQStartToken(UsfmToken):
+    def renderOn(self, printer):
+        return printer.renderRQ_S(self)
+    def isRQS(self):      return True
+class RQEndToken(UsfmToken):
+    def renderOn(self, printer):
+        return printer.renderRQ_E(self)
+    def isRQE(self):      return True
+
+class WStartToken(UsfmToken):
+    def renderOn(self, printer):
+        return printer.renderW_S(self)
+    def isWS(self):      return True
+class WEndToken(UsfmToken):
+    def renderOn(self, printer):
+        return printer.renderW_E(self)
+    def isWE(self):      return True
+
 # Cross References
 class XStartToken(UsfmToken):
     def renderOn(self, printer): return printer.renderX_S(self)
@@ -1208,6 +1241,11 @@ class PI2Token(UsfmToken):
     def renderOn(self, printer):
         return printer.renderPI2(self)
     def isPI2(self):      return True
+
+class CLSToken(UsfmToken):
+    def renderOn(self, printer):
+        return printer.renderCLS(self)
+    def isCLS(self):      return True
 
 # Small caps
 class SCStartToken(UsfmToken):
