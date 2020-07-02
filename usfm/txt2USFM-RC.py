@@ -8,8 +8,8 @@
 #    Converts multiple books at once.
 
 # Global variables
-source_dir = r'C:\DCS\Tonga\NT'
-target_dir = r'C:\DCS\Tonga\dov_reg'
+source_dir = r'C:\DCS\Bangwinji\NT'
+target_dir = r'C:\DCS\Bangwinji\bsj_reg'
 mark_chunks = False     # Should be true for GL source text
 
 import usfm_verses
@@ -20,7 +20,7 @@ import os
 
 verseMarker_re = re.compile(r'[ \n\t]*\\v *([\d]{1,3})', re.UNICODE)
 verseTags_re = re.compile(r'\\v +[^1-9]', re.UNICODE)
-numbers_re =     re.compile(r'[ \n]([\d]{1,3})[ \n]', re.UNICODE)
+numbers_re = re.compile(r'[ \n]([\d]{1,3})[ \n]', re.UNICODE)
 numberstart_re = re.compile(r'([\d]{1,3})[ \n]', re.UNICODE)
 chapMarker_re = re.compile(r'\\c *[\d]{1,3}', re.UNICODE)
 
@@ -38,10 +38,12 @@ def cleanupChunk(directory, filename, verserange):
     vn_start = int(verserange[0])
     vn_end = int(verserange[-1])
     path = os.path.join(directory, filename)
-    input = io.open(path, "tr", 1, encoding='utf-8-sig')
+    input = io.open(path, "tr", encoding='utf-8-sig')
     origtext = input.read()
     input.close()
-    text = makeSubstitutions(origtext)
+    text = fixVerseMarkers(origtext)
+    text = fixChapterMarkers(text)
+    text = fixPunctuationSpacing(text)
 
     missing_chapter = ""
     if vn_start == 1 and lacksChapter(text):
@@ -89,7 +91,6 @@ def lackingVerses(str, verserange, expr_re):
 numberMatch_re = re.compile(r'[ \n\t]*([\d]{1,3}[ \n])', re.UNICODE+re.DOTALL)
 untaggednumber_re =     re.compile(r'[^v][ \n]([\d]{1,3}[ \n])', re.UNICODE+re.DOTALL)
 
-
 # Writes chapter marker at beginning of file if needed.
 # Write initial verse marker and number at beginning of file if needed.
 # Finds orphaned verse numbers and inserts \v before them.
@@ -109,7 +110,7 @@ def ensureMarkers(text, missingChapter, vn_start, vn_end, missingVerses, missing
             text = text[chap.end():]
 
         verseAtStart = numberstart_re.match(text)
-        if missingVerses and not verseAtStart:
+        if (missingVerses or missingMarkers) and not verseAtStart:
             verseAtStart = verseMarker_re.match(text)
         if not verseAtStart:
             startVV = missingStartVV(vn_start, vn_end, text)
@@ -156,6 +157,7 @@ def ensureNumbers(text, missingVerses):
     return text
 
 sub0_re = re.compile(r'/v +[1-9]', re.UNICODE)      # slash v
+sub0b_re = re.compile(r'\\\\v +[1-9]', re.UNICODE)  # double backslash v
 sub1_re = re.compile(r'[^\n ]\\v ', re.UNICODE)     # no space before \v
 sub2_re = re.compile(r'[\n \.,"\'?!]\\ *v[1-9]', re.UNICODE)   # no space before verse number, possible space betw \ and v
 sub2m_re = re.compile(r'\\ *v[1-9]', re.UNICODE)       # no space before verse number, possible space betw \ and v  -- match
@@ -166,16 +168,21 @@ sub6_re = re.compile(r'[\n ]\\ v [1-9]', re.UNICODE)           # space betw \ an
 sub6m_re = re.compile(r'\\ v [1-9]', re.UNICODE)               # space betw \ and v -- match
 sub7_re = re.compile(r'[\n ]v [1-9]', re.UNICODE)              # missing backslash
 
-# Makes some simple substitutions on the text from the raw .txt files.
-def makeSubstitutions(text):
+# Fixes malformed verse markers
+def fixVerseMarkers(text):
     found = sub0_re.search(text)
     while found:
         text = text[0:found.start()] + "\\" + text[found.start()+1:]
         found = sub0_re.search(text, found.start()+3)
 
+    found = sub0b_re.search(text)
+    while found:
+        text = text[0:found.start()] + text[found.start()+1:]
+        found = sub0b_re.search(text, found.start()+3)
+
     found = sub1_re.search(text)
     while found:
-        text = text[0:found.start()+1] + "\n" + text[found.start()+1:]
+        text = text[0:found.start()+1] + "\n" + text[found.end()-3:]
         found = sub1_re.search(text, found.start()+3)
 
     if found := sub2m_re.match(text):
@@ -216,8 +223,6 @@ def makeSubstitutions(text):
 
 # Does a first pass on a list of lines to eliminate unwanted line breaks,
 # tabs, and extra whitespace. Places most markers at the beginning of lines.
-# Inserts chapter label if needed.
-# May perform other first pass cleanup tasks.
 # Returns single string containing newlines.
 def combineLines(lines):
     section = ""
@@ -228,37 +233,28 @@ def combineLines(lines):
         line = line.replace(" \\", "\n\\")
         line = line.strip()    # strip leading and trailing whitespace
 
-        if line:    # disregard lines that reduced to nothing
+        if line:    # discard lines that reduced to nothing
             if not section:
                 section = line
             else:
-                if line[0] != '\\':
-                    section = section + " " + line
-                else:
+                if line[0] == '\\' or line.startswith("==") or line.startswith(">>"):
                     section = section + "\n" + line
+                else:
+                    section = section + " " + line
     return section
 
 cvExpr = re.compile(r'\\[cv] [0-9]+')
-
-# Prepends an s5 marker before the first chapter or verse marker.
-def addSectionMarker(section):
-    marker = cvExpr.search(section)
-    if marker:
-        newsection = section[0:marker.start()] + '\\s5\n' + section[marker.start():]
-    else:
-        newsection = section    # this should rarely occur
-    return newsection
-
-# labeledChapter_re = re.compile(r'(\\c +[\d]{1,3}) +(.+?)$', re.UNICODE+re.MULTILINE)
 chapter_re = re.compile(r'\n\\c +[0-9]+[ \n]*', re.UNICODE)
+# labeledChapter_re = re.compile(r'(\\c +[\d]{1,3}) +(.+?)$', re.UNICODE+re.MULTILINE)
 
-# Prepends section marker if needed.
-# Append chapter label if needed
-# Appends paragraph marker if needed.
+# Adds section marker and paragraph marker as needed.
 # Returns modified section.
 def augmentChapter(section):
     if mark_chunks:
-        section = addSectionMarker(section)
+        # section = addSectionMarker(section)
+        if marker := cvExpr.search(section):
+            section = section[0:marker.start()] + '\\s5\n' + section[marker.start():]
+
 #    chap = labeledChapter_re.search(section)
 #    if chap:
 #        section = section[:chap.start()] + chap.group(1) + "\n\\cl " + chap.group(2) + "\n\\p" + section[chap.end():]
@@ -268,33 +264,24 @@ def augmentChapter(section):
         section = section[:chap.end()].rstrip() + "\n\\p\n" + section[chap.end():].lstrip()
     return section          
 
-spacedot_re = re.compile(r'[^0-9] \.')
-commadot_re = re.compile(r'[^0-9] ,')
+spacedot_re = re.compile(r'[^0-9] [\.\?!;\:,][^\.]')    # space before clause-ending punctuation
+jammed = re.compile(r'[\.\?!;:,)][\w]', re.UNICODE)     # no space between clause-ending punctuation and next word -- but \w matches digits also
 
 # Removes extraneous space before clause ending punctuation and adds space after
 # sentence/clause end if needed.
 def fixPunctuationSpacing(section):
     # First remove space before most punctuation
-    section = spacedot_re.sub(". ", section)
-    section = commadot_re.sub(", ", section)
-#    section = section.replace(" .", ".")
-#    section = section.replace(" ,", ",")
-    section = section.replace(" ;", ";")
-    section = section.replace(" :", ":")
-    section = section.replace(" ?", "?")
-    section = section.replace(" !", "!")
-    section = section.replace(" )", ")")
-    section = section.replace(" �", "�")
-    section = section.replace(" �", "�")
+    found = spacedot_re.search(section)
+    while found:
+        section = section[0:found.start()+1] + section[found.end()-2:]
+        found = spacedot_re.search(section)
 
-    # Then add space after punctuation where needed
-    jammed = re.compile("[.?!;:,)][^ .?!;:,)'�\"]")
+    # Then add space between clause-ending punctuation and next word.
     match = jammed.search(section, 0)
     while match:
-        if match.end() < len(section) and section[match.end()-1] != '\n':
-            section = section[:match.end()-1] + ' ' + section[match.end()-1:]
-        pos = match.end() - 1
-        match = jammed.search(section, pos)
+        if section[match.end()-1] not in "0123456789":
+            section = section[:match.start()+1] + ' ' + section[match.end()-1:]
+        match = jammed.search(section, match.end())
     return section
     
 # Inserts space between \c and the chapter number if needed
@@ -307,60 +294,19 @@ def fixChapterMarkers(section):
         match = re.search('\\\\c[0-9]', section, pos)
     return section
     
-# Fixes the format of verse markers in the section
-# All verse markers in the incoming string should already be at the beginning of a line.
-# Converts "\v 10 10" or "\v10 10" or "\v10" to "\v 10"
-def fixVerseMarkers(section):
-    # Take care of repeated verse numbers
-    tokenlist = re.split('(\\\\v [0-9]+ [0-9]+)', section)
-    section = ""
-    repeatedVerseNumber = re.compile('\\\\v [0-9]+ [0-9]+')
-    for token in tokenlist:
-        if repeatedVerseNumber.match(token):
-            parts = re.split(' ', token)
-            verse = parts[1]
-            if parts[2] == verse:
-                token = "\\v " + verse
-        section = section + token
-    # print "B. section length is " + str(len(section))
-
-    # Ensure space after verse number
-    jammed = re.compile('\\\\v [0-9]+[^ \n-0123456789]')
-    match = jammed.search(section)
-    while match:
-        section = section[:match.end()-1] + ' ' + section[match.end()-1:]
-        match = jammed.search(section)
-    # print "C. section length is " + str(len(section))
-
-    # Eliminate duplicate verse markers
-    vm = re.compile('(\\\\v [0-9]+)')
-    tokenlist = re.split(vm, section)
-    section = ""
-    lastVerseMarker = ""
-    for token in tokenlist:
-        if vm.match(token):
-            if token != lastVerseMarker:
-                lastVerseMarker = token
-                section = section + token
-            # else:
-                # sys.stdout.write("\nREMOVED DUPLICATE VERSE MARKER: " + token + '\n')
-        else:
-            section = section + token
-    
-    # print "D. section length is " + str(len(section))
-    return section
-    
 # Reads all the lines from the specified file and converts the text to a single
-# USFM section.
+# USFM section by adding section marker and paragraph marker where needed.
+# Starts each usfm marker on a new line.
+# Fixes white space, such as converting tabs to spaces and removing trailing spaces.
 def convertFile(txtPath):
     input = io.open(txtPath, "tr", 1, encoding='utf-8-sig')
     lines = input.readlines()
     input.close()
     section = "\n" + combineLines(lines)    # fixes white space
     section = augmentChapter(section)
-    section = fixPunctuationSpacing(section)
-    section = fixChapterMarkers(section)
-    section = fixVerseMarkers(section)
+    # section = fixPunctuationSpacing(section)
+    # section = fixChapterMarkers(section)
+    # section = fixVerseMarkers(section)
     return section
 
 # Returns True if the specified directory is one with text files to be converted
@@ -421,7 +367,7 @@ def getBookTitle():
         path = os.path.join("00", "title.txt")
     if os.path.isfile(path):
         f = io.open(path, "tr", 1, encoding='utf-8-sig')
-        bookTitle = f.readline()
+        bookTitle = f.readline().strip()
         f.close()
     else:
         sys.stderr.write("   Can't open " + path + "!\n")
