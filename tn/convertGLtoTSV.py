@@ -365,7 +365,6 @@ if __name__ == '__main__':
 
     print(f"Loading {len(numberedMDFilenameList):,} markdown files…")
     for f in numberedMDFilenameList:
-        if not f.startswith('57'): continue # Only do Titus
         tn_checks = convertMarkdownToList(f, tn_checks)
     print(f"  Loaded markdown files for {len(tn_checks)} book(s)")
 
