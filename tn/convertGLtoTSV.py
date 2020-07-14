@@ -25,9 +25,12 @@ import string
 import random
 from pathlib import Path
 
+# Set the following to true or false
+# If true, a GL file like 01.md contains questions for the CHUNK starting at v1
+# If false, 01.md contains questions only for v1
+IS_GL_CHUNKS = True
 
 EN_TN_PATH = Path('../en_tn/')
-
 
 # DONE
 # * Clean intro files
@@ -206,6 +209,11 @@ def saveToTSV(languageCode:str, BBB:str, glData, enTSVData:List[list]) -> None:
     Merges the GL notes into the English notes
         thus transforming from 9 columns to 11 columns
         for manually editing.
+
+    NOTE: In some cases, the GL numbers represent chunks,
+            i.e., Gen 1:1 means the chunk starting at 1:1 and covering multiple verses until the next chunk.
+          In some cases, the GL numbers represent the actual verse numbers.
+          We handle that simply with a global IS_GL_CHUNKS flag.
     """
     tn_check_filename = f'{languageCode}_tn_{books[BBB][1]}-{BBB}.tsv'
     print(f"  Processing {BBB} for {tn_check_filename}…")
@@ -281,7 +289,22 @@ def saveToTSV(languageCode:str, BBB:str, glData, enTSVData:List[list]) -> None:
                     print(f"{languageCode} {glBBB} {glC} seems to have verse {glVint} AFTER {lastGlVint}"); halt
                 glX = glCint*1000 + glVint
 
-                if enFields and glX==enX:
+                if glIndex+1 < len(glData): # Get the following one also so we know what's coming next
+                    nextGLfields2 = glData[glIndex+1]
+                    assert len(nextGLfields2) == 9
+                    _glBBB2, glC2, glV2 = nextGLfields2[:3]
+                    glC2 = glC2.lstrip('0')
+                    glV2 = glV2.lstrip('0')
+                    if glC2 == 'front': glC2 = '0'
+                    if glV2 == 'intro': glV2 = '0'
+                    glCint2, glVint2 = int(glC2), int(glV2)
+                else: # Must be on the last record
+                    glCint2, glVint2 = 999, 999
+                glX2 = glCint2*1000 + glVint2
+
+                if enFields \
+                and ((glX==enX and not IS_GL_CHUNKS) \
+                  or IS_GL_CHUNKS):
                     enFields.append(nextGLfields[7]) # GL Quote
                     enFields.append(nextGLfields[8]) # Occurrence Note
                     # print(f"Writing combined {len(enFields)} {enFields}")
@@ -290,7 +313,8 @@ def saveToTSV(languageCode:str, BBB:str, glData, enTSVData:List[list]) -> None:
                     enIndex += 1 # Used that one now
                     glIndex += 1 # Used that one now
                     continue
-                elif enX > glX or not enFields: # we've gone past our place (or past the end of the English)!!!
+                elif (enX > glX and not IS_GL_CHUNKS) \
+                or not enFields: # we've gone past our place (or past the end of the English)!!!
                     # print(f"Gone past ({enC}:{enV}={enX} vs {glC}:{glV}={glX}")
                     # We need to add a line to the table
                     newRow = [BBB,glC,glV,nextGLfields[3],nextGLfields[4],nextGLfields[5],nextGLfields[6],'','', nextGLfields[7], nextGLfields[8]]
@@ -341,8 +365,13 @@ if __name__ == '__main__':
 
     print(f"Loading {len(numberedMDFilenameList):,} markdown files…")
     for f in numberedMDFilenameList:
+        if not f.startswith('57'): continue # Only do Titus
         tn_checks = convertMarkdownToList(f, tn_checks)
-    print(f"  Loaded {len(numberedMDFilenameList):,} files")
+    print(f"  Loaded markdown files for {len(tn_checks)} book(s)")
+
+    if IS_GL_CHUNKS: mdIs, mdNot = 'CHUNK', 'each verse'
+    else: mdIs, mdNot = 'VERSE', 'chunk'
+    print(f"\nAssuming that the markdown files are separated by {mdIs} (not by {mdNot}).")
 
     print("Combining and creating output files…")
     for BBB,noteList in tn_checks.items():
