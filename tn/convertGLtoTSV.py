@@ -238,7 +238,8 @@ def saveToTSV(languageCode:str, BBB:str, glData, enTSVData:List[list]) -> None:
 
             # See if we're just looping without progressing
             if enIndex==lastEnIndex and glIndex==lastGlIndex: # infinite loop???
-                logging.critical("PROGRAM LOGIC ERROR: We seem to be looping infinitely!!!!"); halt
+                logging.critical("PROGRAM LOGIC ERROR: We seem to be looping infinitely!!!!")
+                break
             lastEnIndex, lastGlIndex = enIndex, glIndex
 
             # Get next two lots of EN fields
@@ -265,11 +266,11 @@ def saveToTSV(languageCode:str, BBB:str, glData, enTSVData:List[list]) -> None:
                     if enV == 'intro': enV = '0'
                     enCint, enVint = int(enC), int(enV)
                     if enCint < lastEnCint:
-                        logging.error(f"en {enBBB} seems to have chapter {enCint} AFTER {lastEnCint}"); halt
+                        logging.error(f"en {enBBB} seems to have chapter {enCint} AFTER {lastEnCint}")
                     elif enCint > lastEnCint:
                         lastEnVint = 0
                     if enVint < lastEnVint:
-                        logging.error(f"en {enBBB} {enC} seems to have verse {enVint} AFTER {lastEnVint}"); halt
+                        logging.error(f"en {enBBB} {enC} seems to have verse {enVint} AFTER {lastEnVint}")
                     enX = enCint*1000 + enVint # Gives us a single int representing C:V (that we can compare easily)
             else: # Must be already finished the English
                 # enCint, enVint = 999, 999
@@ -305,11 +306,11 @@ def saveToTSV(languageCode:str, BBB:str, glData, enTSVData:List[list]) -> None:
                     print(f"{glBBB} what is {glC}:{glV} ??? {glFields}")
                     glVint = 0
                 if glCint < lastGlCint:
-                    logging.error(f"{languageCode} {glBBB} seems to have chapter {glCint} AFTER {lastGlCint}"); halt
+                    logging.error(f"{languageCode} {glBBB} seems to have chapter {glCint} AFTER {lastGlCint}")
                 elif glCint > lastGlCint:
                     lastGlVint = 0
                 if glVint < lastGlVint:
-                    logging.error(f"{languageCode} {glBBB} {glC} seems to have verse {glVint} AFTER {lastGlVint}"); halt
+                    logging.error(f"{languageCode} {glBBB} {glC} seems to have verse {glVint} AFTER {lastGlVint}")
             else: # Must be already finished the GL records
                 glCint, glVint = 999, 999
                 glFields = None
@@ -411,10 +412,11 @@ def saveToTSV(languageCode:str, BBB:str, glData, enTSVData:List[list]) -> None:
             logging.critical(f"PROGRAMMING LOGIC ERROR: reached end of loop with enX={enX} and glX={glX}")
 
     if enIndex != len(enTSVData):
-        logging.critical(f"Something went wrong: en has {enIndex} instead of {len(enTSVData)}"); halt
+        logging.critical(f"Something went wrong: en has {enIndex} instead of {len(enTSVData)}")
     if glIndex != len(glData):
-        logging.critical(f"Something went wrong: {languageCode} has {glIndex} instead of {len(glData)}"); halt
+        logging.critical(f"Something went wrong: {languageCode} has {glIndex} instead of {len(glData)}")
 
+    # Give some statistics
     print(f"    combinedBoth={combinedCount:,} EngOnly={enOnlyCount}"
           f"{' glChunkInserts='+str(glChunkInsertCount) if glChunkInsertCount else ''}"
           f"{' combinedChunkRows='+str(combinedChunkCount) if combinedChunkCount else ''}"
@@ -438,14 +440,13 @@ def main():
     numberedMDFilenameList = []
     for actualFilepath in mdFilepathList:
         if 'index' in actualFilepath:
-            logging.warning(f"Skipping unexpected {actualFilepath}")
+            logging.warning(f"Skipping unexpected GL {actualFilepath}")
             continue
         bbb = actualFilepath.split('/')[0]
         BBB = bbb.upper()
         bookNumber = books[BBB][1]
         adjustedFilepath = actualFilepath.replace(bbb, bookNumber) \
                                 .replace('front','00').replace('intro','00') # so they sort correctly
-        # print(f"{actualFilepath=} {adjustedFilepath=} {bbb=} {BBB=} {bookNumber=}")
         numberedMDFilenameList.append(adjustedFilepath)
         books_nums[bookNumber] = BBB
     numberedMDFilenameList.sort()
@@ -456,10 +457,6 @@ def main():
         tn_checks = convertMarkdownToList(f, tn_checks)
     print(f"  Loaded markdown files for {len(tn_checks)} book(s)")
 
-    # if IS_GL_CHUNKS: mdIs, mdNot = 'CHUNK', 'each verse'
-    # else: mdIs, mdNot = 'VERSE', 'chunk'
-    # print(f"\nAssuming that the markdown files are separated by {mdIs} (not by {mdNot}).")
-
     print("Combining and creating output files…")
     for BBB,noteList in tn_checks.items():
         enTSVtable = loadEnglishTSV(BBB)
@@ -467,7 +464,7 @@ def main():
 # end of main()
 
 if __name__ == '__main__':
-    print("convertGLtoTSVlink.py v0.5.0")
+    print("convertGLtoTSVlink.py v0.5.1")
 
     if IS_GL_CHUNKS: mdIs, mdNot = 'CHUNK', 'each verse'
     else: mdIs, mdNot = 'VERSE', 'chunk'
