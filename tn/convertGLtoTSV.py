@@ -261,7 +261,8 @@ def saveToTSV(languageCode:str, BBB:str, glData, enTSVData:List[list]) -> None:
                     enFields = None
                     continue
                 else: # not the header row
-                    assert enBBB == BBB
+                    if enBBB != BBB:
+                        logging.error(f"Unexpected en {enBBB!r} (instead of {BBB}) with {enC}:{enV}")
                     if enC == 'front': enC = '0'
                     if enV == 'intro': enV = '0'
                     enCint, enVint = int(enC), int(enV)
