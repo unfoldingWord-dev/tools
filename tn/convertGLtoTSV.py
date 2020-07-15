@@ -19,6 +19,7 @@ Copy this script to the markdown TN folder and run it from there.
 """
 from typing import Dict, List, Tuple, Optional
 import os
+import logging
 import re
 import glob
 import string
@@ -28,7 +29,7 @@ from pathlib import Path
 # Set the following to true or false
 # If true, a GL file like 01.md contains questions for the CHUNK starting at v1
 # If false, 01.md contains questions only for v1
-IS_GL_CHUNKS = True
+IS_GL_CHUNKS = False
 
 EN_TN_PATH = Path('../en_tn/')
 
@@ -118,6 +119,7 @@ def getOLQuote(b:str, c:str, v:str, glquote:str) -> List[str]:
     # For now, return 0 to indicate not found
     return ['0', '']
 
+
 def getNoteID() -> str:
     '''Returns a unique 4 character alpha-numberic string'''
     while True:
@@ -136,7 +138,6 @@ def loadEnglishTSV(BBB):
     """
     Loads the English TSV TN data for the given bookcode.
     """
-    BBBupper = BBB.upper()
     enTSVfilepath = EN_TN_PATH.joinpath(f'en_tn_{books[BBB][1]}-{BBB}.tsv')
     # print(f"Loading English TSV for {BBB} from {enTSVfilepath}…")
     with open(enTSVfilepath, 'r', encoding='utf-8') as enTSVbook:
@@ -151,22 +152,25 @@ def loadEnglishTSV(BBB):
         return tsvTable
 
 
-def convertMarkdownToList(f, tn_checks):
+def convertMarkdownToList(adjustedFilepath, tn_checks):
     """
     Iterates through each verse file
     """
     # print(f"convertMarkdownToList {f}…")
-    b, c, v = f.rstrip('.md').split('/')
+    b, c, v = adjustedFilepath.rstrip('.md').split('/')
     if c == '00':
         c = 'front'
-    f = f.replace(b, books_nums[b], 1).lower()
+    adjustedFilepath = adjustedFilepath.replace(b, books_nums[b], 1).lower()
     b = books_nums[b]
     if not b in tn_checks:
         tn_checks[b] = [['Book', 'Chapter', 'Verse', 'ID', 'SupportReference',
                          'OrigQuote', 'Occurrence', 'GLQuote',  'OccurrenceNote']]
-    if v in ['00']:
+    if v == '00':
         # This is an introduction, which has a different format than a regular note
-        with open(f, 'r', encoding='utf-8') as mdFile:
+        if not os.path.exists(adjustedFilepath):
+            adjustedFilepath = adjustedFilepath.replace('/00/00.md','/front/intro.md')
+            adjustedFilepath = adjustedFilepath.replace('/00.md','/intro.md')
+        with open(adjustedFilepath, 'r', encoding='utf-8') as mdFile:
             for line in mdFile:
                 if line.startswith('# '):
                     ID = getNoteID()
@@ -182,7 +186,7 @@ def convertMarkdownToList(f, tn_checks):
                 note_text += '<br>'
         tn_checks[b].append([b, c, 'intro', ID, ref, olquote, occurrence, glquote, note_text])
         return tn_checks
-    with open(f, 'r', encoding='utf-8') as mdFile:
+    with open(adjustedFilepath, 'r', encoding='utf-8') as mdFile:
         for line in mdFile:
             # This is the text snippet from the ULB
             if line.startswith('#'):
@@ -199,8 +203,8 @@ def convertMarkdownToList(f, tn_checks):
                         ref = linkre.search(note_text).group(1).split('/')[-1]
                 try:
                     tn_checks[b].append([b, c, v, ID, ref, olquote, occurrence, glquote, note_text])
-                except UnboundLocalError:
-                    print( b, c, v, line)
+                except UnboundLocalError as e:
+                    print(f"ERROR: {b} {c}:{v} {line} gave {e} -- does this mean bad formatting (e.g., missing #) in {adjustedFilepath}???")
     return tn_checks
 
 
@@ -216,7 +220,8 @@ def saveToTSV(languageCode:str, BBB:str, glData, enTSVData:List[list]) -> None:
           We handle that simply with a global IS_GL_CHUNKS flag.
     """
     tn_check_filename = f'{languageCode}_tn_{books[BBB][1]}-{BBB}.tsv'
-    print(f"  Processing {BBB} for {tn_check_filename}…")
+    print(f"  Processing {BBB} by {'chunk' if IS_GL_CHUNKS else 'verse'} for {tn_check_filename}…")
+    combinedCount = enOnlyCount = glChunkInsertCount = combinedChunkCount = glVerseInsertCount = glLeftOverCount = 0
     with open(tn_check_filename, 'w', encoding='utf-8') as writer:
         enIndex, lastEnIndex = 0, -1
         lastEnCint = lastEnVint = 0
@@ -229,14 +234,14 @@ def saveToTSV(languageCode:str, BBB:str, glData, enTSVData:List[list]) -> None:
             # See if we're finished
             if enIndex == len(enTSVData) \
             and glIndex == len(glData):
-                break; # all done
+                break # all done
 
             # See if we're just looping without progressing
             if enIndex==lastEnIndex and glIndex==lastGlIndex: # infinite loop???
-                print("PROGRAM LOGIC ERROR: We seem to be looping infinitely!!!!"); halt
+                logging.critical("PROGRAM LOGIC ERROR: We seem to be looping infinitely!!!!"); halt
             lastEnIndex, lastGlIndex = enIndex, glIndex
 
-            # Get next EN fields
+            # Get next two lots of EN fields
             if enIndex < len(enTSVData):
                 enFields = enTSVData[enIndex].copy()
                 assert len(enFields) == 9
@@ -260,91 +265,168 @@ def saveToTSV(languageCode:str, BBB:str, glData, enTSVData:List[list]) -> None:
                     if enV == 'intro': enV = '0'
                     enCint, enVint = int(enC), int(enV)
                     if enCint < lastEnCint:
-                        print(f"en {enBBB} seems to have chapter {enCint} AFTER {lastEnCint}"); halt
+                        logging.error(f"en {enBBB} seems to have chapter {enCint} AFTER {lastEnCint}"); halt
                     elif enCint > lastEnCint:
                         lastEnVint = 0
                     if enVint < lastEnVint:
-                        print(f"en {enBBB} {enC} seems to have verse {enVint} AFTER {lastEnVint}"); halt
-                    enX = enCint*1000 + enVint
-            else:
+                        logging.error(f"en {enBBB} {enC} seems to have verse {enVint} AFTER {lastEnVint}"); halt
+                    enX = enCint*1000 + enVint # Gives us a single int representing C:V (that we can compare easily)
+            else: # Must be already finished the English
+                # enCint, enVint = 999, 999
                 enFields = None
 
-            # Get next GL fields
+            # Uncomment this if need to know the next GL C:V that's coming
+            # if enIndex+1 < len(enTSVData):
+            #     nextEnFields = enTSVData[enIndex+1]
+            #     assert len(nextEnFields) == 9
+            #     _enBBB2, enC2, enV2 = nextEnFields[:3]
+            #     if enC2 == 'front': enC2 = '0'
+            #     if enV2 == 'intro': enV2 = '0'
+            #     enCint2, enVint2 = int(enC2), int(enV2)
+            # else: # No more English following
+            #     enCint2, enVint2 = 999, 999
+            # enX2 = enCint2*1000 + enVint2
+
+            # Get next two lots of GL fields
             if glIndex < len(glData):
-                nextGLfields = glData[glIndex]
-                assert len(nextGLfields) == 9
-                glBBB, glC, glV = nextGLfields[:3]
+                glFields = glData[glIndex]
+                assert len(glFields) == 9
+                glBBB, glC, glV = glFields[:3]
                 glC = glC.lstrip('0')
                 glV = glV.lstrip('0')
                 # print(f"  Got {languageCode} {glBBB} {glC}:{glV}")
                 assert glBBB == BBB
                 if glC == 'front': glC = '0'
                 if glV == 'intro': glV = '0'
-                glCint, glVint = int(glC), int(glV)
+                glCint = int(glC)
+                try:
+                    glVint = int(glV)
+                except ValueError:
+                    print(f"{glBBB} what is {glC}:{glV} ??? {glFields}")
+                    glVint = 0
                 if glCint < lastGlCint:
-                    print(f"{languageCode} {glBBB} seems to have chapter {glCint} AFTER {lastGlCint}"); halt
+                    logging.error(f"{languageCode} {glBBB} seems to have chapter {glCint} AFTER {lastGlCint}"); halt
                 elif glCint > lastGlCint:
                     lastGlVint = 0
                 if glVint < lastGlVint:
-                    print(f"{languageCode} {glBBB} {glC} seems to have verse {glVint} AFTER {lastGlVint}"); halt
-                glX = glCint*1000 + glVint
+                    logging.error(f"{languageCode} {glBBB} {glC} seems to have verse {glVint} AFTER {lastGlVint}"); halt
+            else: # Must be already finished the GL records
+                glCint, glVint = 999, 999
+                glFields = None
+            glX = glCint*1000 + glVint
 
-                if glIndex+1 < len(glData): # Get the following one also so we know what's coming next
-                    nextGLfields2 = glData[glIndex+1]
-                    assert len(nextGLfields2) == 9
-                    _glBBB2, glC2, glV2 = nextGLfields2[:3]
-                    glC2 = glC2.lstrip('0')
-                    glV2 = glV2.lstrip('0')
-                    if glC2 == 'front': glC2 = '0'
-                    if glV2 == 'intro': glV2 = '0'
-                    glCint2, glVint2 = int(glC2), int(glV2)
-                else: # Must be on the last record
-                    glCint2, glVint2 = 999, 999
-                glX2 = glCint2*1000 + glVint2
+            if glIndex+1 < len(glData): # Get the following one also so we know what's coming next
+                nextGLfields = glData[glIndex+1]
+                assert len(nextGLfields) == 9
+                _glBBB2, glC2, glV2 = nextGLfields[:3]
+                glC2 = glC2.lstrip('0')
+                glV2 = glV2.lstrip('0')
+                if glC2 == 'front': glC2 = '0'
+                if glV2 == 'intro': glV2 = '0'
+                glCint2 = int(glC2)
+                try:
+                    glVint2 = int(glV2)
+                except ValueError:
+                    # print(f"{glBBB2} what is {glC2}:{glV2} ??? {nextGLfields2}")
+                    glVint2 = 0
+            else: # No more GL following
+                glCint2, glVint2 = 999, 999
+            glX2 = glCint2*1000 + glVint2
 
-                if enFields \
-                and ((glX==enX and not IS_GL_CHUNKS) \
-                  or IS_GL_CHUNKS):
-                    enFields.append(nextGLfields[7]) # GL Quote
-                    enFields.append(nextGLfields[8]) # Occurrence Note
-                    # print(f"Writing combined {len(enFields)} {enFields}")
+            # Ok, now we have all the information we need
+            # This is the control logic for everything apart from writing the header row (above)
+            if enFields:
+                if glX==enX: # that's easy -- we're at matching C:Vs
+                    enFields.append(glFields[7]) # GL Quote
+                    enFields.append(glFields[8]) # Occurrence Note
+                    # print(f"Writing matching combined {len(enFields)} {enFields}")
                     assert len(enFields) == 11
                     writer.write(f'{TAB.join(enFields)}\n')
                     enIndex += 1 # Used that one now
                     glIndex += 1 # Used that one now
-                    continue
-                elif (enX > glX and not IS_GL_CHUNKS) \
-                or not enFields: # we've gone past our place (or past the end of the English)!!!
-                    # print(f"Gone past ({enC}:{enV}={enX} vs {glC}:{glV}={glX}")
-                    # We need to add a line to the table
-                    newRow = [BBB,glC,glV,nextGLfields[3],nextGLfields[4],nextGLfields[5],nextGLfields[6],'','', nextGLfields[7], nextGLfields[8]]
-                    # print(f"Inserting {newRow}")
-                    assert len(newRow) == 11
-                    writer.write(f'{TAB.join(newRow)}\n')
-                    glIndex += 1 # Used that one now
+                    combinedCount += 1
                     continue
 
-            if enFields:
-                if len(enFields) == 9: # pad out to 11 fields
-                    enFields.append('')
-                    enFields.append('')
+                if glX > enX:
+                    # If we get here, didn't have GL fields to append, so write our en fields only
+                    assert len(enFields) == 9
+                    enFields.append('') # } pad out to 11 fields
+                    enFields.append('') # }
+                    # print(f"Writing en only {len(enFields)} {enFields}")
+                    assert len(enFields) == 11
+                    writer.write(f'{TAB.join(enFields)}\n')
+                    enIndex += 1 # Used that one
+                    enFields = None
+                    enOnlyCount += 1
+                    continue
 
-                # print(f"Writing {len(enFields)} {enFields}")
-                assert len(enFields) == 11
-                writer.write(f'{TAB.join(enFields)}\n')
-                enIndex += 1 # Used that one
-                enFields = None
+                if glX < enX: # English has gone past, but GL might be in chunks
+                    if IS_GL_CHUNKS: # (c.f verses)
+                        if enX > glX2: # English is into the next chunk already
+                            # print(f"Gone past ({enC}:{enV}={enX} vs {glC}:{glV}={glX}")
+                            # We need to add a line to the table
+                            newRow = [BBB,glC,glV,glFields[3],glFields[4],glFields[5],glFields[6],'','', glFields[7], glFields[8]]
+                            # print(f"    Inserting chunk new glRow: {newRow}")
+                            assert len(newRow) == 11
+                            writer.write(f'{TAB.join(newRow)}\n')
+                            glIndex += 1 # Used that one now
+                            glChunkInsertCount += 1
+                            continue
+                        else: # all ok
+                            enFields.append(glFields[7]) # GL Quote
+                            enFields.append(glFields[8]) # Occurrence Note
+                            # print(f"    Writing chunked combined {len(enFields)} {enFields}")
+                            assert len(enFields) == 11
+                            writer.write(f'{TAB.join(enFields)}\n')
+                            enIndex += 1 # Used that one now
+                            glIndex += 1 # Used that one now
+                            combinedChunkCount += 1
+                            continue
+                    else: # in verses (not chunks)
+                        # print(f"Gone past ({enC}:{enV}={enX} vs {glC}:{glV}={glX}")
+                        # We need to add a line to the table
+                        newRow = [BBB,glC,glV,glFields[3],glFields[4],glFields[5],glFields[6],'','', glFields[7], glFields[8]]
+                        # print(f"    Inserting verse new glRow: {newRow}")
+                        assert len(newRow) == 11
+                        writer.write(f'{TAB.join(newRow)}\n')
+                        glIndex += 1 # Used that one now
+                        glVerseInsertCount += 1
+                        continue
+                # If we get here, we didn't write anything
+                logging.critical(f"PROGRAMMING LOGIC ERROR: have enFields with enX={enX} and glX={glX}")
+
+            if glFields: # We have a left over
+                assert not enFields
+                if glX < enX:
+                    logging.error(f"SEEMS OUT OF ORDER: {BBB} gl {glC}:{glV} AFTER en {enC}:{enV}")
+                newRow = [BBB,glC,glV,glFields[3],glFields[4],glFields[5],glFields[6],'','', glFields[7], glFields[8]]
+                # print(f"    Appending new glRow: {newRow}")
+                assert len(newRow) == 11
+                writer.write(f'{TAB.join(newRow)}\n')
+                glIndex += 1 # Used that one now
+                glLeftOverCount += 1
+                continue
+
+            # If we get to the bottom of the loop here, we didn't write anything
+            logging.critical(f"PROGRAMMING LOGIC ERROR: reached end of loop with enX={enX} and glX={glX}")
 
     if enIndex != len(enTSVData):
-        print(f"Something went wrong: en has {enIndex} instead of {len(enTSVData)}"); halt
+        logging.critical(f"Something went wrong: en has {enIndex} instead of {len(enTSVData)}"); halt
     if glIndex != len(glData):
-        print(f"Something went wrong: {languageCode} has {glIndex} instead of {len(glData)}"); halt
+        logging.critical(f"Something went wrong: {languageCode} has {glIndex} instead of {len(glData)}"); halt
+
+    print(f"    combinedBoth={combinedCount:,} EngOnly={enOnlyCount}"
+          f"{' glChunkInserts='+str(glChunkInsertCount) if glChunkInsertCount else ''}"
+          f"{' combinedChunkRows='+str(combinedChunkCount) if combinedChunkCount else ''}"
+          f"{' GLVerseInserts='+str(glVerseInsertCount) if glVerseInsertCount else ''}"
+          f"{' GLAddedToEnd='+str(glLeftOverCount) if glLeftOverCount else ''}")
+# end of saveToTSV function
 
 
-if __name__ == '__main__':
-    print("Discovering language code…")
+def main():
     cwd = os.getcwd()
     basename = os.path.basename(cwd)
+    print(f"Trying to determine language code (from '{basename}' folder name)…")
     languageCode = basename.split('_',1)[0]
     print(f"  Found {languageCode!r}")
 
@@ -354,12 +436,18 @@ if __name__ == '__main__':
 
     # Replace the names of the book abbreviation folders with the book number
     numberedMDFilenameList = []
-    for x in mdFilepathList:
-        b = x.split('/')[0]
-        bup = b.upper()
-        newbook = books[bup][1]
-        numberedMDFilenameList.append(x.replace(b, newbook))
-        books_nums[newbook] = bup
+    for actualFilepath in mdFilepathList:
+        if 'index' in actualFilepath:
+            logging.warning(f"Skipping unexpected {actualFilepath}")
+            continue
+        bbb = actualFilepath.split('/')[0]
+        BBB = bbb.upper()
+        bookNumber = books[BBB][1]
+        adjustedFilepath = actualFilepath.replace(bbb, bookNumber) \
+                                .replace('front','00').replace('intro','00') # so they sort correctly
+        # print(f"{actualFilepath=} {adjustedFilepath=} {bbb=} {BBB=} {bookNumber=}")
+        numberedMDFilenameList.append(adjustedFilepath)
+        books_nums[bookNumber] = BBB
     numberedMDFilenameList.sort()
     print(f"  Found {len(numberedMDFilenameList):,} files")
 
@@ -368,11 +456,21 @@ if __name__ == '__main__':
         tn_checks = convertMarkdownToList(f, tn_checks)
     print(f"  Loaded markdown files for {len(tn_checks)} book(s)")
 
-    if IS_GL_CHUNKS: mdIs, mdNot = 'CHUNK', 'each verse'
-    else: mdIs, mdNot = 'VERSE', 'chunk'
-    print(f"\nAssuming that the markdown files are separated by {mdIs} (not by {mdNot}).")
+    # if IS_GL_CHUNKS: mdIs, mdNot = 'CHUNK', 'each verse'
+    # else: mdIs, mdNot = 'VERSE', 'chunk'
+    # print(f"\nAssuming that the markdown files are separated by {mdIs} (not by {mdNot}).")
 
     print("Combining and creating output files…")
     for BBB,noteList in tn_checks.items():
         enTSVtable = loadEnglishTSV(BBB)
         saveToTSV(languageCode, BBB, noteList, enTSVtable)
+# end of main()
+
+if __name__ == '__main__':
+    print("convertGLtoTSVlink.py v0.5.0")
+
+    if IS_GL_CHUNKS: mdIs, mdNot = 'CHUNK', 'each verse'
+    else: mdIs, mdNot = 'VERSE', 'chunk'
+    print(f"\nAssuming that the markdown files are separated by {mdIs} (not by {mdNot}).\n")
+
+    main()
