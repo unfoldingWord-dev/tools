@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+#
+# TN2tsv.py
+#
+# Written Aug 2020 by RJH
+#   Last modified: 2020-08-18 by RJH
+#
+"""
+Quick script to copy TN from 9-column TSV files
+    and put into a TSV file with the new n-column format.
+"""
+from typing import List, Tuple
+import os
+from pathlib import Path
+import random
+import re
+import logging
+
+
+LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/unfoldingWord/')
+LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_tn/')
+
+# The output folder below must also already exist!
+LOCAL_OUTPUT_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/unfoldingWord/TSV_test/')
+
+BBB_NUMBER_DICT = {'GEN':'01','EXO':'02','LEV':'03','NUM':'04','DEU':'05',
+                'JOS':'06','JDG':'07','RUT':'08','1SA':'09','2SA':'10','1KI':'11',
+                '2KI':'12','1CH':'13','2CH':'14','EZR':'15',
+                'NEH':'16',
+                'EST':'17',
+                'JOB':'18','PSA':'19','PRO':'20','ECC':'21','SNG':'22','ISA':'23',
+                'JER':'24','LAM':'25','EZK':'26','DAN':'27','HOS':'28','JOL':'29',
+                'AMO':'30','OBA':'31','JON':'32','MIC':'33','NAM':'34','HAB':'35',
+                'ZEP':'36','HAG':'37','ZEC':'38','MAL':'39',
+                'MAT':'41','MRK':'42','LUK':'43','JHN':'44','ACT':'45',
+                'ROM':'46','1CO':'47','2CO':'48','GAL':'49','EPH':'50','PHP':'51',
+                'COL':'52','1TH':'53','2TH':'54','1TI':'55','2TI':'56','TIT':'57',
+                'PHM':'58','HEB':'59','JAS':'60','1PE':'61','2PE':'62','1JN':'63',
+                '2JN':'64',
+                '3JN':'65', 'JUD':'66', 'REV':'67' }
+
+def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
+    """
+    Generator to read the TN TSV files
+        and return lines containing the fields.
+
+    Returns a 5-tuple with:
+        line number B C V reference strings
+        actual line (without trailing nl)
+    """
+    source_filename = f'en_tn_{nn}-{BBB}.tsv'
+    source_filepath = LOCAL_SOURCE_FOLDERPATH.joinpath(source_filename)
+    print(f"      Getting source lines from ${source_filepath}")
+
+    with open(source_filepath, 'rt') as source_tsv_file:
+        for line_number,line in enumerate(source_tsv_file, start=1):
+            line = line.rstrip() # Remove trailing whitespace including nl char
+            # print(f"  line={line}")
+            # if not line: continue # Ignore blank lines
+            fields = line.split('\t')
+            yield line_number, fields
+# end of get_source_lines function
+
+
+def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
+    """
+    """
+    print(f"    Converting TQ {BBB} links to TSV…")
+    output_filepath = LOCAL_OUTPUT_FOLDERPATH.joinpath(f'{BBB.lower()}_tn.tsv')
+    num_lines = j = 0
+    with open(output_filepath, 'wt') as output_TSV_file:
+        output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
+        previous_ids:List[str] = ['']
+        for j, (_line_number,fields) in enumerate(get_source_lines(BBB, nn), start=1):
+            B,C,V,ID, support_reference,orig_quote,occurrence,gl_quote,occurrence_note = fields
+            # print(f"{j:3}/ Line {line_number:<5} {BBB} {C:>3}:{V:<3} '{question}' {answer}")
+            output_line = f'{C}:{V}\t{ID}\t{support_reference}\t{orig_quote}\t{occurrence}\t{occurrence_note}'
+            output_TSV_file.write(f'{output_line}\n')
+            num_lines += 1
+    print(f"      {num_lines:,} lines written")
+    return num_lines
+# end of make_TSV_file function
+
+
+def main():
+    """
+    """
+    print("TN2tsv.py")
+    print(f"  Source folderpath is {LOCAL_SOURCE_BASE_FOLDERPATH}/")
+    print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
+    total_questions = 0
+    for BBB,nn in BBB_NUMBER_DICT.items():
+        question_count = make_TSV_file(BBB,nn)
+        total_questions += question_count
+    print(f"    {total_questions:,} total questions and answers written")
+# end of main function
+
+if __name__ == '__main__':
+    main()
+# end of TN2tsv.py
