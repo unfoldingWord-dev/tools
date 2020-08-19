@@ -2,12 +2,19 @@
 #
 # TN2tsv.py
 #
+# Copyright (c) 2020 unfoldingWord
+# http://creativecommons.org/licenses/MIT/
+# See LICENSE file for details.
+#
+# Contributors:
+#   Robert Hunt <Robert.Hunt@unfoldingword.org>
+#
 # Written Aug 2020 by RJH
-#   Last modified: 2020-08-18 by RJH
+#   Last modified: 2020-08-19 by RJH
 #
 """
 Quick script to copy TN from 9-column TSV files
-    and put into a TSV file with the new n-column format.
+    and put into a TSV file with the new 7-column format.
 """
 from typing import List, Tuple
 import os
@@ -21,7 +28,7 @@ LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/unfoldingWord/')
 LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_tn/')
 
 # The output folder below must also already exist!
-LOCAL_OUTPUT_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/unfoldingWord/TSV_test/')
+LOCAL_OUTPUT_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/unfoldingWord/en_translation-annotations/')
 
 BBB_NUMBER_DICT = {'GEN':'01','EXO':'02','LEV':'03','NUM':'04','DEU':'05',
                 'JOS':'06','JDG':'07','RUT':'08','1SA':'09','2SA':'10','1KI':'11',
@@ -50,7 +57,7 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
     """
     source_filename = f'en_tn_{nn}-{BBB}.tsv'
     source_filepath = LOCAL_SOURCE_FOLDERPATH.joinpath(source_filename)
-    print(f"      Getting source lines from ${source_filepath}")
+    print(f"      Getting source lines from {source_filepath}")
 
     with open(source_filepath, 'rt') as source_tsv_file:
         for line_number,line in enumerate(source_tsv_file, start=1):
@@ -65,16 +72,42 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
 def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
     """
     """
-    print(f"    Converting TQ {BBB} links to TSV…")
-    output_filepath = LOCAL_OUTPUT_FOLDERPATH.joinpath(f'{BBB.lower()}_tn.tsv')
+    print(f"    Converting TN {BBB} links to TSV…")
+    output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath(BBB.lower())
+    if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
+    output_filepath = output_folderpath.joinpath(f'{BBB.lower()}_tn.tsv')
     num_lines = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
-        output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
-        previous_ids:List[str] = ['']
-        for j, (_line_number,fields) in enumerate(get_source_lines(BBB, nn), start=1):
-            B,C,V,ID, support_reference,orig_quote,occurrence,gl_quote,occurrence_note = fields
-            # print(f"{j:3}/ Line {line_number:<5} {BBB} {C:>3}:{V:<3} '{question}' {answer}")
-            output_line = f'{C}:{V}\t{ID}\t{support_reference}\t{orig_quote}\t{occurrence}\t{occurrence_note}'
+        # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
+        for j, (line_number,fields) in enumerate(get_source_lines(BBB, nn), start=1):
+            try:
+                B,C,V,ID, support_reference,orig_quote,occurrence,_gl_quote,occurrence_note = fields
+            except ValueError:
+                print(f"Expected 9 fields but found {len(fields)} in {fields}")
+                raise ValueError
+            # print(f"{j:3}/ Line {line_number:<5} {BBB} {C:>3}:{V:<3} {ID }'{support_reference}' '{orig_quote}' '{occurrence}' '{_gl_quote}' '{occurrence_note}'")
+            if j == 1:
+                assert B=='Book' and C=='Chapter' and V=='Verse' # etc.
+                output_line = 'Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tAnnotation'
+            else:
+                # Do some tidying up while we're at it
+                C = C.strip(); V = V.strip(); ID = ID.strip()
+                reference = f'{C}:{V}'
+                assert len(ID) == 4
+                tags = ''
+                support_reference = support_reference.strip()
+                if support_reference: support_reference = f'rc://*/ta/man/translate/{support_reference}'
+                orig_quote = orig_quote.strip()
+                orig_quote = orig_quote.replace('...', '…')
+                orig_quote = orig_quote.replace(' …', '…').replace('… ', '…')
+                orig_quote = orig_quote.replace('…', '◊')
+                occurrence = occurrence.strip()
+                occurrence_note = occurrence_note.strip()
+                occurrence_note = occurrence_note.replace('<BR>', '<br>')
+                if occurrence_note.startswith('<br>'): occurrence_note = occurrence_note[4:]
+                if occurrence_note.endswith('<br>'): occurrence_note = occurrence_note[:-4]
+                occurrence_note = occurrence_note.strip().replace('  ', ' ')
+                output_line = f'{reference}\t{ID}\t{tags}\t{support_reference}\t{orig_quote}\t{occurrence}\t{occurrence_note}'
             output_TSV_file.write(f'{output_line}\n')
             num_lines += 1
     print(f"      {num_lines:,} lines written")

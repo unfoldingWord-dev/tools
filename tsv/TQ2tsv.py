@@ -2,12 +2,19 @@
 #
 # TQ2tsv.py
 #
+# Copyright (c) 2020 unfoldingWord
+# http://creativecommons.org/licenses/MIT/
+# See LICENSE file for details.
+#
+# Contributors:
+#   Robert Hunt <Robert.Hunt@unfoldingword.org>
+#
 # Written Aug 2020 by RJH
-#   Last modified: 2020-08-18 by RJH
+#   Last modified: 2020-08-19 by RJH
 #
 """
 Quick script to copy TQ from markdown files
-    and put into a TSV file with the same format (9 columns) as UTN.
+    and put into a TSV file with the same format (7 columns) as UTN.
 """
 from typing import List, Tuple
 import os
@@ -21,7 +28,7 @@ LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/unfoldingWord/')
 LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_tq/')
 
 # The output folder below must also already exist!
-LOCAL_OUTPUT_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/unfoldingWord/TSV_test/')
+LOCAL_OUTPUT_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/unfoldingWord/en_translation-annotations/')
 
 BBB_NUMBER_DICT = {'GEN':'01','EXO':'02','LEV':'03','NUM':'04','DEU':'05',
                 'JOS':'06','JDG':'07','RUT':'08','1SA':'09','2SA':'10','1KI':'11',
@@ -111,15 +118,15 @@ BOOK_INFO_DICT = { "gen": {"id": "gen", "title": "Genesis", "usfm": "01-GEN", "t
 def get_source_questions(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
     """
     Generator to read the TQ markdown files
-        and return lines containing TW links.
+        and return questions and answers.
 
-    Returns a 5-tuple with:
+    Returns a 6-tuple with:
         line number B C V reference strings
-        actual line (without trailing nl)
+        question answer
     """
     bbb = BBB.lower()
     source_folderpath = LOCAL_SOURCE_FOLDERPATH.joinpath(f'{bbb}/')
-    print(f"      Getting source lines from ${source_folderpath}")
+    print(f"      Getting source lines from {source_folderpath}")
 
     book_info_line = BOOK_INFO_DICT[bbb]
     verses_per_chapter = book_info_line['chapters']
@@ -163,10 +170,13 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
     """
     """
     print(f"    Converting TQ {BBB} links to TSV…")
-    output_filepath = LOCAL_OUTPUT_FOLDERPATH.joinpath(f'{BBB.lower()}_tq.tsv')
+    output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath(BBB.lower())
+    if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
+    output_filepath = output_folderpath.joinpath(f'{BBB.lower()}_tq.tsv')
     num_questions = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
-        output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
+        # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
+        output_TSV_file.write('Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tAnnotation\n')
         previous_ids:List[str] = ['']
         for j, (_line_number,BBB,C,V,question,answer) in enumerate(get_source_questions(BBB, nn), start=1):
             # print(f"{j:3}/ Line {line_number:<5} {BBB} {C:>3}:{V:<3} '{question}' {answer}")
@@ -175,7 +185,15 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
                 generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
             previous_ids.append(generated_id)
 
-            output_line = f'{BBB}\t{C}\t{V}\t{generated_id}\t{question}\t{answer}\t\t(GLQuote)\t(OccurrenceNote)'
+            reference = f'{C}:{V}'
+            tags = ''
+            support_reference = ''
+            quote = ''
+            occurrence = ''
+            question = question.strip()
+            answer = answer.strip()
+            annotation = f'{question}<br>{answer}'
+            output_line = f'{reference}\t{generated_id}\t{tags}\t{support_reference}\t{quote}\t{occurrence}\t{annotation}'
             output_TSV_file.write(f'{output_line}\n')
             num_questions += 1
     print(f"      {num_questions:,} questions and answers written")

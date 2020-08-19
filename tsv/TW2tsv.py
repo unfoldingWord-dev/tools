@@ -2,14 +2,22 @@
 #
 # TW2tsv.py
 #
+# Copyright (c) 2020 unfoldingWord
+# http://creativecommons.org/licenses/MIT/
+# See LICENSE file for details.
+#
+# Contributors:
+#   Robert Hunt <Robert.Hunt@unfoldingword.org>
+#
 # Written Apr 2020 by RJH
-#   Last modified: 2020-08-18 by RJH
+#   Last modified: 2020-08-19 by RJH
 #
 """
 Quick script to copy TW links out of UHB and UGNT
-    and put into a TSV file with the same format (9 columns) as UTN.
+    and put into a TSV file with the same format (7 columns) as UTN.
 """
 from typing import List, Tuple
+import os
 from pathlib import Path
 import random
 import re
@@ -21,7 +29,7 @@ LOCAL_OT_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('hbo_uhb/')
 LOCAL_NT_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('el-x-koine_ugnt/')
 
 # The output folder below must also already exist!
-LOCAL_OUTPUT_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/unfoldingWord/TSV_test/')
+LOCAL_OUTPUT_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/unfoldingWord/en_translation-annotations/')
 
 BBB_NUMBER_DICT = {'GEN':'01','EXO':'02','LEV':'03','NUM':'04','DEU':'05',
                 'JOS':'06','JDG':'07','RUT':'08','1SA':'09','2SA':'10','1KI':'11',
@@ -57,7 +65,7 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
                     else LOCAL_NT_SOURCE_FOLDERPATH
     source_filename = f'{nn}-{BBB}.usfm'
     source_filepath = source_folderpath.joinpath(source_filename)
-    print(f"      Getting source lines from ${source_filepath}")
+    print(f"      Getting source lines from {source_filepath}")
 
     C = V = ''
     is_in_k = False
@@ -224,10 +232,13 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
     """
     source_text = 'UHB' if int(nn)<40 else 'UGNT'
     print(f"    Converting {source_text} {BBB} links to TSV…")
-    output_filepath = LOCAL_OUTPUT_FOLDERPATH.joinpath(f'{BBB.lower()}_twl.tsv')
+    output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath(BBB.lower())
+    if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
+    output_filepath = output_folderpath.joinpath(f'{BBB.lower()}_twl.tsv')
     num_simple_links = num_complex_links = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
-        output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
+        # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
+        output_TSV_file.write('Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tAnnotation\n')
         previous_ids:List[str] = ['']
         for j, (_line_number,BBB,C,V,word,occurrence,link) in enumerate(get_source_lines(BBB, nn), start=1):
             # print(f"{j:3}/ Line {line_number:<5} {BBB} {C:>3}:{V:<3} '{word}' {occurrence} {link}")
@@ -236,7 +247,14 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
                 generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
             previous_ids.append(generated_id)
 
-            output_line = f'{BBB}\t{C}\t{V}\t{generated_id}\t{link}\t{word}\t{occurrence}\t(GLQuote)\t(OccurrenceNote)'
+            reference = f'{C}:{V}'
+            tags = ''
+            if '/bible/kt/jesus' in link: tags = 'keyterm; name'
+            elif '/bible/names/' in link: tags = 'name'
+            elif '/bible/kt/' in link: tags = 'keyterm'
+            # elif '/bible/other/' in link: tags = 'other'
+            annotation = ''
+            output_line = f'{reference}\t{generated_id}\t{tags}\t{link}\t{word}\t{occurrence}\t{annotation}'
             output_TSV_file.write(f'{output_line}\n')
             if ' ' in word: num_complex_links += 1
             else: num_simple_links += 1
