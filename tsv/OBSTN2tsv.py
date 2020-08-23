@@ -28,7 +28,7 @@ LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/unfoldingWord/')
 LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_obs-tn/')
 
 # The output folder below must also already exist!
-LOCAL_OUTPUT_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/unfoldingWord/en_translation-annotations/')
+LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_translation-annotations/')
 
 
 def get_source_notes() -> Tuple[str,str,str,str,str,str,str]:
