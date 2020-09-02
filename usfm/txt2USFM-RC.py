@@ -8,8 +8,9 @@
 #    Converts multiple books at once.
 
 # Global variables
-source_dir = r'C:\DCS\Bangwinji\NT'
-target_dir = r'C:\DCS\Bangwinji\bsj_reg'
+source_dir = r'C:\DCS\Vwanji\NT'
+target_dir = r'C:\DCS\Vwanji\wbi_reg.work'
+language_code = "wbi"
 mark_chunks = False     # Should be true for GL source text
 
 import usfm_verses
@@ -23,13 +24,14 @@ verseTags_re = re.compile(r'\\v +[^1-9]', re.UNICODE)
 numbers_re = re.compile(r'[ \n]([\d]{1,3})[ \n]', re.UNICODE)
 numberstart_re = re.compile(r'([\d]{1,3})[ \n]', re.UNICODE)
 chapMarker_re = re.compile(r'\\c *[\d]{1,3}', re.UNICODE)
+chaplabel_re = re.compile(r'\\cl', re.UNICODE)
 
 contributors = []
 projects = []
 
-# Copies named file to XX-orig.txt.
 # Calls ensureMarkers() to put in missing chapter and verse markers.
-# @param verserange is a list of verse number strings that should exist in the file.
+# Inserts chapter title where appropriate.
+# verserange is a list of verse number strings that should exist in the file.
 # On exit, the named file contains the improved chunk.
 # On exit, XX.txt-orig. contains the original chunk, if different.
 def cleanupChunk(directory, filename, verserange):
@@ -56,6 +58,8 @@ def cleanupChunk(directory, filename, verserange):
                 text = ensureNumbers(text, missing_verses)
                 missing_verses = lackingVerses(text, verserange, numbers_re)
         text = ensureMarkers(text, missing_chapter, vn_start, vn_end, missing_verses, missing_markers)
+    if language_code == "ior":
+        text = fixInorMarkers(text, verserange)
 
     if text != origtext:
         bakpath = path + ".orig"
@@ -247,9 +251,9 @@ cvExpr = re.compile(r'\\[cv] [0-9]+')
 chapter_re = re.compile(r'\n\\c +[0-9]+[ \n]*', re.UNICODE)
 # labeledChapter_re = re.compile(r'(\\c +[\d]{1,3}) +(.+?)$', re.UNICODE+re.MULTILINE)
 
-# Adds section marker and paragraph marker as needed.
+# Adds section marker, chapter label, and paragraph marker as needed.
 # Returns modified section.
-def augmentChapter(section):
+def augmentChapter(section, chapterTitle):
     if mark_chunks:
         # section = addSectionMarker(section)
         if marker := cvExpr.search(section):
@@ -259,9 +263,13 @@ def augmentChapter(section):
 #    if chap:
 #        section = section[:chap.start()] + chap.group(1) + "\n\\cl " + chap.group(2) + "\n\\p" + section[chap.end():]
 #    else:
-    chap = chapter_re.match(section)
+    chap = chapter_re.search(section)
     if chap:
-        section = section[:chap.end()].rstrip() + "\n\\p\n" + section[chap.end():].lstrip()
+        if chapterTitle:
+            clpstr = "\n\\cl " + chapterTitle + "\n\\p\n"
+        else:
+            clpstr = "\n\\p\n"
+        section = section[:chap.end()].rstrip() + clpstr + section[chap.end():].lstrip()
     return section          
 
 spacedot_re = re.compile(r'[^0-9] [\.\?!;\:,][^\.]')    # space before clause-ending punctuation
@@ -293,20 +301,73 @@ def fixChapterMarkers(section):
         pos = match.end()
         match = re.search('\\\\c[0-9]', section, pos)
     return section
+
+stripcv_re = re.compile(r'\s*\\([cv])\s*\d+\s*', re.UNICODE)
+
+# Returns the string with \v markers removed at beginning of chunk.
+def stripInitialMarkers(text):
+    saveChapterMarker = ""
+    marker = stripcv_re.match(text)
+    while marker:
+        text = text[marker.end():]
+        marker = stripcv_re.match(text)
+    return text
+
+# Returns True if the string contains all the verse numbers in verserange and there are no \v tags
+def fitsInorPattern(str, verserange):
+    fits = not ("\\v" in str)
+    if fits:
+        for v in verserange:
+            if not v in str:
+                fits = False
+                break
+    return fits
+
+# This method is only called for the Inor language.
+# Fixes very common error in Inor translations where the verse markers are listed at the beginning of the
+# chunk but are empty, immediately followed by the first verse, followed by the next verse number and
+# verse, followed by the next verse number and verse, and so on.
+def fixInorMarkers(text, verserange):
+    saveChapterMarker = ""
+    if c := chapMarker_re.search(text):
+        saveChapterMarker = text[c.start():c.end()]
+    str = stripInitialMarkers(text)
+    if not str.startswith(verserange[0]):
+        str = verserange[0] + " " + str
+    if fitsInorPattern(str, verserange):
+        for v in verserange:
+            pos = str.find(v)
+            if pos == 0:
+                str = "\\v " + str[pos:]
+            else:
+                str = str[0:pos] + "\n\\v " + str[pos:]
+        if saveChapterMarker:
+            str = saveChapterMarker + "\n" + str
+
+        # Ensure space after verse markers
+        found = sub3_re.search(str)
+        while found:
+            pos = found.end()-1
+            if str[pos] == '.':
+                pos += 1
+            str = str[0:found.end()-1] + " " + str[pos:]
+            found = sub3_re.search(str, pos+1)
+    else:
+        str = text
+    return str
     
 # Reads all the lines from the specified file and converts the text to a single
-# USFM section by adding section marker and paragraph marker where needed.
+# USFM section by adding chapter label, section marker, and paragraph marker where needed.
 # Starts each usfm marker on a new line.
 # Fixes white space, such as converting tabs to spaces and removing trailing spaces.
-def convertFile(txtPath):
+def convertFile(txtPath, chapterTitle):
     input = io.open(txtPath, "tr", 1, encoding='utf-8-sig')
     lines = input.readlines()
     input.close()
     section = "\n" + combineLines(lines)    # fixes white space
-    section = augmentChapter(section)
+    section = augmentChapter(section, chapterTitle)
     # section = fixPunctuationSpacing(section)
     # section = fixChapterMarkers(section)
-    # section = fixVerseMarkers(section)
     return section
 
 # Returns True if the specified directory is one with text files to be converted
@@ -384,7 +445,6 @@ def appendToProjects(bookId, bookTitle):
     projects.append(project)
 
 def dumpProjects():
-    global projectts
     projects.sort(key=operator.itemgetter('sort'))
 
     path = makeManifestPath()
@@ -422,14 +482,20 @@ def convertFolder(folder):
         bookId = getBookId(folder)
         bookTitle = getBookTitle()
         if bookId and bookTitle:
-            convertBook(bookId, bookTitle)   # converts the pieces in the current folder
+            convertBook(folder, bookId, bookTitle)   # converts the pieces in the current folder
             appendToProjects(bookId, bookTitle)
             # sys.stdout.write("\n")
             # sys.stdout.flush()
+        else:
+            if not bookId:
+                sys.stderr.write("Unable to determine book ID in " + folder + "\n")
+            if not bookTitle:
+                sys.stderr.write("Unable to determine book title in " + folder + "\n")
  
 # Returns file name for usfm file in current folder
 def makeUsfmFilename(bookId):
     # loadVerseCounts()
+
     if len(usfm_verses.verseCounts) > 0:
         num = usfm_verses.verseCounts[bookId]['usfm_number']
         filename = num + '-' + bookId + '.usfm'
@@ -504,22 +570,35 @@ def makeVerseRange(chunks, i, bookId, chapter):
         v += 1
     return verserange
 
-# This method is called to convert the chapters in the *current folder* to USFM
-def convertBook(bookId, bookTitle):
-    chapters = listChapters(os.getcwd())
+# Tries to find front/title.txt or 00/title.txt.
+# Returns the content of that file if it exists, or an empty string.
+def getChapterTitle(folder, chap):
+    title = ""
+    chapterPath = os.path.join(folder, chap)
+    path = os.path.join( os.path.join(folder, chap), "title.txt")
+    if os.path.isfile(path):
+        titlefile = io.open(path, 'tr', encoding='utf-8-sig')
+        title = titlefile.read()
+        titlefile.close()
+    return title
+
+# This method is called to convert the chapters in the current folder to USFM
+def convertBook(folder, bookId, bookTitle):
+    chapters = listChapters(folder)
     # Open output USFM file for writing.
     usfmPath = os.path.join(target_dir, makeUsfmFilename(bookId))
     usfmFile = io.open(usfmPath, "tw", buffering=1, encoding='utf-8', newline='\n')
     writeHeader(usfmFile, bookId, bookTitle)
 
     for chap in chapters:
+        chapterTitle = getChapterTitle(folder, chap)
         chunks = listChunks(chap)
         i = 0
         while i < len(chunks):
             filename = chunks[i] + ".txt"
             txtPath = os.path.join(chap, filename)
             cleanupChunk(chap, filename, makeVerseRange(chunks, i, bookId, int(chap)))
-            section = convertFile(txtPath) + '\n'
+            section = convertFile(txtPath, chapterTitle) + '\n'
             usfmFile.write(section)
             i += 1
         # Process misnamed 00.txt file last, if it exists

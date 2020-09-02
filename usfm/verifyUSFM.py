@@ -4,15 +4,17 @@
 # Set source_dir and usfmVersion to run.
 
 # Global variables
-source_dir = r'C:\DCS\Bangwinji\bsj_reg'
-language_code = 'bsj'
+source_dir = r'C:\DCS\Mahanji\zga-x-mahanji_reg'
+language_code = 'zga-x-mahanji'
 usfmVersion = 2     # if version 3.0 or greater, tolerates unknown tokens and verse fragments
-suppress1 = False      # Suppress warnings about empty verses and verse fragments
-suppress2 = False      # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
+suppress1 = False     # Suppress warnings about empty verses and verse fragments
+suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
+suppress3 = False     # Suppress bad punctuation warnings
 suppress9 = True      # Suppress warnings about ASCII content
 
 if usfmVersion >= 3.0:
     suppress1 = True
+    suppress3 = True
 if language_code in {'ha','hr','id','nag','pmy','sw'}:    # ASCII content
     suppress9 = True
 
@@ -24,7 +26,7 @@ import os
 import sys
 import parseUsfm
 import io
-import codecs
+import footnoted_verses
 import usfm_verses
 import re
 if usfmVersion >= 3.0:
@@ -53,7 +55,6 @@ class State:
     lastRef = ""
     errorRefs = set()
     currMarker = OTHER
-    
     
     # Resets state data for a new book
     def addID(self, id):
@@ -186,7 +187,7 @@ def reportError(msg):
         sys.stderr.write(state.reference + ": (Unicode...)\n")
  
     issues = openIssuesFile()       
-    issues.write(msg + ".\n")
+    issues.write(msg + "\n")
 
 # Verifies that at least one book title is specified, other than the English book title.
 # This method is called just before chapter 1 begins, so there has been every
@@ -308,12 +309,38 @@ def takeV(vstr):
         elif state.verse > state.lastVerse + 2 and state.addError(state.lastRef):
             reportError("Missing verses between: " + state.lastRef + " and " + state.reference)
  
-punctuation_re = re.compile(r'[\.\?!;\:,][^ \)\'’"”]')
+footnote_re = re.compile(r'[0-9]\: *[0-9]', re.UNICODE)
+
+def reportFootnotes(text):
+    if footnote_re.search(text):
+        reportFootnote(':')
+    elif "[" in text:
+        reportFootnote('[')
+
+punctuation_re = re.compile(r'([\.\?!;\:,][^ \)\]\'"’”»›])', re.UNICODE)
+spacey_re = re.compile(r'[\s]([\.\?!;\:,\)’”»›])', re.UNICODE)
+spacey2_re = re.compile(r'[\s]([\(\'"])[\s]', re.UNICODE)
 
 def reportPunctuation(text):
-    if punctuation_re.search(text):
-        state = State()
-        reportError("Bad punctuation at " + state.reference)
+    state = State()
+    if bad := punctuation_re.search(text):
+        if text[bad.start():bad.end()+1] != '...':
+            if not (bad.group(1)[0] in ',.' and bad.group(1)[1] in "0123456789"):
+                reportError("Bad punctuation at " + state.reference + ": " + bad.group(1))
+    if bad := spacey_re.search(text):
+        reportError("Space before phrase ending mark at " + state.reference + ": " + bad.group(1))
+    if bad := spacey2_re.search(text):
+        reportError("Free floating mark at " + state.reference + ": " + bad.group(1))
+    if "''" in text:
+        reportError("Repeated quotes at " + state.reference)
+        
+def reportFootnote(trigger):
+    state = State()
+    reference = state.reference
+    if trigger == ':' or isOptional(reference) or reference in footnoted_verses.footnotedVerses:
+        reportError("Probable untagged footnote at " + reference)
+    else:
+        reportError("Possible untagged footnote at square bracket at " + reference)        
 
 def takeText(t):
     global lastToken
@@ -330,8 +357,13 @@ def takeText(t):
         else:
             reportError("  no preceding Token")
     if "<" in t and not ">" in t:
-        reportError("Angle bracket not closed at " + state.reference)
-    reportPunctuation(t)
+        if "<< HEAD" in t:
+            reportError("Unresolved translation conflict near " + state.reference)
+        else:
+            reportError("Angle bracket not closed at " + state.reference)
+    if not suppress3:
+        reportPunctuation(t)
+    reportFootnotes(t)
     state.addText()
 
 # Returns true if token is part of a footnote
@@ -418,11 +450,11 @@ def take(token):
         elif token.value == "v":
             reportError("Unnumbered verse after " + state.reference)
         elif usfmVersion < 3.0:
-            reportError("Invalid USFM token (\\" + token.value + ") following " + state.reference)
+            reportError("Invalid USFM token (\\" + token.value + ") near " + state.reference)
         
     lastToken = token
 
-bad_chapter_re1 = re.compile(r'[^\n\r](\\c\s*\d+)', re.UNICODE)
+bad_chapter_re1 = re.compile(r'[^\n](\\c\s*\d+)', re.UNICODE)
 bad_chapter_re2 = re.compile(r'(\\c[0-9]+)', re.UNICODE)
 bad_chapter_re3 = re.compile(r'(\\c\s*\d+)[^\d\s]+[\n\r]', re.UNICODE)
 bad_verse_re1 = re.compile(r'([^\n\r\s]\\v\s*\d+)', re.UNICODE)
@@ -443,14 +475,14 @@ def verifyChapterAndVerseMarkers(text, path):
         str = badactor.group(1)
         if str[0] < ' ' or str[0] > '~': # not printable ascii
             str = str[1:]
-        reportError(path + ": missing space before verse marker: " + str)
+        reportError(path + ": missing white space before verse marker: " + str)
     for badactor in bad_verse_re2.finditer(text):
         reportError(path + ": missing space before verse number: " + badactor.group(0))
     for badactor in bad_verse_re3.finditer(text):
         str = badactor.group(1)
 #        if str[-1] < ' ' or str[-1] > '~': # not printable ascii
 #            str = str[:-1]
-        reportError(path + ": missing space after verse number: (" + str + ")")
+        reportError(path + ": missing space after verse number: " + str)
 
 orphantext_re = re.compile(r'\n\n[^\\]', re.UNICODE)
 
@@ -464,14 +496,19 @@ def verifyWholeFile(str, path):
     orphans = orphantext_re.search(str)
     if orphans:
         reportOrphans(lines, path)
-        
+
+conflict_re = re.compile(r'<+ HEAD', re.UNICODE)   # conflict resolution tag
+
 def reportOrphans(lines, path):
     prevline = "xx"
     lineno = 0
     for line in lines:
         lineno += 1
         if not prevline and line and line[0] != '\\':
-            reportError(path + ": stray text at line " + str(lineno))
+            if not conflict_re.match(line):
+                reportError(path + ": unmarked text at line " + str(lineno))
+            # else:
+                #  Will be reported later as an unresolved translation conflict
         prevline = line
 
 # Corresponding entry point in tx-manager code is verify_contents_quiet()

@@ -10,20 +10,19 @@
 import sys
 import os
 
+# Global variables
+source_dir = r'C:\DCS\Hindi\IEV'   # folder containing usfm files to be converted
+target_dir = r'C:\DCS\Hindi\hi_iev.work'
+projects = []
 # Set Path for files in support/
-rootdiroftools = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(rootdiroftools,'support'))
+# rootdiroftools = os.path.dirname(os.path.abspath(__file__))
+# sys.path.append(os.path.join(rootdiroftools,'support'))
 
 import usfm_verses
 import io
 import codecs
 import re
 import operator
-
-# Global variables
-en_rc_dir = r'E:\Users\Larry\AppData\Local\translationstudio\library\resource_containers'
-target_dir = r'E:\DCS\Hindi\hi_irv'
-projects = []
 
 class State:
     ID = ""
@@ -265,7 +264,7 @@ def appendToProjects():
     testament = 'nt'
     if sort < 40:
         testament = 'ot'
-    project = { "title": state.title, "id": state.ID.lower(), "sort": str(sort), \
+    project = { "title": state.title, "id": state.ID.lower(), "sort": sort, \
                 "path": "./" + makeUsfmFilename(state.ID), \
                 "categories": "[ 'bible-" + testament + "' ]" }
     projects.append(project)
@@ -314,10 +313,9 @@ def printError(text):
 if __name__ == "__main__":
     if os.path.isfile( makeManifestPath() ):
         os.remove( makeManifestPath() )
-    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-         convertFolder(r'E:\DCS\Hindi\IRV.newest')
-    else:       # the first command line argument is presumed to be the folder containing usfm files to be converted
-        convertFolder(sys.argv[1])
+    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
+        source_dir = sys.argv[1]
+    convertFolder(source_dir)
     dumpProjects()
 
     print("\nDone.")

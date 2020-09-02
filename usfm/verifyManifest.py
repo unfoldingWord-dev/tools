@@ -44,10 +44,10 @@
 # Verifies presence of media.yaml file for OBS projects.
 
 # Globals
-issuesFile = None
-manifestDir = r'E:\DCS\Croatian\hr_tq'
+manifestDir = r'C:\DCS\Bengali\bn_ta'
 nIssues = 0
 projtype = ''
+issuesFile = None
 
 from datetime import datetime
 from datetime import date
@@ -86,6 +86,10 @@ def reportError(msg):
 #    issues = openIssuesFile().write(msg + u'\n')
     nIssues += 1
 
+# Returns True if the specified string is a recognized Bible type of project type
+def isBibleType(id):
+    return (id in {'ulb', 'udb', 'ust', 'ult', 'iev','irv','isv','reg','glt','gst'})
+
 # This function validates the project entries for a tA project.
 # tA projects should have four projects entries, each with specific content
 def verifyAcademyProject(project):
@@ -94,7 +98,7 @@ def verifyAcademyProject(project):
 
     section = project['identifier']
     if section == 'intro':
-        if project['title'] != "Introduction to translationAcademy":
+        if project['title'] != "Introduction to Translation Academy":
             reportError("Invalid project:title: " + project['title'])
         if project['sort'] != 0:
             reportError("Invalid project:sort: " + str(project['sort']))
@@ -140,7 +144,8 @@ def verifyCleanDir(dirpath):
 #        if os.path.isfile(path):
         if (fname.find("temp") >= 0 or fname.find("tmp") >= 0 or fname.find("orig") >= 0 \
             or fname.find("Copy") >= 0 or fname.find(".txt") >= 0 or fname.find("projects") >= 0):
-            reportError("Possible extraneous file: " + shortname(path))
+            if fname != "translate-original":
+                reportError("Possible extraneous file: " + shortname(path))
         elif badname_re.match(fname):
             reportError("Likely misnamed file: " + shortname(path))
         if os.path.isdir(path) and fname != ".git":
@@ -230,10 +235,10 @@ def verifyFormat(core):
         elif projtype in {'ta', 'tq', 'tw', 'obs', 'obs-tn', 'obs-tq'}:
             if format != 'text/markdown':
                 reportError("Invalid format: " + format)
-        elif projtype in {'ulb', 'udb', 'iev', 'isv', 'reg'}:
+        elif isBibleType(projtype):
             if format not in {'text/usfm', 'text/usfm3'}:
                 reportError("Invalid format: " + format)
-        elif projtype in ['ust', 'irv']:
+        elif projtype in {'ust','irv','glt','glt','gst'}:
             if format != 'text/usfm3':
                 reportError("Invalid format: " + format)
         else:
@@ -246,7 +251,7 @@ def verifyIdentifier(core):
     global manifestDir
     if verifyStringField(core, 'identifier', 2):
         id = core['identifier']
-        if id not in {'tn', 'tq', 'tw', 'ulb', 'udb', 'ust', 'ta', 'obs', 'obs-tn', 'obs-tq', 'iev', 'irv', 'isv', 'reg'}:
+        if id not in {'tn', 'tq', 'tw', 'ta', 'obs', 'obs-tn', 'obs-tq'} and not isBibleType(id):
             reportError("Invalid id: " + id)
         else:
             projtype = id
@@ -270,7 +275,8 @@ def verifyLanguage(language):
     if 'direction' in list(language.keys()):      # would this work: 'direction' in language
         if language['direction'] != 'ltr' and language['direction'] != 'rtl':
             reportError("Incorrect language direction: " + language['direction'])
-    if 'identifier' in list(language.keys()):      # would this work: 'identifier' in language
+#    if 'identifier' in list(language.keys()):      # would this work: 'identifier' in language
+    if 'identifier' in language:
         if language['identifier'] != getLanguageId():
             reportError("Language identifier (" + language['identifier'] + ") does not match first part of directory name: " + os.path.basename(manifestDir))
     if verifyStringField(language, 'title', 3):
@@ -306,7 +312,7 @@ def verifyProject(project):
     elif projtype == 'tw':
         if project['title'] != 'translationWords':
             reportError("Invalid project:title: " + project['title'])
-    elif projtype in {'ulb', 'udb', 'ust', 'iev', 'irv', 'isv', 'reg'}:
+    elif isBibleType(projtype):
         bookinfo = usfm_verses.verseCounts[project['identifier'].upper()]
         if int(project['sort']) != bookinfo['sort']:
             reportError("Incorrect project:sort: " + str(project['sort']))
@@ -358,8 +364,9 @@ def verifyProjects(projects):
             reportError("There should be exactly 1 project listed under projects.")
         elif projtype == 'ta' and nprojects != 4:
             reportError("There should be exactly 4 projects listed under projects.")
-        elif projtype in {'tn', 'tn-tsv', 'ulb', 'udb', 'ust', 'iev', 'irv', 'isv', 'reg'} and nprojects not in (27,39,66):
-            reportError("Number of projects listed: " + str(nprojects))
+        elif projtype in {'tn','tn-tsv'} or isBibleType(projtype):
+            if nprojects not in (27,39,66):
+                reportError("Number of projects listed: " + str(nprojects))
             
         for p in projects:
             verifyProject(p)
@@ -378,7 +385,7 @@ def verifyRelation(rel):
             global projtype
             if parts[0] != getLanguageId() and parts[0] != "el-x-koine":
                 reportError("Incorrect language code for relation element: " + rel)
-            if parts[1] not in {'obs', 'obs-tn', 'obs-tq', 'tn', 'tq', 'tw', 'ta', 'udb', 'ulb', 'ust', 'iev', 'irv', 'isv'}:
+            if parts[1] not in {'obs','obs-tn','obs-tq','tn','tq','tw','ta'} and not isBibleType(parts[1]):
                 if parts[1][0:4] != 'ugnt':
                     reportError("Invalid project code in relation element: " + rel)
             if parts[1] == projtype:
@@ -398,7 +405,7 @@ def verifyRelations(relation):
     if projtype == 'tn-tsv' and not uhg:
         reportError("Must reference 'el-x-koine/ugnt?v=...' in relation")
         
-# Validates the source field, which is an array of exactly one dictionary.
+# Validates the source field, which is an array of dictionaries.
 def verifySource(source):
     if not source or len(source) < 1:
         reportError("Invalid source spec: should be an array of dictionary of three fields.")
@@ -406,14 +413,16 @@ def verifySource(source):
         verifyKeys("source[x]", dict, ['language', 'identifier', 'version'])
 
         global projtype
-        if dict['identifier'] != projtype and projtype in {'obs', 'obs-tn', 'obs-tq', 'tn', 'tq', 'tw', 'udb', 'ulb', 'ult', 'ust'}:
+        if dict['identifier'] != projtype and (projtype in {'obs', 'obs-tn', 'obs-tq', 'tn', 'tq', 'tw'} or isBibleType(projtype)):
             reportError("Inappropriate Source:identifier (" + dict['identifier'] + ") for project type: " + projtype)
         if dict['identifier'] != 'ulb' and projtype == 'reg':
             reportError("Incorrect Source:identifier for reg project: " + dict['identifier'])
         if dict['identifier'] != 'tn' and projtype == 'tn-tsv':
             reportError("Incorrect source:identifier for tn-tsv project: " + dict['identifier'])
         if dict['language'] == 'English':
-            reportError("Use language code in source:language, not \'" + dict['language'] + '\'')
+            reportError("Use a language code in source:language, not \'" + dict['language'] + '\'')
+        elif dict['language'] == getLanguageId():
+            reportError("Warning: source:language matches target language")
         elif dict['language'] != 'en':
             reportError("Possible bad source:language: " + dict['language'])
         verifyStringField(dict, 'version', 1)
@@ -446,7 +455,7 @@ def verifySubject(subject):
         failure = (subject not in {'Translation Notes', 'TSV Translation Notes'})
     elif projtype == 'tq':
         failure = (subject != 'Translation Questions')
-    elif projtype in {'ulb', 'udb', 'ust', 'iev', 'irv', 'isv', 'reg'}:
+    elif isBibleType(projtype):
         failure = (subject not in {'Bible', 'Aligned Bible'})
     elif projtype == 'obs':
         failure = (subject != 'Open Bible Stories')
@@ -465,10 +474,11 @@ def verifyTitle(title):
         reportError("Incorrect type for title field: " + str(title))
     elif len(title) < 3:
         reportError("String value too short for title: " + title)
-    if projtype in {'iev', 'udb', 'ust'} and ("Literal" in title or "Revised" in title):
-        reportError("Title contradicts project type: " + title)
-    elif projtype in {'irv', 'isv', 'ulb', 'ult'} and ("Easy" in title or "Dynamic" in title):
-        reportError("Title contradicts project type: " + title)
+    if isBibleType(projtype):
+        if projtype in {'iev', 'udb', 'ust', 'gst'} and ("Literal" in title or "Revised" in title):
+            reportError("Title contradicts project type: " + title)
+        elif projtype in {'irv', 'isv', 'ulb', 'ult','glt'} and ("Easy" in title or "Dynamic" in title):
+            reportError("Title contradicts project type: " + title)
 
 def verifyType(type):
     failure = False
@@ -478,7 +488,7 @@ def verifyType(type):
         failure = (type != 'dict')
     elif projtype in {'tn', 'tn-tsv', 'tq', 'obs-tn', 'obs-tq'}:
         failure = (type != 'help')
-    elif projtype in {'ulb', 'udb', 'ust', 'iev', 'irv', 'isv', 'reg'}:
+    elif isBibleType(projtype):
         failure = (type != 'bundle')
     elif projtype == 'obs':
         failure = (type != 'book')
