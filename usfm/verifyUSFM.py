@@ -4,13 +4,13 @@
 # Set source_dir and usfmVersion to run.
 
 # Global variables
-source_dir = r'C:\DCS\Mahanji\zga-x-mahanji_reg'
-language_code = 'zga-x-mahanji'
-usfmVersion = 2     # if version 3.0 or greater, tolerates unknown tokens and verse fragments
+source_dir = r'C:\DCS\Hindi\hi_gst'
+language_code = 'hi'
+usfmVersion = 3     # if version 3.0 or greater, tolerates unknown tokens and verse fragments
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
 suppress3 = False     # Suppress bad punctuation warnings
-suppress9 = True      # Suppress warnings about ASCII content
+suppress9 = False      # Suppress warnings about ASCII content
 
 if usfmVersion >= 3.0:
     suppress1 = True
