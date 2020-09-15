@@ -9,9 +9,11 @@
 #    Fixes links of this form [[:en:...]]
 
 # Global variables
+source_dir = r'C:\DCS\Thai\TN'
+target_dir = r'C:\DCS\Thai\th_tn'
 resource_type = 'tn'
-language_code = 'ne'
-target_dir = r'E:\DCS\Nepali\ne_tn'
+language_code = 'th'
+
 projects = []
 
 import re
@@ -50,12 +52,9 @@ def getBookId(path):
         except IOError as e:
             sys.stderr.write("   Can't open " + shortname(manifestpath) + "\n")
         else:
-            global translators
             manifest = json.load(f)
             f.close()
             bookId = manifest['project']['id']
-            # if manifest['translators']:
-            #     translators += manifest['translators']
     if not bookId:
         bookId = parseBookId( os.path.split(path)[1] )
         if len(bookId) != 3:
@@ -119,12 +118,10 @@ def isChapter(dirname):
         isChap = True
     return isChap
 
-prefix_re = re.compile(r'C:\\DCS')
-
 def shortname(longpath):
     shortname = longpath
-    if prefix_re.match(longpath):
-        shortname = "..." + longpath[6:]
+    if source_dir in longpath:
+        shortname = longpath[len(source_dir)+1:]
     return shortname
 
 # Converts .md file in fullpath location to .md file in target dir.
@@ -152,16 +149,20 @@ def convertBook(path):
     bookId = getBookId(path)
     bookTitle = getBookTitle(bookId)
     if bookId and bookTitle:
-        sys.stdout.write("Converting: " + shortname(path) + "\n")
-        sys.stdout.flush()
+        nchapters = 0
         for dir in os.listdir(path):
             if isChapter(dir):
-                # sys.stdout.write( " " + dir )
+                nchapters += 1
+                if nchapters == 1:
+                    sys.stdout.write("Converting: " + shortname(path) + "\n")
+                    sys.stdout.flush()
                 convertChapter(bookId, dir, os.path.join(path, dir))
-        appendToProjects(bookId, bookTitle)
-    else:
+        if nchapters > 0:
+            appendToProjects(bookId, bookTitle)
+        else:
+            sys.stderr.write("Book folder has manifest but no chapters: " + shortname(path) + '\n')
+    elif shortname(path):
         sys.stderr.write("Not identified as a book folder: " + shortname(path) + '\n')
-    
     return bookTitle
  
 # Converts the book or books contained in the specified folder
@@ -179,9 +180,11 @@ def convert(dir):
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        convert(r'E:\DCS\Nepali\TN')
-    else:       # the first command line argument presumed to be a folder
-        convert(sys.argv[1])
-
+    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
+        source_dir = sys.argv[1]
+    
+    if os.path.isdir(source_dir):
+        convert(source_dir)
+    else:
+        reportError("Folder not found: " + source_dir)
     print("\nDone.")

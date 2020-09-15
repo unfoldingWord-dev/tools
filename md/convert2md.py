@@ -21,8 +21,8 @@ import sys
 import json
 import codecs
 
-listitem_re = re.compile(r'[ \t]*[\*\-][ \t]')
-olistitem_re = re.compile(r'[ \t]*[0-9]+\. ')
+listitem_re = re.compile(r'[ \t]*[\*\-]')
+olistitem_re = re.compile(r'[ \t]*[0-9]+\.')
 badolistitem_re = re.compile(r'[ \t]*[0-9]+[\) ]')
 
 # Markdown line types
@@ -124,12 +124,14 @@ def md2md(inputPath, mdPath, langcode, shortname):
     input = io.open(inputPath, "tr", 1, encoding="utf-8-sig")
     lines = input.readlines(-1)
     input.close
+    nLinesIn = len(lines)
 
-    if len(lines) > 0:
+    if nLinesIn > 0:
         state = State()
         state.newFile()
         nIn = 0
         nOut = 0
+        nLinesOrig = len(lines)
         # Open output .md file for writing.
         mdFile = io.open(mdPath, "tw", buffering=1, encoding='utf-8', newline='\n')
         for line in lines:
@@ -137,7 +139,7 @@ def md2md(inputPath, mdPath, langcode, shortname):
             line = line.rstrip()
             if blankheading_re.match(line):
                 line = ""
-                sys.stderr.write("Removed empty heading: " + shortname(mdPath) + " at line: " + str(nIn) + ". Must check manually.\n")
+                sys.stderr.write("Removed empty heading: " + shortname(mdPath) + " at line " + str(nIn) + "\n")
 #             if len(line) > 0:
 #                 if not hash:       # Find the first character in the file, should be a hash mark
 #                     hash = line[0]
@@ -147,11 +149,15 @@ def md2md(inputPath, mdPath, langcode, shortname):
 #                     sys.stderr.write("File does not begin with heading: "  + shortname(mdPath) + "\n")                    
             if nIn == 1 and forgothash_re.match(line):
                 line = "# " + line
+            state.addLine(line)
             if len(line.strip()) == 0:
-                if nOut == 0:     # skip blank lines at top of input file
-                    sys.stderr.write("Removing blank line at top of file: " + shortname(mdPath) + "\n")
-                elif state.currlinetype == BLANKLINE:
+                if nOut == 0 or nIn >= nLinesIn:
+                    sys.stderr.write("Removing blank line at top or end of file: " + shortname(mdPath) + "\n")
+                elif state.prevlinetype == BLANKLINE:
                     sys.stderr.write("Conslidating blank lines in: " + shortname(mdPath) + "\n")
+                else:
+                    convertLine(line, nIn, mdFile, inputPath, shortname)
+                    nOut += 1
             else:
                 convertLine(line, nIn, mdFile, inputPath, shortname)
                 nOut += 1
@@ -161,23 +167,21 @@ def md2md(inputPath, mdPath, langcode, shortname):
             sys.stderr.write("Removed empty: " + shortname(mdPath) + "\n")
             os.remove(mdPath)
 
-hashes_re = re.compile(r'(#+)', re.UNICODE)
-nospace = r'([^ \t].*)'
-closedheading_re = re.compile(r'(#+[ \t]+.*?)#+\s*$', re.UNICODE)
+jams_re = re.compile(r'( *[#\*]+)[\w]', re.UNICODE)
+# nospace = r'([^ \t].*)'
 
 # Fix poorly formed header lines
 def fixHeadings(line):
     line = re.sub(r'#+[\s][\s]+', '# ', line, count=1, flags=re.UNICODE)     # remove extra spaces/tabs after hash mark
     line = re.sub(r'\*+[\s][\s]+', '* ', line, count=1, flags=re.UNICODE)    # remove extra spaces/tabs after asterisk
     
-    # ensure space after hash(es)
-    hashes = hashes_re.match(line)
-    if hashes:
-        strHashes = hashes.group(1)
-        pattern = strHashes + nospace
-        jam = re.match(pattern, line)
-        if jam:
-            line = strHashes + " " + jam.group(1)
+    # ensure space after hash(es) or asterisk(s) at beginning of line
+    if jam := jams_re.match(line):
+        # strMarks = marks.group(1)
+        # pattern = strMarks + nospace
+        # jam = re.match(pattern, line)
+        # if jam:
+        line = line[0:jam.end()-1] + " " + line[jam.end()-1:]
         line = uncloseHeading(line)
     return line
 
@@ -185,6 +189,8 @@ def fixBullets(line):
     line = line.replace('\x2E', '*')
     line = line.replace('\xE2\x80\xA2', '*')
     return line
+
+closedheading_re = re.compile(r'(#+[ \t]+.*?)#+\s*$', re.UNICODE)
 
 # Changes heading style from opened to closed, by removing closing hash marks
 def uncloseHeading(line):
@@ -194,6 +200,7 @@ def uncloseHeading(line):
     return line.rstrip()
 
 # Converts a line of markdown to a properly formatted line of markdown.
+# Outputs corrected line to mdFile.
 def convertLine(line, nIn, mdFile, path, shortname):
     line = fixHeadings(line)
     # line = fixBullets(line)
@@ -202,7 +209,7 @@ def convertLine(line, nIn, mdFile, path, shortname):
     needblank = False
     
     state = State()
-    state.addLine(line)
+    # state.addLine(line)   # this is now down by md2md()
     if state.currlinetype == HEADING:
         if state.prevlinetype and state.prevlinetype != BLANKLINE:
             needblank = True
