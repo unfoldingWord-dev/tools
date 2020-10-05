@@ -115,8 +115,9 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
 
             # Make sure that the data looks like what we were expecting -- no surprises
             if '\\k' not in line:
+                # print(line)
                 assert line.startswith('\\w ') \
-                    or line[0] in '(' and line[1:].startswith('\\w ') \
+                    or line[0] in '([' and line[1:].startswith('\\w ') \
                     or line.startswith('\\f ') # and '\\ft* \\w ' in line # Josh 8:16
             if not line.startswith('\\k-e\\*') and not line.startswith('\\k-s |'):
                 assert line.count('\\w ') >= 1
