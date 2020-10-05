@@ -44,7 +44,7 @@
 # Verifies presence of media.yaml file for OBS projects.
 
 # Globals
-manifestDir = r'C:\DCS\Bengali\bn_ta'
+manifestDir = r'C:\DCS\Hindi\hi_gst'
 nIssues = 0
 projtype = ''
 issuesFile = None
@@ -414,11 +414,13 @@ def verifySource(source):
 
         global projtype
         if dict['identifier'] != projtype and (projtype in {'obs', 'obs-tn', 'obs-tq', 'tn', 'tq', 'tw'} or isBibleType(projtype)):
-            reportError("Inappropriate Source:identifier (" + dict['identifier'] + ") for project type: " + projtype)
+            reportError("Inappropriate source:identifier (" + dict['identifier'] + ") for project type: " + projtype)
         if dict['identifier'] != 'ulb' and projtype == 'reg':
-            reportError("Incorrect Source:identifier for reg project: " + dict['identifier'])
+            reportError("Incorrect source:identifier for reg project: " + dict['identifier'])
         if dict['identifier'] != 'tn' and projtype == 'tn-tsv':
             reportError("Incorrect source:identifier for tn-tsv project: " + dict['identifier'])
+        if not re.match(r'[a-z][a-z0-9-]', dict['identifier'], re.UNICODE):
+            reportError("Invalid source:identifier (need lower case ascii, no spaces): " + dict['identifier'])
         if dict['language'] == 'English':
             reportError("Use a language code in source:language, not \'" + dict['language'] + '\'')
         elif dict['language'] == getLanguageId():

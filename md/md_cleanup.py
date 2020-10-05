@@ -15,32 +15,37 @@
 # Backs up the files being modified.
 # Outputs files of the same name in the same location.
 #
-# This program also removes blank lines between markdown list items.
+# Removes blank lines between markdown list items.
 # Leading spaces before the asterisk are also removed.
+# Missing spaces after asterisk are added.
 # List items start with an asterisk followed by a space.
+# Removes blank lines at the end of the file.
 #
 # Also expands incomplete references to tA articles.
 # For example, expands Vidi: figs_metaphor to Vidi: [[rc://*/ta/man/translate/figs-metaphor]]
 
-
 import re       # regular expression module
 import io
 import os
-#import shutil
-#import codecs
 import string
 import sys
 
 # Globals
-nProcessed = 0
-max_files = 1111
-sourceDir = r"E:\DCS\Croatian\hr_tn\2sa"
-suppress1 = True       # Suppress hash mark cleanup
-suppress2 = True       # Suppress list cleanup
+source_dir = r"C:\DCS\Thai\th_tn"
+resource_type = 'tn'
+filename_re = re.compile(r'\d+\.md$')  # This can change for different collections of .md files
+suppress1 = False       # Suppress hash mark cleanup
+suppress2 = False       # Suppress list cleanup
+nChanged = 0
+max_files = 9999
 
-filename_re = re.compile(r'.*\.md$')
+if resource_type == 'ta':
+    suppress1 = True
+
 hash_re = re.compile(r' *(#+) +', flags=re.UNICODE)
-asterisk_re = re.compile('(\n *\* .*)\n(\n *\* )', flags=re.UNICODE)
+asterisk_re = re.compile('(\n *\* .*)\n(\n *\* )', flags=re.UNICODE)    # two list items with blank line between
+blanks_re = re.compile('[\n \t]+')     # multiple newlines/ white space at beginning of string
+endblank_re = re.compile('[\n \t]{2,}\Z')     # multiple newlines/ white space at end of string
 
 keystring = []
 keystring.append( re.compile(r'figs_', flags=re.UNICODE) )
@@ -49,11 +54,11 @@ keystring.append( re.compile(r'writing_', flags=re.UNICODE) )
 keystring.append( re.compile(r'guidelines_', flags=re.UNICODE) )
 keystring.append( re.compile(r'bita_', flags=re.UNICODE) )
 inlinekey = []
-inlinekey.append( re.compile(r'figs_(\w*)', flags=re.UNICODE) )
-inlinekey.append( re.compile(r'translate_(\w*)', flags=re.UNICODE) )
-inlinekey.append( re.compile(r'writing_(\w*)', flags=re.UNICODE) )
-inlinekey.append( re.compile(r'guidelines_(\w*)', flags=re.UNICODE) )
-inlinekey.append( re.compile(r'bita_(\w*)', flags=re.UNICODE) )
+inlinekey.append( re.compile(r'[\: ]figs_(\w*)', flags=re.UNICODE) )
+inlinekey.append( re.compile(r'[\: ]translate_(\w*)', flags=re.UNICODE) )
+inlinekey.append( re.compile(r'[\: ]writing_(\w*)', flags=re.UNICODE) )
+inlinekey.append( re.compile(r'[\: ]guidelines_(\w*)', flags=re.UNICODE) )
+inlinekey.append( re.compile(r'[\: ]bita_(\w*)', flags=re.UNICODE) )
 # Strings to replace with
 newstring = []
 newstring.append( 'figs-' )
@@ -65,32 +70,35 @@ newstring.append( 'bita-' )
 
 def shortname(longpath):
     shortname = longpath
-    if sourceDir in longpath:
-        shortname = longpath[len(sourceDir)+1:]
+    if source_dir in longpath:
+        shortname = longpath[len(source_dir)+1:]
     return shortname
 
 # Converts the text a whole file at a time.
 # Removes blank lines between list items.
-def fixLists(path):
-    input = io.open(path, "tr", encoding="utf-8-sig")
-    alltext = input.read()
-    input.close()
-    tmppath = path + ".tmp"
-    output = io.open(tmppath, "tw", buffering=1, encoding='utf-8', newline='\n')
+def fixLists(alltext):
+#    input = io.open(path, "tr", encoding="utf-8-sig")
+#    alltext = input.read()
+#    input.close()
+#    tmppath = path + ".tmp"
+#    output = io.open(tmppath, "tw", buffering=1, encoding='utf-8', newline='\n')
     
     # Multiple replacements per file
-    while found := asterisk_re.search(alltext):
-        output.write( alltext[0:found.start()] + found.group(1) )
-        alltext = found.group(2) + alltext[found.end():]
+    found = asterisk_re.search(alltext)
+    while found:
+        alltext = alltext[0:found.start()] + found.group(1) + found.group(2) + alltext[found.end():]
+#        output.write( alltext[0:found.start()] + found.group(1) )
+#        alltext = found.group(2) + alltext[found.end():]
         found = asterisk_re.search(alltext)
-    output.write(alltext)
-    output.close()
-    sys.stdout.write("Fixed " + shortname(mdpath) + "\n")
+    return alltext
+#    output.write(alltext)
+#    output.close()
+#    sys.stdout.write("Fixed " + shortname(mdpath) + "\n")
 
-    bakpath = mdpath + ".orig"
-    if not os.path.isfile(bakpath):
-        os.rename(path, bakpath)
-    os.rename(tmppath, path)
+#    bakpath = mdpath + ".orig"
+#    if not os.path.isfile(bakpath):
+#        os.rename(path, bakpath)
+#    os.rename(tmppath, path)
 
 # Calculates and returns the new header level.
 # Updates the truelevel list.
@@ -109,14 +117,15 @@ def shuffle(truelevel, nmarks, currlevel):
 
 # Normalizes markdown heading levels.
 # Removes training blanks from header lines.
-def fixHeadings(path):
+def fixHeadings(str):
     nChanges = 0
-    input = io.open(path, "tr", 1, encoding="utf-8-sig")
-    lines = input.readlines()
-    input.close()
-    tmppath = path + ".tmp"
-    output = io.open(tmppath, "tw", buffering=1, encoding='utf-8', newline='\n')
-    
+#    input = io.open(path, "tr", 1, encoding="utf-8-sig")
+#    lines = input.readlines()
+#    input.close()
+#    tmppath = path + ".tmp"
+#    output = io.open(tmppath, "tw", buffering=1, encoding='utf-8', newline='\n')
+    text = ""
+    lines = str.splitlines()
     currlevel = 0
     truelevel = [0,1,2,3,4,5,6,7,8,9]
         # each position in the array represents the calculate true header level for that number of hash marks.
@@ -132,29 +141,33 @@ def fixHeadings(path):
                 line = '#' * newlevel + ' ' + line[header.end():]
                 nChanges += 1
             currlevel = newlevel
-        output.write(line.rstrip() + '\n')
-    output.close()
+        text += line.rstrip() + '\n'
+#        output.write(line.rstrip() + '\n')
+#    output.close()
 
-    if nChanges == 0:
-        sys.stdout.write("Restoring " + shortname(path) + '\n')
-        os.remove(tmppath)
-    else:
-        bakpath = path + ".orig"
-        if not os.path.isfile(bakpath):
-            os.rename(path, bakpath)
-        os.rename(tmppath, path)
+#    if nChanges == 0:
+#        sys.stdout.write("Restoring " + shortname(path) + '\n')
+#        os.remove(tmppath)
+#    else:
+#        bakpath = path + ".orig"
+#        if not os.path.isfile(bakpath):
+#            os.rename(path, bakpath)
+#        os.rename(tmppath, path)
+    return text
 
 # Detects whether file contains the string we are looking for.
 # If there is a match, calls doConvert to do the conversion.
-def fixTaLinks(path):
-    input = io.open(path, "tr", 1, encoding="utf-8-sig")
-    lines = input.readlines()
-    input.close()
-    bakpath = path + ".orig"
-    if not os.path.isfile(bakpath):
-        os.rename(path, bakpath)
+def fixTaLinks(str):
+#    input = io.open(path, "tr", 1, encoding="utf-8-sig")
+#    lines = input.readlines()
+#    input.close()
+#    bakpath = path + ".orig"
+#    if not os.path.isfile(bakpath):
+#        os.rename(path, bakpath)
+    text = ""
     count = 0
-    output = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
+    lines = str.splitlines()
+#    output = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
     for line in lines:
         count += 1
         for i in range(len(inlinekey)):
@@ -163,23 +176,38 @@ def fixTaLinks(path):
             while sub:
                 line = line[0:sub.start()] + good_ref + sub.group(1) + ']]' + line[sub.end():]
                 sub = inlinekey[i].search(line)
-        output.write(line)
-    output.close
+        text += line + '\n'
+#        output.write(line)
+#    output.close
+    return text
+
+jams_re = re.compile(r'\n[#\*]+\w', re.UNICODE)
 
 def convertFile(path):
-    global nProcessed
-    input = io.open(path, "tr", 1, encoding="utf-8-sig")
+    global nChanged
+    input = io.open(path, "tr", encoding="utf-8-sig")
     text = input.read()
     input.close()
-    
+
+    origtext = text
+    if resource_type != 'ta':
+        if found := blanks_re.match(text):
+            text = text[found.end():] + '\n'    # remove blanks at beginning of string
+    if found := endblank_re.search(text):
+        text = text[0:found.start()] + '\n'     # remove blank lines at end of string
+    if not text.endswith("\n"):
+        text += "\n"
+    found = jams_re.search(text)
+    while found:
+        text = text[:found.start()+1] + ' ' + text[found.end():]    # add space after mark at beginning of lines
+        found = jams_re.search(text)
+
     # Do the hash level fixes and TA references
     if "## " in text and not suppress1:
-        fixHeadings(path)
-        nProcessed += 1
+        text = fixHeadings(text)
     # Do the list style fixes
     if asterisk_re.search(text) and not suppress2:
-        fixLists(path)
-        nProcessed += 1
+        text = fixLists(text)
     # Expand the TA links
     convertme = False
     for key in keystring:
@@ -187,37 +215,45 @@ def convertFile(path):
             convertme = True
             break
     if convertme:
-        fixTaLinks(path)    
-        nProcessed += 1
+        text = fixTaLinks(text)
+    
+    if text!= origtext:
+        nChanged += 1
+        bakpath = path + ".orig"
+        if not os.path.isfile(bakpath):
+            os.rename(path, bakpath)
+        output = io.open(path, "tw", encoding='utf-8', newline='\n')
+        output.write(text)
+        output.close()
+        sys.stdout.write("Changed: " + shortname(path) + '\n')
 
 # Recursive routine to convert all files under the specified folder
 def convertFolder(folder):
-    global nProcessed
+    global nChanged
     global max_files
-    if nProcessed >= max_files:
+    if nChanged >= max_files:
         return
-    sys.stdout.write("Processing " + shortname(folder) + '\n')
-    sys.stdout.flush()
+#    sys.stdout.write("Processing " + shortname(folder) + '\n')
+#    sys.stdout.flush()
     for entry in os.listdir(folder):
         path = os.path.join(folder, entry)
         if os.path.isdir(path) and entry[0] != '.':
             convertFolder(path)
         elif filename_re.match(entry):
             convertFile(path)
-        if nProcessed >= max_files:
+        if nChanged >= max_files:
             break
-
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
-        sourceDir = sys.argv[1]
+        source_dir = sys.argv[1]
 
-    if sourceDir and os.path.isdir(sourceDir):
-        convertFolder(sourceDir)
-        sys.stdout.write("Done. " + str(nProcessed) + " files needed attention.\n")
-    elif os.path.isfile(sourceDir):
-        path = sourceDir
-        sourceDir = os.path.dirname(path)
+    if source_dir and os.path.isdir(source_dir):
+        convertFolder(source_dir)
+        sys.stdout.write("Done. Changed " + str(nChanged) + " files.\n")
+    elif os.path.isfile(source_dir):
+        path = source_dir
+        source_dir = os.path.dirname(path)
         convertFile(path)
     else:
         sys.stderr.write("Usage: python md_cleanup.py <folder>\n  Use . for current folder or hard code the path.\n")

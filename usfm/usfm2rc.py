@@ -10,9 +10,9 @@
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
+source_dir = r'C:\DCS\PapuanMalay\pmy_ulb_l3.WA-Catalog'
+target_dir = r'C:\DCS\PapuanMalay\pmy_ulb_l3.work'
 en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
-target_dir = r'E:\DCS\Bangwinji\tmp'
-source_dir = r'E:\DCS\Bangwinji'
 projects = []
 lastToken = None
 
@@ -43,12 +43,12 @@ class State:
     postHeader = ""
     chapter = 0
     verse = 0
-    needPp = False
+    needPp = None
     s5marked = False
     reference = ""
     usfmFile = 0
     chunks = []
-    chunkIndex = 0
+    chunkIndex = 0  # reset at \c marker; 
     
     def addREM(self, rem):
         State.rem = rem
@@ -107,16 +107,16 @@ class State:
         State.reference = State.ID + " " + c
         State.chunks = loadChunks(State.ID, State.chapterPad)
         State.chunkIndex = 0
-        State.needPp = True     # need \p marker after each \c marker
+        State.needPp = "p"     # need \p marker after each \c marker
 
         # State.s5marked = False
         
     def addP(self):
-        State.needPp = False
+        State.needPp = None
     
-    # Called when a \p is encountered in the source but needs to be help for later output.
-    def holdP(self):
-        State.needPp = True
+    # Called when a \p is encountered in the source but needs to be held for later output.
+    def holdP(self, tag):
+        State.needPp = tag
 
     def addS5(self):
         State.s5marked = True
@@ -125,6 +125,7 @@ class State:
         State.verse = int(v)
         State.reference = State.ID + " " + str(State.chapter) + ":" + v
     
+    # Returns the  number of the first verse in the current chunk
     def getChunkVerse(self):
         v = 999
         if State.chunkIndex < len(State.chunks):
@@ -150,7 +151,7 @@ class State:
         State.postHeader = ""
         State.chapter = 0
         State.verse = 0
-        State.needPp = True     # need at least one \p marker after \c 1 in each book
+        State.needPp = "p"     # need at least one \p marker after \c 1 in each book
         State.s5marked = False
         State.reference = ""
 
@@ -220,14 +221,27 @@ def takeMTX(key, value):
 
 # Copies paragraph marker to output unless a section 5 break is just ahead.
 # In that case, the paragraph marker will automatically be added after \s5.
-def takeP():
+def takeP(tag):
     state = State()
     if state.getChunkVerse() != state.verse + 1:
         state.addP()
-        state.usfmFile.write("\n\\p")
+        state.usfmFile.write("\n\\" + tag)
     else:
-        state.holdP()
+        state.holdP(tag)
 
+# Copies paragraph marker to output unless a section 5 break is just ahead.
+# In that case, the paragraph marker will automatically be added after \s5.
+def takeQ(tag):
+    state = State()
+    if state.getChunkVerse() != state.verse + 1:
+        state.addP()
+        state.usfmFile.write("\n\\" + tag)
+    else:
+        state.holdP(tag)
+
+# Called each time a verse marker is encountered, before the verse marker is written to the output stream.
+# Writes an \s5 section marker if it is the first verse in the chunk.
+# Writer a \p marker before verse 1 or when a \p marker from input is on hold.
 def addSection(v):
     state = State()
     vn = int(v)
@@ -236,7 +250,7 @@ def addSection(v):
             state.usfmFile.write("\n\\s5")
         state.advanceChunk()
     if state.needPp:
-        state.usfmFile.write("\n\\p")
+        state.usfmFile.write("\n\\" + state.needPp)
         state.addP()
 
 def takeS5():
@@ -268,6 +282,9 @@ def takeText(t):
     if state.chapter < 1:       # header has not been written, add text to post-header
         state.addPostHeader("", t)
     else:
+        if state.needPp:
+            state.usfmFile.write("\n\\" + state.needPp)
+            state.addP()
         state.usfmFile.write(" " + t)
         
 # Insert an s5 marker before writing any chapter marker.
@@ -303,8 +320,10 @@ def take(token):
             takeText(token.value)
     elif token.isC():
         takeC(token.value)
-    elif token.isP():
-        takeP()
+    elif token.isP() or token.isPI() or token.isPC() or token.isNB():
+        takeP(token.type)
+    elif token.isQ() or token.isQ1() or token.isQA() or token.isSP() or token.isQR() or token.isQC():
+        takeQ(token.type)
     elif token.isS():
         takeAsIs(token.type, token.value)
     elif token.isS5():
@@ -336,6 +355,10 @@ def take(token):
 
     lastToken = token
      
+def isPoetry(token):
+    return token.isQ() or token.isQ1() or token.isQA() or token.isSP() or token.isQR() or \
+token.isQC() or token.isD()
+
 def writeHeader():
     state = State()
     h = state.h

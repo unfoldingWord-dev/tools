@@ -4,13 +4,13 @@
 # Set source_dir and usfmVersion to run.
 
 # Global variables
-source_dir = r'C:\DCS\Mahanji\zga-x-mahanji_reg'
-language_code = 'zga-x-mahanji'
+source_dir = r'C:\DCS\Bengali\bn_iev'
+language_code = 'bn'
 usfmVersion = 2     # if version 3.0 or greater, tolerates unknown tokens and verse fragments
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
-suppress3 = False     # Suppress bad punctuation warnings
-suppress9 = True      # Suppress warnings about ASCII content
+suppress3 = True     # Suppress bad punctuation warnings
+suppress9 = False      # Suppress warnings about ASCII content
 
 if usfmVersion >= 3.0:
     suppress1 = True
@@ -311,22 +311,27 @@ def takeV(vstr):
  
 footnote_re = re.compile(r'[0-9]\: *[0-9]', re.UNICODE)
 
+# Looks for possible verse references and square brackets in the text, not preceded by a footnote marker.
 def reportFootnotes(text):
-    if footnote_re.search(text):
-        reportFootnote(':')
-    elif "[" in text:
-        reportFootnote('[')
+    global lastToken
+    if not lastToken.getType().startswith('f'):
+        if footnote_re.search(text):
+            reportFootnote(':')
+        elif "[" in text:
+            reportFootnote('[')
 
 punctuation_re = re.compile(r'([\.\?!;\:,][^ \)\]\'"’”»›])', re.UNICODE)
 spacey_re = re.compile(r'[\s]([\.\?!;\:,\)’”»›])', re.UNICODE)
 spacey2_re = re.compile(r'[\s]([\(\'"])[\s]', re.UNICODE)
 
 def reportPunctuation(text):
+    global lastToken
     state = State()
     if bad := punctuation_re.search(text):
         if text[bad.start():bad.end()+1] != '...':
-            if not (bad.group(1)[0] in ',.' and bad.group(1)[1] in "0123456789"):
-                reportError("Bad punctuation at " + state.reference + ": " + bad.group(1))
+            if not (bad.group(1)[0] in ',.' and bad.group(1)[1] in "0123456789"):   # it's a number
+                if not (bad.group(1)[0] == ":" and bad.group(1)[1] in "0123456789" and lastToken.getType().startswith('f')):      # it's a verse reference inside a footnote
+                    reportError("Bad punctuation at " + state.reference + ": " + bad.group(1))
     if bad := spacey_re.search(text):
         reportError("Space before phrase ending mark at " + state.reference + ": " + bad.group(1))
     if bad := spacey2_re.search(text):
@@ -341,6 +346,7 @@ def reportFootnote(trigger):
         reportError("Probable untagged footnote at " + reference)
     else:
         reportError("Possible untagged footnote at square bracket at " + reference)        
+    reportError("  preceding Token.type was " + lastToken.getType())
 
 def takeText(t):
     global lastToken
@@ -557,4 +563,6 @@ if __name__ == "__main__":
     
     if issuesFile:
         issuesFile.close()
+    else:
+        print("No issues found!")
     print("Done.\n")

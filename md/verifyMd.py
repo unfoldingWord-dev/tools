@@ -9,6 +9,7 @@
 #      blank lines before and after list
 #      period not paren after the number
 #      space after period
+# Triple asterisks
 # References are properly formed: [[rc://*/ta/man/translate/figs-hyperbole]]
 # References in headings (warning)
 # References to tA entries are valid.
@@ -19,15 +20,16 @@
 # To-do -- check for others kinds of links in headings, not just TA links.
 
 # Globals
-language_code = 'hr'
-resource_type = 'tn'
-#ta_dir = r'E:\DCS\English\en_tA'    # English tA
-ta_dir = r'E:\DCS\Croatian\hr_tA'    # Target language tA
-obs_dir = r'E:\DCS\Spanish\es_obs\content'    # should end in 'content'
-tn_dir = r'E:\DCS\Croatian\hr_tn'    # Target language tN, needed if note links are to be checked
+source_dir = r"C:\DCS\Hausa\ha_tq.work"
+language_code = 'ha'
+resource_type = 'tq'
+ta_dir = r'C:\DCS\English\en_ta.v9 (keep)'    # English tA
+#ta_dir = r'C:\DCS\Telugu\te_ta'    # Target language tA
+obs_dir = r'C:\DCS\English\en_obs\content'    # should end in 'content'
+tn_dir = r'C:\DCS\English\en_tn.old'
+#tn_dir = r'C:\DCS\Thai\th_tn'    # Target language tN, needed if note links are to be checked
 nChecked = 0
 nChanged = 0
-sourceDir = ""
 current_file = ""
 issuesFile = None
 
@@ -41,13 +43,15 @@ suppress7 = False    # Suppress warnings about file starting with blank line
 suppress8 = False    # Suppress warnings about invalid list style
 suppress9 = False    # Suppress warnings about ASCII content
 suppress10 = False   # Suppress warnings about heading levels
-suppress11 = False    # Suppress warnings about unbalanced parentheses
+suppress11 = True    # Suppress warnings about unbalanced parentheses
 suppress12 = False     # Suppress warnings about newlines at end of file
+suppress13 = True       # Suppress warnings about triple asterisks
 if resource_type == "ta":
     suppress1 = True
     suppress7 = True
     suppress8 = True
-if language_code in {'hr','id','nag','pmy','sw'}:    # ASCII content
+    suppress10 = True
+if language_code in {'en','ha','hr','id','nag','pmy','sw'}:    # ASCII content
     suppress9 = True
 
 # Markdown line types
@@ -146,11 +150,11 @@ class State:
 def reportParens():
     state = State()
     if not suppress11 and state.leftparens != state.rightparens:
-        reportError("Parentheses are unbalanced", False)
+        reportError("Parentheses are unbalanced (" + str(state.leftparens) + ":" + str(state.rightparens) + ")", False)
     if state.leftbrackets != state.rightbrackets:
-        reportError("Left and right square brackets are unbalanced", False)
+        reportError("Left and right square brackets are unbalanced (" + str(state.leftbrackets) + ":" + str(state.rightbrackets) + ")", False)
     if state.leftcurly != state.rightcurly:
-        reportError("Left and right curly braces are unbalanced", False)
+        reportError("Left and right curly braces are unbalanced (" + str(state.leftcurly) + ":" + str(state.rightcurly) + ")", False)
     if state.underscores % 2 != 0:
         reportError("Unmatched underscores", False)
     
@@ -162,10 +166,10 @@ def reportParens():
 def openIssuesFile():
     global issuesFile
     if not issuesFile:
-        global sourceDir
-        path = os.path.join(sourceDir, "issues.txt")
+        global source_dir
+        path = os.path.join(source_dir, "issues.txt")
         if os.path.exists(path):
-            bakpath = os.path.join(sourceDir, "issues-oldest.txt")
+            bakpath = os.path.join(source_dir, "issues-oldest.txt")
             if not os.path.exists(bakpath):
                 os.rename(path, bakpath)
             else:
@@ -269,14 +273,16 @@ def take(line):
 #            if i > 1 and state.linetype[i-1] == BLANKLINE and state.linetype[i-2] == ORDEREDLIST_ITEM:
 #                reportError("invalid ordered list style")
     if line.find('# #') != -1:
-        reportError('probable heading syntax error')
+        reportError('heading syntax error')
     if len(line) > 2 and line[0:2] == '% ':
         reportError("% used to mark a heading")
     if line.find("<!--") != -1 or line.find("&nbsp;") != -1 or line.find("o:p") != -1:
         reportError("html code")
     if toobold_re.match(line):
         if resource_type != "tn" or current_file != "intro.md":
-            reportError("Extra formatting in heading")
+            reportError("extra formatting in heading")
+    if not suppress13 and "***" in line:
+        reportError("triple asterisk")
     
 
 # Looks for :en: and rc://en in the line
@@ -308,7 +314,7 @@ def checkTALinks(line):
         manpage = page.group(1)
         path = os.path.join(ta_dir, manpage)
         if not os.path.isdir(path):
-            reportError("invalid tA page reference")
+            reportError("invalid tA page reference: " + manpage)
         page = tapage_re.search(page.group(2))
 
     if not found:
@@ -393,24 +399,21 @@ def checkPassageLinks(line, fullpath):
                     reportError("invalid OBS story link: " + referent)
 #                    reported = True
         elif not (resource_type == 'obs' and obsJpg_re.match(referent)):
-            referencedPath = os.path.join( os.path.dirname(fullpath), referent )
-            if not suppress5 and not os.path.isfile(referencedPath):
-                reportError("invalid passage link: " + referent)
-#                reported = True
+            if not referent.startswith("http"):
+                referencedPath = os.path.join( os.path.dirname(fullpath), referent )
+                if not suppress5 and not os.path.isfile(referencedPath):
+                    reportError("invalid passage link: " + referent)
+#                    reported = True
         passage = passagelink_re.search(passage.group(2))
 
 def checkReversedLinks(line):
     if reversedlink_re.search(line):
         reportError("Reversed link syntax")
 
-#prefix_re = re.compile(r'C:\\DCS')
-
 def shortname(longpath):
     shortname = longpath
-#    if prefix_re.match(longpath):
-#        shortname = "..." + longpath[6:]
-    if sourceDir in longpath:
-        shortname = longpath[len(sourceDir)+1:]
+    if source_dir in longpath:
+        shortname = longpath[len(source_dir)+1:]
     return shortname
 
 storyfile_re = re.compile(r'[0-9][0-9]\.md$')
@@ -475,7 +478,7 @@ def verifyDir(dirpath):
     sys.stdout.flush()
     for f in os.listdir(dirpath):
         path = os.path.join(dirpath, f)
-        if os.path.isdir(path) and path[-4:] != ".git":
+        if os.path.isdir(path) and f[0] != '.':
             # It's a directory, recurse into it
             verifyDir(path)
         elif verifiable(path, f):
@@ -483,23 +486,21 @@ def verifyDir(dirpath):
             verifyFile(path)
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        source = r'E:\DCS\Croatian\hr_tn\2sa'
-    else:
-        source = sys.argv[1]
+    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
+        source_dir = sys.argv[1]
 
     if resource_type == "ta":
         sys.stdout.write("Checking only files named 01.md.\n\n")
         sys.stdout.flush()
 
-    if os.path.isdir(source):
-        sourceDir = source
-        verifyDir(sourceDir)
-    elif os.path.isfile(source):
-        sourceDir = os.path.dirname(source)
-        verifyFile(source)
+    if os.path.isdir(source_dir):
+        verifyDir(source_dir)
+    elif os.path.isfile(source_dir):
+        path = source_dir
+        source_dir = os.path.dirname(source_dir)
+        verifyFile(path)
     else:
-        sys.stderr.write("File not found: " + source + '\n') 
+        sys.stderr.write("Path not found: " + source_dir + '\n') 
 
     if issuesFile:
         issuesFile.close()
