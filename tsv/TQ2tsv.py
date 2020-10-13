@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2020-08-19 by RJH
+#   Last modified: 2020-10-14 by RJH
 #
 """
 Quick script to copy TQ from markdown files
@@ -170,16 +170,16 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
     """
     """
     print(f"    Converting TQ {BBB} links to TSV…")
-    output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath(BBB.lower())
+    output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath(BBB)
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
-    output_filepath = output_folderpath.joinpath(f'{BBB.lower()}_tq.tsv')
-    num_questions = j = 0
+    output_filepath = output_folderpath.joinpath(f'{BBB}_tq.tsv')
+    num_questions = 0
     with open(output_filepath, 'wt') as output_TSV_file:
         # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
         output_TSV_file.write('Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tAnnotation\n')
         previous_ids:List[str] = ['']
-        for j, (_line_number,BBB,C,V,question,answer) in enumerate(get_source_questions(BBB, nn), start=1):
-            # print(f"{j:3}/ Line {line_number:<5} {BBB} {C:>3}:{V:<3} '{question}' {answer}")
+        for _j, (_line_number,BBB,C,V,question,answer) in enumerate(get_source_questions(BBB, nn), start=1):
+            # print(f"{_j:3}/ Line {_line_number:<5} {BBB} {C:>3}:{V:<3} '{question}' {answer}")
             generated_id = ''
             while generated_id in previous_ids:
                 generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
@@ -192,7 +192,7 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
             occurrence = ''
             question = question.strip()
             answer = answer.strip()
-            annotation = f'{question}<br>{answer}'
+            annotation = f'{question}\\n\\n> {answer}' # This is the Markdown quoted block formatting
             output_line = f'{reference}\t{generated_id}\t{tags}\t{support_reference}\t{quote}\t{occurrence}\t{annotation}'
             output_TSV_file.write(f'{output_line}\n')
             num_questions += 1

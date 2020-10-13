@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Apr 2020 by RJH
-#   Last modified: 2020-08-19 by RJH
+#   Last modified: 2020-10-14 by RJH
 #
 """
 Quick script to copy TW links out of UHB and UGNT
@@ -233,9 +233,9 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
     """
     source_text = 'UHB' if int(nn)<40 else 'UGNT'
     print(f"    Converting {source_text} {BBB} links to TSV…")
-    output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath(BBB.lower())
+    output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath(BBB)
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
-    output_filepath = output_folderpath.joinpath(f'{BBB.lower()}_twl.tsv')
+    output_filepath = output_folderpath.joinpath(f'{BBB}_twl.tsv')
     num_simple_links = num_complex_links = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
         # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')

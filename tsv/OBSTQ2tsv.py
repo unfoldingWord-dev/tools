@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2020-08-19 by RJH
+#   Last modified: 2020-10-14 by RJH
 #
 """
 Quick script to copy OBS-TQ from markdown files
@@ -82,9 +82,9 @@ def make_TSV_file() -> Tuple[int,int]:
     """
     """
     print(f"    Converting OBS-TQ links to TSV…")
-    output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath('obs')
+    output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath('OBS')
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
-    output_filepath = output_folderpath.joinpath(f'obs_tq.tsv')
+    output_filepath = output_folderpath.joinpath(f'OBS_tq.tsv')
     num_questions = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
         # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
@@ -104,7 +104,7 @@ def make_TSV_file() -> Tuple[int,int]:
             occurrence = ''
             question = question.strip()
             answer = answer.strip()
-            annotation = f'{question}<br>{answer}'
+            annotation = f'{question}\\n\\n> {answer}' # This is the Markdown quoted block formatting
             output_line = f'{reference}\t{generated_id}\t{tags}\t{support_reference}\t{quote}\t{occurrence}\t{annotation}'
             output_TSV_file.write(f'{output_line}\n')
             num_questions += 1

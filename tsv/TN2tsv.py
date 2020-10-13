@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2020-08-19 by RJH
+#   Last modified: 2020-10-14 by RJH
 #
 """
 Quick script to copy TN from 9-column TSV files
@@ -46,6 +46,7 @@ BBB_NUMBER_DICT = {'GEN':'01','EXO':'02','LEV':'03','NUM':'04','DEU':'05',
                 '2JN':'64',
                 '3JN':'65', 'JUD':'66', 'REV':'67' }
 
+
 def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
     """
     Generator to read the TN TSV files
@@ -73,19 +74,19 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
     """
     """
     print(f"    Converting TN {BBB} links to TSV…")
-    output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath(BBB.lower())
+    output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath(BBB)
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
-    output_filepath = output_folderpath.joinpath(f'{BBB.lower()}_tn.tsv')
+    output_filepath = output_folderpath.joinpath(f'{BBB}_tn.tsv')
     num_lines = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
         # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
-        for j, (line_number,fields) in enumerate(get_source_lines(BBB, nn), start=1):
+        for j, (_line_number,fields) in enumerate(get_source_lines(BBB, nn), start=1):
             try:
                 B,C,V,ID, support_reference,orig_quote,occurrence,_gl_quote,occurrence_note = fields
             except ValueError:
                 print(f"Expected 9 fields but found {len(fields)} in {fields}")
                 raise ValueError
-            # print(f"{j:3}/ Line {line_number:<5} {BBB} {C:>3}:{V:<3} {ID }'{support_reference}' '{orig_quote}' '{occurrence}' '{_gl_quote}' '{occurrence_note}'")
+            # print(f"{j:3}/ Line {_line_number:<5} {BBB} {C:>3}:{V:<3} {ID }'{support_reference}' '{orig_quote}' '{occurrence}' '{_gl_quote}' '{occurrence_note}'")
             if j == 1:
                 assert B=='Book' and C=='Chapter' and V=='Verse' # etc.
                 output_line = 'Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tAnnotation'
@@ -100,12 +101,14 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
                 orig_quote = orig_quote.strip()
                 orig_quote = orig_quote.replace('...', '…')
                 orig_quote = orig_quote.replace(' …', '…').replace('… ', '…')
-                orig_quote = orig_quote.replace('…', '◊')
+                orig_quote = orig_quote.replace('…', '↔')
                 occurrence = occurrence.strip()
                 occurrence_note = occurrence_note.strip()
                 occurrence_note = occurrence_note.replace('<BR>', '<br>')
                 if occurrence_note.startswith('<br>'): occurrence_note = occurrence_note[4:]
                 if occurrence_note.endswith('<br>'): occurrence_note = occurrence_note[:-4]
+                occurrence_note = occurrence_note.replace('<br>', '\\n')
+                occurrence_note = occurrence_note.replace('rc://en/', 'rc://*/')
                 occurrence_note = occurrence_note.strip().replace('  ', ' ')
                 output_line = f'{reference}\t{ID}\t{tags}\t{support_reference}\t{orig_quote}\t{occurrence}\t{occurrence_note}'
             output_TSV_file.write(f'{output_line}\n')
