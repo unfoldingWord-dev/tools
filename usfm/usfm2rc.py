@@ -10,11 +10,13 @@
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
-source_dir = r'C:\DCS\PapuanMalay\pmy_ulb_l3.WA-Catalog'
-target_dir = r'C:\DCS\PapuanMalay\pmy_ulb_l3.work'
+source_dir = r'C:\DCS\Malayalam\IEV\Stage 3'
+target_dir = r'C:\DCS\Malayalam\ml_iev.work'
 en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
+
 projects = []
 lastToken = None
+issuesFile = None
 
 import sys
 import os
@@ -43,6 +45,7 @@ class State:
     postHeader = ""
     chapter = 0
     verse = 0
+    needVerseText = False
     needPp = None
     s5marked = False
     reference = ""
@@ -92,6 +95,7 @@ class State:
         State.verse = 0
         State.reference = id
         State.title = getDefaultName(id)
+        State.needVerseText = False
         # Open output USFM file for writing.
         usfmPath = os.path.join(target_dir, makeUsfmFilename(id))
         State.usfmFile = io.open(usfmPath, "tw", buffering=1, encoding='utf-8', newline='\n')
@@ -104,6 +108,7 @@ class State:
         else:
             State.chapterPad = c
         State.verse = 0
+        State.needVerseText = False
         State.reference = State.ID + " " + c
         State.chunks = loadChunks(State.ID, State.chapterPad)
         State.chunkIndex = 0
@@ -123,6 +128,7 @@ class State:
 
     def addVerse(self, v):
         State.verse = int(v)
+        State.needVerseText = True
         State.reference = State.ID + " " + str(State.chapter) + ":" + v
     
     # Returns the  number of the first verse in the current chunk
@@ -139,6 +145,11 @@ class State:
     def hasS5(self):
         return State.s5marked
 
+    def needText(self):
+        return State.needVerseText
+    def addText(self):
+        State.needVerseText = False
+
     def reset(self):
         State.ID = ""
         State.rem = ""
@@ -151,6 +162,7 @@ class State:
         State.postHeader = ""
         State.chapter = 0
         State.verse = 0
+        State.needVerseText = False
         State.needPp = "p"     # need at least one \p marker after \c 1 in each book
         State.s5marked = False
         State.reference = ""
@@ -286,6 +298,7 @@ def takeText(t):
             state.usfmFile.write("\n\\" + state.needPp)
             state.addP()
         state.usfmFile.write(" " + t)
+    state.addText()
         
 # Insert an s5 marker before writing any chapter marker.
 # Before writing chapter 1, we output the USFM header.
@@ -297,7 +310,6 @@ def takeC(c):
     state.addChapter(c)
     if state.chapter == 1:
         writeHeader()
-#    state.usfmFile.write(u"\n")
     if not state.hasS5():
         state.usfmFile.write("\n\n\\s5")
     state.usfmFile.write("\n\\c " + c)
@@ -306,11 +318,14 @@ def takeC(c):
 def takeCL(cl):
     state = State()
     state.usfmFile.write("\n\\cl " + cl)
-    
+
 def take(token):
     global lastToken
 
     state = State()
+    if state.needText() and not isTextCarryingToken(token):    # and not isOptional(state.reference):
+        if not token.isTEXT():
+            reportError("Empty verse: " + state.reference)
     if token.isV():
         takeV(token.value)
     elif token.isTEXT():
@@ -355,10 +370,24 @@ def take(token):
 
     lastToken = token
      
+# Returns true if token is part of a cross reference
+def isCrossRef(token):
+    return token.isX_S() or token.isX_E() or token.isXO() or token.isXT()
+
+# Returns true if token is part of a footnote
+def isFootnote(token):
+    return token.isF_S() or token.isF_E() or token.isFR() or token.isFR_E() or token.isFT() or token.isFP() or token.isFE_S() or token.isFE_E()
+
+def isIntro(token):
+    return token.is_is() or token.is_ip() or token.is_iot() or token.is_io()
+    
 def isPoetry(token):
     return token.isQ() or token.isQ1() or token.isQA() or token.isSP() or token.isQR() or \
 token.isQC() or token.isD()
 
+def isTextCarryingToken(token):
+    return token.isB() or token.isM() or token.isD() or isFootnote(token) or isCrossRef(token) or isPoetry(token) or isIntro(token)
+    
 def writeHeader():
     state = State()
     h = state.h
@@ -398,14 +427,14 @@ usfmcode_re = re.compile(r'\\[^A-Za-z]', re.UNICODE)
 def isParseable(str, fname):
     parseable = True
     if backslash_re.search(str):
-        printError("File contains stranded backslash(es): " + fname)
-        parseable = False
+        reportError("File contains stranded backslash(es): " + fname)
+#        parseable = False
     if jammed_re.search(str):
-        printError("File contains verse number(s) not followed by space: " + fname)
+        reportError("File contains verse number(s) not followed by space: " + fname)
         parseable = True   # let it convert because the bad spots are easier to locate in the converted USFM
     if usfmcode_re.search(str):
-        printError("File contains foreign usfm code(s): " + fname)
-        parseable = False
+        reportError("File contains foreign usfm code(s): " + fname)
+#        parseable = False
     return parseable
         
 
@@ -430,7 +459,7 @@ def convertFile(usfmpath, fname):
 # Converts the book or books contained in the specified folder
 def convertFolder(folder):
     if not os.path.isdir(folder):
-        printError("Invalid folder path given: " + folder)
+        reportError("Invalid folder path given: " + folder)
         return
     if not os.path.isdir(target_dir):
         os.mkdir(target_dir)
@@ -442,7 +471,7 @@ def convertFolder(folder):
             if convertFile(path, fname):
                 appendToProjects()
             else:
-                printError("File cannot be converted: " + fname)
+                reportError("File cannot be converted: " + fname)
                 
 # Appends information about the current book to the global projects list.
 def appendToProjects():
@@ -475,8 +504,31 @@ def dumpProjects():
         manifest.write("    categories: " + p['categories'] + "\n")
     manifest.close()
 
-def printError(text):
-    sys.stderr.write(text + '\n')
+# If issues.txt file is not already open, opens it for writing.
+# First renames existing issues.txt file to issues-oldest.txt unless
+# issues-oldest.txt already exists.
+# Returns new file pointer.
+def openIssuesFile():
+    global issuesFile
+    if not issuesFile:
+        global source_dir
+        path = os.path.join(source_dir, "issues.txt")
+        if os.path.exists(path):
+            bakpath = os.path.join(source_dir, "issues-oldest.txt")
+            if not os.path.exists(bakpath):
+                os.rename(path, bakpath)
+        issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
+    return issuesFile
+
+# Writes error message to stderr and to issues.txt.
+def reportError(msg):
+    try:
+        sys.stderr.write(msg + "\n")
+    except UnicodeEncodeError as e:
+        state = State()
+        sys.stderr.write(state.reference + ": (Unicode...)\n")
+    issues = openIssuesFile()       
+    issues.write(msg + "\n")
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
@@ -486,4 +538,6 @@ if __name__ == "__main__":
         source_dir = sys.argv[1]
     convertFolder(source_dir)
     dumpProjects()
+    if issuesFile:
+        issuesFile.close()
     print("\nDone.")
