@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Apr 2020 by RJH
-#   Last modified: 2020-08-19 by RJH
+#   Last modified: 2020-10-14 by RJH
 #
 """
 Quick script to copy TW links out of UHB and UGNT
@@ -115,8 +115,9 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
 
             # Make sure that the data looks like what we were expecting -- no surprises
             if '\\k' not in line:
+                # print(line)
                 assert line.startswith('\\w ') \
-                    or line[0] in '(' and line[1:].startswith('\\w ') \
+                    or line[0] in '([' and line[1:].startswith('\\w ') \
                     or line.startswith('\\f ') # and '\\ft* \\w ' in line # Josh 8:16
             if not line.startswith('\\k-e\\*') and not line.startswith('\\k-s |'):
                 assert line.count('\\w ') >= 1
@@ -232,9 +233,9 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
     """
     source_text = 'UHB' if int(nn)<40 else 'UGNT'
     print(f"    Converting {source_text} {BBB} links to TSV…")
-    output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath(BBB.lower())
+    output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath(BBB)
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
-    output_filepath = output_folderpath.joinpath(f'{BBB.lower()}_twl.tsv')
+    output_filepath = output_folderpath.joinpath(f'{BBB}_twl.tsv')
     num_simple_links = num_complex_links = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
         # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')

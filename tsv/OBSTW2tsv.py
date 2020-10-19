@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Apr 2020 by RJH
-#   Last modified: 2020-08-24 by RJH
+#   Last modified: 2020-10-14 by RJH
 #
 """
 Quick script to copy TW links out of UHB and UGNT
@@ -31,7 +31,7 @@ LOCAL_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/unfoldingWord/')
 LOCAL_TW_SOURCE_FILEPATH = LOCAL_BASE_FOLDERPATH.joinpath('en_tw/bible/')
 
 # The output folder below must also already exist!
-LOCAL_OUTPUT_FOLDERPATH = LOCAL_BASE_FOLDERPATH.joinpath('en_translation-annotations/obs/')
+LOCAL_OUTPUT_FOLDERPATH = LOCAL_BASE_FOLDERPATH.joinpath('en_translation-annotations/OBS/')
 
 
 def get_source_lines() -> Tuple[str,str,str]:
@@ -79,7 +79,7 @@ def make_TSV_file() -> Tuple[int,int]:
     """
     print(f"    Converting OBS TW links to TSV…")
     if not os.path.isdir(LOCAL_OUTPUT_FOLDERPATH): os.mkdir(LOCAL_OUTPUT_FOLDERPATH)
-    output_filepath = LOCAL_OUTPUT_FOLDERPATH.joinpath('obs_twl.tsv')
+    output_filepath = LOCAL_OUTPUT_FOLDERPATH.joinpath('OBS_twl.tsv')
     num_links = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
         # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
