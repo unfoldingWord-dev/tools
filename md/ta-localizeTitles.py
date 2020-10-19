@@ -6,26 +6,14 @@
 import re       # regular expression module
 import io
 import os
-# import shutil
 import codecs
 import string
 import sys
 
 # Globals
+source_dir = r'C:\DCS\Assamese\TA\Stage 1'
 nChanged = 0
-max_changes = 5     # There should only be 4 altogether
-
-def detect_by_bom(path, default):
-    with open(path, 'rb') as f:
-        raw = f.read(4)
-        f.close
-    for enc,boms in \
-            ('utf-8-sig',(codecs.BOM_UTF8)),\
-            ('utf-16',(codecs.BOM_UTF16_LE,codecs.BOM_UTF16_BE)),\
-            ('utf-32',(codecs.BOM_UTF32_LE,codecs.BOM_UTF32_BE)):
-        if any(raw.startswith(bom) for bom in boms):
-            return enc
-    return default
+max_changes = 4     # There should only be 4 altogether
 
 title_re = re.compile(r'  +- title: "', flags=re.UNICODE)
 link_re =  re.compile(r'    +link: ', flags=re.UNICODE)
@@ -44,14 +32,13 @@ def fetchTitle(folder, linkstr):
 def rewriteToc(folder):
     global nChanged
     tocpath = os.path.join(folder, "toc.yaml")
-    enc = detect_by_bom(tocpath, default="utf-8")
-    input = io.open(tocpath, "tr", 1, encoding=enc)
+    input = io.open(tocpath, "tr", 1, encoding="utf-8-sig")
     lines = input.readlines()
     input.close()
     bakpath = tocpath + ".orig"
     if not os.path.isfile(bakpath):
         os.rename(tocpath, bakpath)
-    output = io.open(tocpath, "tw", encoding="utf-8")
+    output = io.open(tocpath, "tw", encoding="utf-8", newline='\n')
     title_line = ""
     for line in lines:
         if nChanged >= max_changes:
@@ -75,13 +62,10 @@ def rewriteToc(folder):
     output.close()
     nChanged += 1
     
-
-prefix_re = re.compile(r'C:\\DCS')
-
 def shortname(longpath):
     shortname = longpath
-    if prefix_re.match(longpath):
-        shortname = "..." + longpath[6:]
+    if source_dir in longpath:
+        shortname = longpath[len(source_dir)+1:]
     return shortname
 
 # Recursive routine to process files under the specified folder
@@ -103,13 +87,11 @@ def convertFolder(folder):
 
 # Rewrites toc.yaml files under the specified directory
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        folder = r'C:\DCS\Kannada\kn_tA'
-    else:
-        folder = sys.argv[1]
+    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
+        source_dir = sys.argv[1]
 
-    if folder and os.path.isdir(folder):
-        convertFolder(folder)
+    if source_dir and os.path.isdir(source_dir):
+        convertFolder(source_dir)
         sys.stdout.write("Done. Changed " + str(nChanged) + " files.\n")
     else:
         sys.stderr.write("Usage: python ta-localizeTitles.py <folder>\n  Use . for current folder.\n")
