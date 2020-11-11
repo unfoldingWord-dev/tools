@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Apr 2020 by RJH
-#   Last modified: 2020-10-14 by RJH
+#   Last modified: 2020-11-11 by RJH
 #
 """
 Quick script to copy TW links out of UHB and UGNT
@@ -29,7 +29,7 @@ LOCAL_OT_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('hbo_uhb/')
 LOCAL_NT_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('el-x-koine_ugnt/')
 
 # The output folder below must also already exist!
-LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_translation-annotations/')
+LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_twl/')
 
 BBB_NUMBER_DICT = {'GEN':'01','EXO':'02','LEV':'03','NUM':'04','DEU':'05',
                 'JOS':'06','JDG':'07','RUT':'08','1SA':'09','2SA':'10','1KI':'11',
@@ -233,7 +233,7 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
     """
     source_text = 'UHB' if int(nn)<40 else 'UGNT'
     print(f"    Converting {source_text} {BBB} links to TSV…")
-    output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath(BBB)
+    output_folderpath = LOCAL_OUTPUT_FOLDERPATH #.joinpath(BBB)
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
     output_filepath = output_folderpath.joinpath(f'{BBB}_twl.tsv')
     num_simple_links = num_complex_links = j = 0
@@ -275,7 +275,7 @@ def main():
         simple_count, complex_count = make_TSV_file(BBB,nn)
         total_simple_links += simple_count
         total_complex_links += complex_count
-    print(f"    {total_simple_links+total_complex_links:,} total links written ({total_simple_links:,} simple links and {total_complex_links:,} multiword links)")
+    print(f"    {total_simple_links+total_complex_links:,} total links written ({total_simple_links:,} simple links and {total_complex_links:,} multiword links) to {LOCAL_OUTPUT_FOLDERPATH}/")
 # end of main function
 
 if __name__ == '__main__':

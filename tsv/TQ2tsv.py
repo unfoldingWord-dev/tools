@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2020-10-14 by RJH
+#   Last modified: 2020-11-11 by RJH
 #
 """
 Quick script to copy TQ from markdown files
@@ -28,7 +28,7 @@ LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/unfoldingWord/')
 LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_tq/')
 
 # The output folder below must also already exist!
-LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_translation-annotations/')
+LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_tq2/')
 
 BBB_NUMBER_DICT = {'GEN':'01','EXO':'02','LEV':'03','NUM':'04','DEU':'05',
                 'JOS':'06','JDG':'07','RUT':'08','1SA':'09','2SA':'10','1KI':'11',
@@ -170,7 +170,7 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
     """
     """
     print(f"    Converting TQ {BBB} links to TSV…")
-    output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath(BBB)
+    output_folderpath = LOCAL_OUTPUT_FOLDERPATH #.joinpath(BBB)
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
     output_filepath = output_folderpath.joinpath(f'{BBB}_tq.tsv')
     num_questions = 0
@@ -211,7 +211,7 @@ def main():
     for BBB,nn in BBB_NUMBER_DICT.items():
         question_count = make_TSV_file(BBB,nn)
         total_questions += question_count
-    print(f"    {total_questions:,} total questions and answers written")
+    print(f"    {total_questions:,} total questions and answers written to {LOCAL_OUTPUT_FOLDERPATH}/")
 # end of main function
 
 if __name__ == '__main__':
