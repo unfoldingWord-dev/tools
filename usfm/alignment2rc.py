@@ -4,7 +4,6 @@
 # It does minimal editing, and only up to the first \c marker.
 # It will process only one usfm file per folder, so remove any extras before running this script.
 # The usfm file must contain an \id field with the book ID.
-# The English RC folder is hard-coded in en_rc_dir.
 # The output folder is also hard-coded, in target_dir.
 
 import sys
@@ -87,7 +86,7 @@ class State:
             usfmPath = os.path.join(target_dir, makeUsfmFilename(State.ID))
             State.usfmFile = io.open(usfmPath, "tw", buffering=1, encoding='utf-8', newline='\n')
         else:
-            raise DuplicateBook(State.ID)
+            raise RuntimeError("Duplicate USFM file for: " + State.ID)
 
     # Finds the best values for h, toc1, toc2, and mt1.
     # Prefers non-ascii values for all fields.
@@ -122,12 +121,12 @@ class State:
         State.postHeader = ""
         State.reference = ""
 
-class DuplicateBook(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-#        return repr(self.value)
-        return self.value
+# class DuplicateBook(Exception):
+#     def __init__(self, value):
+#         self.value = value
+#     def __str__(self):
+# #        return repr(self.value)
+#         return self.value
 
 # Returns True if the project already exists in the array of projects.
 def projectExists(id):
@@ -241,18 +240,20 @@ def convertFile(usfmpath, fname):
     input = io.open(usfmpath, "tr", 1, encoding="utf-8")
     try:
         line = input.readline()
-        while line[0:3] != "\\c ":
+        while line and line[0:3] != "\\c ":
             take(line)
             line = input.readline()
-        body = []
-        body.append(line)
-        body += input.readlines()    # read the remainder of the usfm file
-        input.close
-        writeUsfm(body)
-    except DuplicateBook as dup:
+        if line[0:3] != "\\c ":
+            printError("No chapters in file: " + fname)
+        else:
+            body = []
+            body.append(line)
+            body += input.readlines()    # read the remainder of the usfm file
+            input.close
+            writeUsfm(body)
+    except RuntimeError as dup:
         input.close
         raise
-        printError("Multiple SFM files for book: " + str(dup))
     return True
 
 # Appends information about the current book to the global projects list.
@@ -286,8 +287,8 @@ def convertFolder(folder):
             try:
                 convertFile(path, fname)
                 appendToProjects()
-            except DuplicateBook as dup:
-                printError("Multiple SFM files for book: " + str(dup))
+            except RuntimeError as dup:
+                printError(str(dup))
             
 # Sort the list of projects and write to projects.yaml
 def dumpProjects():
@@ -317,5 +318,6 @@ if __name__ == "__main__":
         source_dir = sys.argv[1]
     convertFolder(source_dir)
     dumpProjects()
+    sys.stderr.flush()
 
     print("\nDone.")

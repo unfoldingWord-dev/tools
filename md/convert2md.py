@@ -172,17 +172,13 @@ jams_re = re.compile(r'( *[#\*]+)[\w]', re.UNICODE)
 
 # Fix poorly formed header lines
 def fixHeadings(line):
-    line = re.sub(r'#+[\s][\s]+', '# ', line, count=1, flags=re.UNICODE)     # remove extra spaces/tabs after hash mark
-    line = re.sub(r'\*+[\s][\s]+', '* ', line, count=1, flags=re.UNICODE)    # remove extra spaces/tabs after asterisk
+    line = re.sub(r'#[\s][\s]+', '# ', line, count=1, flags=re.UNICODE)     # remove extra spaces/tabs after hash mark
+    line = re.sub(r'\*[\s][\s]+', '* ', line, count=1, flags=re.UNICODE)    # remove extra spaces/tabs after asterisk
     
     # ensure space after hash(es) or asterisk(s) at beginning of line
     if jam := jams_re.match(line):
-        # strMarks = marks.group(1)
-        # pattern = strMarks + nospace
-        # jam = re.match(pattern, line)
-        # if jam:
         line = line[0:jam.end()-1] + " " + line[jam.end()-1:]
-        line = uncloseHeading(line)
+    line = uncloseHeading(line)
     return line
 
 def fixBullets(line):
@@ -192,7 +188,7 @@ def fixBullets(line):
 
 closedheading_re = re.compile(r'(#+[ \t]+.*?)#+\s*$', re.UNICODE)
 
-# Changes heading style from opened to closed, by removing closing hash marks
+# Changes heading style from closed to open, by removing closing hash marks
 def uncloseHeading(line):
     closed = closedheading_re.match(line)
     if closed:

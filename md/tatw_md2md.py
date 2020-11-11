@@ -5,10 +5,10 @@
 #    Uses convert2md.md2md() to convert links and things.
 
 # Global variables
-language_code = 'pmy'
-resource_type = 'tw'    # should be ta or tw
-target_dir = r'C:\DCS\Papuan Malay\pmy_tw'
-source_dir = r'C:\DCS\Papuan Malay\pmy_tw.temp'      # Source and target directories must be at the same level
+source_dir = r'C:\DCS\Assamese\as_tA\Stage 2'      # Source and target directories must be at the same level
+target_dir = r'C:\DCS\Assamese\as_ta.work'
+language_code = 'as'
+resource_type = 'ta'    # should be ta or tw
 
 import re
 import io
@@ -33,12 +33,10 @@ def makeMdPath(category, fname):
 
     return os.path.join(mdPath, fname)
 
-prefix_re = re.compile(r'C:\\DCS')
-
 def shortname(longpath):
     shortname = longpath
-    if prefix_re.match(longpath):
-        shortname = "..." + longpath[6:]
+    if source_dir in longpath:
+        shortname = longpath[len(source_dir)+1:]
     return shortname
 
 # Makes a directory under target_dir corresponding to the specified directory

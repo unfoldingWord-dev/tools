@@ -4,9 +4,10 @@
 # Set source_dir and usfmVersion to run.
 
 # Global variables
-source_dir = r'C:\DCS\Bengali\bn_iev'
-language_code = 'bn'
+source_dir = r'C:\DCS\Malayalam\ml_iev.work'
+language_code = 'ml'
 usfmVersion = 2     # if version 3.0 or greater, tolerates unknown tokens and verse fragments
+
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
 suppress3 = True     # Suppress bad punctuation warnings
@@ -19,6 +20,7 @@ if language_code in {'ha','hr','id','nag','pmy','sw'}:    # ASCII content
     suppress9 = True
 
 lastToken = None
+nextToken = None
 issuesFile = None
 
 # Set Path for files in support/
@@ -37,6 +39,7 @@ vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 # Marker types
 PP = 1      # paragraph or quote
 QQ = 2
+MM = 3
 OTHER = 9
 
 
@@ -51,6 +54,8 @@ class State:
     needQQ = False
     needVerseText = False
     textOkayHere = False
+    footnote_starts = 0
+    footnote_ends = 0
     reference = ""
     lastRef = ""
     errorRefs = set()
@@ -64,6 +69,8 @@ class State:
         State.chapter = 0
         State.lastVerse = 0
         State.verse = 0
+        State.footnote_starts = 0
+        State.footnote_ends = 0
         State.needVerseText = False
         State.textOkayHere = False
         State.lastRef = State.reference
@@ -124,12 +131,24 @@ class State:
         return State.needVerseText
         
     def addText(self):
-#        if State.currMarker == QQ:
-#            State.currMarker = OTHER
         State.currMarker = OTHER
         State.needVerseText = False
         State.textOkayHere = True
-
+    
+#    def footnotes_started(self):
+#        return State.footnote_starts
+#    def footnotes_ended(self):
+#        return State.footnote_ends
+        
+    # Increments \f or \f* counter if either parameter is True.
+    def addFootnote(self, startf, endf):
+        if startf:
+            State.footnote_starts += 1
+        elif endf:
+            State.footnote_ends += 1
+        State.currMarker = OTHER
+        State.needVerseText = False
+        State.textOkayHere = True
     
     # Adds the specified reference to the set of error references
     # Returns True if reference can be added
@@ -212,6 +231,11 @@ def verifyVerseCount():
         if state.reference != 'REV 12:18' and state.reference != '3JN 1:15' and state.reference != '2CO 13:13':
             reportError("Chapter should have " + str(state.nVerses(state.ID, state.chapter)) + " verses: "  + state.reference)
 
+def verifyFootnotes():
+    state = State()
+    if state.footnote_starts != state.footnote_ends:
+        reportError(state.ID + ": mismatched footnote tags (" + str(state.footnote_starts) + ":" + str(state.footnote_ends) + ")")
+
 def verifyNotEmpty(filename):
     state = State()
     if not state.ID or state.chapter == 0:
@@ -257,6 +281,12 @@ def takeC(c):
     elif state.chapter > state.lastChapter + 1:
         reportError("Missing chapter(s) between: " + state.lastRef + " and " + state.reference)
 
+def takeFootnote(start, end):
+    if start:
+        token.isF_S() or token.isF_E() 
+    state = State()
+    state.addFootnote()
+
 def takeP():
     state = State()
     state.addParagraph()
@@ -264,9 +294,9 @@ def takeP():
 def takeSection():
     state = State()
     if state.currMarker == PP:
-        reportError("Warning: \"useless \p before \s marker\" at: " + state.reference)
+        reportError("Warning: \"useless paragraph {p,m,nb} marker before section marker\" at: " + state.reference)
     elif state.currMarker == QQ:
-        reportError("Warning: \"useless \q before \s marker\" at: " + state.reference)
+        reportError("Warning: \"useless \q before section marker\" at: " + state.reference)
 
 # Receives a string containing a verse number or range of verse numbers.
 # Reports errors related to the verse number(s), such as missing or duplicated verses.
@@ -309,13 +339,13 @@ def takeV(vstr):
         elif state.verse > state.lastVerse + 2 and state.addError(state.lastRef):
             reportError("Missing verses between: " + state.lastRef + " and " + state.reference)
  
-footnote_re = re.compile(r'[0-9]\: *[0-9]', re.UNICODE)
+reference_re = re.compile(r'[0-9]\: *[0-9]', re.UNICODE)
 
 # Looks for possible verse references and square brackets in the text, not preceded by a footnote marker.
 def reportFootnotes(text):
     global lastToken
     if not lastToken.getType().startswith('f'):
-        if footnote_re.search(text):
+        if reference_re.search(text):
             reportFootnote(':')
         elif "[" in text:
             reportFootnote('[')
@@ -413,11 +443,11 @@ def take(token):
 
     state = State()
     if isFootnote(token):
-        state.addText()     # footnote replaces need for text
+        state.addFootnote(token.isF_S(), token.isF_E())
     if state.needText() and not isTextCarryingToken(token) and not suppress1 and not isOptional(state.reference):
         if not token.isTEXT():
             reportError("Empty verse: " + state.reference)
-        elif len(token.value) < 7:      # Text follows verse marker but is very short
+        elif len(token.value) < 7 and not isPoetry(nextToken):      # Text follows verse marker but is very short
             reportError("Verse fragment: " + state.reference)
     if token.isID():
         takeID(token.value)
@@ -429,7 +459,7 @@ def take(token):
         if token.value == "1":
             verifyBookTitle()
         takeC(token.value)
-    elif token.isP() or token.isPI() or token.isPC() or token.isNB():
+    elif token.isP() or token.isPI() or token.isPC() or token.isNB() or token.isM():
         takeP()
         if token.value:     # paragraph markers can be followed by text
             reportError("Unexpected: text returned as part of paragraph token." +  state.reference)
@@ -528,11 +558,18 @@ def verifyFile(path):
     print("CHECKING " + shortname(path))
     sys.stdout.flush()
     verifyWholeFile(str, shortname(path))
-    for token in parseUsfm.parseString(str):
+    tokens = parseUsfm.parseString(str)
+    n = 0
+    global nextToken
+    for token in tokens:
+        if n + 1 < len(tokens):
+            nextToken = tokens[n+1]
         take(token)
+        n += 1
     verifyNotEmpty(path)
     verifyVerseCount()      # for the last chapter
     verifyChapterCount()
+    verifyFootnotes()
     state = State()
     state.addID("")
     sys.stderr.flush()

@@ -42,9 +42,15 @@
 #
 # Also checks for extraneous files in the folder with the manifest file.
 # Verifies presence of media.yaml file for OBS projects.
+# Verifies presence of valid toc.yaml files in tA projects.
+#
+# To add:
+#   Check for missing config.yaml files
+#   Check for  ASCII titles in toc.yaml files.
+#   Check for 01.md, title.md, and sub-title.md files in each bottom level  tA folder.
 
 # Globals
-manifestDir = r'C:\DCS\Hindi\hi_gst'
+manifestDir = r'C:\DCS\Telugu\te_iev.STR'
 nIssues = 0
 projtype = ''
 issuesFile = None
@@ -86,6 +92,23 @@ def reportError(msg):
 #    issues = openIssuesFile().write(msg + u'\n')
     nIssues += 1
 
+# Returns the number of .usfm files in the manifest directory.
+def countBookDirs():
+    n = 0
+    for fname in os.listdir(manifestDir):
+        path = os.path.join(manifestDir, fname)
+        if os.path.isdir(path) and fname.upper() in usfm_verses.verseCounts:
+            n += 1
+    return n
+
+# Returns the number of .usfm files in the manifest directory.
+def countUsfmFiles():
+    n = 0
+    for fname in os.listdir(manifestDir):
+        if fname.endswith(".usfm"):
+            n += 1
+    return n
+
 # Returns True if the specified string is a recognized Bible type of project type
 def isBibleType(id):
     return (id in {'ulb', 'udb', 'ust', 'ult', 'iev','irv','isv','reg','glt','gst'})
@@ -120,6 +143,17 @@ def verifyAcademyProject(project):
     else:
         reportError("Invalid project:identifier: " + section)
 
+# Verifies that all chapters exist for the given folder.
+# Applies to tN and tQ projects only.
+def verifyChapters(path):
+    for book in os.listdir(path):
+        bookpath = os.path.join(path, book)
+        if len(book) == 3 and os.path.isdir(bookpath):
+            nchapters = usfm_verses.verseCounts[book.upper()]['chapters']
+            subdirs = os.listdir(bookpath)
+            if len(subdirs) < nchapters or ("front" in subdirs and len(subdirs) <= nchapters):
+                reportError("Missing chapters in: " + shortname(bookpath))
+
 # Verifies the checking section of the manifest.
 def verifyChecking(checking):
     verifyKeys('checking', checking, ['checking_entity', 'checking_level'])
@@ -141,7 +175,8 @@ badname_re = re.compile(r'.*\d\d\d\d+.*\.md$')
 def verifyCleanDir(dirpath):
     for fname in os.listdir(dirpath):
         path = os.path.join(dirpath, fname)
-#        if os.path.isfile(path):
+        if projtype in {'ta'} and fname == 'media.yaml':
+            reportError("Unwanted media.yaml file: " + shortname(path))
         if (fname.find("temp") >= 0 or fname.find("tmp") >= 0 or fname.find("orig") >= 0 \
             or fname.find("Copy") >= 0 or fname.find(".txt") >= 0 or fname.find("projects") >= 0):
             if fname != "translate-original":
@@ -207,12 +242,16 @@ def verifyDir(dirpath):
         mediapath = os.path.join(dirpath, "media.yaml")
         if not os.path.isfile(mediapath):
             reportError("Missing media.yaml file in: " + dirpath)
+    if projtype == 'ta':
+        verifyTocYamls(dirpath)
+    if projtype in {'tn','tq'}:
+        verifyChapters(dirpath)
 
 # Manifest file verification
 def verifyFile(path):
     if has_bom(path):
         reportError("manifest.yaml file has a Byte Order Mark. Remove it.")
-    manifestFile = io.open(path, "tr", encoding='utf-8')
+    manifestFile = io.open(path, "tr", encoding='utf-8-sig')
     manifest = yaml.safe_load(manifestFile)
     manifestFile.close()
     verifyKeys("", manifest, ['dublin_core', 'checking', 'projects'])
@@ -350,7 +389,7 @@ def verifyProject(project):
         sys.stdout.write("Verify each project entry manually.\n")   # temp until all projtypes are supported
 
     # For most project types, the projects:identifier is really a part identifier, like book id (ULB, tQ, etc.), or section id (tA)
-    
+
 # Verifies the projects list
 def verifyProjects(projects):
     if not projects:
@@ -360,6 +399,10 @@ def verifyProjects(projects):
         nprojects = len(projects)
         if nprojects < 1:
             reportError('Empty projects list')
+        if isBibleType(projtype) and nprojects != countUsfmFiles():
+            reportError("Number of projects listed " + str(nprojects) + " does not match number of usfm files: " + str(countUsfmFiles()))
+        if projtype in {'tn', 'tq'} and nprojects != countBookDirs():
+            reportError("Number of projects listed " + str(nprojects) + " does not match number of book folders: " + str(countBookDirs()))
         if projtype in ['obs', 'obs-tn', 'obs-tq', 'tw'] and nprojects != 1:
             reportError("There should be exactly 1 project listed under projects.")
         elif projtype == 'ta' and nprojects != 4:
@@ -413,7 +456,7 @@ def verifySource(source):
         verifyKeys("source[x]", dict, ['language', 'identifier', 'version'])
 
         global projtype
-        if dict['identifier'] != projtype and (projtype in {'obs', 'obs-tn', 'obs-tq', 'tn', 'tq', 'tw'} or isBibleType(projtype)):
+        if dict['identifier'] != projtype and projtype in {'obs', 'obs-tn', 'obs-tq', 'tn', 'tq', 'tw'}:
             reportError("Inappropriate source:identifier (" + dict['identifier'] + ") for project type: " + projtype)
         if dict['identifier'] != 'ulb' and projtype == 'reg':
             reportError("Incorrect source:identifier for reg project: " + dict['identifier'])
@@ -481,6 +524,21 @@ def verifyTitle(title):
             reportError("Title contradicts project type: " + title)
         elif projtype in {'irv', 'isv', 'ulb', 'ult','glt'} and ("Easy" in title or "Dynamic" in title):
             reportError("Title contradicts project type: " + title)
+
+def verifyTocYaml(yamlpath):
+    yamlFile = io.open(yamlpath, "tr", encoding='utf-8-sig')
+    contents = yaml.safe_load(yamlFile)
+    yamlFile.close()
+
+# For tA projects, verify that each folder has a valid toc.yaml file.
+def verifyTocYamls(dirpath):
+    for folder in ['checking', 'intro', 'process', 'translate']:
+        path = os.path.join(dirpath, folder)
+        path = os.path.join(path, "toc.yaml")
+        if os.path.isfile(path):
+            verifyTocYaml(path)
+        else:
+            reportError("toc.yaml file missing: " + shortname(path))
 
 def verifyType(type):
     failure = False
