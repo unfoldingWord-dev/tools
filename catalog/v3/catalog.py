@@ -5,7 +5,7 @@
 #  See LICENSE file for details.
 #
 #  Contributors:
-#  Richard Mahn <richard_mahn@wycliffeassociates.org>
+#  Richard Mahn <rich.mahn@unfoldingword.org>
 
 """
 This class parses information in the UW catalog.

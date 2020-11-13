@@ -1,0 +1,18 @@
+{
+  "name": "generate_tn_pdf",
+  "version": "1.0.0",
+  "description": "",
+  "main": "getResources.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "babel-polyfill": "^6.26.0",
+    "fs-extra": "^7.0.0",
+    "path-extra": "^4.2.1",
+    "tc-source-content-updater": "^0.2.16",
+    "usfm-js": "^2.0.2"
+  }
+}

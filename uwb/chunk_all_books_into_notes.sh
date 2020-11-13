@@ -8,7 +8,7 @@
 #  Contributors:
 #  Jesse Griffin <jesse@distantshores.org>
 #  Caleb Maclennan <caleb@alerque.com>
-#  Richard Mahn <richard_mahn@wycliffeassociates.org>
+#  Richard Mahn <rich.mahn@unfoldingword.org>
 
 NOTES=/var/www/vhosts/door43.org/httpdocs/data/gitrepo/pages/en/bible/notes
 BASEDIR=$(cd $(dirname "$0")/../ && pwd)

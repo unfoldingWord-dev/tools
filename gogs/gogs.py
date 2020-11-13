@@ -6,7 +6,7 @@
 #  See LICENSE file for details.
 #
 #  Contributors:
-#  Richard Mahn <richard_mahn@wycliffeassociates.org>
+#  Richard Mahn <rich.mahn@unfoldingword.org>
 
 """
 This class allows one to connect to a Gogs server and gather information through the API

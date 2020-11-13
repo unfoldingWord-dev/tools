@@ -6,7 +6,7 @@
 #  See LICENSE file for details.
 #
 #  Contributors:
-#  Richard Mahn <richard_mahn@wycliffeassociates.org>
+#  Richard Mahn <rich.mahn@unfoldingword.org>
 
 set -e
 

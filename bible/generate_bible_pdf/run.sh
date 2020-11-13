@@ -11,4 +11,4 @@
 #npm i
 #node getResources ./
 cd $(dirname "$0")/../../..
-python -m tools.bible.generate_bible_pdf.generate_bible_pdf $@
+python2 -m tools.bible.generate_bible_pdf.generate_bible_pdf $@

@@ -20,11 +20,11 @@ def convertText(lines, output):
             startpos = versenum.start()
             endpos = versenum.end()
             length = len(line)
-            if versenum.group(0) == u"1":
+            if versenum.group(0) == "1":
                 # I would add a chapter marker here, but the text has chapter labels before
                 # each verse 1, which I need to check manually and add \cl marker.
-                output.write(u"\n\\p")
-            output.write(line[:versenum.start()] + u"\n\\v " + versenum.group(0) + u' ')
+                output.write("\n\\p")
+            output.write(line[:versenum.start()] + "\n\\v " + versenum.group(0) + ' ')
             line = line[versenum.end():]
             length = len(line)
             versenum = number_re.search(line)
@@ -71,4 +71,4 @@ if __name__ == "__main__":
     else:       # the first command line argument presumed to be a folder
         convertFolder(sys.argv[1])
 
-    print "\nDone."
+    print("\nDone.")

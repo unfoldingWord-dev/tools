@@ -1,0 +1,2011 @@
+INFO - WORKING DIR IS /Users/richmahn/working FOR en
+DEBUG - Popen(['git', 'checkout', 'master'], cwd=/Users/richmahn/working/en_obs-sn, universal_newlines=False, shell=None, istream=None)
+DEBUG - Popen(['git', 'rev-parse', '--short=10', 'HEAD'], cwd=/Users/richmahn/working/en_obs-sn, universal_newlines=False, shell=None, istream=None)
+DEBUG - Popen(['git', 'checkout', 'master'], cwd=/Users/richmahn/working/en_obs-sq, universal_newlines=False, shell=None, istream=None)
+DEBUG - Popen(['git', 'rev-parse', '--short=10', 'HEAD'], cwd=/Users/richmahn/working/en_obs-sq, universal_newlines=False, shell=None, istream=None)
+DEBUG - Popen(['git', 'checkout', 'master'], cwd=/Users/richmahn/working/en_obs, universal_newlines=False, shell=None, istream=None)
+DEBUG - Popen(['git', 'rev-parse', '--short=10', 'HEAD'], cwd=/Users/richmahn/working/en_obs, universal_newlines=False, shell=None, istream=None)
+INFO - Looks like this is a new commit of en_obs-sn-sq_master_d55a8f90d9. Generating PDF.
+/Users/richmahn/repos/tools/general_tools/file_utils.py:100: YAMLLoadWarning: calling yaml.load() without Loader=... is deprecated, as the default Loader is unsafe. Please read https://msg.pyyaml.org/load for full details.
+  return yaml.load(read_file(file_name))
+INFO - Creating OBS tN HTML files for en_obs-sn-sq_master_d55a8f90d9...
+INFO - Generating Body HTML for en_obs-sn-sq_master_d55a8f90d9...
+Traceback (most recent call last):
+  File "/usr/local/Cellar/python/3.7.4_1/Frameworks/Python.framework/Versions/3.7/lib/python3.7/runpy.py", line 193, in _run_module_as_main
+    "__main__", mod_spec)
+  File "/usr/local/Cellar/python/3.7.4_1/Frameworks/Python.framework/Versions/3.7/lib/python3.7/runpy.py", line 85, in _run_code
+    exec(code, run_globals)
+  File "/Users/richmahn/repos/tools/obs-sn-sq/generate_pdf.py", line 612, in <module>
+    main(args.obs_sn, args.obs_sq, args.obs, args.lang_codes, args.working_dir, args.output_dir, args.owner, args.regenerate)
+  File "/Users/richmahn/repos/tools/obs-sn-sq/generate_pdf.py", line 597, in main
+    obs_sn_converter.run()
+  File "/Users/richmahn/repos/tools/obs-sn-sq/generate_pdf.py", line 101, in run
+    self.generate_body_html()
+  File "/Users/richmahn/repos/tools/obs-sn-sq/generate_pdf.py", line 229, in generate_body_html
+    html = self.replace_rc_links(html)
+  File "/Users/richmahn/repos/tools/obs-sn-sq/generate_pdf.py", line 543, in replace_rc_links
+    BeautifulSoup(text, 'html.parser').prettify())
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1201, in prettify
+    return self.decode(True, formatter=formatter)
+  File "/usr/local/lib/python3.7/site-packages/bs4/__init__.py", line 627, in decode
+    indent_level, eventual_encoding, formatter)
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1236, in decode_contents
+    formatter))
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1156, in decode
+    indent_contents, eventual_encoding, formatter
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 1233, in decode_contents
+    text = c.output_ready(formatter)
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 656, in output_ready
+    output = self.format_string(self, formatter)
+  File "/usr/local/lib/python3.7/site-packages/bs4/element.py", line 149, in format_string
+    output = formatter.substitute(s)
+  File "/usr/local/lib/python3.7/site-packages/bs4/formatter.py", line 47, in substitute
+    from .element import NavigableString
+  File "<frozen importlib._bootstrap>", line 420, in parent
+RecursionError: maximum recursion depth exceeded while calling a Python object

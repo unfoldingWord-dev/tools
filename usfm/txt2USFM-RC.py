@@ -1,6 +1,4 @@
-# coding: latin-1
-#### ###### -*- coding: utf-8 -*-
-
+# -*- coding: utf-8 -*-
 # This script converts text files from tStudio to USFM Resource Container format.
 #    Parses manifest.json to get the book ID.
 #    Outputs list of contributors gleaned from all manifest.json files.
@@ -10,49 +8,66 @@
 #    Converts multiple books at once.
 
 # Global variables
-contributors = []
-target_dir = r'C:\DCS\Spanish\es-419_ulb'
+source_dir = r'C:\DCS\Vwanji\NT'
+target_dir = r'C:\DCS\Vwanji\wbi_reg.work'
+language_code = "wbi"
+mark_chunks = False     # Should be true for GL source text
 
 import usfm_verses
 import re
+import operator
+import io
+import os
 
-verseMarker_re = re.compile(r'[ \n\t]*\\v *[\d]', re.UNICODE)
+verseMarker_re = re.compile(r'[ \n\t]*\\v *([\d]{1,3})', re.UNICODE)
+verseTags_re = re.compile(r'\\v +[^1-9]', re.UNICODE)
+numbers_re = re.compile(r'[ \n]([\d]{1,3})[ \n]', re.UNICODE)
+numberstart_re = re.compile(r'([\d]{1,3})[ \n]', re.UNICODE)
 chapMarker_re = re.compile(r'\\c *[\d]{1,3}', re.UNICODE)
+chaplabel_re = re.compile(r'\\cl', re.UNICODE)
 
-# Copies named file to XX-orig.txt.
+contributors = []
+projects = []
+
 # Calls ensureMarkers() to put in missing chapter and verse markers.
-# @param verserange is a set of verse number strings that should exist in the file.
+# Inserts chapter title where appropriate.
+# verserange is a list of verse number strings that should exist in the file.
 # On exit, the named file contains the improved chunk.
-# On exit, XX-orig.txt contains the original chunk, if different.
+# On exit, XX.txt-orig. contains the original chunk, if different.
 def cleanupChunk(directory, filename, verserange):
-    dot = filename.find('.')
-    verse = filename[0:dot]
-    path = directory + "/" + filename
-    input = io.open(path, "tr", 1, encoding='utf-8')
-    text = input.read(-1)
+    # dot = filename.find('.')
+    # verse_start = filename[0:dot]
+    vn_start = int(verserange[0])
+    vn_end = int(verserange[-1])
+    path = os.path.join(directory, filename)
+    input = io.open(path, "tr", encoding='utf-8-sig')
+    origtext = input.read()
     input.close()
+    text = fixVerseMarkers(origtext)
+    text = fixChapterMarkers(text)
+    text = fixPunctuationSpacing(text)
 
-    chapter = u""
-    if int(verse) == 1 and lacksChapter(text):
-        chapter = directory.lstrip('0')
-    if len(verseMarker_re.findall(text)) >= len(verserange):     # there are enough verse markers
-        verserange = {}
-    # lacking = lacksMarkers(input, chapter.lstrip('0'), verse.lstrip('0'))  # returns (lacksC, lacksV) pair
-    # input.seek(0)
-    # changed = ensureFirstMarkers(input, output, lacking[0], lacking[1])
-    if chapter or verserange:
-        ext = filename[dot:]
-        tmpPath = directory + "/" + verse + "-orig" + ext
-        if os.access(tmpPath, os.F_OK):
-            os.remove(tmpPath)
-        os.rename(path, tmpPath)
+    missing_chapter = ""
+    if vn_start == 1 and lacksChapter(text):
+        missing_chapter = directory.lstrip('0')
+    missing_verses = lackingVerses(text, verserange, numbers_re)
+    missing_markers = lackingVerses(text, verserange, verseMarker_re)
+    if missing_chapter or missing_verses or missing_markers:
+        if verseTags_re.search(text):
+            if missing_verses:
+                text = ensureNumbers(text, missing_verses)
+                missing_verses = lackingVerses(text, verserange, numbers_re)
+        text = ensureMarkers(text, missing_chapter, vn_start, vn_end, missing_verses, missing_markers)
+    if language_code == "ior":
+        text = fixInorMarkers(text, verserange)
+
+    if text != origtext:
+        bakpath = path + ".orig"
+        if not os.path.isfile(bakpath):
+            os.rename(path, bakpath)
         output = io.open(path, "tw", 1, encoding='utf-8', newline='\n')
-        ensureMarkers(text, output, chapter, int(verse), verserange)
+        output.write(text)
         output.close()
-    # if not changed:
-        # # Restore the original file
-        # os.remove(path)
-        # os.rename(tmpPath, path)
 
 # Returns True unchanged if there is no \c marker before the first verse marker.
 # Returns False if \c marker precedes first verse marker.
@@ -62,304 +77,297 @@ def lacksChapter(text):
         text = text[0:verseMarker.start()]
     return (not chapMarker_re.search(text))
 
+# Searches for the expected verse numbers in the string using the specified expression.
+# Returns list of verse numbers (marked or unmarked) missing from the string
+def lackingVerses(str, verserange, expr_re):
+    missing_verses = []
+    numbers = expr_re.findall(str)
+#    if len(numbers) < len(verserange):     # not enough verse numbers
+    versenumbers_found = []
+    for vn in numbers:
+        if vn in verserange:
+            versenumbers_found.append(vn)
+    for verse in verserange:
+        if not verse in versenumbers_found:
+            missing_verses.append(verse)
+    return missing_verses
+
 numberMatch_re = re.compile(r'[ \n\t]*([\d]{1,3}[ \n])', re.UNICODE+re.DOTALL)
-number_re =     re.compile(r'[^v][ \n]([\d]{1,3}[ \n])', re.UNICODE+re.DOTALL)
+untaggednumber_re =     re.compile(r'[^v][ \n]([\d]{1,3}[ \n])', re.UNICODE+re.DOTALL)
 
 # Writes chapter marker at beginning of file if needed.
 # Write initial verse marker and number at beginning of file if needed.
 # Finds orphaned verse numbers and inserts \v before them.
-def ensureMarkers(text, output, missingChapter, firstverse, verserange):
-    # foundV = False
-    # foundText = False
-    # markerExpr = re.compile(r'\\\\[a-z0-9]+[ \n\t]+[\d]{0,3}')
+# missingVerses is a list of verse numbers (in string format) not found in the string
+# missingMarkers is a list of verse markers (e.g. "\v 1") not found in the string
+# Returns corrected string.
+def ensureMarkers(text, missingChapter, vn_start, vn_end, missingVerses, missingMarkers):
+    goodstr = ""
     if missingChapter:
-        output.write(u"\\c " + missingChapter + '\n')
-    if not verserange:
-        output.write(text)
+        goodstr = "\\c " + missingChapter + '\n'
+    if not (missingVerses or missingMarkers):
+        goodstr += text
     else:
         chap = chapMarker_re.search(text)
         if chap:
-            output.write(text[0:chap.end()])
+            goodstr += text[0:chap.end()] + '\n'
             text = text[chap.end():]
-        initialVerse = verseMarker_re.match(text)
-        if not initialVerse:
-            text = u"\\v " + str(firstverse) + u" " + text      # insert initial verse marker
-        number = numberMatch_re.match(text)
+
+        verseAtStart = numberstart_re.match(text)
+        if (missingVerses or missingMarkers) and not verseAtStart:
+            verseAtStart = verseMarker_re.match(text)
+        if not verseAtStart:
+            startVV = missingStartVV(vn_start, vn_end, text)
+            text = startVV + text      # insert initial verse marker
+        number = numberMatch_re.match(text)          # matches orphaned number at beginning of the string
         if not number:
-            number = number_re.search(text)
+            number = untaggednumber_re.search(text)          # finds orphaned number anywhere in string
         while number:
             # verse = number.group(1)
             verse = number.group(1)[0:-1]
-            if verse in verserange:
-                output.write(text[0:number.start(1)] + u"\\v " + number.group(1))
+            if verse in missingMarkers:         # outputs \v then the number
+                goodstr += text[0:number.start(1)] + "\\v " + number.group(1)
             else:
-                output.write(text[0:number.end()])
+                goodstr += text[0:number.end()]   # leave untagged number as is and move on
             text = text[number.end():]
-            number = number_re.search(text)
-        output.write(text)
+            number = untaggednumber_re.search(text)
+        goodstr += text
+    return goodstr
 
+# Generates a string like "\v 1"  or "\v 1-3" which should be prepended to the specified text
+# start_vn is the starting verse number
+def missingStartVV(vn_start, vn_end, text):
+    firstVerseFound = verseMarker_re.search(text)
+    if firstVerseFound:
+        firstVerseNumberFound = int(firstVerseFound.group(1))
+    else:
+        firstVerseNumberFound = 999
+    vn = vn_start
+    while vn < firstVerseNumberFound - 1 and vn < vn_end:
+        vn += 1
+    if vn_start == vn:
+        startVV = "\\v " + str(vn_start) + " "
+    else:
+        startVV = "\\v " + str(vn_start) + "-" + str(vn) + " "
+    return startVV
 
-# Looks for \c marker missing before wantChapter, and/or \v missing before wantVerse
-# @param input is a file handle
-# @param wantChapter is chapter number expected, or "" if not at the beginning of chapter
-# @parma wantVerse is always the first verse expected in the file
-# This function returns a pair where the first item is the missing chapter, or "", and the
-# second item is the missing verse, or "".
-""" def lacksMarkers(input, wantChapter, wantVerse):
-    foundV = False
-    foundText = False
-    markerExpr = re.compile(r'\\\\[a-z0-9]+[ \n\t]+[\d]{0,3}')
+def ensureNumbers(text, missingVerses):
+    missi = 0
+    while missi < len(missingVerses):
+        versetag = verseTags_re.search(text)
+        if versetag:
+            text = text[0:versetag.end()-1] + missingVerses[missi] + " " + text[versetag.end()-1:]
+        missi += 1
+    return text
 
-    line = input.readline()
-    while line and not foundV and not foundText:
-        s = line.lstrip()
-        match = markerExpr.search(s)
-        while match and not foundV:
-            # Peel off and output leading USF markers
-            marker = s[match.start():match.end()]
-            # print "WRITING MARKER: <" + marker + ">"
-            if marker[0:2] == "\\c" and not foundV:
-                wantChapter = ""
-            elif marker[0:2] == "\\v" and not foundText:
-                foundV = True
-                wantVerse = ""
-            s = s[match.end():].lstrip()    # s has everything after the marker
-            # print "S AFTER STRIPPING PREV MATCH: <" + s + ">"
-            match = markerExpr.match(s)
+sub0_re = re.compile(r'/v +[1-9]', re.UNICODE)      # slash v
+sub0b_re = re.compile(r'\\\\v +[1-9]', re.UNICODE)  # double backslash v
+sub1_re = re.compile(r'[^\n ]\\v ', re.UNICODE)     # no space before \v
+sub2_re = re.compile(r'[\n \.,"\'?!]\\ *v[1-9]', re.UNICODE)   # no space before verse number, possible space betw \ and v
+sub2m_re = re.compile(r'\\ *v[1-9]', re.UNICODE)       # no space before verse number, possible space betw \ and v  -- match
+sub3_re = re.compile(r'\\v +[0-9\-]+[^0-9\-\n ]', re.UNICODE)       # no space after verse number
+sub4_re = re.compile(r'(\\v +[0-9\-]+ +)\\v +[^1-9]', re.UNICODE)   # \v 10 \v The...
+sub5_re = re.compile(r'\\v( +\\v +[0-9\-]+ +)', re.UNICODE)         # \v \v 10 
+sub6_re = re.compile(r'[\n ]\\ v [1-9]', re.UNICODE)           # space betw \ and v
+sub6m_re = re.compile(r'\\ v [1-9]', re.UNICODE)               # space betw \ and v -- match
+sub7_re = re.compile(r'[\n ]v [1-9]', re.UNICODE)              # missing backslash
 
-        # At this point, S contains the remainder of the input on the current line
-            
-        if len(s) > 1 and not foundV:
-            # At this point we have a non-empty string with no leading markers
-            foundText = True
-        else:
-            # The line was blank or had markers only
-            line = input.readline()
-    return (wantChapter, wantVerse)
- """
+# Fixes malformed verse markers
+def fixVerseMarkers(text):
+    found = sub0_re.search(text)
+    while found:
+        text = text[0:found.start()] + "\\" + text[found.start()+1:]
+        found = sub0_re.search(text, found.start()+3)
 
-# Many input files are missing the first verse marker.
-# This function prepends a verse marker if missing. The verse number is based on the file name.
-# Since all 01.txt input files start a new chapter, they should all start with a chapter marker.
-# This method makes it so.
-# Returns True if any missing markers were corrected.
-""" def ensureFirstMarkers(input, output, missingChapter, missingVerse):
-    foundV = False
-    changes = (missingChapter or missingVerse)
-    markerExpr = re.compile(r'\\\\[a-z0-9]+[ \n\t]+[\d]{0,3}')
+    found = sub0b_re.search(text)
+    while found:
+        text = text[0:found.start()] + text[found.start()+1:]
+        found = sub0b_re.search(text, found.start()+3)
 
-    line = input.readline()
-    while line and (missingChapter or missingVerse):
-        s = line.lstrip()
-        match = markerExpr.match(s)
-        while match and not foundV:
-            # Peel off and output leading USF markers
-            marker = s[match.start():match.end()]
-            # print "WRITING MARKER: <" + marker + ">"
-            if marker[0:2] == "\\v" and missingChapter:
-                output.write(u"\\c " + missingChapter + u"\n")
-                missingChapter = ""
-                missingVerse = ""
-                foundV = True
-            output.write(marker + u'\n')
-            s = s[match.end():].lstrip()    # s has everything after the marker
-            # print "S AFTER STRIPPING PREV MATCH: <" + s + ">"
-            match = markerExpr.match(s)
+    found = sub1_re.search(text)
+    while found:
+        text = text[0:found.start()+1] + "\n" + text[found.end()-3:]
+        found = sub1_re.search(text, found.start()+3)
 
-        # At this point the output file contains everything up to where a verse marker
-        # or text is found.
-        # S contains everything in the current line not yet written to the output file.
-            
-        if len(s) > 1:    # Found text before verse marker appeared, or verse marker was found
-            if missingChapter:
-                output.write(u"\\c " + missingChapter + u"\n")
-                missingChapter = ""
-            if missingVerse:
-                output.write(u"\\v " + missingVerse + u"\n")
-                missingVerse = ""
-            output.write(s + u"\n")
-        line = input.readline()
+    if found := sub2m_re.match(text):
+        text = '\\v ' + text[found.end()-1:]
+    found = sub2_re.search(text)
+    while found:
+        text = text[0:found.start()+1] + '\n\\v ' + text[found.end()-1:]
+        found = sub2_re.search(text, found.end()+1)
 
-    if missingChapter:
-        output.write(u"\\c " + missingChapter + u"\n")
-        missingChapter = ""
-    if missingVerse:
-        output.write(u"\\v " + missingVerse + u"\n")
-        missingVerse = ""
-    while line:
-        output.write(line)
-        line = input.readline()
-    return changes
- """
-# Restores files that were renamed to XX-orig.txt by cleanupCheck().
-# Renames fixed XX.txt file to XX-fixed.txt.
-def restoreOrigFile(directory, filename):
-    dot = filename.find('.')
-    verse = filename[0:dot]
-    ext = filename[dot:]
-    path = directory + "/" + filename
-    tmpPath = directory + "/" + verse + "-orig" + ext
-    if os.access(tmpPath, os.F_OK):
-        fixPath = directory + "/" + verse + "-fixed" + ext
-        if os.access(fixPath, os.F_OK):
-            os.remove(fixPath)
-        os.rename(path, fixPath)
-        os.rename(tmpPath, path)
+    found = sub3_re.search(text)
+    while found:
+        text = text[0:found.end()-1] + " " + text[found.end()-1:]
+        found = sub3_re.search(text, found.end()+1)
 
+    found = sub4_re.search(text)
+    while found:
+        text = text[0:found.start()] + found.group(1) + text[found.end()-1:]
+        found = sub4_re.search(text)
+                
+    found = sub5_re.search(text)
+    while found:
+        text = text[0:found.start()] + found.group(1) + text[found.end():]
+        found = sub5_re.search(text)
+
+    if found := sub6m_re.match(text):
+        text = "\\v " + text[found.end()-1:]
+    found = sub6_re.search(text)
+    while found:
+        text = text[0:found.start()] + "\n\\v " + text[found.end()-1:]
+        found = sub6_re.search(text)
+
+    found = sub7_re.search(text)
+    while found:
+        text = text[0:found.start()] + "\n\\v " + text[found.end()-1:]
+        found = sub7_re.search(text)
+
+    return text
 
 # Does a first pass on a list of lines to eliminate unwanted line breaks,
 # tabs, and extra whitespace. Places most markers at the beginning of lines.
-# May perform other first pass cleanup tasks.
+# Returns single string containing newlines.
 def combineLines(lines):
     section = ""
     for line in lines:
-        line = line.strip(" \t\r\n")    # strip leading and trailing whitespace
         line = line.replace("\t", " ")
         line = line.replace("   ", " ")
         line = line.replace("  ", " ")
-        line = line.replace(" \\c", "\n\\c")
-        line = line.replace(" \\p", "\n\\p")
-        line = line.replace(" \\s", "\n\\s")
-        line = line.replace("\\v", "\n\\v")
-        # line = line.replace(" \\v", "\n\\v")
-        line = line.strip(" \t\r\n")    # strip trailing spaces
+        line = line.replace(" \\", "\n\\")
+        line = line.strip()    # strip leading and trailing whitespace
 
-        if line:    # disregard lines that reduced to nothing
-            if len(section) == 0:
+        if line:    # discard lines that reduced to nothing
+            if not section:
                 section = line
             else:
-                if line[0] != '\\':
-                    section = section + " " + line
-                else:
+                if line[0] == '\\' or line.startswith("==") or line.startswith(">>"):
                     section = section + "\n" + line
+                else:
+                    section = section + " " + line
     return section
 
-cvExpr = re.compile(u'\\\\[cv] [0-9]+')
+cvExpr = re.compile(r'\\[cv] [0-9]+')
+chapter_re = re.compile(r'\n\\c +[0-9]+[ \n]*', re.UNICODE)
+# labeledChapter_re = re.compile(r'(\\c +[\d]{1,3}) +(.+?)$', re.UNICODE+re.MULTILINE)
 
-# Prepends an s5 marker before the first chapter or verse marker.
-def addSectionMarker(section):
-    marker = cvExpr.search(section)
-    if marker:
-        newsection = section[0:marker.start()] + u'\\s5\n' + section[marker.start():]
-    else:
-        newsection = section    # this should rarely occur
-    return newsection
+# Adds section marker, chapter label, and paragraph marker as needed.
+# Returns modified section.
+def augmentChapter(section, chapterTitle):
+    if mark_chunks:
+        # section = addSectionMarker(section)
+        if marker := cvExpr.search(section):
+            section = section[0:marker.start()] + '\\s5\n' + section[marker.start():]
 
-# Adds a paragraph marker after each chapter marker
-# Where a chapter does not start a new paragraph (like John 8), manually
-# replace the paragraph marker with \nb.
-def addParagraphMarker(section):
-    tokenlist = re.split('(\\\\c [0-9]+)', section)
-    marked = ""
-    for token in tokenlist:
-        if re.match('\\\\c [0-9]+', token):
-            token = token + "\n\\p"   # add paragraph mark after each chapter marker
-        marked = marked + token
-    return marked
+#    chap = labeledChapter_re.search(section)
+#    if chap:
+#        section = section[:chap.start()] + chap.group(1) + "\n\\cl " + chap.group(2) + "\n\\p" + section[chap.end():]
+#    else:
+    chap = chapter_re.search(section)
+    if chap:
+        if chapterTitle:
+            clpstr = "\n\\cl " + chapterTitle + "\n\\p\n"
+        else:
+            clpstr = "\n\\p\n"
+        section = section[:chap.end()].rstrip() + clpstr + section[chap.end():].lstrip()
+    return section          
+
+spacedot_re = re.compile(r'[^0-9] [\.\?!;\:,][^\.]')    # space before clause-ending punctuation
+jammed = re.compile(r'[\.\?!;:,)][\w]', re.UNICODE)     # no space between clause-ending punctuation and next word -- but \w matches digits also
 
 # Removes extraneous space before clause ending punctuation and adds space after
 # sentence/clause end if needed.
 def fixPunctuationSpacing(section):
     # First remove space before most punctuation
-    section = section.replace(" .", ".")
-    section = section.replace(" ;", ";")
-    section = section.replace(" :", ":")
-    section = section.replace(" ,", ",")
-    section = section.replace(" ?", "?")
-    section = section.replace(" !", "!")
-    section = section.replace(" )", ")")
-    section = section.replace(u" �", u"�")
-    section = section.replace(u" �", u"�")
+    found = spacedot_re.search(section)
+    while found:
+        section = section[0:found.start()+1] + section[found.end()-2:]
+        found = spacedot_re.search(section)
 
-    # Then add space after punctuation where needed
-    jammed = re.compile(u"[.?!;:,)][^ .?!;:,)'����\"]")
+    # Then add space between clause-ending punctuation and next word.
     match = jammed.search(section, 0)
     while match:
-        if match.end() < len(section) and section[match.end()-1] != '\n':
-            section = section[:match.end()-1] + ' ' + section[match.end()-1:]
-        pos = match.end() - 1
-        match = jammed.search(section, pos)
+        if section[match.end()-1] not in "0123456789":
+            section = section[:match.start()+1] + ' ' + section[match.end()-1:]
+        match = jammed.search(section, match.end())
     return section
     
 # Inserts space between \c and the chapter number if needed
 def fixChapterMarkers(section):
     pos = 0
-    match = re.search(u'\\\\c[0-9]', section, 0)
+    match = re.search('\\\\c[0-9]', section, 0)
     while match:
         section = section[:match.end()-1] + ' ' + section[match.end()-1:]
         pos = match.end()
-        match = re.search(u'\\\\c[0-9]', section, pos)
+        match = re.search('\\\\c[0-9]', section, pos)
     return section
+
+stripcv_re = re.compile(r'\s*\\([cv])\s*\d+\s*', re.UNICODE)
+
+# Returns the string with \v markers removed at beginning of chunk.
+def stripInitialMarkers(text):
+    saveChapterMarker = ""
+    marker = stripcv_re.match(text)
+    while marker:
+        text = text[marker.end():]
+        marker = stripcv_re.match(text)
+    return text
+
+# Returns True if the string contains all the verse numbers in verserange and there are no \v tags
+def fitsInorPattern(str, verserange):
+    fits = not ("\\v" in str)
+    if fits:
+        for v in verserange:
+            if not v in str:
+                fits = False
+                break
+    return fits
+
+# This method is only called for the Inor language.
+# Fixes very common error in Inor translations where the verse markers are listed at the beginning of the
+# chunk but are empty, immediately followed by the first verse, followed by the next verse number and
+# verse, followed by the next verse number and verse, and so on.
+def fixInorMarkers(text, verserange):
+    saveChapterMarker = ""
+    if c := chapMarker_re.search(text):
+        saveChapterMarker = text[c.start():c.end()]
+    str = stripInitialMarkers(text)
+    if not str.startswith(verserange[0]):
+        str = verserange[0] + " " + str
+    if fitsInorPattern(str, verserange):
+        for v in verserange:
+            pos = str.find(v)
+            if pos == 0:
+                str = "\\v " + str[pos:]
+            else:
+                str = str[0:pos] + "\n\\v " + str[pos:]
+        if saveChapterMarker:
+            str = saveChapterMarker + "\n" + str
+
+        # Ensure space after verse markers
+        found = sub3_re.search(str)
+        while found:
+            pos = found.end()-1
+            if str[pos] == '.':
+                pos += 1
+            str = str[0:found.end()-1] + " " + str[pos:]
+            found = sub3_re.search(str, pos+1)
+    else:
+        str = text
+    return str
     
-# Fixes the format of verse markers in the section
-# All verse markers in the incoming string should already be at the beginning of a line.
-# Converts "\v 10 10" or "\v10 10" or "\v10" to "\v 10"
-def fixVerseMarkers(section):
-    # Ensure space after each \v
-    jammed = re.compile(u'\\\\v[0-9]')
-    match = jammed.search(section, 0)
-    while match:
-        section = section[:match.end()-1] + ' ' + section[match.end()-1:]
-        pos = match.end()
-        match = jammed.search(section, pos)
-    # print "A. section length is " + str(len(section))
-
-    # Take care of repeated verse numbers
-    tokenlist = re.split('(\\\\v [0-9]+ [0-9]+)', section)
-    section = ""
-    repeatedVerseNumber = re.compile(u'\\\\v [0-9]+ [0-9]+')
-    for token in tokenlist:
-        if repeatedVerseNumber.match(token):
-            parts = re.split(' ', token)
-            verse = parts[1]
-            if parts[2] == verse:
-                token = "\\v " + verse
-        section = section + token
-    # print "B. section length is " + str(len(section))
-
-    # Ensure space after verse number
-    jammed = re.compile(u'\\\\v [0-9]+[^ \n-0123456789]')
-    match = jammed.search(section)
-    while match:
-        section = section[:match.end()-1] + ' ' + section[match.end()-1:]
-        match = jammed.search(section)
-    # print "C. section length is " + str(len(section))
-
-    # Eliminate duplicate verse markers
-    vm = re.compile(u'(\\\\v [0-9]+)')
-    tokenlist = re.split(vm, section)
-    section = ""
-    lastVerseMarker = ""
-    for token in tokenlist:
-        if vm.match(token):
-            if token != lastVerseMarker:
-                lastVerseMarker = token
-                section = section + token
-            # else:
-                # sys.stdout.write("\nREMOVED DUPLICATE VERSE MARKER: " + token + '\n')
-        else:
-            section = section + token
-    
-    # print "D. section length is " + str(len(section))
-    return section
-    
-import io
-import os
-
-# Accepts a directory, and single file name which contains one chunk.
-# Reads all the lines from that file and converts the text to a single
-# USFM section.
-def convertFile(txtPath):
-    input = io.open(txtPath, "tr", 1, encoding='utf-8')
+# Reads all the lines from the specified file and converts the text to a single
+# USFM section by adding chapter label, section marker, and paragraph marker where needed.
+# Starts each usfm marker on a new line.
+# Fixes white space, such as converting tabs to spaces and removing trailing spaces.
+def convertFile(txtPath, chapterTitle):
+    input = io.open(txtPath, "tr", 1, encoding='utf-8-sig')
     lines = input.readlines()
     input.close()
-    section = u"\n" + combineLines(lines)
-    section = addSectionMarker(section)
-    section = addParagraphMarker(section)
-    # Most texts already have paragraph markers after chapter markers
-    section = fixPunctuationSpacing(section)
-    section = fixChapterMarkers(section)
-    section = fixVerseMarkers(section)
+    section = "\n" + combineLines(lines)    # fixes white space
+    section = augmentChapter(section, chapterTitle)
+    # section = fixPunctuationSpacing(section)
+    # section = fixChapterMarkers(section)
     return section
 
 # Returns True if the specified directory is one with text files to be converted
@@ -380,21 +388,22 @@ import json
 def parseManifest(path):
     bookId = ""
     try:
-        f = open(path, 'r')
+        jsonFile = io.open(path, "tr", encoding='utf-8-sig')
     except IOError as e:
         sys.stderr.write("   Can't open: " + path + "!\n")
         sys.stderr.flush()
     else:
         global contributors
         try:
-            manifest = json.load(f)
+            manifest = json.load(jsonFile)
         except ValueError as e:
             sys.stderr.write("   Can't parse: " + path + ".\n")
             sys.stderr.flush()
         else:
             bookId = manifest['project']['id']
             contributors += manifest['translators']
-        f.close()
+
+        jsonFile.close()
     return bookId.upper()
 
 # Parses all *manifest.json files in the current folder.
@@ -418,34 +427,42 @@ def getBookTitle():
     if not os.path.isfile(path):
         path = os.path.join("00", "title.txt")
     if os.path.isfile(path):
-        f = io.open(path, "tr", 1, encoding='utf-8')
-        bookTitle = f.readline()
+        f = io.open(path, "tr", 1, encoding='utf-8-sig')
+        bookTitle = f.readline().strip()
         f.close()
     else:
         sys.stderr.write("   Can't open " + path + "!\n")
     return bookTitle 
 
-def appendToManifest(bookId, bookTitle):
+# Appends information about the current book to the global projects list.
+def appendToProjects(bookId, bookTitle):
+    global projects
+    testament = 'nt'
+    if usfm_verses.verseCounts[bookId]['sort'] < 40:
+        testament = 'ot'
+    project = { "title": bookTitle, "id": bookId.lower(), "sort": usfm_verses.verseCounts[bookId]["sort"], \
+                "path": "./" + makeUsfmFilename(bookId), "category": "[ 'bible-" + testament + "' ]" }
+    projects.append(project)
+
+def dumpProjects():
+    projects.sort(key=operator.itemgetter('sort'))
+
     path = makeManifestPath()
     manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
-    manifest.write(u"  -\n")
-    manifest.write(u"    title: '" + bookTitle + u" '\n")
-    manifest.write(u"    versification: ufw\n")
-    manifest.write(u"    identifier: '" + bookId.lower() + u"'\n")
-    manifest.write(u"    sort: " + str(usfm_verses.verseCounts[bookId]['sort']) + u"\n")
-    manifest.write(u"    path: ./" + makeUsfmFilename(bookId) + u"\n")
-    testament = u'nt'
-    if usfm_verses.verseCounts[bookId]['sort'] < 40:
-        testament = u'ot'
-    manifest.write(u"    categories: [ 'bible-" + testament + u"' ]\n")
+    for p in projects:
+        manifest.write("  -\n")
+        manifest.write("    title: '" + p['title'] + "'\n")
+        manifest.write("    versification: ufw\n")
+        manifest.write("    identifier: '" + p['id'] + "'\n")
+        manifest.write("    sort: " + str(p['sort']) + "\n")
+        manifest.write("    path: '" + p['path'] + "'\n")
+        manifest.write("    categories: " + p['category'] + "\n")
     manifest.close()
-
-prefix_re = re.compile(r'C:\\DCS')
 
 def shortname(longpath):
     shortname = longpath
-    if prefix_re.match(longpath):
-        shortname = "..." + longpath[6:]
+    if source_dir in longpath:
+        shortname = longpath[len(source_dir)+1:]
     return shortname
 
 def convertFolder(folder):
@@ -465,14 +482,20 @@ def convertFolder(folder):
         bookId = getBookId(folder)
         bookTitle = getBookTitle()
         if bookId and bookTitle:
-            convertBook(bookId, bookTitle)   # converts the pieces in the current folder
-            appendToManifest(bookId, bookTitle)
+            convertBook(folder, bookId, bookTitle)   # converts the pieces in the current folder
+            appendToProjects(bookId, bookTitle)
             # sys.stdout.write("\n")
             # sys.stdout.flush()
+        else:
+            if not bookId:
+                sys.stderr.write("Unable to determine book ID in " + folder + "\n")
+            if not bookTitle:
+                sys.stderr.write("Unable to determine book title in " + folder + "\n")
  
 # Returns file name for usfm file in current folder
 def makeUsfmFilename(bookId):
     # loadVerseCounts()
+
     if len(usfm_verses.verseCounts) > 0:
         num = usfm_verses.verseCounts[bookId]['usfm_number']
         filename = num + '-' + bookId + '.usfm'
@@ -486,12 +509,12 @@ def makeManifestPath():
     return os.path.join(target_dir, "projects.yaml")
     
 def writeHeader(usfmfile, bookId, bookTitle):
-    usfmfile.write(u"\\id " + bookId + u"\n\\ide UTF-8")
-    usfmfile.write(u"\n\\h " + bookTitle)
-    usfmfile.write(u"\n\\toc1 " + bookTitle)
-    usfmfile.write(u"\n\\toc2 " + bookTitle)
-    usfmfile.write(u"\n\\toc3 " + bookId.lower())
-    usfmfile.write(u"\n\\mt " + bookTitle + u"\n")
+    usfmfile.write("\\id " + bookId + "\n\\ide UTF-8")
+    usfmfile.write("\n\\h " + bookTitle)
+    usfmfile.write("\n\\toc1 " + bookTitle)
+    usfmfile.write("\n\\toc2 " + bookTitle)
+    usfmfile.write("\n\\toc3 " + bookId.lower())
+    usfmfile.write("\n\\mt " + bookTitle + "\n")
 
 # Eliminates duplicates from contributors list and sorts the list.
 # Outputs list to contributors.txt.
@@ -503,7 +526,7 @@ def dumpContributors():
     f = io.open(path, 'tw', encoding='utf-8', newline='\n')
     for name in contribs:
         if name:
-            f.write(u'    - "' + name + u'"\n')
+            f.write('    - "' + name + '"\n')
     f.close()
 
 # This method returns a list of chapter folders in the specified directory.
@@ -536,35 +559,47 @@ def listChunks(chap):
 
 # Compiles a list of verse number strings that should be in the specified chunk
 def makeVerseRange(chunks, i, bookId, chapter):
-    verserange = { chunks[i].lstrip('0') }
+    verserange = [ chunks[i].lstrip('0') ]
     if i+1 < len(chunks):
         limit = int(chunks[i+1])
     else:           # last chunk
         limit = usfm_verses.verseCounts[bookId]['verses'][chapter-1] + 1
     v = int(chunks[i]) + 1
     while v < limit:
-        verserange.add(str(v))
+        verserange.append(str(v))
         v += 1
     return verserange
 
-# This method is called to convert the chapters in the *current folder* to USFM
-def convertBook(bookId, bookTitle):
-    chapters = listChapters(os.getcwd())
+# Tries to find front/title.txt or 00/title.txt.
+# Returns the content of that file if it exists, or an empty string.
+def getChapterTitle(folder, chap):
+    title = ""
+    chapterPath = os.path.join(folder, chap)
+    path = os.path.join( os.path.join(folder, chap), "title.txt")
+    if os.path.isfile(path):
+        titlefile = io.open(path, 'tr', encoding='utf-8-sig')
+        title = titlefile.read()
+        titlefile.close()
+    return title
+
+# This method is called to convert the chapters in the current folder to USFM
+def convertBook(folder, bookId, bookTitle):
+    chapters = listChapters(folder)
     # Open output USFM file for writing.
     usfmPath = os.path.join(target_dir, makeUsfmFilename(bookId))
     usfmFile = io.open(usfmPath, "tw", buffering=1, encoding='utf-8', newline='\n')
     writeHeader(usfmFile, bookId, bookTitle)
 
     for chap in chapters:
+        chapterTitle = getChapterTitle(folder, chap)
         chunks = listChunks(chap)
         i = 0
         while i < len(chunks):
             filename = chunks[i] + ".txt"
             txtPath = os.path.join(chap, filename)
             cleanupChunk(chap, filename, makeVerseRange(chunks, i, bookId, int(chap)))
-            section = convertFile(txtPath) + u'\n'
+            section = convertFile(txtPath, chapterTitle) + '\n'
             usfmFile.write(section)
-            restoreOrigFile(chap, filename)
             i += 1
         # Process misnamed 00.txt file last, if it exists
         # if os.access(chap + "/00.txt", os.F_OK):
@@ -572,7 +607,6 @@ def convertBook(bookId, bookTitle):
         #     usfmFile.write(section)
     # Wrap up
     usfmFile.close()
-    # print "\nFINISHED: " + usfmPath
 
 # Converts the book or books contained in the specified folder
 def convert(dir):
@@ -588,12 +622,15 @@ def convert(dir):
             if isBookFolder(folder):
                 convertFolder(folder)
     dumpContributors()    
+    dumpProjects()
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        convert(r'C:\DCS\Spanish\NT\es-419_1pe_text_lvl3_ulb')
-    else:       # the first command line argument presumed to be a folder
-        convert(sys.argv[1])
-
-    print "\nDone."
+    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
+        source_dir = sys.argv[1]
+    
+    if os.path.isdir(source_dir):
+        convert(source_dir)
+        print("\nDone.")
+    else:
+        print("Not a valid folder: " + source_dir + '\n')

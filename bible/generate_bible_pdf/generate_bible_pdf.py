@@ -6,7 +6,7 @@
 #  See LICENSE file for details.
 #
 #  Contributors:
-#  Richard Mahn <richard_mahn@wycliffeassociates.org>
+#  Richard Mahn <rich.mahn@unfoldingword.org>
 
 """
 This script generates the HTML tN documents for each book of the Bible
@@ -15,30 +15,27 @@ from __future__ import unicode_literals, print_function
 import os
 import sys
 import re
-import pprint
 import logging
 import argparse
 import tempfile
 import markdown
-import shutil
 import subprocess
-import csv
-import codecs
 import json
 import dateutil.parser
 from glob import glob
 from bs4 import BeautifulSoup
 from usfm_tools.transform import UsfmTransform
-from ...general_tools.file_utils import write_file, read_file, load_json_object, unzip, load_yaml_object
+from ...general_tools.file_utils import write_file, read_file, unzip, load_yaml_object
 from ...general_tools.url_utils import download_file
-from ...general_tools.bible_books import BOOK_NUMBERS, BOOK_CHAPTER_VERSES
-from ...general_tools.usfm_utils import usfm3_to_usfm2
-from ...catalog.v3.catalog import UWCatalog
+from ...general_tools.bible_books import BOOK_NUMBERS
+from ...general_tools.usfm_utils import unalign_usfm
 
 _print = print
 
+
 def print(obj):
     _print(json.dumps(obj, ensure_ascii=False, indent=2).encode('utf-8'))
+
 
 class BibleConverter(object):
 
@@ -100,17 +97,17 @@ class BibleConverter(object):
         self.resource = self.manifest['dublin_core']
         self.title = self.resource['title']
         self.version = self.resource['version']
-        self.contributors = '; '.join(self.resource['contributor'])
+        self.contributors = '<br/>'.join(self.resource['contributor'])
         self.publisher = self.resource['publisher']
         self.issued =  dateutil.parser.parse(self.resource['issued']).strftime('%Y-%m-%d')
         projects = self.manifest['projects']
-        if not self.books or 'nt' not in self.books:
+        if not self.books or ('nt' not in self.books and 'ot' not in self.books):
             for p in projects:
                 self.project = p
                 self.book_id = p['identifier']
                 self.book_title = p['title']
                 self.book_number = BOOK_NUMBERS[self.book_id]
-                if int(self.book_number) < 41 or (self.books and p['identifier'] not in self.books):
+                if self.books and p['identifier'] not in self.books:
                     continue
                 self.filename_base = '{0}_{1}_{2}-{3}_v{4}'.format(self.lang_code, self.resource_id, self.book_number.zfill(2), self.book_id.upper(), self.version)
                 self.logger.info('Creating PDF for {0} {1} ({2}-{3})...'.format(self.resource_id.upper(), self.book_title, self.book_number, self.book_id))
@@ -127,29 +124,35 @@ class BibleConverter(object):
                     self.logger.info("Generating PDF {0}...".format(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))))
                     self.generate_bible_pdf()
         else:
-                self.project = None
-                self.book_number = '0'
+            self.project = None
+            self.book_number = '0'
+            if 'nt' in self.books:
                 self.book_id = 'nt'
                 self.book_title = 'New Testament'
-                self.filename_base = '{0}_{1}_{2}_v{3}'.format(self.lang_code, self.resource_id, self.book_id.upper(), self.version)
-                self.logger.info('Creating PDF for {0} {1} ({2})...'.format(self.resource_id.upper(), self.book_title, self.book_id))
-                if not os.path.isdir(self.html_dir):
-                    os.makedirs(self.html_dir)
-                if True or not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
-                    self.logger.info("Generating Body HTML...")
-                    self.generate_bible_html()
-                    self.logger.info("Generating Cover HTML...")
-                    self.generate_cover_html()
-                    self.logger.info("Generating License HTML...")
-                    self.generate_license_html()
-                if True or not os.path.exists(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))):
-                    self.logger.info("Generating PDF {0}...".format(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))))
-                    self.generate_bible_pdf()
+            else:
+                self.book_id = 'ot'
+                self.book_title = 'Old Testament'
+
+            self.filename_base = '{0}_{1}_{2}_v{3}'.format(self.lang_code, self.resource_id, self.book_id.upper(), self.version)
+            self.logger.info('Creating PDF for {0} {1} ({2})...'.format(self.resource_id.upper(), self.book_title, self.book_id))
+            if not os.path.isdir(self.html_dir):
+                os.makedirs(self.html_dir)
+            if True or not os.path.exists(os.path.join(self.html_dir, '{0}.html'.format(self.filename_base))):
+                self.logger.info("Generating Body HTML...")
+                self.generate_bible_html()
+                self.logger.info("Generating Cover HTML...")
+                self.generate_cover_html()
+                self.logger.info("Generating License HTML...")
+                self.generate_license_html()
+            if True or not os.path.exists(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))):
+                self.logger.info(
+                    "Generating PDF {0}...".format(os.path.join(self.pdf_dir, '{0}.pdf'.format(self.filename_base))))
+                self.generate_bible_pdf()
 
     def download_resource_files(self):
         if not os.path.isdir(os.path.join(self.bible_dir)):
             # zip_url = self.resource['formats'][0]['url']
-            zip_url = 'https://git.door43.org/unfoldingWord/{0}_{1}/archive/{2}.zip'.format(self.lang_code, self.resource_id, self.tag)
+            zip_url = 'https://git.door43.org/unfoldingword/{0}_{1}/archive/{2}.zip'.format(self.lang_code, self.resource_id, self.tag)
             self.extract_files_from_url(zip_url)
 
     def extract_files_from_url(self, url):
@@ -194,7 +197,7 @@ class BibleConverter(object):
 </head>
 <body>
   <div style="text-align:center;padding-top:200px" class="break" id="cover">
-    <img src="https://unfoldingword.org/assets/img/icon-{0}.png" width="120">
+    <img src="https://cdn.door43.org/assets/uw-icons/logo-{0}-256.png" width="120">
     <h1>{1}</h1>
     <h2>{2}</h2>
     <h3>Version {3}</h3>
@@ -290,7 +293,7 @@ class BibleConverter(object):
 
     def get_bible_body_html(self):
         usfm_conversion_path = os.path.join(self.working_dir, '{0}_{1}_usfm_conversion'.format(self.lang_code, self.resource_id), '{0}'.
-                                format(self.book_id))
+                                            format(self.book_id))
         filename_base = '{0}-{1}'.format(self.book_number, self.book_id.upper())
         html_file = os.path.join(usfm_conversion_path, '{0}.html'.format(filename_base))
         if not os.path.exists(usfm_conversion_path):
@@ -299,9 +302,11 @@ class BibleConverter(object):
             usfm_files = glob(os.path.join(self.bible_dir, '*.usfm'))
             for usfm_file in usfm_files:
                 usfm_file_base = os.path.basename(usfm_file)
-                if filename_base in usfm_file_base or (self.book_id == 'nt' and int(usfm_file_base.split('-')[0]) > 40):
+                if filename_base in usfm_file_base or \
+                        (self.book_id == 'nt' and int(usfm_file_base.split('-')[0]) > 40) or \
+                        (self.book_id == 'ot' and int(usfm_file_base.split('-')[0]) < 40):
                     usfm3 = read_file(usfm_file)
-                    usfm2 = usfm3_to_usfm2(usfm3)
+                    usfm2 = unalign_usfm(usfm3)
                     write_file(os.path.join(usfm_conversion_path, usfm_file_base), usfm2)
             UsfmTransform.buildSingleHtml(usfm_conversion_path, usfm_conversion_path, filename_base)
         html = read_file(html_file)
@@ -315,7 +320,7 @@ class BibleConverter(object):
     @staticmethod
     def increase_headers(text, increase_depth=1):
         if text:
-            for num in range(5,0,-1):
+            for num in range(5, 0, -1):
                 text = re.sub(r'<h{0}>\s*(.+?)\s*</h{0}>'.format(num), r'<h{0}>\1</h{0}>'.format(num+increase_depth), text, flags=re.MULTILINE)
         return text
 
@@ -325,6 +330,7 @@ class BibleConverter(object):
             for num in range(minimum_header, minimum_header+10):
                 text = re.sub(r'<h{0}>\s*(.+?)\s*</h{0}>'.format(num), r'<h{0}>\1</h{0}>'.format(num-decrease if (num-decrease) <= 5 else 5), text, flags=re.MULTILINE)
         return text
+
 
 def main(resource_id, lang_code, books, working_dir, output_dir, tag):
     """

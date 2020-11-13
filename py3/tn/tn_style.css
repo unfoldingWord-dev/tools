@@ -1,0 +1,17 @@
+div.tn-notes .col1 {
+    width: 35%;
+    float: right;
+    border: 1px dashed lightgray;
+    margin: 0 10px 10px 10px;
+    padding: 5px;
+}
+
+div.tn-notes .bible-resource-title {
+    margin-bottom: 0;
+    color: #555;
+}
+
+.verse-note-reference {
+    font-weight: normal;
+    font-size: .8em;
+}

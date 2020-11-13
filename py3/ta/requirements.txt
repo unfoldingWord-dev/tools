@@ -1,0 +1,15 @@
+backports-abc
+beautifulsoup4
+bs4
+future
+markdown2
+pyparsing
+python-dateutil
+PyYAML
+singledispatch
+six
+tornado
+gitpython
+requests
+#weasyprint
+

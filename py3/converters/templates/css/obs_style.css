@@ -1,0 +1,90 @@
+html, body {
+    font-size: 12px;
+}
+
+@page:first {
+    counter-reset: page -1;
+}
+
+.obs-page {
+    page: footer;
+}
+
+@page {
+    size: 5.25in 8in;
+    margin: 28pt 28pt;
+    @top-left {
+        content: '';
+        height: 0;
+        margin: 0;
+        padding: 0;
+    }
+    @top-right {
+        content: '';
+        height: 0;
+        margin: 0;
+        padding: 0;
+    }
+    @bottom-center {
+        content: counter(page);
+    }
+}
+
+@page footer {
+    @bottom-center {
+        content: counter(page);
+    }
+}
+
+.obs-frame-even {
+    padding-top: 5px;
+}
+
+.obs-img {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    max-width: none;
+    max-height: none;
+    display: inline;
+}
+
+.obs-text,
+#front,
+#back {
+    line-height: 1.2em;
+    text-align: justify;
+}
+
+.cover {
+    padding-top: 90px;
+    text-align: center;
+}
+
+.cover img {
+    width: 100%;
+}
+
+#contents > ul > li > a {
+    font-weight: normal !important;
+}
+
+#contents, #back {
+    font-size: 16px;
+}
+
+#contents h1,
+article .section-header {
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+}
+
+article .section-header {
+    padding-top: 200px;
+}
+
+.bible-reference {
+    padding: 5px 0 0 0 !important;
+    font-size: 10px;
+}

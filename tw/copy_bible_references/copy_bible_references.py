@@ -6,7 +6,7 @@
 #  See LICENSE file for details.
 #
 #  Contributors:
-#  Richard Mahn <richard_mahn@wycliffeassociates.org>
+#  Richard Mahn <rich.mahn@unfoldingword.org>
 #
 #  Copies the Bible references from one set of tW files to another (copy between two repos)
 #

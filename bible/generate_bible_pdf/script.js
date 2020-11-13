@@ -55,7 +55,7 @@ $(document).ready(function(){
         var book = books[bookIdx];
         var contents = $(book).contents();
         $(book).empty();
-        console.log(contents);
+        // console.log(contents);
 
         var footnotes = {}
         contents.each(function(contentIdx) {
@@ -69,7 +69,7 @@ $(document).ready(function(){
                 }
             }
         });
-        console.log(footnotes);
+        // console.log(footnotes);
         
         var pageIdx = 0;
         var colIdx = 0;
@@ -93,7 +93,6 @@ $(document).ready(function(){
             var content = this;
             var $content = $(this);
             if (content.localName == 'p' || content.localName == 'h1' || content.localName == 'h2') {
-                console.log('Outer: '+content.outerHTML.replace('\n', ' ').slice(0,40)+'...');
                 $content.appendTo(col);
                 var itemFootnotes = addMatchingFootnotes($content.html(), footnotesSection, footnotes);
                 var colHeight = col.height() + footnotesSection.height() + ($content.prop("tagName")==='H2'?100:0); // last part makes h2 not be on last line
@@ -133,11 +132,11 @@ $(document).ready(function(){
                                 // do nothing
                             }
                             else {
-                                console.log('=========> UNKNOWN CHILDNODE: '+childNode.outerHTML);
+                                console.log('=========> UNKNOWN CHILD NODE: '+childNode.outerHTML);
                             }
                         }
                         else {
-                            console.log("================> UNKONWN CHILDNODE TYPE: "+childNode.nodeType+" -> "+childNode.outerHTML);
+                            console.log("================> UNKNOWN CHILD NODE TYPE: "+childNode.nodeType+" -> "+childNode.outerHTML);
                         }
                     }
                     wrapper = $content.clone().empty();

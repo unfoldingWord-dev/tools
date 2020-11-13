@@ -6,7 +6,7 @@
 #  See LICENSE file for details.
 #
 #  Contributors:
-#  Richard Mahn <richard_mahn@wycliffeassociates.org>
+#  Richard Mahn <rich.mahn@unfoldingword.org>
 #
 #  Description:
 #  Gathers the HTML for ALL specified books on the command line ("ot" and "nt" and "all" work too) and compiles them into one file, then exports

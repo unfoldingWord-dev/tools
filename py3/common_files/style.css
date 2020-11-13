@@ -1,0 +1,426 @@
+@font-face {
+  font-family: Noto Serif;
+  font-weight: 400;
+  src: url(fonts/NotoSerif-Regular.ttf);
+}
+@font-face {
+  font-family: Noto Serif;
+  font-style: italic;
+  font-weight: 400;
+  src: url(fonts/NotoSerif-Italic.ttf);
+}
+@font-face {
+  font-family: Noto Serif;
+  font-weight: 300;
+  src: url(fonts/NotoSerif-Light.ttf);
+}
+@font-face {
+  font-family: Noto Serif;
+  font-style: italic;
+  font-weight: 300;
+  src: url(fonts/NotoSerif-LightItalic.ttf);
+}
+@font-face {
+  font-family: Noto Serif;
+  font-weight: bold;
+  src: url(fonts/NotoSerif-Bold.ttf);
+}
+
+html, body {
+    font-family: 'Noto Serif', sans-serif;
+    font-size: 12px;
+}
+
+@page {
+    size: letter portrait;
+    margin: 1.5cm;
+
+    @top-left {
+        content: string(heading1);
+        font-size: 12px;
+        text-align: left;
+        font-style: italic;
+        white-space: nowrap;
+        line-height: 12px;
+    }
+    @top-right {
+        content: string(heading2) string(heading3) string(heading4) string(heading5);
+        font-size: 12px;
+        text-align: right;
+        font-style: italic;
+        line-height: 12px;
+    }
+    @bottom-center {
+        content: counter(page) " / " counter(pages);
+        font-size: 12px;
+        text-align: center;
+        vertical-align: top;
+    }
+}
+
+.cover, #contents {
+    page: no-header;
+}
+
+#main-cover {
+    page: no-header-footer;
+}
+
+@page no-header-footer {
+    @top-left {
+        content: '';
+    }
+    @top-right {
+        content: '';
+    }
+    @bottom-center {
+        content: '';
+    }
+}
+
+@page no-header {
+    @top-left {
+        content: '';
+    }
+    @top-right {
+        content: '';
+    }
+}
+
+#contents {
+    font-size: 12px;
+}
+
+#contents h1 {
+    text-align: center;
+}
+
+#contents > ul > li > a {
+    font-weight: bold;
+}
+#contents ul {
+    list-style: none;
+    padding-left: 0;
+}
+#contents ul ul {
+    padding-left: 10px;
+}
+#contents ul li {
+    width: 100%;
+}
+#contents ul li a {
+    color: #000 !important;
+    text-decoration: none;
+    border-bottom: 1px dashed rgb(200, 200, 200);
+    clear: both;
+    display: block;
+    height: 1.2em;
+}
+#contents ul li a span {
+    float: left;
+    background-color: white;
+}
+#contents ul li div.toc-item a::before {
+    content: target-text(attr(href));
+}
+#contents ul li  a::after {
+    color: inherit;
+    content: target-counter(attr(href), page);
+    float: right;
+    background-color: white;
+    margin-bottom: 3px;
+}
+
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+    page-break-before: auto !important;
+    page-break-after: avoid !important;
+    break-after: avoid-page !important;
+}
+
+h1, .h1 {
+    display: block;
+    font-size: 2em;
+    font-weight: bold;
+}
+
+h2, .h2 {
+    display: block;
+    font-size: 1.4em;
+    font-weight: bold;
+}
+
+h3, .h3 {
+    display: block;
+    font-size: 1.2em;
+
+    font-weight: bold;
+}
+
+h4, .h4 {
+    display: block;
+    font-size: 1em;
+    font-weight: bold;
+}
+
+h5, .h5 {
+    display: block;
+    font-size: 1em;
+    font-weight: bold;
+}
+
+h6, .h6 {
+    display: block;
+    font-size: 0.75em;
+    font-weight: bold;
+}
+
+section, article {
+    clear: both;
+    page-break-before: always;
+}
+
+section > section:first-child, section > .section-header:first-child + section, section > article:first-child {
+    page-break-before: avoid !important
+}
+
+.cover {
+    page-break-before: always;
+    padding-top: 100px;
+    text-align: center;
+}
+
+.cover img, .resource-title-page img {
+    width: 120px;
+}
+
+.manual-cover h2, .resource-title-page h1, h1.section-header {
+    string-set: heading1 content(), heading2 "", heading3 "", heading4 "", heading5 "";
+}
+
+section h2.section-header {
+    string-set: heading2 content(), heading3 "", heading4 "", heading5 "";
+}
+
+section h3.section-header {
+    string-set: heading3 " :: " content(), heading4 "", heading5 "";
+}
+
+section h4.section-header {
+    string-set: heading4 " :: " content(), heading5 "";
+}
+
+section h5.section-header {
+    string-set: heading5 " :: " content(), heading3 " :: ...";
+}
+
+.section-header {
+    display: block;
+    font-size: 1.5em !important;
+    font-weight: bold;
+}
+
+.page-break, .break {
+    page-break-before: always !important;
+    clear: both;
+}
+
+.no-break {
+    page-break-before: avoid !important;
+}
+
+dl {
+    padding: 0;
+}
+
+dl dt {
+    padding: 0;
+    margin-top: 16px;
+    font-style: italic;
+    font-weight: bold;
+}
+
+dl dd {
+    padding: 0 16px;
+    margin-bottom: 16px;
+}
+
+blockquote {
+    padding: 0 15px;
+    color: #444;
+    border-left: 4px solid #ddd;
+}
+blockquote > :first-child {
+    margin-top: 0;
+}
+blockquote > :last-child {
+    margin-bottom: 0;
+}
+
+table {
+    overflow: auto;
+    margin-left:auto;
+    margin-right:auto;
+    margin-bottom: 10px;
+    border-collapse: collapse;
+    border-spacing: 0;
+    page-break-inside: avoid;
+}
+table th {
+    font-weight: bold;
+}
+table th,
+table td {
+    padding: 6px 13px !important;
+}
+
+a, a:link, a:visited, a.internal, a.external {
+    text-decoration: none;
+    color: #0000BB !important;
+}
+
+.docs-bubble-link, .docs-bubble a {
+    color: #f47142!important;
+    cursor: pointer;
+    text-decoration: none!important;
+}
+
+img {
+    max-width: 600px;
+    max-height: 300px;
+    display: block;
+    margin: 0 auto;
+}
+
+ul li, ul li p {
+    margin: 0;
+}
+div > ul > li:first-child, ol > li > ul > li:first-child {
+    margin-top: 1em;
+}
+div > ul > li:last-child, ol > li > ul > li:last-child {
+    margin-bottom: 1em;
+}
+ul li li:last-child {
+    margin-bottom: .5em;
+}
+
+ol {
+  list-style-type: decimal;
+}
+ol ol {
+  list-style-type: upper-latin;
+}
+ol ol ol {
+  list-style-type: lower-latin;
+}
+ol ol ol {
+  list-style-type: upper-roman;
+}
+ol ol ol ol {
+  list-style-type: lower-roman;
+}
+ul {
+  list-style-type: disc;
+}
+ul ul {
+  list-style-type: circle;
+}
+ul ul ul {
+  list-style-type: square;
+}
+ul ul ul ul {
+  list-style-type: circle;
+}
+ul ul ul ul ul {
+  list-style-type: disc;
+}
+
+.resource-title-page {
+    text-align: center;
+    padding-top: 200px
+}
+
+.col1 p {
+    padding: 0;
+    margin: 0;
+}
+
+code {
+    page-break-inside: avoid;
+}
+
+.box {
+    display: block;
+    font-size: .8em;
+    border-style: solid;
+    border-width: 1px;
+    border-color: #999999;
+    margin: 5px;
+    page-break-inside: avoid;
+    padding: 10px;
+}
+
+.box ul {
+    padding: 0;
+    margin: 0;
+}
+
+.box li {
+    list-style: none;
+    font-style: italic;
+}
+
+.box p {
+    margin: 5px 0;
+}
+
+.box a {
+    line-height: 1.8em;
+}
+
+.top-box {
+    margin: 0 0 3px 5px;
+    float: right;
+    width: 250px;
+}
+
+.bottom-box {
+    clear: both;
+    display: block;
+    float: left;
+    padding-left: 20px;
+    padding-right: 20px;
+    white-space: nowrap;
+}
+
+#contributors .contributors-list {
+    columns: 3;
+    padding: 1em;
+    column-gap: 1em;
+}
+
+#contributors .contributors-list h1,
+#contributors .contributors-list .h2 {
+    column-span: all;
+}
+
+#contributors .contributors-list .contributor {
+    padding: 0;
+    margin: 0 0 0 2em;
+    text-indent: -2em
+}
+
+.resource-info {
+    padding-bottom: 1em;
+}
+
+.go-back {
+    padding-top: 1.5em;
+}
+
+.hidden {
+    height: 0;
+    font-size: 0;
+    color: #ffffff;
+}

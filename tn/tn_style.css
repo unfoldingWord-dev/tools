@@ -1,0 +1,264 @@
+@import url('https://fonts.googleapis.com/css?family=Noto+Sans');
+@import url('https://fonts.googleapis.com/css?family=Noto+Serif');
+
+body {
+    /* WKHTMLTOPDF MESSES UP THESE FONTS - font-family: 'Noto Serif', 'Noto Sans', sans-serif;*/
+    font-size: 12pt;
+}
+
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+    page-break-before: auto !important;
+    page-break-after: avoid !important;
+    break-after: avoid-page !important;
+}
+
+.section-header {
+    display: block;
+    font-size: 1.5em;
+    -webkit-margin-before: 0.83em;
+    -webkit-margin-after: 0.83em;
+    -webkit-margin-start:0;
+    -webkit-margin-end:0;
+    font-weight: bold;
+}
+
+li {
+    page-break-before: avoid;
+    page-break-after: auto;
+}
+
+.page-break, .break, .article, .resource-title-page {
+    page-break-before: always !important;
+    clear: both;
+}
+
+.no-break {
+    page-break-before: avoid !important;
+}
+
+dl {
+    padding: 0;
+}
+
+dl dt {
+    padding: 0;
+    margin-top: 16px;
+    font-style: italic;
+    font-weight: bold;
+}
+
+dl dd {
+    padding: 0 16px;
+    margin-bottom: 16px;
+}
+
+blockquote {
+    padding: 0 15px;
+    color: #444;
+    border-left: 4px solid #ddd;
+}
+blockquote > :first-child {
+    margin-top: 0;
+}
+blockquote > :last-child {
+    margin-bottom: 0;
+}
+
+table {
+    overflow: auto;
+    margin-left:auto;
+    margin-right:auto;
+    margin-bottom: 10px;
+    word-break: keep-all;
+    border-collapse: collapse;
+    border-spacing: 0;
+    page-break-inside: avoid;
+}
+thead {
+    box-shadow: none;
+}
+table th {
+    font-weight: bold;
+}
+table th,
+table td {
+    padding: 6px 13px !important;
+}
+
+a {
+    text-decoration: none;
+    color: #f47142;
+}
+a:link {
+    color: #f47142;
+}
+a:visited {
+    color: #f47142;
+}
+a.internal {
+    color: #f47142 !important;
+}
+a.external {
+    color: #f47142 !important;
+}
+
+.docs-bubble-link, .docs-bubble a {
+    color: #f47142!important;
+    cursor: pointer;
+    text-decoration: none!important;
+}
+
+img {
+    max-width: 600px;
+    text-align: center;
+}
+
+ul li, ul li p {
+    margin: 0;
+}
+div > ul > li:first-child, ol > li > ul > li:first-child {
+    margin-top: 1em;
+}
+div > ul > li:last-child, ol > li > ul > li:last-child {
+    margin-bottom: 1em;
+}
+ul li li:last-child {
+    margin-bottom: .5em;
+}
+
+.h1 {
+    display: block;
+    font-size: 2em;
+    -webkit-margin-before: 0.67em;
+    -webkit-margin-after: 0.67em;
+    -webkit-margin-start:0;
+    -webkit-margin-end:0;
+    font-weight: bold;
+}
+
+.h2 {
+    display: block;
+    font-size: 1.5em;
+    -webkit-margin-before: 0.83em;
+    -webkit-margin-after: 0.83em;
+    -webkit-margin-start:0;
+    -webkit-margin-end:0;
+    font-weight: bold;
+}
+
+.h3 {
+    display: block;
+    font-size: 1.17em;
+    -webkit-margin-before: 1em;
+    -webkit-margin-after: 1em;
+    -webkit-margin-start:0;
+    -webkit-margin-end:0;
+    font-weight: bold;
+}
+
+.h4 {
+    display: block;
+    -webkit-margin-before: 1.33em;
+    -webkit-margin-after: 1.33em;
+    -webkit-margin-start:0;
+    -webkit-margin-end:0;
+    font-weight: bold;
+}
+
+.h5 {
+    display: block;
+    font-size: 0.83em;
+    -webkit-margin-before: 1.67em;
+    -webkit-margin-after: 1.67em;
+    -webkit-margin-start:0;
+    -webkit-margin-end:0;
+    font-weight: bold;
+}
+
+.h6 {
+    display: block;
+    font-size: 0.75em;
+    -webkit-margin-before: 2em;
+    -webkit-margin-after: 2em;
+    -webkit-margin-start:0;
+    -webkit-margin-end:0;
+    font-weight: bold;
+}
+
+ol {
+  list-style-type: decimal;
+}
+ol ol {
+  list-style-type: upper-latin;
+}
+ol ol ol {
+  list-style-type: lower-latin; 
+}
+ol ol ol {
+  list-style-type: upper-roman;
+}
+ol ol ol ol {
+  list-style-type: lower-roman;
+}
+ul {
+  list-style-type: disc;
+}
+ul ul {
+  list-style-type: circle;
+}
+ul ul ul {
+  list-style-type: square;
+}
+ul ul ul ul {
+  list-style-type: circle;
+}
+ul ul ul ul ul {
+  list-style-type: disc;
+}
+
+hr {
+  display: none;
+}
+
+table.tn-notes-table {
+    border-top: solid black 1px;
+    border-bottom: solid black 1px;
+}
+
+.page-header {
+    border-bottom: solid grey 1px;
+    font-style: italic;
+    height: 1.5em;
+    width: 100%;
+}
+
+.page-header .section {
+    text-align: left;
+}
+
+.page-header .subsection {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
+    max-height: 1.5em;
+}
+
+.hidden {
+    color: white;
+    padding: 0;
+    margin: 0;
+    font-size: 2px;
+    height: 2px;
+    line-height: 2px;
+}
+
+.resource-title-page {
+    text-align: center;
+    padding-top: 200px
+}
+
+.col1 p {
+    padding: 0;
+    margin: 0;
+}

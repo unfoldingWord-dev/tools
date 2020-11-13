@@ -1,0 +1,17 @@
+{
+  "table_of_contents": "Table of Contents",
+  "license": {
+    "copyrights_and_licensing": "Copyrights & Licensing",
+    "date": "Date",
+    "published_by": "Published by",
+    "version": "Version"
+  },
+  "contributors": "Contributors",
+  "study_notes": "Study Notes",
+  "study_questions": "Study Questions",
+  "go_back_to": "Go back to",
+  "this_page_answers_the_question": "This page answers the question",
+  "no_study_notes_for_this_frame": "No study notes for this frame",
+  "in_order_to_understand_this_topic": "In order to understand this topic, it would be good to read",
+  "next_we_recommend_you_learn_about": "Next we recommend you learn about"
+}

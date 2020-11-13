@@ -1,0 +1,14 @@
+{
+  "table_of_contents": "Table of Contents",
+  "license": {
+    "copyrights_and_licensing": "Copyrights & Licensing",
+    "date": "Date",
+    "published_by": "Published by",
+    "version": "Version"
+  },
+  "contributors": "Contributors",
+  "study_notes": "Study Notes",
+  "study_questions": "Study Questions",
+  "go_back_to": "Go back to",
+  "this_page_answers_the_question": "This page answers the question",
+}
