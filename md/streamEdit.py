@@ -12,36 +12,30 @@ import string
 import sys
 
 # Globals
+source_dir = r'C:\DCS\Hindi\hi_tw\bible'
 nChanged = 0
-max_changes = 1111
-#filename_re = re.compile(r'[0-9]*\.md$')
+max_changes = 1
 filename_re = re.compile(r'.*\.md$')
+#filename_re = re.compile(r'.*\.usfm$')
 yes_backup = True
 
-# wholestring is used with whole file matches
-wholestring = re.compile(r'  \[\[', flags=re.UNICODE)
-
-# keystring is used only in line-by-line. It is searched against the entire file one time.
-keystring = []
-keystring.append( re.compile(r'[ \t]\n', flags=re.UNICODE+re.MULTILINE) )
-
-# Each element of inlinekey is matched against each line of a file.
-# The matches occur in sequence, so the result of one match impacts the next.
-inlinekey = []
-inlinekey.append( re.compile(r'.', re.UNICODE))
-#inlinekey.append( re.compile(r'# +[_]+([^\_]*)[_]+ *$', flags=re.UNICODE))
 
 # Strings to replace with
 # whole file matches use newstring[0]
 newstring = []
-newstring.append('' )
+newstring.append('# ')
+
+# Each element of inlinekey is matched against each line of a file.
+# The matches occur in sequence, so the result of one match impacts the next.
+inlinekey = []
+inlinekey.append( re.compile(r'(#+[^#\n]+)#+\s*$', flags=re.UNICODE) )
 
 # Copies lines from input to output.
 # Modifies targeted input lines before writing them to output.
 # Renames the input file to a backup name.
 # Renames the output file to the original input file name.
 def convertByLine(path):
-    input = io.open(path, "tr", 1, encoding="utf-8")
+    input = io.open(path, "tr", 1, encoding="utf-8-sig")
     lines = input.readlines()
     input.close()
     if yes_backup:
@@ -51,32 +45,26 @@ def convertByLine(path):
     count = 0
     output = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
     for line in lines:
-        count += 1
         for i in range(len(inlinekey)):
             sub = inlinekey[i].match(line)
             if sub:
-                line = line.rstrip() + "\n"
-#            while sub:
-#                line = line[0:sub.start()] + newstring[i] + sub.group(1) + u'\n'
-#                line = sub.group(1) + u"" + sub.group(2)
-#                line = line[0:sub.start()] + newstring[i] + sub.group(1) + u' ' + line[sub.end():]
-#                sub = inlinekey[i].search(line)
+                line = sub.group(1) + '\n'
         output.write(line)
     output.close
-    
-# Detects whether file contains the string we are looking for.
-# If there is a match, calls doConvert to do the conversion.
+
+
+# keystring is used only in line-by-line. It is searched against the entire file one time.
+keystring = re.compile(r'^#+[^#\n]+#+\s*$', flags=re.UNICODE+re.MULTILINE)
+# keystring.append( re.compile(r'\n# [^\n]+[^\?]\n', flags=re.UNICODE) )
+
 def convertFileByLines(path):
     global nChanged
-    input = io.open(path, "tr", 1, encoding="utf-8")
+    input = io.open(path, "tr", 1, encoding="utf-8-sig")
     alltext = input.read()
     input.close()
     convertme = False
-    for key in keystring:
-        if key.search(alltext):
-            convertme = True
-            break
-    # Convert the file if there are any lines to change
+    if keystring.search(alltext):
+        convertme = True
     if convertme:
         convertByLine(path)
         nChanged += 1    
@@ -86,8 +74,8 @@ prefix_re = re.compile(r'C:\\DCS')
 
 def shortname(longpath):
     shortname = longpath
-    if prefix_re.match(longpath):
-        shortname = "..." + longpath[6:]
+    if source_dir in longpath:
+        shortname = longpath[len(source_dir)+1:]
     return shortname
 
 #h1_re = re.compile(r'# ', flags=re.UNICODE)
@@ -176,6 +164,8 @@ def classic_pattern2(mdpath):
     return classic            
     
 
+wholestring = re.compile(r'# .*\n *\n# ', flags=re.UNICODE)
+
 # Converts the text a whole file at a time.
 # Uses wholestring, newstring[0]
 def convertWholeFile(mdpath):
@@ -184,11 +174,12 @@ def convertWholeFile(mdpath):
 #    found = classic_pattern(mdpath)
     input = io.open(mdpath, "tr", 1, encoding="utf-8-sig")
     alltext = input.read()
+    input.close()
     found = wholestring.search(alltext)
     if found:
-        input = io.open(mdpath, "tr", 1, encoding="utf-8-sig")
-        alltext = input.read()
-        input.close()
+#        input = io.open(mdpath, "tr", 1, encoding="utf-8-sig")
+#        alltext = input.read()
+#        input.close()
         if yes_backup:
             bakpath = mdpath + ".orig"
             if not os.path.isfile(bakpath):
@@ -197,7 +188,7 @@ def convertWholeFile(mdpath):
         
         # Use a loop for multiple replacements per file
         while found:
-            output.write(alltext[0:found.start()] + newstring[0])
+            output.write(alltext[0:found.end()-2])    # + newstring[0])
             alltext = alltext[found.end():]
             found = wholestring.search(alltext)
         output.write(alltext)
@@ -205,21 +196,24 @@ def convertWholeFile(mdpath):
         sys.stdout.write("Converted " + shortname(mdpath) + "\n")
         nChanged += 1    
 
-sub_re = re.compile('figs-questions?', re.UNICODE)
+#sub_re = re.compile('figs-questions?', re.UNICODE)
+#replacement = 'figs-rquestion'
+
 #sub_re = re.compile(r'<o:p> *</o:p>', re.UNICODE)
+sub_re = re.compile(r'# *\n', re.UNICODE)
+replacement = ""
 #sub_re = re.compile(r'</?o:p>', re.UNICODE)
-#sub_re = re.compile(r'<!-- -->', re.UNICODE)
-#sub_re = re.compile(r'& nbsp;', re.UNICODE)
+#sub_re = re.compile(r'<!--.*-->', re.UNICODE)
+#sub_re = re.compile(r'& *nbsp;', re.UNICODE)
 #sub_re = re.compile(r'rc://en/', re.UNICODE)
 #sub_re = re.compile(r'[Ll]ih?at[\s]*\:+[\s]*\n+[\s]*\[\[', re.UNICODE)
 #sub_re = re.compile(r'# +[\*]+(.*)[\*]+', re.UNICODE)
-replacement = 'figs-rquestion'
 
 # Stream edit the file by a simple, regular expression substitution
 # To do only one substitution per file, change the count argument to re.sub(), below.
 def convertFileBySub(path):
     global nChanged
-    input = io.open(path, "tr", 1, encoding="utf-8")
+    input = io.open(path, "tr", 1, encoding="utf-8-sig")
     alltext = input.read()
     input.close()
     found = sub_re.search(alltext)
@@ -260,15 +254,15 @@ def convertFolder(folder):
 
 # Processes all .txt files in specified directory, one at a time
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        path = r'E:\DCS\Spanish\es-419_obs-tn\content'
-    else:
-        path = sys.argv[1]
-
-    if path and os.path.isdir(path):
-        convertFolder(path)
+    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
+        source_dir = sys.argv[1]
+    
+    if source_dir and os.path.isdir(source_dir):
+        convertFolder(source_dir)
         sys.stdout.write("Done. Changed " + str(nChanged) + " files.\n")
-    elif os.path.isfile(path):
+    elif os.path.isfile(source_dir):
+        path = source_dir
+        source_dir = os.path.dirname(path)
         convertFile(path)
         sys.stdout.write("Done. Changed " + str(nChanged) + " files.\n")
     else:
