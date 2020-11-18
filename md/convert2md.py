@@ -124,14 +124,13 @@ def md2md(inputPath, mdPath, langcode, shortname):
     input = io.open(inputPath, "tr", 1, encoding="utf-8-sig")
     lines = input.readlines(-1)
     input.close
-    nLinesIn = len(lines)
+    nLinesOrig = len(lines)
 
-    if nLinesIn > 0:
+    if nLinesOrig > 0:
         state = State()
         state.newFile()
         nIn = 0
         nOut = 0
-        nLinesOrig = len(lines)
         # Open output .md file for writing.
         mdFile = io.open(mdPath, "tw", buffering=1, encoding='utf-8', newline='\n')
         for line in lines:
@@ -140,25 +139,14 @@ def md2md(inputPath, mdPath, langcode, shortname):
             if blankheading_re.match(line):
                 line = ""
                 sys.stderr.write("Removed empty heading: " + shortname(mdPath) + " at line " + str(nIn) + "\n")
-#             if len(line) > 0:
-#                 if not hash:       # Find the first character in the file, should be a hash mark
-#                     hash = line[0]
-#                 if hash == u'*':    # The user used * instead of # to mark headings
-#                     line = re.sub(r'^[ \t]*\*', u'#', line)
-#                 elif nOut == 1 and hash != u'#':
-#                     sys.stderr.write("File does not begin with heading: "  + shortname(mdPath) + "\n")                    
             if nIn == 1 and forgothash_re.match(line):
                 line = "# " + line
             state.addLine(line)
+            yesConvert = True
             if len(line.strip()) == 0:
-                if nOut == 0 or nIn >= nLinesIn:
-                    sys.stderr.write("Removing blank line at top or end of file: " + shortname(mdPath) + "\n")
-                elif state.prevlinetype == BLANKLINE:
-                    sys.stderr.write("Conslidating blank lines in: " + shortname(mdPath) + "\n")
-                else:
-                    convertLine(line, nIn, mdFile, inputPath, shortname)
-                    nOut += 1
-            else:
+                if nOut == 0 or nIn >= nLinesOrig or state.prevlinetype == BLANKLINE: # blank line at top or bottom of file, or consecutive blank lines
+                    yesConvert = False
+            if yesConvert:
                 convertLine(line, nIn, mdFile, inputPath, shortname)
                 nOut += 1
         mdFile.close()
@@ -167,8 +155,7 @@ def md2md(inputPath, mdPath, langcode, shortname):
             sys.stderr.write("Removed empty: " + shortname(mdPath) + "\n")
             os.remove(mdPath)
 
-jams_re = re.compile(r'( *[#\*]+)[\w]', re.UNICODE)
-# nospace = r'([^ \t].*)'
+jams_re = re.compile(r'( *#+)[\w]', re.UNICODE)     # no space after hash marks
 
 # Fix poorly formed header lines
 def fixHeadings(line):
