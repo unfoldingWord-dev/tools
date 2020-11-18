@@ -9,6 +9,8 @@
 #   contributor is a list of at least one name, all names at least 3 characters long
 #   creator is a non-empty string
 #   identifier is a recognized value: tn, tq, ulb, etc.
+#      The RC spec requires identifier to be all lowercase alphanumeric and hyphens.
+#      The first characters must be a letter, and the last character must not be a hyphen.
 #   identifier equals the last part of the name of the directory in which the manifest file resides
 #   format corresponds to identifier
 #   language.direction is 'ltr' or rtl'
@@ -46,11 +48,11 @@
 #
 # To add:
 #   Check for missing config.yaml files
-#   Check for  ASCII titles in toc.yaml files.
-#   Check for 01.md, title.md, and sub-title.md files in each bottom level  tA folder.
+#   Check for ASCII titles in toc.yaml files.
+#   Check for 01.md, title.md, and sub-title.md files in each bottom level tA folder.
 
 # Globals
-manifestDir = r'C:\DCS\Telugu\te_iev.STR'
+manifestDir = r'C:\DCS\Telugu\te_tq'
 nIssues = 0
 projtype = ''
 issuesFile = None
@@ -111,7 +113,8 @@ def countUsfmFiles():
 
 # Returns True if the specified string is a recognized Bible type of project type
 def isBibleType(id):
-    return (id in {'ulb', 'udb', 'ust', 'ult', 'iev','irv','isv','reg','glt','gst'})
+    return (id in {'ulb', 'udb', 'ust', 'ult', 'iev','irv','isv','reg','glt','gst', \
+                   'rlb','rob','rlob','rsb','rsob','stv','trs'})
 
 # This function validates the project entries for a tA project.
 # tA projects should have four projects entries, each with specific content
@@ -179,7 +182,7 @@ def verifyCleanDir(dirpath):
             reportError("Unwanted media.yaml file: " + shortname(path))
         if (fname.find("temp") >= 0 or fname.find("tmp") >= 0 or fname.find("orig") >= 0 \
             or fname.find("Copy") >= 0 or fname.find(".txt") >= 0 or fname.find("projects") >= 0):
-            if fname != "translate-original":
+            if fname not in {"translate-original", "temple.md", "tempt.md", "contempt.md"}:
                 reportError("Possible extraneous file: " + shortname(path))
         elif badname_re.match(fname):
             reportError("Likely misnamed file: " + shortname(path))
@@ -339,7 +342,7 @@ def verifyProject(project):
         bookinfo = usfm_verses.verseCounts[project['identifier'].upper()]
         if project['sort'] != bookinfo['sort']:
             reportError("Incorrect project:sort: " + str(project['sort']))
-        if len(project['categories']) != 0:
+        if projtype == 'tn' and len(project['categories']) != 0:
             reportError("Categories list should be empty: project:categories")
     elif projtype == 'tn-tsv':
         bookinfo = usfm_verses.verseCounts[project['identifier'].upper()]
@@ -426,10 +429,10 @@ def verifyRelation(rel):
             reportError("Invalid format for relation element: " + rel)
         else:
             global projtype
-            if parts[0] != getLanguageId() and parts[0] != "el-x-koine":
+            if parts[0] != getLanguageId() and parts[0] != "el-x-koine" and parts[0] != "hbo":
                 reportError("Incorrect language code for relation element: " + rel)
             if parts[1] not in {'obs','obs-tn','obs-tq','tn','tq','tw','ta'} and not isBibleType(parts[1]):
-                if parts[1][0:4] != 'ugnt':
+                if parts[1][0:4] != 'ugnt' and parts[1][0:3] != 'uhb':
                     reportError("Invalid project code in relation element: " + rel)
             if parts[1] == projtype:
                 reportError("Project code in relation element is same as current project: " + rel)
@@ -558,6 +561,7 @@ def verifyType(type):
         reportError("Invalid type: " + type)
 
 def verifyVersion(version, sourceversion):
+    # The rules seem to be optional, so may comment out most of this code if necessary.
     parts = version.rsplit('.', 1)
     if int(sourceversion) < 100 and (len(parts) < 2 or parts[0] != sourceversion or int(parts[-1]) < 1):
         reportError("Invalid version: " + version + "; Source version is " + sourceversion)
