@@ -17,30 +17,33 @@
 # A lot of these checks are done by tsv2rc.py as well.
 
 # Globals
-source_dir = r'E:\DCS\Bengali\TN\Stage 3'   # Where are the files located
-language_code = 'bn'
-gateway_language = 'en'
-ta_dir = r'E:\DCS\English\en_tA'    # English tA
-#ta_dir = r'E:\DCS\Hindi\hi_tA'    # Use Target language tA if available
-obs_dir = r'E:\DCS\Telugu\te_obs\content'    # should end in 'content'
+source_dir = r'C:\DCS\Kannada\kn_tn.work'
+language_code = 'kn'
+source_language = 'en'         # The language that the notes are translated from, usually en
+#ta_dir = r'C:\DCS\English\en_tA.v13'    # English tA
+ta_dir = r'C:\DCS\Kannada\kn_ta'    # Use Target language tA if available
+obs_dir = r'C:\DCS\English\en_obs\content'    # should end in 'content'
 
-suppress1 = False    # Suppress warnings about text before first heading
+suppress1 = True    # Suppress warnings about text before first heading and TA page references in headings
 suppress2 = False    # Suppress warnings about blank headings
-suppress3 = False    # Suppress warnings about item number not followed by period
+suppress3 = True    # Suppress warnings about markdown list syntax
 suppress4 = False    # Suppress warnings about closed headings
 suppress5 = True     # Suppress warnings about invalid passage links (don't know how to validate these with TSV)
 suppress6 = False    # Suppress warnings about invalid OBS links
 suppress7 = False    # Suppress warnings about file starting with blank line
-suppress8 = False    # Suppress warnings about invalid list style
+suppress8 = True    # Suppress warnings about invalid list style
 suppress9 = False    # Suppress warnings about ASCII content in column 9
 suppress10 = False   # Suppress warnings about heading levels
-suppress11 = False    # Suppress warnings about unbalanced parentheses
+suppress11 = True    # Suppress warnings about unbalanced parentheses
+suppress12 = True    # Suppress warnings about markdown syntax in 1-line notes
 if language_code in {'hr','id','nag','pmy','sw','en'}:    # Expect ASCII content with these languages
     suppress9 = True
 
 nChecked = 0
+book = None
+chapter = 0
 rowno = 0
-issuesFile = None
+issuesfile = None
 
 # Markdown line types
 HEADING = 1
@@ -63,11 +66,11 @@ badheading_re = re.compile(r' +#')
 class State:        # State information about a single note (a single column 9 value)
     def setPath(self, path ):
         State.path = path
-        State.addRow(self, "...", None)
+        State.addRow(self, None)
 
-    def addRow(self, key, locator):
-        State.key = key
-        State.locator = locator
+    def addRow(self, locator):
+#        State.key = key             # "<ID>.<verse>.<chapter>"  only needed if referencing English notes
+        State.locator = locator     # [ <book>, <chapter>, <verse>, <ID> ]
         State.md_lineno = 0
         State.headingcount = 0
         State.textcount = 0
@@ -87,7 +90,11 @@ class State:        # State information about a single note (a single column 9 v
         State.underscores = 0
         State.ascii = True      # In column 9 only
         State.nerrors = 0
-        
+    
+    def addSimpleNote(self, note):
+        State.addLine(self, note)
+        State.md_lineno = 0
+    
     def addLine(self, line):
         State.prevlinetype = State.currlinetype
         State.md_lineno += 1
@@ -114,6 +121,10 @@ class State:        # State information about a single note (a single column 9 v
         if State.ascii and not line.isascii():
             State.ascii = False
     
+    # Resets markdown line number to indicate end of line by line checking
+    def closeNote(self):
+        State.md_lineno = 0     # impacts error message format
+
     def countParens(self, line):
         if not re.search(r'[0-9]\)', line):   # right parens used in list items voids the paren matching logic for that line
             State.leftparens += line.count("(")
@@ -135,22 +146,22 @@ class State:        # State information about a single note (a single column 9 v
 def reportParens():
     state = State()
     if not suppress11 and state.leftparens != state.rightparens:
-        reportError("Parentheses are unbalanced")
+        reportError("Parentheses are unbalanced (" + str(state.leftparens) + ":" + str(state.rightparens) + ")")
     if state.leftbrackets != state.rightbrackets:
-        reportError("Left and right square brackets are unbalanced")
+        reportError("Left and right square brackets are unbalanced (" + str(state.leftbrackets) + ":" + str(state.rightbrackets) + ")")
     if state.leftcurly != state.rightcurly:
-        reportError("Left and right curly braces are unbalanced")
+        reportError("Left and right curly braces are unbalanced (" + str(state.leftcurly) + ":" + str(state.rightcurly) + ")")
     if state.underscores % 2 != 0:
         reportError("Unmatched underscores")
-    
+
 
 # If issues.txt file is not already open, opens it for writing.
 # First renames existing issues.txt file to issues-oldest.txt unless
 # issues-oldest.txt already exists.
 # Returns new file pointer.
-def openIssuesFile():
-    global issuesFile
-    if not issuesFile:
+def issuesFile():
+    global issuesfile
+    if not issuesfile:
         global source_dir
         path = os.path.join(source_dir, "issues.txt")
         if os.path.exists(path):
@@ -159,48 +170,52 @@ def openIssuesFile():
                 os.rename(path, bakpath)
             else:
                 os.remove(path)
-        issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
-        
-    return issuesFile
+        issuesfile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
+    return issuesfile
 
 # Writes error message to stderr and to issues.txt.
 # locater is the first four columns of a row
-def reportError(msg, key=""):
+def reportError(msg):
     global rowno
     state = State()
     shortpath = shortname(state.path)
-    if not key:
-        key = state.key
-    locater = state.locator
+#    key = state.key
+    locater = state.locator     # the first four columns of a row
+    id = ""
+    if locater:
+        id = locater[3]
+        if len(id) > 8:
+            id = id[0:8] + "..."
 
-    issue = shortpath + ": (" + key + "), row " + str(rowno) + ": " + msg + ".\n"
-    try:
-        if locater and len(locater) > 3:
-            if state.md_lineno > 1:
-                issue = shortpath + ": " + locater[0] + " " + locater[1] + ":" + locater[2] + " ID=(" + locater[3] + "), row " + str(rowno) + "." + str(state.md_lineno) + ": " + msg + ".\n"
-            else:
-                issue = shortpath + ": " + locater[0] + " " + locater[1] + ":" + locater[2] + " ID=(" + locater[3] + "), row " + str(rowno) + ": " + msg + ".\n"
-            sys.stderr.write(issue)
-    except UnicodeEncodeError as e:
-        sys.stderr.write(shortpath + ": (Unicode...), row " + str(rowno) + ": " + msg + "\n")
- 
-    issues = openIssuesFile()
-    issues.write(issue)
+    if locater and len(locater) > 3:
+        if state.md_lineno > 0:
+            issue = shortpath + ": " + locater[0] + " " + locater[1] + ":" + locater[2] + " ID=(" + id + "), row " + str(rowno) + "." + str(state.md_lineno) + ": " + msg + ".\n"
+        else:
+            issue = shortpath + ": " + locater[0] + " " + locater[1] + ":" + locater[2] + " ID=(" + id + "), row " + str(rowno) + ": " + msg + ".\n"
+#    elif key.isascii():
+#        issue = shortpath + "ID=(" + key + "), row " + str(rowno) + ": " + msg + ".\n"
+    else:
+        issue = shortpath + ": row " + str(rowno) + ": " + msg + ".\n"
+    sys.stderr.write(issue)
+#    except UnicodeEncodeError as e:
+#        sys.stderr.write(shortpath + ": (Unicode...), row " + str(rowno) + ": " + msg + "\n")
+#    openIssuesFile()
+#    global issuesfile
+    issuesFile().write(issue)
 
 # This function, instead of take(), checks most notes.
-# Most notes consist of a single line with no headings or anything markdown like that.
-def checkSimpleNote(line):
+# Most notes consist of a single line with no headings or lists.
+def checkSimpleNote(note):
     state = State()
-    state.countParens(line)
-    state.addLine(line)
-    if state.currlinetype in {HEADING, LIST_ITEM, ORDEREDLIST_ITEM}:
-        reportError("Note contains markdown syntax")
+    state.countParens(note)
+    state.addSimpleNote(note)
+    if state.currlinetype in {HEADING, LIST_ITEM, ORDEREDLIST_ITEM} and not suppress12:
+        reportError("Simple (1-line) note contains markdown syntax")
     elif state.currlinetype == BLANKLINE:
         reportError("Blank note")
-    if line.find("<!--") != -1 or line.find("&nbsp;") != -1 or line.find("o:p") != -1:
+    if note.find("<!--") != -1 or note.find("&nbsp;") != -1 or note.find("<b>") != -1:
         reportError("html code")
 
- 
 blankheading_re = re.compile(r'#+$')
 heading_re = re.compile(r'#+[ \t]')
 closedHeading_re = re.compile(r'#+[ \t].*#+[ \t]*$', re.UNICODE)
@@ -244,14 +259,14 @@ def take(line):
             if state.currheadinglevel > state.prevheadinglevel + 1:
                 if state.prevheadinglevel > 0:
                     reportError("heading level incremented by more than one level")
-    if state.currlinetype == LIST_ITEM:
+    if state.currlinetype == LIST_ITEM and not suppress8:
         if state.prevlinetype in { TEXT, HEADING }:
             reportError("invalid list syntax")
         i = state.md_lineno - 1
-        if i > 1 and state.linetype[i-1] == BLANKLINE and state.linetype[i-2] == LIST_ITEM and not suppress8:
+        if i > 1 and state.linetype[i-1] == BLANKLINE and state.linetype[i-2] == LIST_ITEM:
             reportError("invalid list style")
-    if state.currlinetype == ORDEREDLIST_ITEM:
-        if badolistitem_re.match(line) and not suppress3:
+    if state.currlinetype == ORDEREDLIST_ITEM and not suppress3:
+        if badolistitem_re.match(line):
             reportError("item number not followed by period")
         if olistitem_re.match(line):
             if state.prevlinetype in { TEXT, HEADING }:
@@ -292,12 +307,12 @@ def checkTALinks(line):
     page = tapage_re.search(line)
     while page:
         found = True
-        if line and line[0] == '#':
+        if line and line[0] == '#' and not suppress1:
             reportError("tA page reference in heading")
         manpage = page.group(1)
         path = os.path.join(ta_dir, manpage)
         if not os.path.isdir(path):
-            reportError("invalid tA page reference")
+            reportError("invalid tA page reference: " + manpage)
         page = tapage_re.search(page.group(2))
 
     if not found:
@@ -391,51 +406,46 @@ def verifyNote(note, verse):
     state = State()
 
     lines = note.split("<br>")
-    if verse == "intro":   # this kind of note has markdown syntax
+    if len(lines) > 1:
+        if verse != "intro":
+            reportError("Multiple lines in non-intro note")
         for line in lines:
             line = line.rstrip()
             take(line)
             checkLinks(line)
-    else:                       # plain note
-        if len(lines) > 1:
-            reportError("Multiple lines in non-intro note")
-        for line in lines:
-            line = line.rstrip()
-            checkSimpleNote(line)
-            checkLinks(line)
+    if len(lines) <= 1 and verse != "intro":       # 1-line  note
+        checkSimpleNote(note)
+        checkLinks(note)
+    state.closeNote()
     reportParens()
     if state.ascii and not suppress9:
         reportError("No non-ASCII content in note")
 #    if state.headingcount > state.textcount:
 #        reportError("At least one note heading is not followed by a note")
 
+def checkColHeader(value, expected, col):
+    if value != expected:
+        reportError("Invalid column " + str(col) + " header: \"" + value + "\"")
 
 # Reports an error if there is anything wrong with the first row in the TSV file.
 # That row contains nothing but column headings.
-def checkHeader(row, key):
-    state = State()
-    state.addRow(key, row[0:4])
-    if row[0] != "Book":
-        reportError("Invalid column 1 header")
-    if key != "ID.Verse.Chapter":
-        reportError("Invalid column headers, columns 2-4", key)
-    if row[4] != "SupportReference":
-        reportError("Invalid column 5 header")
-    if row[5] != "OrigQuote":
-        reportError("Invalid column 6 header")
-    if row[6] != "Occurrence":
-        reportError("Invalid column 7 header")
-    if row[7] != "GLQuote":
-        reportError("Invalid column 8 header")
-    if row[8] != "OccurrenceNote":
-        reportError("Invalid column 9 header")
+def checkHeader(row):
+    checkColHeader(row[0], "Book", 1)
+    checkColHeader(row[1], "Chapter", 2)
+    checkColHeader(row[2], "Verse", 3)
+    checkColHeader(row[3], "ID", 4)
+    checkColHeader(row[4], "SupportReference", 5)
+    checkColHeader(row[5], "OrigQuote", 6)
+    checkColHeader(row[6], "Occurrence", 7)
+    checkColHeader(row[7], "GLQuote", 8)
+    checkColHeader(row[8], "OccurrenceNote", 9)
 
 def verifyGLQuote(quote, verse):
     if verse == "intro":
         if len(quote) != 0:
             reportError("Unexpected value in GLQuote column")
     else:
-        if len(quote) > 0 and gateway_language not in {'en'}:
+        if len(quote) > 0 and source_language not in {'en'}:
             if quote.isascii():
                 reportError("ASCII GLQuote (column 8)")
 
@@ -443,13 +453,9 @@ idcheck_re = re.compile(r'[^0-9a-z]')
 
 # Checks the specified non-header row values.
 # The row must have 9 columns or this function will fail.
-def checkRow(row, key):
+def checkRow(row):
     global book
     global chapter
-    global verse
-
-    state = State()
-    state.addRow(key, row[0:4])
 
     if not book:
         book = row[0]
@@ -485,9 +491,9 @@ def checkRow(row, key):
     if not row[4].isascii():
         reportError("Non-ascii SupportReference value (column 5)")
     if len(row[5].strip()) > 0 and row[5].isascii():
-        reportError("Invalid OrigQuote (column 6)")
+        reportError("Invalid (ASCII) OrigQuote (column 6)")
     if row[6] not in {'0', '1', '2'}:
-        reportError("Invalid Occurrence (column 7) value: " + row[6])
+        reportError("Invalid Occurrence value (should be a small number): " + row[6])
     verifyGLQuote(row[7].strip(), row[2])
     verifyNote(row[8], row[2])
 
@@ -496,7 +502,6 @@ def checkRow(row, key):
 def verifyFile(path):
     global book
     global chapter
-    global verse
     global rowno
     state = State()
     state.setPath(path)
@@ -508,24 +513,32 @@ def verifyFile(path):
         rowno += 1
         nColumns = len(row)
         if nColumns > 3:
-            try:
-                verse = int(row[2])
-            except ValueError as e:
-                verse = 0
-            key = tsv.make_key(row, [3,2,1])
+#            try:
+#                verse = int(row[2])
+#            except ValueError as e:
+#                verse = 0
+#            key = tsv.make_key(row, [3,2,1])
             if nColumns == 9:
                 if rowno == 1:
-                    checkHeader(row, key)
+                    checkHeader(row)
+                    state.addRow(row[0:4])
                     book = None
                     chapter = 0
-                    verse = 0
+#                    verse = 0
                 else:
-                    checkRow(row, key)
+                    state.addRow(row[0:4])
+                    checkRow(row)
             else:
+                try:
+                    if len(row[0]) == 3 and int(row[1]) > 0 and int(row[2]) > 0 and len(row[3]) == 4:
+                        state.addRow(row[0:4])
+                except ValueError as e:
+                    verse = 0
                 reportError("Wrong number of columns (" + str(nColumns) + ")")
         else:
-            key = row[0][0:3] + "... "
-            reportError("Wrong number of columns (" + str(nColumns) + "). No further checks", key)
+#            key = row[0][0:3] + "..."
+            state.addRow(None)
+            reportError("Wrong number of columns (" + str(nColumns) + ")")
 
 def verifyDir(dirpath):
     for f in os.listdir(dirpath):
@@ -549,9 +562,12 @@ if __name__ == "__main__":
         path = source_dir
         source_dir = os.path.dirname(path)
         verifyFile(path)
+        nChecked = 1
     else:
         sys.stderr.write("Folder not found: " + source_dir + '\n') 
 
-    if issuesFile:
-        issuesFile.close()
+    if issuesfile:
+        issuesfile.close()
+    else:
+        print("No issues found.")
     print("Done. Checked " + str(nChecked) + " files.\n")
