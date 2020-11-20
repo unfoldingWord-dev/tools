@@ -10,24 +10,31 @@
 # Correct operation of the algorithm depends on the consistency of the translator in assigning
 # heading levels.
 #
-# This script also removes leading spaces from the first markdown header in each row.
-# Also removes double quotes that surround fields that should begin with just a markdown header.
+# This script also removes spaces before hash in each markdown line.
 # Adds space after markdown header hash marks, if missing.
+# Also removes double quotes that surround fields that should begin with just a markdown header.
+# Fixes links of the form rc://en/...
 #
 # This script was written for TSV notes files.
 # Backs up the files being modified.
 # Outputs files of the same name in the same location.
+
+######################################################
+# It is better to run this script on the source files
+# before converting the files with tsv2rc.py.
+######################################################
 
 import re       # regular expression module
 import io
 import os
 import sys
 import tsv
+import substitutions    # this module specifies the string substitutions to apply
 
 # Globals
 max_files = 99     # How many files do you want to process
-source_dir = r'E:\DCS\Bengali\TN\Stage 3'  # Where are the files located
-
+source_dir = r'C:\DCS\Kannada\TN.translationCore'  # Where are the files located
+language_code = 'kn'
 nProcessed = 0
 filename_re = re.compile(r'.*\.tsv$')
 
@@ -55,7 +62,7 @@ def shuffle(truelevel, nmarks, currlevel):
 
 header_re = re.compile(r'(#+) ', flags=re.UNICODE)
 
-# Converts and returns a single line
+# Converts and returns a single note
 def fixHeadingLevels(note):
     currlevel = 0
     truelevel = [0,1,2,3,4,5,6,7,8,9]
@@ -69,13 +76,23 @@ def fixHeadingLevels(note):
         header = header_re.search(note, header.start() + newlevel + 1)
     return note
 
-
 hash_re = re.compile(r'#([^# \n].*)')    # missing space after #
+blanklines_re = re.compile(r'[^\>]\<br\>#')     # less than two lines breaks before heading
+# blankheading_re = re.compile(r'# *\<br\>')      # blank heading
 
+# Removes space before # in markdown lines.
+# Ensures at least one space after heading marks.
 def fixSpacing(note):
-    note = re.sub(r'\<br\> +#', "<br>#", note, 0)   # Remove spaces before markdown headers
+    note = re.sub(r'\<br\> +#', "<br>#", note, 0)
+    note = note.replace("# #", "##")
     while sub := hash_re.search(note):              # Add space after # where missing
-        note = note[0:sub.start()] + "# " + sub.group(1) + u'\n'
+        note = note[0:sub.start()] + "# " + sub.group(1)  # + u'\n'
+    while sub := blanklines_re.search(note):
+        note = note[0:sub.start()+1] + "<br>" + note[sub.start()+1:]
+
+    # This was not safe because the next line might be another heading and the two headings would merge
+    # while sub := blankheading_re.search(note):
+        # note = note[0:sub.start()+1] + note[sub.end():]     # just remove the space(s) and <br>
     return note
 
 # The fix applies if column 3 has more than four characters, and the row has exactly 8 columns to start.
@@ -88,7 +105,49 @@ def fixID(row):
         row.insert(4, col4)
         row[3] = row[3][0:4]
     return row
- 
+
+# Makes corrections on the vernacular note field.
+# Trailing spaces have already been removed.
+def cleanNote(note):
+    note = note.rstrip(" #[\\")
+    replacement = "rc://" + language_code + "/"
+    note = note.replace("rc://en/", replacement)
+#    lcode = "rc://" + language_code + "/"
+#    note = note.replace(lcode, "rc://*/")
+    for pair in substitutions.subs:
+        note = note.replace(pair[0], pair[1])
+    note = fixSpacing(note)     # fix spacing around hash marks
+    note = fixHeadingLevels(note)
+    while note.endswith("<br>"):
+        note = note[0:-4]
+    return note
+
+# Combines rows that appear to be incorrectly broken.
+# Where one row has 8 colummns, beginnning with the standard first column, and the next row has 1 column which is not standard.
+# Coming in, the first row is headings, and the second row starts with the standard 3-character book abbreviation.
+def mergeRows(data):
+    nrows = len(data)
+    standard = data[1][0]
+    newdata = []
+    newdata.append(data[0])
+    i = 1
+    while i < nrows - 1:
+        row = data[i]
+        while len(row) == 9 and row[0] == standard and i+1 < nrows and len(data[i+1]) == 1:
+            fragment = data[i+1][0].rstrip()
+            if len(fragment) > 0:
+                if row[2] == "intro":   # intro rows have multiple "lines" and markdown syntax
+                    row[8] += "<br>"
+                else:
+                    row[8] += " "
+                row[8] += fragment
+            i += 1
+        newdata.append(row)
+        i += 1
+    if i < nrows:
+        newdata.append(data[i])
+    return newdata
+
 def cleanRow(row):
     i = 0
     while i < len(row):
@@ -97,19 +156,20 @@ def cleanRow(row):
     if len(row) == 8 and len(row[3]) > 4: # A common problem in Gujarati tN, where the ID column is merged with the next column.
         row = fixID(row)
     if len(row) == 9:
-        row[8] = row[8].replace("rc://en/", "rc://*/")
-        row[8] = fixSpacing(row[8])     # fix spacing around hash marks
-        row[8] = fixHeadingLevels(row[8])
+        row[8] = cleanNote(row[8])
     return row
 
 def cleanFile(path):
+    data = tsv.tsvRead(path)  # The entire file is returned as a list of lists of strings (rows); each row is a list of strings.
+
+    if len(data) > 2 and data[0][0] == "Book" and len(data[1][0]) == 3:
+        data = mergeRows(data)
+    for row in data:
+        row = cleanRow(row)
+
     bakpath = path + ".orig"
     if not os.path.isfile(bakpath):
         os.rename(path, bakpath)
-
-    data = tsv.tsvRead(bakpath)
-    for row in data:
-        row = cleanRow(row)
     tsv.tsvWrite(data, path)
 
 # Recursive routine to convert all files under the specified folder
