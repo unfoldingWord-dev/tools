@@ -43,6 +43,7 @@
 #   project paths exist
 #
 # Also checks for extraneous files in the folder with the manifest file.
+# Verifies presence of LICENSE and README files.
 # Verifies presence of media.yaml file for OBS projects.
 # Verifies presence of valid toc.yaml files in tA projects.
 #
@@ -52,7 +53,7 @@
 #   Check for 01.md, title.md, and sub-title.md files in each bottom level tA folder.
 
 # Globals
-manifestDir = r'C:\DCS\Telugu\te_tq'
+manifestDir = r'C:\DCS\Oriya\or_tn'
 nIssues = 0
 projtype = ''
 issuesFile = None
@@ -180,8 +181,8 @@ def verifyCleanDir(dirpath):
         path = os.path.join(dirpath, fname)
         if projtype in {'ta'} and fname == 'media.yaml':
             reportError("Unwanted media.yaml file: " + shortname(path))
-        if (fname.find("temp") >= 0 or fname.find("tmp") >= 0 or fname.find("orig") >= 0 \
-            or fname.find("Copy") >= 0 or fname.find(".txt") >= 0 or fname.find("projects") >= 0):
+        if "temp" in fname or "tmp" in fname or "orig" in fname or "bak" in fname or \
+           "Copy" in fname or "txt" in fname or "projects" in fname:
             if fname not in {"translate-original", "temple.md", "tempt.md", "contempt.md"}:
                 reportError("Possible extraneous file: " + shortname(path))
         elif badname_re.match(fname):
@@ -238,6 +239,7 @@ def verifyDir(dirpath):
     path = os.path.join(dirpath, "manifest.yaml")
     if os.path.isfile(path):
         verifyFile(path)
+        verifyOtherFiles()
     else:
         reportError("No manifest.yaml file in: " + dirpath)
     verifyCleanDir(dirpath)
@@ -324,6 +326,18 @@ def verifyLanguage(language):
     if verifyStringField(language, 'title', 3):
         if language['title'].isascii():
             sys.stdout.write("Remember to localize language title: " + language['title'] + '\n')
+
+# Confirms the existence of LICENSE and README files
+def verifyOtherFiles():
+    licensepath1 = os.path.join(manifestDir, "LICENSE.md")
+    licensepath2 = os.path.join(manifestDir, "LICENSE")
+    readmepath1 = os.path.join(manifestDir, "README.md")
+    readmepath2 = os.path.join(manifestDir, "README")
+    if not os.path.isfile(licensepath1) and not os.path.isfile(licensepath2):
+        reportError("LICENSE file is missing")
+    if not os.path.isfile(readmepath1) and not os.path.isfile(readmepath2):
+        reportError("README file is missing")
+
 
 # Verifies that the project contains the six required fields and no others.
 # Verifies that the path exists.
@@ -439,6 +453,9 @@ def verifyRelation(rel):
 
 # The relation element is a list of strings.
 def verifyRelations(relation):
+    uniq = set(relation)
+    if len(uniq) < len(relation):
+        reportError("There are duplicates in the relations list")
     uhg = False
     if len(relation) < 1 and projtype != 'reg':
         reportError("Missing relations in: relation")
