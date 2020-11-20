@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # This script does some fixup to a folder of tN .tsv files and saves them to a new location.
 # It edits the files in these ways:
-#    Sets the OrigQuote column values to match what is in the English tN.
+#    Sets the SupportReference, OrigQuote, and Occurrence column values to match what is in the English tN.
 #    Removes leading and trailing spaces from each field value.
 #    Supplies missing tab between 4-character ID column and the next column.
 #    Converts links of the form "rc://en/...."
@@ -16,10 +16,10 @@
 ######################################################
 
 # Global variables
-language_code = 'te'
-target_dir = r'E:\DCS\Telugu\temp'
-source_dir = r'E:\DCS\Telugu\TN\Mar-20\te_tn_41-MAT.tsv'
-english_dir = r'E:\DCS\English\en_tn'    # English tN
+source_dir = r'C:\DCS\Kannada\TN.translationCore'
+target_dir = r'C:\DCS\Kannada\kn_tn.work'
+language_code = 'kn'
+english_dir = r'C:\DCS\English\en_tn.v33'    # English tN
 
 book = ''
 chapter = 0
@@ -88,7 +88,7 @@ def checkRow(row, nColumns, key, path):
         if len(row[5].strip()) > 0 and row[5].isascii():
             reportError("Invalid OrigQuote (column 6)", path, key, row[0:4])
         if row[6] not in {'0', '1', '2'}:
-            reportError("Invalid Occurrence (column 7)", path, key, row[0:4])
+            reportError("Invalid Occurrence (should be a small number): " + row[6], path, key, row[0:4])
         if badheading_re.search(row[8]):
             reportError("Missing space after hash mark(s)", path, key, row[0:4])
     else:
@@ -131,15 +131,16 @@ def convertFile(path, fname):
                     row[2] = str(verse-1)
                     key = tsv.make_key(row, [3,2,1])
                 if nColumns == 9:
-                    # Update OrigQuote to current value from English tN
+                    # Update SupportReference, OrigQuote, and Occurrence to current values from English tN
                     try:
                         origquote = english[key][5]
                     except KeyError as e:
-                        # If row no longer exists in the English notes, delete the snippet but keep the note.
+                        # If row no longer exists in the English notes, delete the OrigQuote snippet but keep the note.
                         # Based on Zulip discussion, Jesse, Larry S on 10/29/19.
                         row[2] = str(verse)     # back to original verse number
                         row[5] = ''            # OrigQuote is no longer valid
                     else:
+                        row[4] = english[key][4]    # SupportReference
                         row[5] = origquote
                         row[6] = english[key][6]    # Occurrence
                 if heading:
@@ -156,6 +157,8 @@ def convertFile(path, fname):
                 key = row[0][0:3] + "... "
                 reportError("Wrong number of columns (" + str(nColumns) + ")", path, key, None)
 
+        if fname.startswith("en_tn"):
+            fname = fname.replace("en_tn", language_code + "_tn", 1)
         targetpath = os.path.join(target_dir, fname)
         tsv.tsvWrite(data, targetpath)
         appendToProjects(book, fname)
@@ -224,7 +227,7 @@ def dumpProjects():
     
     projects.sort(key=operator.itemgetter('sort'))
     path = os.path.join(target_dir, "projects.yaml")
-    manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
+    manifest = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
     for p in projects:
         manifest.write("  -\n")
         manifest.write("    title: '" + p['title'] + "'\n")
@@ -243,7 +246,9 @@ def reportError(msg, path, key="", locater=None):
     try:
         if locater and len(locater) > 3:
             issue = shortname(path) + ": " + locater[0] + " " + locater[1] + ":" + locater[2] + " ID=(" + locater[3] + "), line " + str(rowno) + ": " + msg + ".\n"
-            sys.stderr.write(issue)
+        else:
+            issue = shortname(path) + ": line " + str(rowno) + ": " + msg + ".\n"
+        sys.stderr.write(issue)
     except UnicodeEncodeError as e:
         sys.stderr.write(shortname(path) + ": (Unicode...), line " + str(rowno) + ": " + msg + "\n")
  
