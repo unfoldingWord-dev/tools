@@ -15,13 +15,13 @@ import string
 import sys
 
 # Globals
-source_dir = r'C:\DCS\Vwanji\wbi_reg.work'
+source_dir = r'C:\DCS\Bangwinji\bsj_reg.TA'
 nChanged = 0
 max_changes = 66
 # Customize the behavior of this program by setting these globals:
 enable_move_pq = True
 enable_fix_punctuation = True
-enable_add_spaces = True    # Enables the functionality in add_spaces()
+enable_add_spaces = True    # Add spaces between commo/period and a letter
 
 # keystring is used only in line-by-line. It is searched against the entire file one time.
 keystring = []
@@ -143,7 +143,7 @@ def fix_punctuation(path):
     nChanged += 1
 
 spacing_list = [
-    (re.compile(r'[\.,][A-Za-z]', re.UNICODE))
+    (re.compile(r'[\.,;][A-Za-z]', re.UNICODE))
 ]
 
 # Adds spaces where needed. spacing_list contrals what happens.
