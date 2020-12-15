@@ -9,10 +9,10 @@
 #    Fixes links of this form [[:en:...]]
 
 # Global variables
-source_dir = r'C:\DCS\Thai\TN'
-target_dir = r'C:\DCS\Thai\th_tn'
-resource_type = 'tn'
-language_code = 'th'
+source_dir = r'C:\DCS\Kannada\TQ'
+target_dir = r'C:\DCS\Kannada\kn_tq.STR'
+resource_type = 'tq'
+language_code = 'kn'
 
 projects = []
 
@@ -73,7 +73,7 @@ def appendToProjects(bookId, bookTitle):
     global projects
     title = bookTitle + " translationNotes"
     if resource_type == 'tq':
-        title = bookTitle + " translationQuestions"
+        title = bookTitle
     project = { "title": title, "id": bookId.lower(), "sort": usfm_verses.verseCounts[bookId]["sort"], \
                 "path": "./" + bookId.lower() }
     projects.append(project)
@@ -148,21 +148,22 @@ def convertChapter(bookId, dir, fullpath):
 def convertBook(path):
     bookId = getBookId(path)
     bookTitle = getBookTitle(bookId)
+    relativepath = shortname(path)
     if bookId and bookTitle:
         nchapters = 0
         for dir in os.listdir(path):
             if isChapter(dir):
                 nchapters += 1
                 if nchapters == 1:
-                    sys.stdout.write("Converting: " + shortname(path) + "\n")
+                    sys.stdout.write("Converting: " + relativepath + "\n")
                     sys.stdout.flush()
                 convertChapter(bookId, dir, os.path.join(path, dir))
         if nchapters > 0:
             appendToProjects(bookId, bookTitle)
         else:
-            sys.stderr.write("Book folder has manifest but no chapters: " + shortname(path) + '\n')
-    elif shortname(path):
-        sys.stderr.write("Not identified as a book folder: " + shortname(path) + '\n')
+            sys.stderr.write("Book folder has manifest but no chapters: " + relativepath + '\n')
+    elif relativepath != "" and relativepath.lower() != "content":
+        sys.stderr.write("Not identified as a book folder: " + relativepath + '\n')
     return bookTitle
  
 # Converts the book or books contained in the specified folder
@@ -175,7 +176,7 @@ def convert(dir):
         for directory in os.listdir(dir):
             folder = os.path.join(dir, directory)
             if os.path.isdir(folder) and directory[0] != ".":
-                convertBook(folder)
+                convert(folder)
     dumpProjects()
 
 # Processes each directory and its files one at a time
@@ -186,5 +187,5 @@ if __name__ == "__main__":
     if os.path.isdir(source_dir):
         convert(source_dir)
     else:
-        reportError("Folder not found: " + source_dir)
+        sys.stderr.write("Folder not found: " + source_dir)
     print("\nDone.")
