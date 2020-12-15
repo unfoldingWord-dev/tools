@@ -5,9 +5,9 @@
 #    Uses convert2md.md2md() to convert links and things.
 
 # Global variables
-source_dir = r'C:\DCS\Assamese\as_tA\Stage 2'      # Source and target directories must be at the same level
-target_dir = r'C:\DCS\Assamese\as_ta.work'
-language_code = 'as'
+source_dir = r'C:\DCS\Telugu\TA.changed\Stage 2'      # Source and target directories must be at the same level
+target_dir = r'C:\DCS\Telugu\te_ta.STR'
+language_code = 'te'
 resource_type = 'ta'    # should be ta or tw
 
 import re
@@ -17,8 +17,6 @@ import sys
 import codecs
 import convert2md
 from shutil import copy
-# import usfm_verses
-# import json
 
 
 # Returns path of .md file in target directory.
@@ -54,6 +52,17 @@ def copyFile(fname, fullpath):
     targetDir = makeTargetDir(fullpath)
     copy(fullpath, targetDir)       # copy() is from shutil
 
+# Copy file with minimal change: ensure only one trailing newline
+def stripcopy(fname, fullpath):
+    input = io.open(fullpath, "tr", 1, encoding="utf-8-sig")
+    text = input.read().rstrip()
+    input.close()
+    targetDir = makeTargetDir(fullpath)
+    mdPath = os.path.join(targetDir, fname)
+    output = io.open(mdPath, "tw", encoding="utf-8")
+    output.write(text + '\n')
+    output.close    
+
 # Converts .md file in fullpath location to .md file in target dir.
 def convertFile(fname, fullpath):
     targetDir = makeTargetDir(fullpath)
@@ -71,7 +80,9 @@ def convertDir(dir):
             ndirs += 1
             convertDir(path)
         elif item[-3:] == ".md":
-            if resource_type != "ta" or item == "01.md":
+            if resource_type == 'ta' and item.endswith("title.md"):
+                stripcopy(item, path)
+            elif resource_type != 'ta' or item == "01.md":
                 convertFile(item, path)
             else:
                 copyFile(item, path)
@@ -85,8 +96,10 @@ def convertDir(dir):
 if __name__ == "__main__":
     if resource_type == "ta":
         convert2md.g_multilist = True
-        sys.stdout.write("WARNING: Preserving all spaces except trailing spaces.\n")
-        sys.stdout.write("WARNING: This is only converting files named 01.md\n\n")
+#        sys.stdout.write("This is only changing files named 01.md\n")
+        sys.stdout.write("Preserving all spaces except trailing spaces.\n")
+        sys.stdout.write("Consolidates consecutive blank lines in all files.\n")
+        sys.stdout.write("Removes blank line, if any, at tops of files.\n")
         sys.stdout.flush()
 
     if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
