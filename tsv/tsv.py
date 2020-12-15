@@ -28,8 +28,9 @@ def tsvRead(inputPath):
 def tsvWrite(data, tsvPath):
     tsvFile = io.open(tsvPath, "tw", buffering=1, encoding='utf-8', newline='\n')
     ustr = ""
+    tab = "\t"
     for row in data:
-        ustr = '\t'.join(row)
+        ustr = tab.join(row)
         tsvFile.write(ustr + '\n')
     tsvFile.close()
 
@@ -45,6 +46,7 @@ def list2Dict(list, keycolumns):
     return dict
 
 # Returns a string made up of the keycolumn values separated by dots.
+# Example: "r582.11.7"
 # The caller must ensure the keycolumn numbers are valid, or an IndexError might occur.
 def make_key(list, keycolumns):
     key = ""
