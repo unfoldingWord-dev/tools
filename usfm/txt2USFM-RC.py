@@ -8,10 +8,10 @@
 #    Converts multiple books at once.
 
 # Global variables
-source_dir = r'C:\DCS\Vwanji\NT'
-target_dir = r'C:\DCS\Vwanji\wbi_reg.work'
-language_code = "wbi"
-mark_chunks = False     # Should be true for GL source text
+source_dir = r'C:\DCS\Malagasy\plt_isa_text_ulb'
+target_dir = r'C:\DCS\Malagasy\plt_ulb'
+language_code = "plt"
+mark_chunks = True   # Should be true for GL source text
 
 import usfm_verses
 import re
