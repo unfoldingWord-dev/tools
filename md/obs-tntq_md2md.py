@@ -7,8 +7,9 @@
 
 # Global variables
 resource_type = 'obs-tn'
-language_code = 'es-419'
-target_dir = r'E:\DCS\Spanish\es-419_obs-tn\content\temp'    # path should end with "\content"
+language_code = 'ne'
+source_dir = r'C:\DCS\Nepali\OBSTN\content'
+target_dir = r'C:\DCS\Nepali\ne_obs-tn\content'    # path should end with "\content"
 
 import re
 import io
@@ -26,8 +27,8 @@ def makeMdPath(story, fname):
 #prefix_re = re.compile(r'C:\\DCS')
 def shortname(longpath):
     shortname = longpath
-    if longpath.find(target_dir) == 0:
-        shortname = "..." + longpath[len(target_dir):]
+    if source_dir in longpath:
+        shortname = longpath[len(source_dir)+1:]
     return shortname
 
 # Converts .md file in fullpath location to .md file in target dir.
@@ -60,9 +61,9 @@ def convert(source_dir):
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        convert(r'E:\DCS\Spanish\OBSTN\content')
-    else:       # the first command line argument presumed to be a folder
-        convert(sys.argv[1])
+    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
+        source_dir = sys.argv[1]
 
+    if os.path.isdir(source_dir):
+        convert(source_dir)
     print("\nDone.")
