@@ -10,8 +10,8 @@ import sys
 import os
 
 # Global variables
-source_dir = r'C:\DCS\Hindi\IEV'   # folder containing usfm files to be converted
-target_dir = r'C:\DCS\Hindi\hi_iev.work'
+source_dir = r'C:\DCS\Marathi\IRV'   # folder containing usfm files to be converted
+target_dir = r'C:\DCS\Marathi\mr_irv.new'
 projects = []
 # Set Path for files in support/
 # rootdiroftools = os.path.dirname(os.path.abspath(__file__))
@@ -34,6 +34,8 @@ class State:
     mt = ""
     title = ""         # updates to the best non-ascii title if any, or best ascii title 
     postHeader = ""
+    prevkey = ""
+    key = ""
     reference = ""
     usfmFile = 0
     
@@ -70,8 +72,15 @@ class State:
     def addPostHeader(self, key, value):
         if key:
             State.postHeader += "\n\\" + key + " "
+        else:
+            State.postHeader = ""
         if value:
             State.postHeader += value
+        State.key = key
+    
+    def addKey(self, key):
+        State.prevkey = State.key
+        State.key = key
 
     def addID(self, id):
         State.identification = id
@@ -109,7 +118,7 @@ class State:
             State.toc2 = State.title
         if State.mt == "" or (State.mt.isascii() and not State.title.isascii()):
             State.mt = State.title
-        
+
     def reset(self):
         State.ID = ""
         State.rem = ""
@@ -204,6 +213,16 @@ def take(line):
     global lastToken
     lastToken = token
 
+bodytoken_re = re.compile(r'\\([^\t \n]+)', re.UNICODE)
+
+# After the header is fully processed with take() calls, takeBody() is called to do simpler processing on the body of the usfm file.
+def takeBody(line):
+    token = bodytoken_re.match(line)
+    if token:
+        state = State()
+        marker = token.group(1)
+        state.addKey(marker)
+
 # Writes a corrected USFM header to the new USFM file, then writes the body.
 def writeUsfm(body):
     state = State()
@@ -217,14 +236,22 @@ def writeUsfm(body):
     state.usfmFile.write("\n\\h " + state.h)
     state.usfmFile.write("\n\\toc1 " + state.toc1)
     state.usfmFile.write("\n\\toc2 " + state.toc2)
-    state.usfmFile.write("\n\\toc3 " + state.ID.lower())
+    toc3 = state.toc3
+    if len(toc3) != 3:
+        toc3 = state.ID.lower()
+    state.usfmFile.write("\n\\toc3 " + toc3)
     state.usfmFile.write("\n\\mt1 " + state.mt)    # safest to use \mt1 always. When \mt2 exists, \mt1 is required.
     
     # Write post-header if any
     state.usfmFile.write('\n')
     state.usfmFile.write(state.postHeader)
     state.usfmFile.write('\n')
+    
+    # Write the rest of the file
     for line in body:
+        takeBody(line)
+        if line.startswith("\\v 1 ") and state.prevkey != "p":
+            state.usfmFile.write("\\p\n")
         state.usfmFile.write(line)
     if line[-1] != '\n':
         state.usfmFile.write('\n')
