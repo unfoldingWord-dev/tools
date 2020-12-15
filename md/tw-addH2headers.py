@@ -10,26 +10,22 @@
 import re       # regular expression module
 import io
 import os
-import codecs
-import string
 import sys
+# from difflib import SequenceMatcher   
 
 # Globals
-# Heading to the added where needed.
-# Include hash marks, word for "Definition" in target language, and 2 newlines
-h2_terms = "## Famaritana\n\n"     # व्याख्या:  व्याख्या: व्याख्या: व्याख्या:  व्याख्या: 
-h2_names = "## Facts \n\n"  # तथ्य: तथ्य: तथ्य: 
+source_dir = r'C:\DCS\Kannada\kn_tw\bible'  # please end with "bible"
+h2_terms = "## ಪದದ ಅರ್ಥ ವಿವರಣೆ\n\n"    #  ## Definition  (in the target language, including 2 newlines)
+h2_names = "## ಸತ್ಯಾಂಶಗಳು\n\n"     #  ## Facts  (in the target language, including 2 newlines)
 
-max_changes = 1111
+max_changes = 5
 nChanged = 0
 nRead = 0
 
-prefix_re = re.compile(r'C:\\DCS')
-
 def shortname(longpath):
     shortname = longpath
-    if prefix_re.match(longpath):
-        shortname = "..." + longpath[6:]
+    if source_dir in longpath:
+        shortname = longpath[len(source_dir)+1:]
     return shortname
 
 h1_re = re.compile(r'[ \t\n]*#[ \t].*?\n[ \t\n]*', re.UNICODE+re.DOTALL)
@@ -89,13 +85,8 @@ def convertFolder(folder):
 
 # Processes all .txt files in specified directory, one at a time
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        folder = r'C:\DCS\Malagasy\plt_tw\bible'
-    else:
-        folder = sys.argv[1]
-
-    if folder and os.path.isdir(folder):
-        convertFolder(folder)
+    if os.path.isdir(source_dir):
+        convertFolder(source_dir)
         sys.stdout.write("Done. Changed " + str(nChanged) + " of " + str(nRead) + " files checked.\n")
     else:
         sys.stderr.write("Usage: python tw-addH2headers.py <folder>\n  Use . for current folder.\n")
