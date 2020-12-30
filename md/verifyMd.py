@@ -20,17 +20,17 @@
 #          Check for ASCII titles in toc.yaml files (tA projects only)
 
 # Globals
-source_dir = r'C:\DCS\Telugu\te_ta.STR'
-language_code = 'te'
-resource_type = 'ta'
+source_dir = r'C:\DCS\Bengali\bn_tn.RPP'
+language_code = 'bn'
+resource_type = 'tn'
 #ta_dir = r'C:\DCS\English\en_ta.v13'    # English tA
-ta_dir = r'C:\DCS\Telugu\te_ta.STR'    # Target language tA
-obstn_dir = r'C:\DCS\Kannada\kn_obs-tn\content'    # should end in 'content'
+ta_dir = r'C:\DCS\Malayalam\ml_ta'    # Target language tA
+obstn_dir = r'C:\DCS\Nepali\ne_obs-tn\content'    # should end in 'content'
 en_tn_dir = r'C:\DCS\English\en_tn.md-orig'
 en_tq_dir = r'C:\DCS\English\en_tq.v10'
-#tn_dir = r'C:\DCS\Oriya\or_tn.md'    # Target language tN, needed if note links are to be checked
-tn_dir = r'C:\DCS\English\en_tn.md-orig'
-tw_dir = r'C:\DCS\Telugu\te_tw'    # should end in 'bible'
+tn_dir = r'C:\DCS\Malayalam\ml_tn.RPP'    # Target language tN, needed if note links are to be checked
+#tn_dir = r'C:\DCS\English\en_tn.md-orig'
+tw_dir = r'C:\DCS\Telugu\te_tw'
 
 nChecked = 0
 nChanged = 0
@@ -45,7 +45,7 @@ suppress5 = False    # Suppress warnings about invalid passage links
 suppress6 = False    # Suppress warnings about invalid OBS links
 suppress7 = False    # Suppress warnings about file starting with blank line
 suppress8 = False    # Suppress warnings about invalid list style
-suppress9 = False    # Suppress warnings about ASCII content
+suppress9 = True    # Suppress warnings about ASCII content
 suppress10 = False   # Suppress warnings about heading levels
 suppress11 = True    # Suppress warnings about unbalanced parentheses
 suppress12 = False     # Suppress warnings about newlines at end of file
@@ -320,7 +320,7 @@ def checkTALinks(line):
     page = tapage_re.search(line)           # [[../ta/man/...]]
     while page:
         found = True
-        if line and line[0] == '#':
+        if line and line[0] == '#' and not current_file.endswith("intro.md"):
             reportError("tA page reference in heading")
         manpage = page.group(1)
         path = os.path.join(ta_dir, manpage)
@@ -362,9 +362,8 @@ def checkMdLinks(line, fullpath):
     foundTW = checkTWLinks(line)
     if not foundOBS:        # because note links match OBS links
         foundTN = checkTNLinks(line)
-    if not foundTA and not foundOBS and not foundTW and not foundTN:    # because passagelink_re could match any of these
-        if not suppress5:
-            checkPassageLinks(line, fullpath)
+    if not suppress5:
+        checkPassageLinks(line, fullpath)
     checkReversedLinks(line)
 
 twlink_re = re.compile(r'(\(rc://[\*\w\-]+/tw/dict/bible/)(.+?)/(.+?)(\).*)', flags=re.UNICODE)      # matches rc://en/tw/dict/bible/  or rc://*/tw/dict/bible/
@@ -441,7 +440,7 @@ def checkPassageLinks(line, fullpath):
                     reportError("invalid OBS story link: " + referent)
 #                    reported = True
         elif not (resource_type == 'obs' and obsJpg_re.match(referent)):
-            if not referent.startswith("http"):
+            if referent.isascii() and not referent.startswith("http"):
                 referencedPath = os.path.join( os.path.dirname(fullpath), referent )
                 if not suppress5 and not os.path.isfile(referencedPath):
                     reportError("invalid link: " + referent)
@@ -627,7 +626,7 @@ def verifyBook(path, book):
     state = State()
     state.setPath(path)
     if nchapters_found < nchapters:
-        reportError("Not enough chapter folders in: " + shortname(path) + "!")
+        reportError("Not enough chapter folders in: " + shortname(path) + ". Need " + str(nchapters) + " chapters.")
     elif nchapters_found > nchapters:
         reportError("Extraneous chapter folder(s) in: " + shortname(path))
 
@@ -675,7 +674,7 @@ def verifyDir(dirpath):
             elif resource_type == "ta" and f in {"01.md", "title.md", "sub-title.md"}:
                 verify_ta_article(dirpath)
                 break
-            elif os.path.isfile(path) and resource_type in {"tw","obs"} and verifiable(path, f):
+            elif os.path.isfile(path) and resource_type in {"tn","tw","obs"} and verifiable(path, f):
                 verifyFile(path)
 
 if __name__ == "__main__":
