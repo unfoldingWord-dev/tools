@@ -53,7 +53,7 @@
 #   Check for all valid file names in each bottom level folder.
 
 # Globals
-manifestDir = r'C:\DCS\Kannada\kn_tn.str'
+manifestDir = r'C:\DCS\Nepali\ne_tq.RPP'
 nIssues = 0
 projtype = ''
 issuesFile = None
@@ -166,7 +166,7 @@ def verifyBook(book, bookpath):
 # for tN and tQ projects only.
 def verifyBooks(path):
     for book in os.listdir(path):
-        if book not in {".git", "LICENSE.md", "README.md", "manifest.yaml"}:
+        if book not in {".git", "LICENSE", "LICENSE.md", "README.md", "manifest.yaml"}:
             bookpath = os.path.join(path, book)
             if len(book) == 3 and os.path.isdir(bookpath) and book.upper() in usfm_verses.verseCounts: 
                 verifyBook(book, bookpath)
@@ -260,7 +260,7 @@ def verifyDates(issued, modified):
     issuedate = datetime.strptime(issued, "%Y-%m-%d").date()
     moddate = datetime.strptime(modified, "%Y-%m-%d").date()
     if moddate != date.today():
-        reportError("Wrong date - modified: " + modified)
+        reportError("Modified date is not today: " + modified)
     if issuedate > moddate:
         reportError("Dates wrong - issued: " + issued + ", modified: " + modified)
 
@@ -332,7 +332,7 @@ def verifyIdentifier(core):
             print("projtype = " + projtype)
         parts = manifestDir.rsplit('_', 1)
         lastpart = parts[-1].lower()
-        if lastpart != id.lower() and lastpart != id.lower() + ".str":
+        if lastpart != id.lower() and lastpart != id.lower() + ".str" and lastpart != id.lower() + ".rpp":
             # last part of directory name should match the projtype string
             reportError("Project identifier (" + id + ") does not match last part of directory name: " + lastpart)
 
@@ -468,12 +468,12 @@ def verifyReadme(dirpath):
     if not os.path.isfile(readmepath):
         readmepath = os.path.join(dirpath, "README")
     if not os.path.isfile(readmepath):
-        reportError("No README file isfound")
+        reportError("No README file is found")
     else:
         pathlibpath = pathlib.Path(readmepath)
         mtime = datetime.fromtimestamp(pathlibpath.stat().st_mtime)
         if mtime.date() != date.today():
-            reportError("README file was not updated")
+            reportError("README file was not updated today")
     
 # NOT DONE - need to support UHG-type entries
 def verifyRelation(rel):
@@ -500,6 +500,8 @@ def verifyRelations(relations):
     uniq = set(relations)
     if len(uniq) < len(relations):
         reportError("There are duplicates in the relations list")
+    if len(uniq) < 2 and not isBibleType(projtype):
+        reportError("The relations list seems incomplete")
     uhg = False
     if len(relations) < 1 and projtype != 'reg':
         reportError("Missing relations in: relation")
@@ -529,12 +531,12 @@ def verifySource(source):
         if dict['identifier'] != 'tn' and projtype == 'tn-tsv':
             reportError("Incorrect source:identifier for tn-tsv project: " + dict['identifier'])
         if not re.match(r'[a-z][a-z0-9-]', dict['identifier'], re.UNICODE):
-            reportError("Invalid source:identifier (need lower case ascii, no spaces): " + dict['identifier'])
+            reportError("Invalid source:identifier (prefer lower case ascii, no spaces): " + dict['identifier'])
         if dict['language'] == 'English':
             reportError("Use a language code in source:language, not \'" + dict['language'] + '\'')
         elif dict['language'] == getLanguageId():
             reportError("Warning: source:language matches target language")
-        elif dict['language'] != 'en':
+        elif dict['language'] not in {'en','hbo','el-x-koine'}:
             reportError("Possible bad source:language: " + dict['language'])
         verifyStringField(dict, 'version', 1)
     
@@ -626,10 +628,10 @@ def verifyType(type):
 def verifyVersion(version, sourceversion):
     # The rules seem to be optional, so may comment out most of this code if necessary.
     parts = version.rsplit('.', 1)
-    if int(sourceversion) < 100 and (len(parts) < 2 or parts[0] != sourceversion or int(parts[-1]) < 1):
-        reportError("Invalid version: " + version + "; Source version is " + sourceversion)
-    if int(sourceversion) >= 100 and (len(parts) > 1 or int(parts[0]) > 99):
-        reportError("Invalid version: " + version + ". Source version is " + sourceversion)
+#    if int(sourceversion) < 100 and (len(parts) < 2 or parts[0] != sourceversion or int(parts[-1]) < 1):
+#        reportError("Invalid version: " + version + "; Source version is " + sourceversion)
+#    if int(sourceversion) >= 100 and (len(parts) > 1 or int(parts[0]) > 99):
+#        reportError("Invalid version: " + version + ". Source version is " + sourceversion)
 
 # Returns True if the file has a BOM
 def has_bom(path):
