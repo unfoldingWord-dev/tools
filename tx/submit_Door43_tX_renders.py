@@ -13,6 +13,9 @@
 #       This is not a user-friendly program with command line parameters, etc.
 #           -- it's just a raw script that you can make do what you need.
 #
+# This script has been tested with Python3.8 on Ubuntu Linux.
+# It activates curl as a subprocess so not likely to work on Windows.
+#
 
 # Python imports
 from typing import Dict, Any
@@ -51,6 +54,7 @@ AUTO_OPEN_IN_BROWSER = True # True or False
 
 
 # NOTE: No need to manually modify this
+# A minimal push json payload (adapted from DCS/Gitea outputs)
 minimal_master_JSON = """
 {
   "ref": "refs/heads/master",

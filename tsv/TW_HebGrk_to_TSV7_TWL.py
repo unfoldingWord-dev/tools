@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# TW2tsv.py
+# TW_HebGrk_to_TSV7_TWL.py.py
 #
 # Copyright (c) 2020 unfoldingWord
 # http://creativecommons.org/licenses/MIT/
@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Apr 2020 by RJH
-#   Last modified: 2020-11-11 by RJH
+#   Last modified: 2020-12-18 by RJH
 #
 """
 Quick script to copy TW links out of UHB and UGNT
@@ -24,7 +24,7 @@ import re
 import logging
 
 
-LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/unfoldingWord/')
+LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
 LOCAL_OT_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('hbo_uhb/')
 LOCAL_NT_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('el-x-koine_ugnt/')
 
@@ -57,15 +57,14 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
     Generator to read the original language (Heb/Grk) book
         and return lines containing TW links.
 
-    Yields a 5-tuple with:
-        line number B C V reference strings
-        actual line (without trailing nl)
+    Yields a 7-tuple with:
+        line_number(int) B C V word occurrence(int) link
     """
     source_folderpath = LOCAL_OT_SOURCE_FOLDERPATH if int(nn)<40 \
                     else LOCAL_NT_SOURCE_FOLDERPATH
     source_filename = f'{nn}-{BBB}.usfm'
     source_filepath = source_folderpath.joinpath(source_filename)
-    print(f"      Getting source lines from {source_filepath}")
+    print(f"      Getting source lines from {source_filepath}…")
 
     C = V = ''
     is_in_k = False
@@ -190,7 +189,12 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
                     is_in_k = False
                     assert milestone_words
                     milestone_words = ' '.join(milestone_words)
-                    # print("here0", C,V, milestone_words, occurrence, milestone_link)
+                    # print("here1a", C,V, milestone_words, occurrence, milestone_link, this_verse_words)
+                    words_occurrence = ' '.join(this_verse_words).count(milestone_words)
+                    assert words_occurrence >= 1 # else we didn't find the words at all! (What about punctuation???)
+                    if words_occurrence != occurrence:
+                        occurrence = words_occurrence
+                        # print("here1b", C,V, milestone_words, occurrence, milestone_link)
                     yield remembered_line_number, BBB, C, V, milestone_words, occurrence, milestone_link
                     del remembered_line_number, milestone_words, milestone_link # Don't let them persist -- just so we catch any logic errors
                     continue
@@ -221,7 +225,7 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
                     if simple_link_match:
                         word_link = simple_link_match.group(1)
                         assert word_link.startswith('rc://*/tw/dict/bible/')
-                        # print("here2", C,V, word, occurrence, this_verse_words, word_link)
+                        # print("here9", C,V, word, occurrence, this_verse_words, word_link)
                         yield line_number, BBB, C, V, word, occurrence, word_link
                     word_field_match = WORD_FIELD_RE.search(line, word_field_match.end())
                 searchW_startIndex = 'BADBADBAD' # Just to catch any logic errors above
@@ -233,21 +237,29 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
     """
     source_text = 'UHB' if int(nn)<40 else 'UGNT'
     print(f"    Converting {source_text} {BBB} links to TSV…")
-    output_folderpath = LOCAL_OUTPUT_FOLDERPATH #.joinpath(BBB)
+    output_folderpath = LOCAL_OUTPUT_FOLDERPATH
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
     output_filepath = output_folderpath.joinpath(f'{BBB}_twl.tsv')
+
+    try: # Load the previous file so we can use the same row ID fields
+        with open(output_filepath, 'rt') as previous_file:
+            previous_text = previous_file.read()
+        original_TWL_lines = previous_text.split('\n')
+        # for j,line in enumerate(original_TWL_lines):
+        #     print(f"{j+1}: '{line}'")
+        original_TWL_lines = original_TWL_lines[1:] # Skip header row
+        if not original_TWL_lines[-1]: original_TWL_lines = original_TWL_lines[:-1] # Skip last empty line
+        print(f"      Loaded {len(original_TWL_lines):,} lines from previous version of {output_filepath}")
+    except Exception: original_TWL_lines = [] # ignore this if it fails
+
     num_simple_links = num_complex_links = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
         # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
         output_TSV_file.write('Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tAnnotation\n')
-        previous_ids:List[str] = ['']
+        previously_generated_ids:List[str] = ['']
         for j, (_line_number,BBB,C,V,word,occurrence,link) in enumerate(get_source_lines(BBB, nn), start=1):
-            # print(f"{j:3}/ Line {line_number:<5} {BBB} {C:>3}:{V:<3} '{word}' {occurrence} {link}")
-            generated_id = ''
-            while generated_id in previous_ids:
-                generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
-            previous_ids.append(generated_id)
-
+            # if occurrence != 1:
+            #     print(f"{j:3}/ Line {_line_number:<5} {BBB} {C:>3}:{V:<3} '{word}' {occurrence} {link}")
             reference = f'{C}:{V}'
             tags = ''
             if '/bible/kt/jesus' in link: tags = 'keyterm; name'
@@ -255,7 +267,30 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
             elif '/bible/kt/' in link: tags = 'keyterm'
             # elif '/bible/other/' in link: tags = 'other'
             annotation = ''
-            output_line = f'{reference}\t{generated_id}\t{tags}\t{link}\t{word}\t{occurrence}\t{annotation}'
+
+            found_id = None
+            # print(f"NEW {reference} ---- {tags} {link} {word} {occurrence} '{annotation}'")
+            for old_line in original_TWL_lines:
+                old_reference, old_id, old_tags, old_link, old_word, old_occurrence, old_annotation = old_line.split('\t')
+                # print(f"OLD {old_reference} {old_id} {old_tags} {old_link} {old_word} {old_occurrence} '{old_annotation}'")
+                if old_reference==reference and old_tags==tags and old_link==link and old_word==word and old_occurrence==str(occurrence) and old_annotation==annotation:
+                    found_id = old_id
+                    break
+            if found_id:
+                # print(f"        Found {found_id} for {reference} {tags} {link} {word} {occurrence}")
+                if found_id in previously_generated_ids:
+                    print(f"We had an error with {found_id} for {reference} {tags} {link} {word} {occurrence}!!!")
+                    halt
+                row_id = found_id
+            else:
+                generated_id = ''
+                while generated_id in previously_generated_ids:
+                    generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
+                print(f"        Generated {generated_id} for {reference} {tags} {link} {word} {occurrence}")
+                row_id = generated_id
+            previously_generated_ids.append(row_id)
+
+            output_line = f'{reference}\t{row_id}\t{tags}\t{link}\t{word}\t{occurrence}\t{annotation}'
             output_TSV_file.write(f'{output_line}\n')
             if ' ' in word: num_complex_links += 1
             else: num_simple_links += 1
@@ -267,17 +302,21 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
 def main():
     """
     """
-    print("TW2tsv.py")
+    print("TW_HebGrk_to_TSV7_TWL.py.py")
     print(f"  Source folderpath is {LOCAL_SOURCE_BASE_FOLDERPATH}/")
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
     total_simple_links = total_complex_links = 0
     for BBB,nn in BBB_NUMBER_DICT.items():
-        simple_count, complex_count = make_TSV_file(BBB,nn)
-        total_simple_links += simple_count
-        total_complex_links += complex_count
+        # if BBB != 'EPH': continue
+        try:
+            simple_count, complex_count = make_TSV_file(BBB,nn)
+            total_simple_links += simple_count
+            total_complex_links += complex_count
+        except Exception as e:
+            print(f"ERROR: failed to process {BBB}: {e}")
     print(f"    {total_simple_links+total_complex_links:,} total links written ({total_simple_links:,} simple links and {total_complex_links:,} multiword links) to {LOCAL_OUTPUT_FOLDERPATH}/")
 # end of main function
 
 if __name__ == '__main__':
     main()
-# end of TW2tsv.py
+# end of TW_HebGrk_to_TSV7_TWL.py.py

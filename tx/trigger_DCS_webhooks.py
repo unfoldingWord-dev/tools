@@ -26,7 +26,7 @@ import requests
 # User settings
 # Choose one of the following
 TEST_PREFIXES = ('',)
-# TEST_PREFIXES = ('dev-',)
+TEST_PREFIXES = ('dev-',)
 # TEST_PREFIXES = ('', 'dev-',)
 
 REPO_LIST_DOCUMENT = """
@@ -340,9 +340,9 @@ if __name__ == '__main__':
 
     # Put the username and repo name in the parameters
     #   to trigger a single webhook.
-    this_repo_owner_username = 'STR'
-    this_repo_name = 'kn_iev'
-    # find_and_trigger_repo_webhooks(this_repo_owner_username, this_repo_name); sys.exit()
+    this_repo_owner_username = 'unfoldingWord'
+    this_repo_name = 'en_ult'
+    find_and_trigger_repo_webhooks(this_repo_owner_username, this_repo_name); sys.exit()
 
     # process_repo_list(uW_ORIGINALS_LIST); sys.exit()
     # process_repo_list(uW_ENGLISH_LIST); sys.exit()

@@ -16,7 +16,7 @@ import subprocess
 # ======================================================================
 
 # User settings
-USE_LOCALCOMPOSE_URL = False
+USE_LOCALCOMPOSE_URL = True
 MAX_JOBS_TO_SUBMIT = 1
 # Can also choose ONE or NONE of the following
 # OPTIONAL_JOB_LIST = ['test_WA_en_udb']
@@ -45,8 +45,13 @@ DATA_SET = [
     # First entry is a status flag
     #   currently 'matched', 'success', or 'test'
     # Second entry is main name of .json file containing test payload
-    ('min', 'test_tX.minimum'),
-    ('max', 'test_tX.maximum'),
+    ('PDF', 'test_tX.OBS-PDF.uW--kn_obs--master'),
+    ('PDF', 'test_tX.OBS-PDF.uW--en_obs--master--no_created_from'),
+    ('PDF', 'test_tX.OBS-PDF.uW--en_obs--master'),
+    ('PDF', 'test_tX.OBS-PDF.Catalog--rmy-x-vwa_obs--master'),
+    ('PDF', 'test_tX.OBS-PDF.Catalog--sr-Latn_obs--master'), # Fails -- might be a case problem
+    # ('max', 'test_tX.HTML.maximum'),
+    # ('min', 'test_tX.HTML.minimum'),
     ]
 
 
@@ -82,7 +87,8 @@ for n, (status,testType) in enumerate(DATA_SET):
     tested.add( testType )
     numSubmittedJobs += 1
     for prefix in TEST_PREFIXES:
-        webhook = LOCAL_COMPOSE_URL if USE_LOCALCOMPOSE_URL else f'https://git.door43.org/{prefix}tx/'
+        long_prefix = 'develop' if prefix else 'git'
+        webhook = LOCAL_COMPOSE_URL if USE_LOCALCOMPOSE_URL else f'https://{long_prefix}.door43.org/tx/'
         print( f"\n\n{n+1}/ {'(dev) ' if prefix else ''}{testType} to {webhook}:" )
         jsonFilename = f'@{TEST_FOLDER}{testType}.json'
 

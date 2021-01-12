@@ -28,7 +28,7 @@ AUTO_OPEN_IN_BROWSER = True
 TEST_PREFIXES = ('dev-',)
 # TEST_PREFIXES = ('', 'dev-',)
 
-TEST_FILENAME = 'ru_gl--ru_tn_1lv' # .json will be appended to this
+TEST_FILENAME = 'Door43-Catalog--vi_ulb--fork' # .json will be appended to this
 
 LOCAL_FILEPATH = '/mnt/SSD/uW/Software/'
 
@@ -54,12 +54,181 @@ if LOAD_FROM_DISK_FILE:
 if not test_json:
     print("Using locally pasted JSON string…")
     test_json = """
-{'secret': '', 'ref': 'refs/heads/master', 'before': '6d7f2812885cb872d649c191084433dfd5bee4b6', 'after': '210b544c3e051f83af3bbebdb0f0bf5a0976f26b', 'compare_url': 'https://git.door43.org/ru_gl/ru_tn_1lv/compare/6d7f2812885cb872d649c191084433dfd5bee4b6...210b544c3e051f83af3bbebdb0f0bf5a0976f26b', 'commits': [{'id': '210b544c3e051f83af3bbebdb0f0bf5a0976f26b', 'message': "Изменить 'jer/05/28.md'\n", 'url': 'https://git.door43.org/ru_gl/ru_tn_1lv/commit/210b544c3e051f83af3bbebdb0f0bf5a0976f26b', 'author': {'name': 'Parviz', 'email': 'parviz@noreply.door43.org', 'username': 'Parviz'}, 'committer': {'name': 'Parviz', 'email': 'parviz@noreply.door43.org', 'username': 'Parviz'}, 'verification': None, 'timestamp': '2019-11-19T08:34:31Z', 'added': None, 'removed': None, 'modified': None}], 'head_commit': None, 'repository': {'id': 25031, 'owner': {'id': 7140, 'login': 'ru_gl', 'full_name': '', 'email': '', 'avatar_url': 'https://git.door43.org/avatars/7140', 'language': '', 'is_admin': False, 'last_login': '1970-01-01T00:00:00Z', 'created': '2018-02-08T08:16:16Z', 'username': 'ru_gl'}, 'name': 'ru_tn_1lv', 'full_name': 'ru_gl/ru_tn_1lv', 'description': 'Source for Russian translationNotes', 'empty': False, 'private': False, 'fork': True, 'parent': {'id': 24194, 'owner': {'id': 6, 'login': 'WycliffeAssociates', 'full_name': 'WycliffeAssociates', 'email': 'wycliffeassociates@noreply.door43.org', 'avatar_url': 'https://git.door43.org/avatars/bf3cc4e96ae6c7a77e8e90a8dce075b2', 'language': 'en-US', 'is_admin': False, 'last_login': '2019-08-22T14:19:22Z', 'created': '2016-02-04T12:55:33Z', 'username': 'WycliffeAssociates'}, 'name': 'en_tn', 'full_name': 'WycliffeAssociates/en_tn', 'description': 'Source for English translationNotes', 'empty': False, 'private': False, 'fork': True, 'parent': None, 'mirror': False, 'size': 98139, 'html_url': 'https://git.door43.org/WycliffeAssociates/en_tn', 'ssh_url': 'git@git.door43.org:WycliffeAssociates/en_tn.git', 'clone_url': 'https://git.door43.org/WycliffeAssociates/en_tn.git', 'website': '', 'stars_count': 2, 'forks_count': 3, 'watchers_count': 8, 'open_issues_count': 11, 'default_branch': 'master', 'archived': False, 'created_at': '2018-04-11T20:08:08Z', 'updated_at': '2019-10-01T21:30:17Z', 'permissions': {'admin': False, 'push': False, 'pull': False}, 'has_issues': True, 'has_wiki': True, 'has_pull_requests': False, 'ignore_whitespace_conflicts': False, 'allow_merge_commits': False, 'allow_rebase': False, 'allow_rebase_explicit': False, 'allow_squash_merge': False, 'avatar_url': ''}, 'mirror': False, 'size': 105256, 'html_url': 'https://git.door43.org/ru_gl/ru_tn_1lv', 'ssh_url': 'git@git.door43.org:ru_gl/ru_tn_1lv.git', 'clone_url': 'https://git.door43.org/ru_gl/ru_tn_1lv.git', 'website': '', 'stars_count': 0, 'forks_count': 0, 'watchers_count': 5, 'open_issues_count': 0, 'default_branch': 'master', 'archived': False, 'created_at': '2018-05-28T09:49:08Z', 'updated_at': '2019-11-19T08:34:32Z', 'permissions': {'admin': False, 'push': False, 'pull': False}, 'has_issues': True, 'has_wiki': True, 'has_pull_requests': True, 'ignore_whitespace_conflicts': False, 'allow_merge_commits': False, 'allow_rebase': False, 'allow_rebase_explicit': True, 'allow_squash_merge': False, 'avatar_url': ''}, 'pusher': {'id': 8019, 'login': 'Parviz', 'full_name': '', 'email': 'parviz@noreply.door43.org', 'avatar_url': 'https://secure.gravatar.com/avatar/9279dbd416821bde3f2b7eb884d33a3a?d=identicon', 'language': 'ru-RU', 'is_admin': False, 'last_login': '2019-11-19T07:16:11Z', 'created': '2018-05-15T20:44:35Z', 'username': 'Parviz'}, 'sender': {'id': 8019, 'login': 'Parviz', 'full_name': '', 'email': 'parviz@noreply.door43.org', 'avatar_url': 'https://secure.gravatar.com/avatar/9279dbd416821bde3f2b7eb884d33a3a?d=identicon', 'language': 'ru-RU', 'is_admin': False, 'last_login': '2019-11-19T07:16:11Z', 'created': '2018-05-15T20:44:35Z', 'username': 'Parviz'}, 'DCS_event': 'push', 'door43_webhook_retry_count': 0, 'door43_webhook_received_at': '2019-11-19T08:34:32Z'}""" \
+{
+  "secret": "",
+  "forkee": {
+    "id": 22755,
+    "owner": {
+      "id": 4598,
+      "login": "Door43-Catalog",
+      "full_name": "Door43 Resource Catalog",
+      "email": "door43-catalog@noreply.door43.org",
+      "avatar_url": "https://git.door43.org/img/avatar_default.png",
+      "language": "",
+      "is_admin": false,
+      "last_login": "1970-01-01T00:00:00Z",
+      "created": "2016-10-18T19:03:36Z",
+      "username": "Door43-Catalog"
+    },
+    "name": "vi_ulb",
+    "full_name": "Door43-Catalog/vi_ulb",
+    "description": "Vietnamese ULB.  STR https://git.door43.org/Door43/SourceTextRequestForm/issues/149\\r\\n\\r\\n",
+    "empty": false,
+    "private": false,
+    "fork": false,
+    "parent": null,
+    "mirror": false,
+    "size": 5376,
+    "html_url": "https://git.door43.org/Door43-Catalog/vi_ulb",
+    "ssh_url": "git@git.door43.org:Door43-Catalog/vi_ulb.git",
+    "clone_url": "https://git.door43.org/Door43-Catalog/vi_ulb.git",
+    "website": "",
+    "stars_count": 0,
+    "forks_count": 1,
+    "watchers_count": 9,
+    "open_issues_count": 0,
+    "default_branch": "master",
+    "archived": false,
+    "created_at": "2018-02-12T18:13:00Z",
+    "updated_at": "2020-08-24T04:10:55Z",
+    "permissions": {
+      "admin": true,
+      "push": true,
+      "pull": true
+    },
+    "has_issues": true,
+    "has_wiki": false,
+    "has_pull_requests": true,
+    "ignore_whitespace_conflicts": false,
+    "allow_merge_commits": true,
+    "allow_rebase": true,
+    "allow_rebase_explicit": true,
+    "allow_squash_merge": true,
+    "avatar_url": ""
+  },
+  "repository": {
+    "id": 58265,
+    "owner": {
+      "id": 6221,
+      "login": "STR",
+      "full_name": "",
+      "email": "",
+      "avatar_url": "https://git.door43.org/avatars/6221",
+      "language": "",
+      "is_admin": false,
+      "last_login": "1970-01-01T00:00:00Z",
+      "created": "2017-08-15T15:24:51Z",
+      "username": "STR"
+    },
+    "name": "vi_ulb",
+    "full_name": "STR/vi_ulb",
+    "description": "Vietnamese ULB.  STR https://git.door43.org/Door43/SourceTextRequestForm/issues/149\\r\\n\\r\\n",
+    "empty": false,
+    "private": false,
+    "fork": true,
+    "parent": {
+      "id": 22755,
+      "owner": {
+        "id": 4598,
+        "login": "Door43-Catalog",
+        "full_name": "Door43 Resource Catalog",
+        "email": "door43-catalog@noreply.door43.org",
+        "avatar_url": "https://git.door43.org/img/avatar_default.png",
+        "language": "",
+        "is_admin": false,
+        "last_login": "1970-01-01T00:00:00Z",
+        "created": "2016-10-18T19:03:36Z",
+        "username": "Door43-Catalog"
+      },
+      "name": "vi_ulb",
+      "full_name": "Door43-Catalog/vi_ulb",
+      "description": "Vietnamese ULB.  STR https://git.door43.org/Door43/SourceTextRequestForm/issues/149\\r\\n\\r\\n",
+      "empty": false,
+      "private": false,
+      "fork": false,
+      "parent": null,
+      "mirror": false,
+      "size": 5376,
+      "html_url": "https://git.door43.org/Door43-Catalog/vi_ulb",
+      "ssh_url": "git@git.door43.org:Door43-Catalog/vi_ulb.git",
+      "clone_url": "https://git.door43.org/Door43-Catalog/vi_ulb.git",
+      "website": "",
+      "stars_count": 0,
+      "forks_count": 2,
+      "watchers_count": 9,
+      "open_issues_count": 0,
+      "default_branch": "master",
+      "archived": false,
+      "created_at": "2018-02-12T18:13:00Z",
+      "updated_at": "2020-08-24T04:10:55Z",
+      "permissions": {
+        "admin": true,
+        "push": true,
+        "pull": true
+      },
+      "has_issues": true,
+      "has_wiki": false,
+      "has_pull_requests": true,
+      "ignore_whitespace_conflicts": false,
+      "allow_merge_commits": true,
+      "allow_rebase": true,
+      "allow_rebase_explicit": true,
+      "allow_squash_merge": true,
+      "avatar_url": ""
+    },
+    "mirror": false,
+    "size": 0,
+    "html_url": "https://git.door43.org/STR/vi_ulb",
+    "ssh_url": "git@git.door43.org:STR/vi_ulb.git",
+    "clone_url": "https://git.door43.org/STR/vi_ulb.git",
+    "website": "",
+    "stars_count": 0,
+    "forks_count": 0,
+    "watchers_count": 0,
+    "open_issues_count": 0,
+    "default_branch": "master",
+    "archived": false,
+    "created_at": "2020-08-24T04:11:10Z",
+    "updated_at": "2020-08-24T04:11:10Z",
+    "permissions": {
+      "admin": true,
+      "push": true,
+      "pull": true
+    },
+    "has_issues": true,
+    "has_wiki": true,
+    "has_pull_requests": true,
+    "ignore_whitespace_conflicts": false,
+    "allow_merge_commits": true,
+    "allow_rebase": true,
+    "allow_rebase_explicit": true,
+    "allow_squash_merge": true,
+    "avatar_url": ""
+  },
+  "sender": {
+    "id": 6442,
+    "login": "RobH",
+    "full_name": "Robert Hunt",
+    "email": "robh@noreply.door43.org",
+    "avatar_url": "https://git.door43.org/avatars/f85d2867fead49449e89c6822dc77bc6",
+    "language": "en-US",
+    "is_admin": true,
+    "last_login": "2020-08-11T23:22:24Z",
+    "created": "2017-10-22T07:31:07Z",
+    "username": "RobH"
+  }
+}
+""" \
   .replace('\\n','').replace('\n','') \
   .replace("{'", '{"').replace("': ", '": ').replace(": '", ': "').replace("', ", '", ').replace(", '", ', "').replace("'}", '"}') \
   .replace(': True,', ': true,').replace(': False,', ': false,').replace(': None,', ': null,') \
   .replace(': True}', ': true}').replace(': False}', ': false}').replace(': None}', ': null}')
 # print('test_json = ', test_json)
+
+if 0 and TEST_FILENAME.replace('--','/') not in test_json:
+    print(f"Seems '{TEST_FILENAME}' can't be found in the JSON -- is it correct?")
+    print(f"  {test_json[:600]}…")
+    sys.exit()
 if OVERWRITE or not LOAD_FROM_DISK_FILE: # Write the json file
     print(f"Writing '{filepath}'…")
     with open(filepath, 'wt') as jf:
@@ -73,7 +242,8 @@ if not os.path.isfile(filepath):
 
 webURL = ''
 for prefix in TEST_PREFIXES:
-    webhook = LOCAL_COMPOSE_URL if USE_LOCALCOMPOSE_URL else f'https://{prefix}api.door43.org/client/webhook/'
+    long_prefix = 'develop' if prefix else 'git'
+    webhook = LOCAL_COMPOSE_URL if USE_LOCALCOMPOSE_URL else f'https://{long_prefix}.door43.org/client/webhook/'
     print( f"\n{'(dev) ' if prefix else ''}'{TEST_FILENAME}' to {webhook}:" )
     jsonFilename = f'{TEST_FOLDER}{TEST_FILENAME}.json'
 
@@ -88,10 +258,12 @@ for prefix in TEST_PREFIXES:
         event = 'pull_request'
     elif 'ref_type' in jsonDict and jsonDict['ref_type']=='branch' and 'pusher_type' in jsonDict:
         event = 'delete'
+    elif 'forkee' in jsonDict:
+        event = 'fork'
     # elif 'ref_type' in jsonDict and jsonDict['ref_type']=='branch' and 'ref' in jsonDict:
     #     event = 'create'
     else:
-        logging.critical(f"Can't determine event (push/release/delete, etc.) from JSON")
+        logging.critical(f"Can't determine event (push/release/delete/fork, etc.) from JSON")
         halt
 
 

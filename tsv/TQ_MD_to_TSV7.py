@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# TQ2tsv.py
+# TQ_MD_to_TSV7.py
 #
 # Copyright (c) 2020 unfoldingWord
 # http://creativecommons.org/licenses/MIT/
@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2020-11-11 by RJH
+#   Last modified: 2020-11-13 by RJH
 #
 """
 Quick script to copy TQ from markdown files
@@ -24,7 +24,7 @@ import re
 import logging
 
 
-LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/unfoldingWord/')
+LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
 LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_tq/')
 
 # The output folder below must also already exist!
@@ -115,7 +115,7 @@ BOOK_INFO_DICT = { "gen": {"id": "gen", "title": "Genesis", "usfm": "01-GEN", "t
 }
 
 
-def get_source_questions(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
+def get_source_questions(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str]:
     """
     Generator to read the TQ markdown files
         and return questions and answers.
@@ -166,7 +166,7 @@ def get_source_questions(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
 # end of get_source_questions function
 
 
-def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
+def make_TSV_file(BBB:str, nn:str) -> int:
     """
     """
     print(f"    Converting TQ {BBB} links to TSV…")
@@ -204,8 +204,8 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
 def main():
     """
     """
-    print("TQ2tsv.py")
-    print(f"  Source folderpath is {LOCAL_SOURCE_BASE_FOLDERPATH}/")
+    print("TQ_MD_to_TSV7.py")
+    print(f"  Source folderpath is {LOCAL_SOURCE_FOLDERPATH}/")
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
     total_questions = 0
     for BBB,nn in BBB_NUMBER_DICT.items():
@@ -216,4 +216,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-# end of TQ2tsv.py
+# end of TQ_MD_to_TSV7.py

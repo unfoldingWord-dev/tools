@@ -6,6 +6,7 @@
 #
 
 # Python imports
+from typing import List, Optional
 import sys
 import json
 import subprocess
@@ -14,22 +15,26 @@ import subprocess
 # ======================================================================
 
 # User settings
-USE_LOCALCOMPOSE_URL = True
+USE_LOCALCOMPOSE_URL = True # True to use local machine, False to use Door43 API.
 MAX_JOBS_TO_SUBMIT = 1
-# (There are 12 'line's, then 5 'new's, and 35 'test's = 52 total)
 
+# NOTE: OPTIONAL_JOB_LIST: Jobs don't necessarily get submitted in this order!
+# (There are 12 'line's, then 5 'new's, and 35 'test's = 52 total)
 # Can also choose ONE or NONE of the following
 # The following list is for a basic system test
 OPTIONAL_JOB_LIST = [
-                    'line03_OBS','line08_OBS_tn','line09_OBS_tq',
+                    'line03_OBS',
                         'uW--en_OBS-sq', 'uW--en_OBS-sn',
+                        'line08_OBS_tn','line09_OBS_tq',
                     'line10_TN','line11_TQ','line12_TW','line13_TA',
                     'new1_ULT',
                     'uW--el-x-koine_ugnt','uW--hbo_uhb',
                     'new6_uW--en_ugl', 'new7_uW--en_uhal',
                     ] # 14 entries
-OPTIONAL_JOB_LIST = ['uW--hbo_uhb']
-# OPTIONAL_JOB_LIST = ['WycliffeAssociates--en_ta--yamlProblem']
+OPTIONAL_JOB_LIST = ['line12_TW']
+# OPTIONAL_JOB_LIST = ['line03_OBS', 'uW--en_OBS-sq', 'uW--en_OBS-sn',
+#                         'line08_OBS_tn','line09_OBS_tq']
+# OPTIONAL_JOB_LIST = ['new2_UST']
 # OPTIONAL_JOB_LIST = ['one_off.tx-manager-test-data--en_ugl_mini',
 #                      'one_off.tx-manager-test-data--en_uhal_mini']
 
@@ -140,6 +145,7 @@ DATA_SET = [
 
 tested = set()
 numSubmittedJobs = 0
+job_list:Optional[List[str]]
 try: job_list = OPTIONAL_JOB_LIST
 except NameError: job_list = None
 for n, (status,testType,webURL) in enumerate(DATA_SET):
@@ -175,7 +181,8 @@ for n, (status,testType,webURL) in enumerate(DATA_SET):
     tested.add( webURL )
     numSubmittedJobs += 1
     for prefix in TEST_PREFIXES:
-        webhook = LOCAL_COMPOSE_URL if USE_LOCALCOMPOSE_URL else f'https://{prefix}api.door43.org/client/webhook/'
+        long_prefix = 'develop' if prefix else 'git'
+        webhook = LOCAL_COMPOSE_URL if USE_LOCALCOMPOSE_URL else f'https://{long_prefix}.door43.org/client/webhook/'
         print( f"\n\n{n+1}/ {'(dev) ' if prefix else ''}'{testType}' to {webhook}:" )
         jsonFilename = f'@{TEST_FOLDER}{testType}.json'
 
@@ -202,6 +209,8 @@ for n, (status,testType,webURL) in enumerate(DATA_SET):
                     print( f"Response dict = {responseDict}" )
             else:
                 print( f"Response = {programOutputString!r}" )
+        else:
+            print("Got no response at all!")
         if programErrorOutputBytes:
             programErrorOutputString = programErrorOutputBytes.decode(encoding='utf-8', errors='replace')
             #with open( os.path.join( outputFolder, 'ScriptErrorOutput.txt" ), 'wt', encoding='utf-8' ) as myFile: myFile.write( programErrorOutputString )
@@ -218,13 +227,13 @@ for n, (status,testType,webURL) in enumerate(DATA_SET):
 
 if REVIEW_FLAG and len(tested)>1: # Don't bother if there's only one
     print(f"\n\nSUMMARY:{' (should automatically open in browser)' if AUTO_OPEN_IN_BROWSER else ''}")
-    for n, webURL in enumerate(tested):
+    for n, webURL in enumerate(tested, start=1):
         if len(TEST_PREFIXES) > 1:
-            print(f" {n+1}/"
+            print(f" {n}/"
                   f" View at https://{'dev.' if TEST_PREFIXES[0] else ''}door43.org/u/{webURL}/"
                   f" and at https://{'dev.' if TEST_PREFIXES[1] else ''}door43.org/u/{webURL}/")
         else:
-            print(f"{n+1}/"
+            print(f"{n}/"
                   f" View at https://{'dev.' if TEST_PREFIXES[0] else ''}door43.org/u/{webURL}/")
 
 if job_list and numSubmittedJobs<len(job_list):

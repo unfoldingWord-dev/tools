@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 #
-# TN2tsv.py
+# TN_TSV9_to_TSV7.py
 #
-# Copyright (c) 2020 unfoldingWord
+# Copyright (c) 2020-2021 unfoldingWord
 # http://creativecommons.org/licenses/MIT/
 # See LICENSE file for details.
 #
@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2020-11-11 by RJH
+#   Last modified: 2021-01-11 by RJH
 #
 """
 Quick script to copy TN from 9-column TSV files
@@ -24,7 +24,7 @@ import re
 import logging
 
 
-LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/unfoldingWord/')
+LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
 LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_tn/')
 
 # The output folder below must also already exist!
@@ -101,7 +101,7 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
                 orig_quote = orig_quote.strip()
                 orig_quote = orig_quote.replace('...', '…')
                 orig_quote = orig_quote.replace(' …', '…').replace('… ', '…')
-                orig_quote = orig_quote.replace('…', '↔')
+                orig_quote = orig_quote.replace('…', ' & ')
                 occurrence = occurrence.strip()
                 occurrence_note = occurrence_note.strip()
                 occurrence_note = occurrence_note.replace('<BR>', '<br>')
@@ -121,16 +121,19 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
 def main():
     """
     """
-    print("TN2tsv.py")
+    print("TN_TSV9_to_TSV7.py")
     print(f"  Source folderpath is {LOCAL_SOURCE_BASE_FOLDERPATH}/")
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
     total_questions = 0
     for BBB,nn in BBB_NUMBER_DICT.items():
-        question_count = make_TSV_file(BBB,nn)
+        try:
+            question_count = make_TSV_file(BBB,nn)
+        except ValueError as err:
+            print(f"ERROR: Failed to process {BBB}: {err}")
         total_questions += question_count
     print(f"    {total_questions:,} total notes written to {LOCAL_OUTPUT_FOLDERPATH}/")
 # end of main function
 
 if __name__ == '__main__':
     main()
-# end of TN2tsv.py
+# end of TN_TSV9_to_TSV7.py

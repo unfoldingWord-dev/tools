@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 #
-# OBSTN2tsv.py
+# OBSSN2tsv.py
 #
-# Copyright (c) 2020 unfoldingWord
+# Copyright (c) 2020-2021 unfoldingWord
 # http://creativecommons.org/licenses/MIT/
 # See LICENSE file for details.
 #
@@ -10,10 +10,10 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2020-10-14 by RJH
+#   Last modified: 2021-01-11 by RJH
 #
 """
-Quick script to copy OBS-TN from markdown files
+Quick script to copy OBS-SN from markdown files
     and put into a TSV file with the same format (7 columns) as UTN.
 """
 from typing import List, Tuple
@@ -24,16 +24,16 @@ import re
 import logging
 
 
-LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/unfoldingWord/')
-LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_obs-tn/')
+LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
+LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_obs-sn/')
 
 # The output folder below must also already exist!
-LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_translation-annotations/')
+LOCAL_OUTPUT_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/en_study-annotations/')
 
 
 def get_source_notes() -> Tuple[str,str,str,str,str,str,str]:
     """
-    Generator to read the OBS-TN markdown files
+    Generator to read the OBS-SN markdown files
         and return quotes and notes.
 
     Returns a 6-tuple with:
@@ -81,10 +81,10 @@ def get_source_notes() -> Tuple[str,str,str,str,str,str,str]:
 def make_TSV_file() -> Tuple[int,int]:
     """
     """
-    print(f"    Converting OBS-TN links to TSV…")
+    print(f"    Converting OBS-SN links to TSV…")
     output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath('OBS')
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
-    output_filepath = output_folderpath.joinpath(f'OBS_tn.tsv')
+    output_filepath = output_folderpath.joinpath(f'OBS_sn.tsv')
     num_quotes = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
         # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
@@ -103,7 +103,7 @@ def make_TSV_file() -> Tuple[int,int]:
             orig_quote = quote.strip()
             orig_quote = orig_quote.replace('...', '…')
             orig_quote = orig_quote.replace(' …', '…').replace('… ', '…')
-            orig_quote = orig_quote.replace('…', '◊')
+            orig_quote = orig_quote.replace('…', ' & ')
             occurrence = '1' # default assumption -- could be wrong???
             note = note.strip()
             annotation = note.replace('<br>', '\\n')
@@ -118,7 +118,7 @@ def make_TSV_file() -> Tuple[int,int]:
 def main():
     """
     """
-    print("OBSTN2tsv.py")
+    print("OBSSN2tsv.py")
     print(f"  Source folderpath is {LOCAL_SOURCE_BASE_FOLDERPATH}/")
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
     make_TSV_file()
@@ -126,4 +126,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-# end of OBSTN2tsv.py
+# end of OBSSN2tsv.py

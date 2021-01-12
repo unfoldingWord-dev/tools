@@ -27,7 +27,7 @@ import logging
 
 LOCAL_SOURCE_FILEPATH = Path('/home/robert/Downloads/tw_cat.json')
 
-LOCAL_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/unfoldingWord/')
+LOCAL_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
 LOCAL_TW_SOURCE_FILEPATH = LOCAL_BASE_FOLDERPATH.joinpath('en_tw/bible/')
 
 # The output folder below must also already exist!
