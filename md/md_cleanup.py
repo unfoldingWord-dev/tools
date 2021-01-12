@@ -19,6 +19,7 @@
 # Additional behavior:
 #   Converts malformed heading marks "# #"
 #   Removes blank lines between markdown list items.
+#   Assures blank links before and after header lines.
 #   Leading spaces before the asterisk are also removed.
 #   Assures newline at the end of the file.
 #
@@ -30,35 +31,29 @@ import io
 import os
 import string
 import sys
-import substitutions
+from filecmp import cmp
 
 # Globals
-source_dir = r"C:\DCS\Oriya\or_tn.md\mat\01"
+source_dir = r"C:\DCS\Kannada\kn_tn.RPP"
+language_code = 'kn'
 resource_type = 'tn'
-language_code = 'or'
+placeholder_heading = "(no title)"
+import substitutions     # change substitutions modules as necessary; generic one is just "substitutions"
 
 suppress1 = False       # Suppress hash mark cleanup
-suppress2 = True       # Suppress list cleanup -- SHOULD BE True FOR TRANSLATIONS THAT USE MARKDOWN SYNTAX PROPERLY
+suppress2 = True       # Suppress stdout informational messages 
 if resource_type == 'ta':
     suppress1 = True
-if language_code in {'ne'}:
-    suppress2 = True
 
 nChanged = 0
-max_files = 1111
-
-filename_re = re.compile(r'\d+\.md$')  # This can change for different collections of .md files
-if resource_type == 'tw':
+max_files = 11111
+#filename_re = re.compile(r'\d+\.md$')  # This can change for different collections of .md files
+filename_re = re.compile(r'.*\.md$')
+current_dir = ""
+if resource_type in {'tw','ta'}:
     filename_re = re.compile(r'.*\.md$')
 hash_re = re.compile(r' *(#+) +', flags=re.UNICODE)
 asterisk_re = re.compile('(\n *\* .*)\n(\n *\* )', flags=re.UNICODE)    # two list items with blank line between
-
-keystring = []      # These strings are searched to determine files that are candidates for change
-keystring.append( re.compile(r'figs_', flags=re.UNICODE) )
-keystring.append( re.compile(r'translate_', flags=re.UNICODE) )
-keystring.append( re.compile(r'writing_', flags=re.UNICODE) )
-keystring.append( re.compile(r'guidelines_', flags=re.UNICODE) )
-keystring.append( re.compile(r'bita_', flags=re.UNICODE) )
 
 
 def shortname(longpath):
@@ -116,6 +111,68 @@ def fixHeadingLevels(str):
         text += line.rstrip() + '\n'
     return text
 
+validlink_re = re.compile(r'/([0-9][0-9])\.md$')
+
+# Tries to modify an invalid link by decrementing the verse number
+def verse2chunk(link):
+    if goodlink := validlink_re.search(link):
+        global current_dir
+        referencedPath = os.path.join(current_dir, link)
+        if not os.path.isfile(referencedPath):
+            verse = int(goodlink.group(1))
+            newlink = link[:goodlink.start()+1] + '{:02g}'.format(verse-1) + ".md"
+            referencedPath = os.path.join(current_dir, newlink)
+            if os.path.isfile(referencedPath):
+                link = newlink
+    return link
+
+missingslash_re = re.compile(r'\.[0-9]')
+missingdot_re = re.compile(r'[0-9/]md')
+missingzero_re = re.compile(r'/[1-9][/\.]')
+
+# Do surgery on the specified link
+def fixMdLink(link):
+    link =  link.replace(" ", "")   # remove spaces
+    link =  link.replace("...", "..")
+    link =  link.replace("///", "/")
+    link =  link.replace("//", "/")
+    link = link.lower()
+    link =  link.replace("/md", ".md")
+    link =  link.replace("..md", ".md")
+    if miss := missingslash_re.search(link):
+        link = link[:miss.start()+1] + "/" + link[miss.start()+1:]
+    if miss := missingdot_re.search(link):
+        link = link[:miss.start()+1] + "." + link[miss.start()+1:]
+    if miss := missingzero_re.search(link):
+        link = link[:miss.start()+1] + "0" + link[miss.start()+1:]
+    # proper levels
+    pos1 = link.rfind("./")
+    if pos1 < 0:
+        pos1 = 0
+    nslash = link[pos1:].count("/")
+    if nslash > 1 and link.startswith("./"):
+        link = "." + link
+    elif nslash == 1 and link.startswith(".."):
+        link = link[1:]
+    link = link.replace("/./", "/../")
+    link = link.replace("/.md", ".md")
+    link = verse2chunk(link)
+    return link
+
+mdlink_re = re.compile(r'\(([\.a-zA-Z0-9/ ]+[0-9/ ]+\.? ?[mM][dD] ?)(\).*)', flags=re.UNICODE+re.DOTALL)
+
+# Make various corrections to md file references
+def fixMdLinks(str):
+    newstr = ""
+    mdlink = mdlink_re.search(str)     # (../../luk/10/20.md)
+    while mdlink:
+        link = fixMdLink(mdlink.group(1))
+        newstr += str[0:mdlink.start()+1] + link
+        str = mdlink.group(2)
+        mdlink = mdlink_re.search(str)
+    newstr += str
+    return newstr
+
 inlinekey = []      # These are the strings that are actually replaced
 inlinekey.append( re.compile(r'[\:\( ]figs_(\w*)', flags=re.UNICODE) )
 inlinekey.append( re.compile(r'[\:\( ]translate_(\w*)', flags=re.UNICODE) )
@@ -144,11 +201,30 @@ def fixTaLinks(str):
                 sub = inlinekey[i].search(line)
         text += line + '\n'
     return text
+    
+tnlink_re = re.compile(r'(rc://[ \*\w\-]+/tn/help/)(\w\w\w/\d+)/(\d+)', flags=re.UNICODE)
+
+# Note links currently are not rendered on live site as links.
+def fixTnLinks(str):
+    newstr = ""
+    notelink = tnlink_re.search(str)     # rc://.../tn/help/...
+    while notelink:
+        chunkmd = notelink.group(3)
+        if len(chunkmd) == 1:
+            chunkmd = "0" + chunkmd
+        if notelink.group(2).startswith("psa") and len(chunkmd) == 2:
+            chunkmd = "0" + chunkmd
+        newstr += str[0:notelink.start()] + notelink.group(1) + notelink.group(2) + "/" + chunkmd
+        str = str[notelink.end():]
+        notelink = tnlink_re.search(str)
+    newstr += str
+    return newstr
 
 blanks_re = re.compile('[\n \t]+')     # multiple newlines/ white space at beginning of string
-endblank_re = re.compile('[\n \t]{2,}\Z')     # multiple newlines/ white space at end of string
-jams_re = re.compile(r'\n#+[^ \t#]', re.UNICODE)    # hash(es) at beginning of line not followed by space
-#jams2_re = re.compile(r'\n\*[^ \t\*]', re.UNICODE)   # single asterisk at beginning of line not follow by space
+hashblanks_re = re.compile('#  +')      # multiple spaces after hash mark
+endblank_re = re.compile('[\n \t][\n \t]+\Z')     # multiple newlines/ white space at end of string
+jams_re = re.compile(r'^#+[^ \t#]', re.UNICODE+re.MULTILINE)    # hash(es) at beginning of line not followed by space
+multihash_re = re.compile(r'[^\n#]#+')  # hash group starting in the middle of a line
 
 # Does some simple cleanup operations before starting the heavy conversions.
 def preliminary_cleanup(text):
@@ -164,10 +240,11 @@ def preliminary_cleanup(text):
     while found:
         text = text[:found.end()-1] + ' ' + text[found.end()-1:]    # add space after mark at beginning of lines
         found = jams_re.search(text)
-#    found = jams2_re.search(text)      # Removed 11/16/20 because sometimes the no-space is intended (for italics)
-#    while found:
-#        text = text[:found.end()-1] + ' ' + text[found.end()-1:]
-#        found = jams2_re.search(text)
+    found = multihash_re.search(text)      # Hash group starting in the middle of a line
+    while found:
+        text = text[:found.start()+1] + "\n\n" + text[found.start()+1:]
+        found = multihash_re.search(text)
+    text = re.sub(hashblanks_re, "# ", text)
     return text
 
 # Applies the substitutions found in substitutions.py, plus one that is language specific
@@ -177,11 +254,18 @@ def substitution(text):
         text = text.replace(pair[0], pair[1])
     return text
 
+keystring = []      # These strings are searched to determine files that are candidates for change
+keystring.append( re.compile(r'figs_', flags=re.UNICODE) )
+keystring.append( re.compile(r'translate_', flags=re.UNICODE) )
+keystring.append( re.compile(r'writing_', flags=re.UNICODE) )
+keystring.append( re.compile(r'guidelines_', flags=re.UNICODE) )
+keystring.append( re.compile(r'bita_', flags=re.UNICODE) )
+
 # Reads the entire file as a string and converts it.
-def convertFile(path):
-    global nChanged
+def convertWholeFile(source, target):
     global suppress1
-    input = io.open(path, "tr", encoding="utf-8-sig")
+    fixHeadings = not suppress1
+    input = io.open(source, "tr", encoding="utf-8-sig")
     text = input.read()
     input.close()
 
@@ -189,11 +273,12 @@ def convertFile(path):
     text = preliminary_cleanup(text)
     text = substitution(text)
     if not text.startswith("# "):
-        sys.stdout.write(shortname(path) + " does not begin with level 1 heading, so no headings will be touched.\n")
-        suppress1 = True
+        if not suppress2:
+            sys.stdout.write(shortname(source) + " does not begin with level 1 heading, so no headings will be touched.\n")
+        fixHeadings = False
 
     # Do the hash level fixes and TA references
-    if "## " in text and not suppress1:
+    if fixHeadings and "## " in text:
         text = fixHeadingLevels(text)
 
     # I took out this code 11/16/20 since it appears that the markdown dialect that we support allows blank
@@ -209,36 +294,91 @@ def convertFile(path):
             break
     if convertme:
         text = fixTaLinks(text)
+    text = fixTnLinks(text)
+    text = fixMdLinks(text)
     
-    if text!= origtext:
-        if len(text) < len(origtext) * 0.95:
-            sys.stderr.write("Error processing " + shortname(path) + '\n')
+    changed = (text != origtext)
+    if changed:
+        if len(text) < 3:
+            sys.stderr.write("Empty or almost empty file: " + shortname(source) + '\n')
+        elif len(origtext) > 20 and len(text) < len(origtext) * 0.95:
+            sys.stderr.write("Error processing (>5% size reduction): " + shortname(source) + '\n')
+            changed = False
+    if changed:
+        output = io.open(target, "tw", encoding='utf-8', newline='\n')
+        output.write(text)
+        output.close()
+
+blankheading_re = re.compile(r'#+$')
+
+# Adds blank lines where needed before and after heading lines
+# Supply placeholder heading if needed.
+def convertByLine(source, target):
+    input = io.open(source, "tr", 1, encoding="utf-8-sig")
+    lines = input.readlines()
+    input.close()
+
+    BLANK = 0       # blank line or top of file
+    HEADER = 1
+    TEXT = 2
+    linetype = BLANK
+    output = io.open(target, "tw", buffering=1, encoding='utf-8', newline='\n')
+    for line in lines:
+        line = line.rstrip()
+        prevlinetype = linetype
+        if len(line) == 0:
+            linetype = BLANK
+        elif line[0] == '#':
+            linetype = HEADER
+            if blankheading_re.match(line) and len(placeholder_heading) > 0:
+                line += " " + placeholder_heading
         else:
-            nChanged += 1
-            bakpath = path + ".orig"
-            if not os.path.isfile(bakpath):
-                os.rename(path, bakpath)
-            output = io.open(path, "tw", encoding='utf-8', newline='\n')
-            output.write(text)
-            output.close()
-            sys.stdout.write("Changed: " + shortname(path) + '\n')
+            linetype = TEXT
+        if (linetype == HEADER and prevlinetype != BLANK) or (linetype == TEXT and prevlinetype == HEADER):
+            output.write('\n')
+        output.write(line + '\n')
+    output.close
+
+def convertFile(path):
+    tmppath = path + ".tmp"
+    convertWholeFile(path, tmppath)
+    if not os.path.isfile(tmppath):
+        tmppath = path
+    tmppath2 = path + ".tmp2"
+    convertByLine(tmppath, tmppath2)
+    changed = not cmp(tmppath2, path, shallow=False)
+    if changed:
+        global nChanged
+        nChanged += 1
+        sys.stdout.write("Converted " + shortname(path) + "\n")
+        bakpath = path + ".orig"
+        if not os.path.isfile(bakpath):
+            os.rename(path, bakpath)
+        else:
+            os.remove(path)
+        os.rename(tmppath2, path)
+    if not changed:
+        os.remove(tmppath2)
+    if tmppath != path:
+        os.remove(tmppath)
 
 # Recursive routine to convert all files under the specified folder
 def convertFolder(folder):
     global nChanged
     global max_files
+    global current_dir
+    current_dir = folder
     if nChanged >= max_files:
         return
-#    sys.stdout.write("Processing " + shortname(folder) + '\n')
-#    sys.stdout.flush()
     for entry in os.listdir(folder):
         path = os.path.join(folder, entry)
         if os.path.isdir(path) and entry[0] != '.':
             convertFolder(path)
-        elif filename_re.match(entry):
+        elif filename_re.match(entry) and not entry.startswith("LICENSE"):
             convertFile(path)
         if nChanged >= max_files:
             break
+    sys.stdout.flush()
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
@@ -250,6 +390,7 @@ if __name__ == "__main__":
     elif os.path.isfile(source_dir):
         path = source_dir
         source_dir = os.path.dirname(path)
+        current_dir = source_dir
         convertFile(path)
     else:
         sys.stderr.write("Usage: python md_cleanup.py <folder>\n  Use . for current folder or hard code the path.\n")

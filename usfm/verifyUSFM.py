@@ -2,26 +2,24 @@
 # Script for verifying proper USFM.
 # Reports errors to stderr and issues.txt.
 # Set source_dir and usfmVersion to run.
+# Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Malayalam\ml_iev.work'
-language_code = 'ml'
-usfmVersion = 2     # if version 3.0 or greater, tolerates unknown tokens and verse fragments
+source_dir = r'C:\DCS\Bangwinji\bsj_reg.TA'
+language_code = 'bsj'
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
-suppress3 = True     # Suppress bad punctuation warnings
-suppress9 = False      # Suppress warnings about ASCII content
+suppress3 = False     # Suppress bad punctuation warnings
+suppress9 = True     # Suppress warnings about ASCII content
 
-if usfmVersion >= 3.0:
-    suppress1 = True
-    suppress3 = True
 if language_code in {'ha','hr','id','nag','pmy','sw'}:    # ASCII content
     suppress9 = True
 
 lastToken = None
 nextToken = None
 issuesFile = None
+aligned_usfm = None
 
 # Set Path for files in support/
 import os
@@ -31,8 +29,7 @@ import io
 import footnoted_verses
 import usfm_verses
 import re
-if usfmVersion >= 3.0:
-    import usfm_utils
+import usfm_utils
 
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
@@ -342,6 +339,7 @@ def takeV(vstr):
 reference_re = re.compile(r'[0-9]\: *[0-9]', re.UNICODE)
 
 # Looks for possible verse references and square brackets in the text, not preceded by a footnote marker.
+# This function is only called when parsing a piece of text preceded by a verse marker.
 def reportFootnotes(text):
     global lastToken
     if not lastToken.getType().startswith('f'):
@@ -350,8 +348,17 @@ def reportFootnotes(text):
         elif "[" in text:
             reportFootnote('[')
 
+def reportFootnote(trigger):
+    state = State()
+    reference = state.reference
+    if trigger == ':' or isOptional(reference) or reference in footnoted_verses.footnotedVerses:
+        reportError("Probable untagged footnote at " + reference)
+    else:
+        reportError("Possible untagged footnote at square bracket at " + reference)        
+#    reportError("  preceding Token.type was " + lastToken.getType())   # 
+
 punctuation_re = re.compile(r'([\.\?!;\:,][^ \)\]\'"’”»›])', re.UNICODE)
-spacey_re = re.compile(r'[\s]([\.\?!;\:,\)’”»›])', re.UNICODE)
+spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’”»›])', re.UNICODE)
 spacey2_re = re.compile(r'[\s]([\(\'"])[\s]', re.UNICODE)
 
 def reportPunctuation(text):
@@ -369,15 +376,6 @@ def reportPunctuation(text):
     if "''" in text:
         reportError("Repeated quotes at " + state.reference)
         
-def reportFootnote(trigger):
-    state = State()
-    reference = state.reference
-    if trigger == ':' or isOptional(reference) or reference in footnoted_verses.footnotedVerses:
-        reportError("Probable untagged footnote at " + reference)
-    else:
-        reportError("Possible untagged footnote at square bracket at " + reference)        
-    reportError("  preceding Token.type was " + lastToken.getType())
-
 def takeText(t):
     global lastToken
     state = State()
@@ -399,7 +397,8 @@ def takeText(t):
             reportError("Angle bracket not closed at " + state.reference)
     if not suppress3:
         reportPunctuation(t)
-    reportFootnotes(t)
+    if lastToken.isV() and not aligned_usfm:
+        reportFootnotes(t)
     state.addText()
 
 # Returns true if token is part of a footnote
@@ -439,7 +438,7 @@ def isTextCarryingToken(token):
     
 def take(token):
     global lastToken
-    global usfmVersion
+#    global aligned_usfm
 
     state = State()
     if isFootnote(token):
@@ -485,7 +484,7 @@ def take(token):
             reportError("Orphaned paragraph marker after " + state.reference)
         elif token.value == "v":
             reportError("Unnumbered verse after " + state.reference)
-        elif usfmVersion < 3.0:
+        elif not aligned_usfm:
             reportError("Invalid USFM token (\\" + token.value + ") near " + state.reference)
         
     lastToken = token
@@ -549,11 +548,15 @@ def reportOrphans(lines, path):
 
 # Corresponding entry point in tx-manager code is verify_contents_quiet()
 def verifyFile(path):
-    input = io.open(path, "tr", 1, encoding="utf-8-sig")
+    global aligned_usfm
+    input = io.open(path, "r", buffering=1, encoding="utf-8-sig")
     str = input.read(-1)
     input.close()
-    if usfmVersion >= 3.0:
-        str = usfm_utils.usfm3_to_usfm2(str)
+    aligned_usfm = ("lemma=" in str)
+    if aligned_usfm:
+        suppress1 = True    # don't report verse fragments
+        suppress3 = True    # don't report punctuation
+        str = usfm_utils.unalign_usfm(str)
 
     print("CHECKING " + shortname(path))
     sys.stdout.flush()

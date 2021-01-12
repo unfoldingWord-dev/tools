@@ -13,9 +13,11 @@
 # This script doesn't do anything if the files are .md files already.
 
 # Global variables
-language_code = 'hr'
-target_dir = r'E:\DCS\Croatian\hr_tn'
-source_dir = r'E:\DCS\Croatian\TN.newest'
+source_dir = r'C:\DCS\Arabic\TQ\arb_psa_tq'
+target_dir = r'C:\DCS\Arabic\ar_tq.work'
+language_code = 'ar'
+resource_type = 'tq'
+placeholder_body = "X"      # Text to use (if any) in place of missing note
 
 projects = []
 translators = []
@@ -53,12 +55,15 @@ def getBookId(path):
         else:
             global translators
             global source_versions
-            manifest = json.load(f)
-            f.close()
-            bookId = manifest['project']['id']
-            translators += manifest['translators']
-            for source in manifest['source_translations']:
-                source_versions += source['version']
+            try:
+                manifest = json.load(f)
+                f.close()
+                bookId = manifest['project']['id']
+                translators += manifest['translators']
+                for source in manifest['source_translations']:
+                    source_versions += source['version']
+            except UnicodeDecodeError as e:
+                sys.stderr.write("Can't parse: " + shortname(manifestpath) + ". Compare this file to others.\n")
     if not bookId:
         bookId = parseBookId( os.path.split(path)[1] )
     return bookId.upper()
@@ -73,6 +78,7 @@ def getBookTitle(id):
 
 # Appends information about the current book to the global projects list.
 def appendToProjects(bookId, bookTitle):
+    global resource_type
     global projects
     title = bookTitle + " translationNotes"
     if resource_type == 'tq':
@@ -86,18 +92,19 @@ def makeManifestPath():
     return os.path.join(target_dir, "projects.yaml")
     
 def makeMdPath(id, chap, chunk):
+    global resource_type
     mdPath = os.path.join(target_dir, id.lower())
     if not os.path.isdir(mdPath):
         os.mkdir(mdPath)
 
-    if id.lower() == 'psa' and len(chap) == 2:
+    if resource_type != 'tq' and id.lower() == 'psa' and len(chap) == 2:
         chap = "0" + chap
     mdPath = os.path.join(mdPath, chap)
     if not os.path.isdir(mdPath):
         os.mkdir(mdPath)
 
     chunk = chunk[0:-4]
-    if id.lower() == 'psa' and len(chunk) == 2:
+    if resource_type != 'tq' and id.lower() == 'psa' and len(chunk) == 2:
         chunk = "0" + chunk
     return os.path.join(mdPath, chunk) + ".md"
 
@@ -194,6 +201,8 @@ def convert(dir):
         os.mkdir(target_dir)
     if os.path.isfile( makeManifestPath() ):
         os.remove( makeManifestPath() )
+    if len(placeholder_body) > 0:
+        convert2md.setPlaceholderBody(placeholder_body)
     if not convertBook(dir):
         for directory in os.listdir(dir):
             folder = os.path.join(dir, directory)
@@ -204,7 +213,6 @@ def convert(dir):
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
-    resource_type = target_dir[-2:].lower()
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         source_dir = sys.argv[1]
 
@@ -212,4 +220,4 @@ if __name__ == "__main__":
         convert(source_dir)
         sys.stdout.write("Done.\n")
     else:
-        sys.stderr.write("Usage: python tntq_txt2md.py <folder>\n  Use . for current folder or hard code the path.\n")
+        sys.stderr.write("Usage: python tntq_txt2md.py <folder>\n  Use . for current folder or hard code the path in source_dir.\n")

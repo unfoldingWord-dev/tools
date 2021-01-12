@@ -463,5 +463,33 @@ verseCounts = {
     "verses": [20,29,22,11,14,17,17,13,21,11,19,17,18,20,8,21,18,24,21,15,27,21],
     "usfm_number": "67",
     "sort": 66
+  },
+	"FRT": {
+    "en_name": "Front matter",
+    "chapters": 0,
+    "verses": [],
+    "usfm_number": "A0",
+    "sort": 100
+  },
+	"BAK": {
+    "en_name": "Back matter",
+    "chapters": 0,
+    "verses": [],
+    "usfm_number": "A1",
+    "sort": 101
+  },
+	"OTH": {
+    "en_name": "Other",
+    "chapters": 0,
+    "verses": [],
+    "usfm_number": "A2",
+    "sort": 102
+  },
+	"INT": {
+    "en_name": "Introductions",
+    "chapters": 0,
+    "verses": [],
+    "usfm_number": "A3",
+    "sort": 103
   }
 }

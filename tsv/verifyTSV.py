@@ -17,12 +17,13 @@
 # A lot of these checks are done by tsv2rc.py as well.
 
 # Globals
-source_dir = r'C:\DCS\Kannada\kn_tn.work'
-language_code = 'kn'
+source_dir = r'C:\DCS\Kannada\TN.tCC'
+language_code = 'mr'
 source_language = 'en'         # The language that the notes are translated from, usually en
 #ta_dir = r'C:\DCS\English\en_tA.v13'    # English tA
-ta_dir = r'C:\DCS\Kannada\kn_ta'    # Use Target language tA if available
-obs_dir = r'C:\DCS\English\en_obs\content'    # should end in 'content'
+ta_dir = r'C:\DCS\Kannada\kn_ta.STR'    # Use Target language tA if available
+#obs_dir = r'C:\DCS\English\en_obs\content'    # should end in 'content'
+obs_dir = r'C:\DCS\Kannada\kn_obs\content'
 
 suppress1 = True    # Suppress warnings about text before first heading and TA page references in headings
 suppress2 = False    # Suppress warnings about blank headings
@@ -35,7 +36,7 @@ suppress8 = True    # Suppress warnings about invalid list style
 suppress9 = False    # Suppress warnings about ASCII content in column 9
 suppress10 = False   # Suppress warnings about heading levels
 suppress11 = True    # Suppress warnings about unbalanced parentheses
-suppress12 = True    # Suppress warnings about markdown syntax in 1-line notes
+suppress12 = False    # Suppress warnings about markdown syntax in 1-line notes
 if language_code in {'hr','id','nag','pmy','sw','en'}:    # Expect ASCII content with these languages
     suppress9 = True
 
@@ -566,8 +567,8 @@ if __name__ == "__main__":
     else:
         sys.stderr.write("Folder not found: " + source_dir + '\n') 
 
+    print("Done. Checked " + str(nChecked) + " files.\n")
     if issuesfile:
         issuesfile.close()
     else:
         print("No issues found.")
-    print("Done. Checked " + str(nChecked) + " files.\n")

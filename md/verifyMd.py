@@ -17,18 +17,20 @@
 # Reports files that have purely ASCII content.
 
 # To-do -- check for other kinds of links in headings, not just TA links.
+#          Check for ASCII titles in toc.yaml files (tA projects only)
 
 # Globals
-source_dir = r"C:\DCS\Oriya\or_tn.md"
-language_code = 'or'
+source_dir = r'C:\DCS\Bengali\bn_tn.RPP'
+language_code = 'bn'
 resource_type = 'tn'
 #ta_dir = r'C:\DCS\English\en_ta.v13'    # English tA
-ta_dir = r'C:\DCS\Oriya\or_ta'    # Target language tA
-obs_dir = r'C:\DCS\English\en_obs\content'    # should end in 'content'
+ta_dir = r'C:\DCS\Malayalam\ml_ta'    # Target language tA
+obstn_dir = r'C:\DCS\Nepali\ne_obs-tn\content'    # should end in 'content'
 en_tn_dir = r'C:\DCS\English\en_tn.md-orig'
 en_tq_dir = r'C:\DCS\English\en_tq.v10'
-tn_dir = r'C:\DCS\Oriya\or_tn.md'    # Target language tN, needed if note links are to be checked
-tw_dir = r'C:\DCS\Oriya\or_tw\bible'    # should end in 'bible'
+tn_dir = r'C:\DCS\Malayalam\ml_tn.RPP'    # Target language tN, needed if note links are to be checked
+#tn_dir = r'C:\DCS\English\en_tn.md-orig'
+tw_dir = r'C:\DCS\Telugu\te_tw'
 
 nChecked = 0
 nChanged = 0
@@ -43,12 +45,14 @@ suppress5 = False    # Suppress warnings about invalid passage links
 suppress6 = False    # Suppress warnings about invalid OBS links
 suppress7 = False    # Suppress warnings about file starting with blank line
 suppress8 = False    # Suppress warnings about invalid list style
-suppress9 = False    # Suppress warnings about ASCII content
+suppress9 = True    # Suppress warnings about ASCII content
 suppress10 = False   # Suppress warnings about heading levels
 suppress11 = True    # Suppress warnings about unbalanced parentheses
 suppress12 = False     # Suppress warnings about newlines at end of file
-suppress14 = False       # Suppress "invalid note link" warnings
-suppress15 = True       # Suppress punctuation warnings.
+suppress13 = True     # Suppress warnings about mistmatched **
+suppress14 = False     # Suppress "invalid note link" warnings
+suppress15 = True     # Suppress punctuation warnings.
+suppress16 = True     # Suppress warnings about empty files
 
 if resource_type == "ta":
     suppress1 = True
@@ -80,6 +84,7 @@ badheading_re = re.compile(r' +#')
 class State:
     def setPath(self, path):
         State.path = path
+        State.titlefile = path.endswith("title.md")
         State.linecount = 0
         State.headingcount = 0
         State.textcount = 0
@@ -123,7 +128,7 @@ class State:
         else:
             State.currlinetype = TEXT
             State.textcount += 1
-            State.italicized = (line[0] == '_' and line[-1] == '_')
+            State.italicized = (line[0] == '_' and line[-1] == '_') #  or (line[0] == '*' and line[-1] == '*') asterisks don't pass the tx check
         State.linetype.append(State.currlinetype)
         if State.ascii and not line.isascii() and not suppress9:
             State.ascii = False
@@ -184,7 +189,7 @@ def reportError(msg, report_lineno=True):
     issues = openIssuesFile()       
     if msg[-1] != '\n':
         msg += '\n'
-    if state.linecount > 0:
+    if report_lineno and state.linecount > 0:
         try:
             sys.stderr.write(shortname(state.path) + " line " + str(state.linecount) + ": " + msg)
         except UnicodeEncodeError as e:
@@ -201,9 +206,10 @@ def verifyNotEmpty(mdPath):
     empty = False
     if os.path.isfile(mdPath):
        statinfo = os.stat(mdPath)
-       if statinfo.st_size == 0:
+       if statinfo.st_size < 7:
            empty = True 
-           reportError("Empty file", False)
+           if not suppress16:
+               reportError("No content in file", False)
     return empty
 
 blankheading_re = re.compile(r'#+$')
@@ -220,11 +226,11 @@ def take(line):
     state.addLine(line)
     if not line:
         if state.linecount == 1 and not suppress7:
-            reportError("starts with blank line")
+            reportError("starts with blank line", False)
         return
     if state.prevlinetype == HEADING and state.currlinetype != BLANKLINE:
         reportError("missing blank line after heading.")
-    if state.currlinetype != HEADING:
+    if state.currlinetype != HEADING and not state.titlefile:
         if state.headingcount == 0 and not suppress1 and not state.reported1:
             reportError("has text before first heading")
             state.report1()
@@ -246,7 +252,7 @@ def take(line):
                 if badclosedHeading_re.match(line):
                     reportError("no space before closing hash mark")
             else:
-                reportError("multiple hash groups")
+                reportError("multiple hash groups on one line")
         elif not suppress2 and blankheading_re.match(line):
             reportError("blank heading")
         elif len(line) > 1 and not heading_re.match(line):
@@ -255,7 +261,7 @@ def take(line):
             if resource_type in {"tn", "tq"} and state.currheadinglevel > 1:
                 if resource_type == 'tq' or current_file != "intro.md":
                     reportError("excessive heading level: " + "#" * state.currheadinglevel)
-            elif resource_type != "ta" and state.currheadinglevel > 2:
+            elif resource_type not in {"ta","tw"} and state.currheadinglevel > 2:
                 reportError("excessive heading level")
             elif state.currheadinglevel > state.prevheadinglevel + 1:
                 if resource_type != "ta" or state.prevheadinglevel > 0:
@@ -289,7 +295,7 @@ def take(line):
     if toobold_re.match(line):
         if resource_type != "tn" or current_file != "intro.md":
             reportError("extra formatting in heading")
-    if line.count("**") % 2 == 1:
+    if not suppress13 and line.count("**") % 2 == 1:
         reportError("Line seems to have mismatched '**'")
     
 # Looks for underscores in TA links.
@@ -314,7 +320,7 @@ def checkTALinks(line):
     page = tapage_re.search(line)           # [[../ta/man/...]]
     while page:
         found = True
-        if line and line[0] == '#':
+        if line and line[0] == '#' and not current_file.endswith("intro.md"):
             reportError("tA page reference in heading")
         manpage = page.group(1)
         path = os.path.join(ta_dir, manpage)
@@ -338,7 +344,7 @@ def checkTALinks(line):
             link = talink_re.search(link.group(3))
     return found          
 
-rclink_re = re.compile(r'rc:*[\\/]+([ \w\-\*]*?)[\\/]', re.UNICODE)
+rclink_re = re.compile(r'[^s]rc:*[\\/]+([ \w\-\*]*?)[\\/]', re.UNICODE)
 rcgoodlink_re = re.compile(r'rc://[\w\-\*]+/t', re.UNICODE)
 
 # Parse tA links, note links, OBS links and passage links to verify existence of referenced .md file.
@@ -347,7 +353,7 @@ def checkMdLinks(line, fullpath):
     text = line
     rclink = rclink_re.search(text)
     while rclink:
-        if not rcgoodlink_re.match(text[rclink.start():rclink.end()+1]):
+        if not rcgoodlink_re.match(text[rclink.start()+1:rclink.end()+1]):
             reportError("malformed link: " + text[rclink.start():rclink.end()+1] + "...")
         text = text[rclink.end()+1:]
         rclink = rclink_re.search(text)
@@ -356,9 +362,8 @@ def checkMdLinks(line, fullpath):
     foundTW = checkTWLinks(line)
     if not foundOBS:        # because note links match OBS links
         foundTN = checkTNLinks(line)
-    if not foundTA and not foundOBS and not foundTW and not foundTN:    # because passagelink_re could match any of these
-        if not suppress5:
-            checkPassageLinks(line, fullpath)
+    if not suppress5:
+        checkPassageLinks(line, fullpath)
     checkReversedLinks(line)
 
 twlink_re = re.compile(r'(\(rc://[\*\w\-]+/tw/dict/bible/)(.+?)/(.+?)(\).*)', flags=re.UNICODE)      # matches rc://en/tw/dict/bible/  or rc://*/tw/dict/bible/
@@ -371,11 +376,11 @@ def checkTWLinks(line):
         path = os.path.join(tw_dir, tw.group(2))
         path = os.path.join(path, tw.group(3)) + ".md"
         if not os.path.isfile(path):
-            reportError("invalid tW link: " + article)
+            reportError("invalid tW link: " + tw.group(2) + "/" + tw.group(3))
         tw = twlink_re.search(tw.group(4))
     return found          
 
-obslink_re = re.compile(r'(rc://)([\*\w\-]+)(/tn/help/obs/)(\d+)(/\d+)(.*)', flags=re.UNICODE)
+obslink_re = re.compile(r'(rc://)([\*\w\-]+)(/tn/help/obs/)(\d+)/(\d+)(.*)', flags=re.UNICODE)
 
 # Returns True if any OBS links were found and checked.
 def checkOBSLinks(line):
@@ -386,13 +391,14 @@ def checkOBSLinks(line):
         if link.group(2) != "*" and link.group(2) != language_code:
             reportError("invalid language code in OBS link")
         elif not suppress6:
-            obsPath = os.path.join(obs_dir, link.group(4)) + ".md"
+            obsPath = os.path.join(obstn_dir, link.group(4))
+            obsPath = os.path.join(obsPath, link.group(5) + ".md")
             if not os.path.isfile(obsPath):
                 reportError("invalid OBS link: " + link.group(1) + link.group(2) + link.group(3) + link.group(4) + link.group(5))
         link = obslink_re.search(link.group(6))
     return found
 
-notelink_re = re.compile(r'(rc://)([ \*\w\-]+)(/tn/help/)(\w\w\w/\d+/\d+)(.*)', flags=re.UNICODE)
+notelink_re = re.compile(r'(rc://)([ \*\w\-]+)(/tn/help/)(\w\w\w/\d+)/(\d+)(.*)', flags=re.UNICODE)
 
 # Returns True if any notes links were found.
 # Note links currently are not rendered on live site as links.
@@ -404,11 +410,13 @@ def checkTNLinks(line):
         if notelink.group(2) != "*" and notelink.group(2) != language_code:
             reportError("invalid language code in note link: " + notelink.group(2))
         elif not suppress14:
-            notePath = os.path.join(tn_dir, notelink.group(4)) + ".md"
+#            chunkmd = notelink.group(5) + ".md"
+            notePath = os.path.join(tn_dir, notelink.group(4))
+            notePath = os.path.join(notePath, notelink.group(5) + ".md")
             notePath = os.path.normcase(notePath)
             if not os.path.isfile(notePath):
-                reportError("invalid note link: " + notelink.group(1) + notelink.group(2) + notelink.group(3) + notelink.group(4))
-        notelink = notelink_re.search(notelink.group(5))
+                reportError("invalid note link: " + notelink.group(1) + notelink.group(2) + notelink.group(3) + notelink.group(4) + "/" + notelink.group(5))
+        notelink = notelink_re.search(notelink.group(6))
 
     return found
 
@@ -432,7 +440,7 @@ def checkPassageLinks(line, fullpath):
                     reportError("invalid OBS story link: " + referent)
 #                    reported = True
         elif not (resource_type == 'obs' and obsJpg_re.match(referent)):
-            if not referent.startswith("http"):
+            if referent.isascii() and not referent.startswith("http"):
                 referencedPath = os.path.join( os.path.dirname(fullpath), referent )
                 if not suppress5 and not os.path.isfile(referencedPath):
                     reportError("invalid link: " + referent)
@@ -460,15 +468,15 @@ def reportPunctuation(text):
         three = text[bad.start():bad.end()+1]
         if three != '...' and three != '../' and three != '://':
             if not (bad.group(1)[0] in ',.:' and bad.group(1)[1] in "0123456789"):   # it's a number or verse reference
-                reportError("Bad punctuation: " + bad.group(1), False)
+                reportError("Bad punctuation: " + bad.group(1))
     if bad := spacey_re.search(text):
         three = text[bad.start()+1:bad.start()+4]
         if three != '...' and three[0:2] != '![':
-            reportError("Space before phrase ending mark: " + bad.group(1), False)
+            reportError("Space before phrase ending mark: " + bad.group(1))
     if bad := spacey2_re.search(text):
-        reportError("Free floating mark: " + bad.group(1), False)
+        reportError("Free floating mark: " + bad.group(1))
     if "''" in text:
-        reportError("Repeated quotes", False)
+        reportError("Repeated quotes")
 
 storyfile_re = re.compile(r'[0-9][0-9]\.md$')
 
@@ -494,7 +502,7 @@ def verifyFile(path):
                 checkMdLinks(line, path)
         reportParens()
         if resource_type == 'obs' and not state.italicized and storyfile_re.search(path):
-            reportError("Last line is not italicized")
+            reportError("Last line is not italicized correctly")
         if state.ascii and not suppress9:
             reportError("No non-ASCII content", False)
         if state.headingcount > state.textcount:
@@ -503,9 +511,9 @@ def verifyFile(path):
             elif resource_type in {"tq", "obs-tq"}:
                 reportError("At least one question heading does not have a corresponding answer", False)
         if not suppress12:
-            if state.currlinetype == BLANKLINE:
+            if state.currlinetype == BLANKLINE and len(lines) > 1:
                 reportError("Multiple newlines at end of file", False)
-            if gulp[-1] != '\n':
+            if gulp[-1] != '\n' and not state.titlefile:
                 reportError("No ending newline", False)
         if not suppress15:
             reportPunctuation(gulp)
@@ -521,14 +529,12 @@ def verifyFile(path):
 # Returns True if the specified file should be verified as a markdown document.
 #   Means file extension is .md
 def verifiable(path, fname):
-    v = False
-    if os.path.isfile(path) and fname[-3:].lower() == '.md':
+    v = (os.path.isfile(path) and fname[-3:].lower() == '.md')
+    if v:
         if resource_type == "ta":
             v = (fname == "01.md")
         elif resource_type == "obs":
             v = (fname != "intro.md")
-        else:
-            v = True
     if fname in {"LICENSE.md", "README.md"}:
         v = False
     return v
@@ -553,32 +559,57 @@ def verifyChapter(path, chapter, book):
         enpath = os.path.join(en_tn_dir, book)
     else:   # resource_type is 'tq'
         enpath = os.path.join(en_tq_dir, book)
-    nverses = usfm_verses.verseCounts[book.upper()]['verses'][int(chapter)-1]
-    files = os.listdir(path)
-    enpath = os.path.join(enpath, chapter)
-    en_files = os.listdir(enpath)
-    if len(files) * 4 < len(en_files):
-        reportError("Not enough files in: " + shortname(path))
-    elif len(files) > nverses + 1:
-        reportError("Too many files in: " + shortname(path))
-    else:
-        topverse = 0
-        for fname in files:      # find the highest numbered verse
-            fpath = os.path.join(path, fname)
-            if verifiable(fpath, fname):
-                pair = os.path.splitext(fname)
-                if pair[0][0] in "0123456789":      # this is meant to exclude tN intro.md files
-                    verseno = int(pair[0])
-                    if verseno > topverse:
-                        topverse = verseno
+    if verifyChapterName(book.upper(), path, chapter):
+        nverses = usfm_verses.verseCounts[book.upper()]['verses'][int(chapter)-1]
+        files = os.listdir(path)
+        enpath = os.path.join(enpath, chapter)
+        en_files = os.listdir(enpath)
+        if len(files) * 4 < len(en_files):
+            reportError("Not enough files in: " + shortname(path))
+        elif len(files) > nverses + 1:
+            reportError("Too many files in: " + shortname(path))
+        else:
+            topverse = 0
+            for fname in files:
+                fpath = os.path.join(path, fname)
+                if verifiable(fpath, fname):
+                    pair = os.path.splitext(fname)
+                    if pair[0].isdigit():
+                        verseno = int(pair[0])
+                        if verseno > topverse:          # find the highest numbered verse
+                            topverse = verseno
                     verifyFile(fpath)
-        if topverse + 5 < nverses and len(files) * 3 < len(en_files):
-            state.setPath(path)
-            reportError("Likely missing some files in: " + shortname(path))
- 
+                verifyFilename(path, fname)
+            if topverse + 5 < nverses and len(files) * 3 < len(en_files):
+                state.setPath(path)
+                reportError("Likely missing some files in: " + shortname(path))
+
+def verifyChapterName(book, path, chapter):
+    ok = True
+    if not chapter.isdigit():
+        reportError("Invalid chapter folder name: " + chapter)
+        ok = False
+    else:
+        nchap = int(chapter)
+        bookchapters = usfm_verses.verseCounts[book.upper()]['chapters']
+        if nchap < 1 or nchap > bookchapters:
+            reportError("Invalid chapter number: " + chapter)
+            ok = False
+        if "psa" in path or "PSA" in path:
+            if len(chapter) not in {2,3}:
+                reportError("Chapter folders in Psalms need 2 or 3 digits: " + chapter)
+                ok = False
+        else:
+            if len(chapter) != 2:
+                reportError("Chapter folders must have 2 digits: " + chapter)
+                ok = False
+    return ok
+
 # Counts chapter folders and reports if there are too few or too many.
 # Used for tn and tq projects only.
 def verifyBook(path, book):
+    sys.stdout.write("Checking " + book + "\n")
+    sys.stdout.flush()
     nchapters = usfm_verses.verseCounts[book.upper()]['chapters']
     nchapters_found = 0
     entries = os.listdir(path)
@@ -595,9 +626,21 @@ def verifyBook(path, book):
     state = State()
     state.setPath(path)
     if nchapters_found < nchapters:
-        reportError("Not enough chapter folders in: " + shortname(path) + "!")
+        reportError("Not enough chapter folders in: " + shortname(path) + ". Need " + str(nchapters) + " chapters.")
     elif nchapters_found > nchapters:
         reportError("Extraneous chapter folder(s) in: " + shortname(path))
+
+fname2_re = re.compile(r'[0-8][0-9]\.md$')
+fname3_re = re.compile(r'[0-1][0-9][0-9]\.md$')
+
+def verifyFilename(path, fname):
+    skip = (resource_type == 'tq' and "psa" in path and "119" in path)  # Psalm 119 in tQ has some 2-digit and some 3-digit verse numbers, and some in the 90s
+    fname_re = fname2_re
+    if resource_type == 'tn' and "psa" in path:
+        fname_re = fname3_re
+    if not skip and not fname_re.match(fname) and fname != "intro.md":
+        path = os.path.join(path, fname)
+        reportError("Invalid file name: " + path, False)
 
 # Used only for tA bottom level folders
 def verify_ta_article(dirpath):
@@ -607,18 +650,21 @@ def verify_ta_article(dirpath):
     if os.path.isfile(path):
         verifyFile(path)
     else:
-        reportError("Missing 01.md file in: " + shortname(dirpath))
+        reportError("Missing 01.md file in: " + shortname(dirpath), False)
     if not os.path.isfile(os.path.join(dirpath, "title.md")):
-        reportError("Missing title.md files in: " + shortname(dirpath))
+        reportError("Missing title.md files in: " + shortname(dirpath), False)
     if not os.path.isfile(os.path.join(dirpath, "sub-title.md")):
-        reportError("Missing sub-title.md files in: " + shortname(dirpath))
+        reportError("Missing sub-title.md files in: " + shortname(dirpath), False)
     if len(os.listdir(dirpath)) > 3:
-        reportError("Extraneous file(s) in: " + shortname(dirpath))
+        reportError("Extraneous file(s) in: " + shortname(dirpath), False)
 
 def verifyDir(dirpath):
-    # sys.stdout.flush()
+    state = State()
+    state.setPath(dirpath)
     f = os.path.basename(dirpath)
-    if resource_type in {'tq','tn'} and f.upper() in usfm_verses.verseCounts:      # it's a book folder
+    if resource_type in {'tq','tn'} and dirpath != source_dir and f.upper() not in usfm_verses.verseCounts and f.lower() != "content":
+        reportError("Invalid book folder: " + f)
+    elif resource_type in {'tq','tn'} and f.upper() in usfm_verses.verseCounts:      # it's a book folder
         verifyBook(dirpath, f)
     else:
         for f in os.listdir(dirpath):
@@ -628,7 +674,7 @@ def verifyDir(dirpath):
             elif resource_type == "ta" and f in {"01.md", "title.md", "sub-title.md"}:
                 verify_ta_article(dirpath)
                 break
-            elif os.path.isfile(path) and resource_type in {"tw","obs"} and verifiable(path, f):
+            elif os.path.isfile(path) and resource_type in {"tn","tw","obs"} and verifiable(path, f):
                 verifyFile(path)
 
 if __name__ == "__main__":

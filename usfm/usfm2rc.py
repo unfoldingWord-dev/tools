@@ -11,7 +11,7 @@
 
 # Global variables
 source_dir = r'C:\DCS\Malayalam\IEV\Stage 3'
-target_dir = r'C:\DCS\Malayalam\ml_iev.work'
+target_dir = r'C:\DCS\Malayalam\ml_iev.work2'
 en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
 
 projects = []
@@ -40,7 +40,7 @@ class State:
     toc2 = ""
     toc3 = ""
     mt = ""
-    title = ""
+    title = ""  # title is the best rendition, among toc1, toc2, and mt
     sts = ""
     postHeader = ""
     chapter = 0
@@ -58,26 +58,39 @@ class State:
 
     def addTOC1(self, toc):
         State.toc1 = toc
-        State.title = toc
-
-    def addH(self, h):
-        State.h = h
-        if not State.toc1:
-            State.title = h
-        
-    def addMT(self, mt):
-        State.mt = mt
-        if not State.toc1 and not State.h:
-            State.title = mt
+        if toc and not State.title:
+            State.title = toc
+        elif State.title.isascii() and not toc.isascii():
+            State.title = toc
+        elif not State.mt:      # mt overrides toc1
+            State.title = toc
 
     def addTOC2(self, toc):
         State.toc2 = toc
-        if not State.toc1 and not State.h and not State.mt:
+        if toc and not State.title:
+            State.title = toc
+        elif State.title.isascii() and not toc.isascii():
+            State.title = toc
+        elif not State.toc1 and not State.mt:
             State.title = toc
 
     def addTOC3(self, toc):
         State.toc3 = toc
     
+    def addH(self, h):
+        State.h = h
+        if h and not State.title:
+            State.title = h
+        elif State.title.isascii() and not h.isascii():   # favor non-ASCII titles
+            State.title = h
+        
+    def addMT(self, mt):
+        State.mt = mt
+        if not mt.isascii():    # mt is the highest priority title if not ascii
+            State.title = mt
+        elif mt and State.title.isascii():  # even if ascii, mt overrides ascii toc1, toc2, and h
+            State.title = mt
+
     def addSTS(self, sts):
         sts = sts.strip()
         if sts:

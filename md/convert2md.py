@@ -24,6 +24,7 @@ import codecs
 listitem_re = re.compile(r'[ \t]*[\*\-]')
 olistitem_re = re.compile(r'[ \t]*[0-9]+\.')
 badolistitem_re = re.compile(r'[ \t]*[0-9]+[\) ]')
+placeholder_body = ""
 
 # Markdown line types
 HEADING = 1
@@ -53,6 +54,10 @@ class State:
         else:
             State.currlinetype = TEXT
         # sys.stdout.write(str(State.linecount) + ": line length: " + str(len(line)) + ". headingcount is " + str(State.headingcount) + "\n")
+
+def setPlaceholderBody(txt):
+    global placeholder_body
+    placeholder_body = txt
 
 # Converts a tStudio-generated .txt file with a list of title/body pairs, to .md.
 # The caller guarantees that inputPath is a readable file.
@@ -97,6 +102,8 @@ def convertJson(inputPath, mdPath, shortname):
                 body = body.replace('•', '*')     # this stmt doesn't work in normalize() function!?
                 body = body.replace("#", "%")
                 body = normalize(body)
+                if len(body) == 0 and len(placeholder_body) > 0:
+                    body = placeholder_body
                 if nOut > 0:
                     mdFile.write('\n')
                 mdFile.write('# ' + title + '\n\n')
@@ -317,7 +324,7 @@ def normalize(ustr):
         str = '* ' + bad.group(1)
 
     if g_langcode != "en":
-        url = enurl_re.match(str)
+        url = enurl_re.match(str)   # This function only changes links from rc://en/...  to rc://*/...
         while url:
             str = url.group(1) + "*" + url.group(2)
             url = enurl_re.match(str)

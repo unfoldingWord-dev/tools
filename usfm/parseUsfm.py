@@ -246,6 +246,9 @@ bk_e    = usfmEndToken("bk")
 # Key term
 k_s     = usfmToken("k")
 k_e     = usfmEndToken("k")
+# Peripherals
+periph = usfmTokenValue("periph", phrase)
+
 
 element =  MatchFirst([ide, id,
                        usfmV, h,
@@ -330,6 +333,7 @@ element =  MatchFirst([ide, id,
                        tcr1, tcr2, tcr3, tcr4, tcr5, tcr6,
                        textBlock,
                        escape,
+                       periph,
                        unknown])
 
 usfm    = OneOrMore(element)
@@ -527,6 +531,7 @@ def createToken(t):
         'k':    KStartToken, 'k*':  KEndToken,
         'bk':   BKStartToken, 'bk*':  BKEndToken,
         'text': TEXTToken,
+        'periph': PeriphToken,
         'unknown': UnknownToken
     }
     for k, v in options.items():
@@ -714,6 +719,7 @@ class UsfmToken:
     def is_k_e(self):   return False
     def is_bk_s(self):  return False
     def is_bk_e(self):  return False
+    def is_periph(self):return False
 
 class UnknownToken(UsfmToken):
     def renderOn(self, printer):
@@ -1448,3 +1454,8 @@ class BKStartToken(UsfmToken):
 class BKEndToken(UsfmToken):
     def renderOn(self, printer):  return printer.render_bk_e(self)
     def is_bk_e(self):            return True
+
+# Peripherals
+class PeriphToken(UsfmToken):
+    def renderOn(self, printer):  return printer.render_periph(self)
+    def is_periph(self):          return True

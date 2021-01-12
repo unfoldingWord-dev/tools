@@ -46,20 +46,21 @@
 # Verifies presence of LICENSE and README files.
 # Verifies presence of media.yaml file for OBS projects.
 # Verifies presence of valid toc.yaml files in tA projects.
+# Verifies today's date on README file.
 #
 # To add:
 #   Check for missing config.yaml files
-#   Check for ASCII titles in toc.yaml files.
-#   Check for 01.md, title.md, and sub-title.md files in each bottom level tA folder.
+#   Check for all valid file names in each bottom level folder.
 
 # Globals
-manifestDir = r'C:\DCS\Oriya\or_tn'
+manifestDir = r'C:\DCS\Nepali\ne_tq.RPP'
 nIssues = 0
 projtype = ''
 issuesFile = None
 
 from datetime import datetime
 from datetime import date
+import pathlib
 import sys
 import os
 import yaml
@@ -148,15 +149,43 @@ def verifyAcademyProject(project):
         reportError("Invalid project:identifier: " + section)
 
 # Verifies that all chapters exist for the given folder.
-# Applies to tN and tQ projects only.
-def verifyChapters(path):
+def verifyBook(book, bookpath):
+    if not book.islower():
+        reportError("Upper case book folder: " + shortname(bookpath))
+    nchapters = usfm_verses.verseCounts[book.upper()]['chapters']
+    subdirs = os.listdir(bookpath)
+    if len(subdirs) < nchapters or ("front" in subdirs and len(subdirs) <= nchapters):
+        reportError("Missing chapters in: " + shortname(bookpath))
+    for chapter in subdirs:
+        path = os.path.join(bookpath, chapter)
+        if os.path.isdir(path):
+            verifyChapter( os.path.join(bookpath, chapter) )
+
+# Verifies the folder names correspond to books of the Bible.
+# Verifies the chapter folders and file names under each book.
+# for tN and tQ projects only.
+def verifyBooks(path):
     for book in os.listdir(path):
-        bookpath = os.path.join(path, book)
-        if len(book) == 3 and os.path.isdir(bookpath):
-            nchapters = usfm_verses.verseCounts[book.upper()]['chapters']
-            subdirs = os.listdir(bookpath)
-            if len(subdirs) < nchapters or ("front" in subdirs and len(subdirs) <= nchapters):
-                reportError("Missing chapters in: " + shortname(bookpath))
+        if book not in {".git", "LICENSE", "LICENSE.md", "README.md", "manifest.yaml"}:
+            bookpath = os.path.join(path, book)
+            if len(book) == 3 and os.path.isdir(bookpath) and book.upper() in usfm_verses.verseCounts: 
+                verifyBook(book, bookpath)
+            else:
+                reportError("Invalid(?) file or folder: " + shortname(bookpath))
+
+fname2_re = re.compile(r'[0-8][0-9]\.md$')
+fname3_re = re.compile(r'[0-1][0-9][0-9]\.md$')
+
+# Verifies that all file names in the chapter folder are legit.
+# Applies to tN and tQ projects only.
+def verifyChapter(path):
+    skip = (projtype == 'tq' and "psa" in path and "119" in path)  # Psalm 119 in tQ has some 2-digit and some 3-digit verse numbers, and some in the 90s
+    fname_re = fname2_re
+    if projtype != 'tq' and "psa" in path or "PSA" in path:
+        fname_re = fname3_re
+    for fname in os.listdir(path):
+        if not skip and not fname_re.match(fname) and fname != "intro.md":
+            reportError("Invalid file name: " + fname + " in " + shortname(path))
 
 # Verifies the checking section of the manifest.
 def verifyChecking(checking):
@@ -170,7 +199,7 @@ def verifyChecking(checking):
     if 'checking_level' in list(checking.keys()):      # would this work: 'checking_level' in checking
         if not isinstance(checking['checking_level'], str):
             reportError('checking_level must be a string')
-        elif checking['checking_level'] != '3' and projtype != 'reg':
+        elif checking['checking_level'] != '3' and projtype not in {'reg','tq'}:
             reportError("Invalid value for checking_level: " + checking['checking_level'])
 
 badname_re = re.compile(r'.*\d\d\d\d+.*\.md$')
@@ -183,7 +212,7 @@ def verifyCleanDir(dirpath):
             reportError("Unwanted media.yaml file: " + shortname(path))
         if "temp" in fname or "tmp" in fname or "orig" in fname or "bak" in fname or \
            "Copy" in fname or "txt" in fname or "projects" in fname:
-            if fname not in {"translate-original", "temple.md", "tempt.md", "contempt.md"}:
+            if fname not in {"translate-original", "temple.md", "tempt.md", "contempt.md", "habakkuk.md"}:
                 reportError("Possible extraneous file: " + shortname(path))
         elif badname_re.match(fname):
             reportError("Likely misnamed file: " + shortname(path))
@@ -231,7 +260,7 @@ def verifyDates(issued, modified):
     issuedate = datetime.strptime(issued, "%Y-%m-%d").date()
     moddate = datetime.strptime(modified, "%Y-%m-%d").date()
     if moddate != date.today():
-        reportError("Wrong date - modified: " + modified)
+        reportError("Modified date is not today: " + modified)
     if issuedate > moddate:
         reportError("Dates wrong - issued: " + issued + ", modified: " + modified)
 
@@ -250,7 +279,8 @@ def verifyDir(dirpath):
     if projtype == 'ta':
         verifyTocYamls(dirpath)
     if projtype in {'tn','tq'}:
-        verifyChapters(dirpath)
+        verifyBooks(dirpath)
+    verifyReadme(dirpath)
 
 # Manifest file verification
 def verifyFile(path):
@@ -301,8 +331,10 @@ def verifyIdentifier(core):
             projtype = id
             print("projtype = " + projtype)
         parts = manifestDir.rsplit('_', 1)
-        if id.lower() != parts[-1].lower():     # last part of directory name should match the projtype string
-            reportError("Project identifier (" + id + ") does not match last part of directory name: " + parts[-1].lower())
+        lastpart = parts[-1].lower()
+        if lastpart != id.lower() and lastpart != id.lower() + ".str" and lastpart != id.lower() + ".rpp":
+            # last part of directory name should match the projtype string
+            reportError("Project identifier (" + id + ") does not match last part of directory name: " + lastpart)
 
 # Verify that the specified fields exist and no others.
 def verifyKeys(group, dict, keys):
@@ -431,6 +463,18 @@ def verifyProjects(projects):
         for p in projects:
             verifyProject(p)
 
+def verifyReadme(dirpath):
+    readmepath = os.path.join(dirpath, "README.md")
+    if not os.path.isfile(readmepath):
+        readmepath = os.path.join(dirpath, "README")
+    if not os.path.isfile(readmepath):
+        reportError("No README file is found")
+    else:
+        pathlibpath = pathlib.Path(readmepath)
+        mtime = datetime.fromtimestamp(pathlibpath.stat().st_mtime)
+        if mtime.date() != date.today():
+            reportError("README file was not updated today")
+    
 # NOT DONE - need to support UHG-type entries
 def verifyRelation(rel):
     if not isinstance(rel, str):
@@ -452,14 +496,16 @@ def verifyRelation(rel):
                 reportError("Project code in relation element is same as current project: " + rel)
 
 # The relation element is a list of strings.
-def verifyRelations(relation):
-    uniq = set(relation)
-    if len(uniq) < len(relation):
+def verifyRelations(relations):
+    uniq = set(relations)
+    if len(uniq) < len(relations):
         reportError("There are duplicates in the relations list")
+    if len(uniq) < 2 and not isBibleType(projtype):
+        reportError("The relations list seems incomplete")
     uhg = False
-    if len(relation) < 1 and projtype != 'reg':
+    if len(relations) < 1 and projtype != 'reg':
         reportError("Missing relations in: relation")
-    for r in relation:
+    for r in relations:
         verifyRelation(r)
         if projtype == 'tn-tsv':
             parts = r.split('/')
@@ -467,6 +513,8 @@ def verifyRelations(relation):
                 uhg = True
     if projtype == 'tn-tsv' and not uhg:
         reportError("Must reference 'el-x-koine/ugnt?v=...' in relation")
+    if projtype in {'tn-tsv','tw'} and '/glt' not in relations[0]:
+        reportError("'glt' should be first relation listed for tn and tw projects, if there is a glt")
         
 # Validates the source field, which is an array of dictionaries.
 def verifySource(source):
@@ -483,12 +531,12 @@ def verifySource(source):
         if dict['identifier'] != 'tn' and projtype == 'tn-tsv':
             reportError("Incorrect source:identifier for tn-tsv project: " + dict['identifier'])
         if not re.match(r'[a-z][a-z0-9-]', dict['identifier'], re.UNICODE):
-            reportError("Invalid source:identifier (need lower case ascii, no spaces): " + dict['identifier'])
+            reportError("Invalid source:identifier (prefer lower case ascii, no spaces): " + dict['identifier'])
         if dict['language'] == 'English':
             reportError("Use a language code in source:language, not \'" + dict['language'] + '\'')
         elif dict['language'] == getLanguageId():
             reportError("Warning: source:language matches target language")
-        elif dict['language'] != 'en':
+        elif dict['language'] not in {'en','hbo','el-x-koine'}:
             reportError("Possible bad source:language: " + dict['language'])
         verifyStringField(dict, 'version', 1)
     
@@ -580,10 +628,10 @@ def verifyType(type):
 def verifyVersion(version, sourceversion):
     # The rules seem to be optional, so may comment out most of this code if necessary.
     parts = version.rsplit('.', 1)
-    if int(sourceversion) < 100 and (len(parts) < 2 or parts[0] != sourceversion or int(parts[-1]) < 1):
-        reportError("Invalid version: " + version + "; Source version is " + sourceversion)
-    if int(sourceversion) >= 100 and (len(parts) > 1 or int(parts[0]) > 99):
-        reportError("Invalid version: " + version + ". Source version is " + sourceversion)
+#    if int(sourceversion) < 100 and (len(parts) < 2 or parts[0] != sourceversion or int(parts[-1]) < 1):
+#        reportError("Invalid version: " + version + "; Source version is " + sourceversion)
+#    if int(sourceversion) >= 100 and (len(parts) > 1 or int(parts[0]) > 99):
+#        reportError("Invalid version: " + version + ". Source version is " + sourceversion)
 
 # Returns True if the file has a BOM
 def has_bom(path):

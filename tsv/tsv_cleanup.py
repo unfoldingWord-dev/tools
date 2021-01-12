@@ -33,7 +33,7 @@ import substitutions    # this module specifies the string substitutions to appl
 
 # Globals
 max_files = 99     # How many files do you want to process
-source_dir = r'C:\DCS\Kannada\TN.translationCore'  # Where are the files located
+source_dir = r'C:\DCS\Kannada\TN.tCC'  # Where are the files located
 language_code = 'kn'
 nProcessed = 0
 filename_re = re.compile(r'.*\.tsv$')
@@ -112,6 +112,7 @@ def cleanNote(note):
     note = note.rstrip(" #[\\")
     replacement = "rc://" + language_code + "/"
     note = note.replace("rc://en/", replacement)
+    note = note.replace("rc://*/", replacement)
 #    lcode = "rc://" + language_code + "/"
 #    note = note.replace(lcode, "rc://*/")
     for pair in substitutions.subs:
