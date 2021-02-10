@@ -425,7 +425,6 @@ def createToken(t):
         'r':    RToken,
         'c':    CToken,
         'ca':   CAStartToken, 'ca*':  CAEndToken,
-        'k':    KStartToken, 'k*':   KEndToken,
         'cl':   CLToken,
         'v':    VToken,
         'va':   VAStartToken, 'va*':  VAEndToken,
@@ -849,15 +848,6 @@ class CLToken(UsfmToken):
     def renderOn(self, printer):
         return printer.renderCL(self)
     def isCL(self):     return True
-
-class KStartToken(UsfmToken):
-    def renderOn(self, printer):
-        return printer.renderK_S(self)
-    def isKS(self):    return True
-class KEndToken(UsfmToken):
-    def renderOn(self, printer):
-        return printer.renderK_E(self)
-    def isKE(self):    return True
 
 class VToken(UsfmToken):
     def renderOn(self, printer):
