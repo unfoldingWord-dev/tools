@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 #
-# OBSTQ2tsv.py
+# OBS_TN_MD_to_TSV7.py
 #
-# Copyright (c) 2020 unfoldingWord
+# Copyright (c) 2020-2021 unfoldingWord
 # http://creativecommons.org/licenses/MIT/
 # See LICENSE file for details.
 #
@@ -10,10 +10,10 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2020-10-14 by RJH
+#   Last modified: 2021-02-10 by RJH
 #
 """
-Quick script to copy OBS-TQ from markdown files
+Quick script to copy OBS-TN from markdown files
     and put into a TSV file with the same format (7 columns) as UTN.
 """
 from typing import List, Tuple
@@ -25,26 +25,26 @@ import logging
 
 
 LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
-LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_obs-tq/')
+LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_obs-tn/')
 
 # The output folder below must also already exist!
 LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_translation-annotations/')
 
 
-def get_source_questions() -> Tuple[str,str,str,str,str,str,str]:
+def get_source_notes() -> Tuple[str,str,str,str,str,str,str]:
     """
-    Generator to read the OBS-TQ markdown files
-        and return questions and answers.
+    Generator to read the OBS-TN markdown files
+        and return quotes and notes.
 
     Returns a 6-tuple with:
         line number story number frame number reference strings
-        question answer
+        quote note
     """
     source_folderpath = LOCAL_SOURCE_FOLDERPATH.joinpath('content/')
     print(f"      Getting source lines from {source_folderpath}")
 
     for story_number in range(1, 50+1):
-        for frame_number in range(1, 99+1):
+        for frame_number in range(0, 99+1):
             filepath = source_folderpath.joinpath(str(story_number).zfill(2), f'{str(frame_number).zfill(2)}.md')
             if os.path.exists(filepath):
                 # print(f"Found {filepath}")
@@ -54,7 +54,7 @@ def get_source_questions() -> Tuple[str,str,str,str,str,str,str]:
                 continue
 
             state = 0
-            question = answer = None
+            quote = note = None
             with open(filepath, 'rt') as mdFile:
                 for line_number,line in enumerate(mdFile, start=1):
                     line = line.rstrip() # Remove trailing whitespace including nl char
@@ -62,61 +62,63 @@ def get_source_questions() -> Tuple[str,str,str,str,str,str,str]:
                     if not line: continue # Ignore blank lines
                     if line.startswith('# '):
                         if state == 0:
-                            assert not question
-                            assert not answer
-                            question, answer = line[2:], None
+                            assert not quote
+                            assert not note
+                            quote, note = line[2:], None
                             state = 1
                             continue
                         else: halt
                     if state == 1:
-                        assert question
-                        assert not answer
-                        answer = line
+                        assert quote
+                        assert not note
+                        note = line
                         state = 0
-                        yield line_number, story_number,frame_number, question,answer
-                        question = answer = None
-# end of get_source_questions function
+                        yield line_number, story_number,frame_number, quote,note
+                        quote = note = None
+# end of get_source_notes function
 
 
 def make_TSV_file() -> Tuple[int,int]:
     """
     """
-    print(f"    Converting OBS-TQ links to TSV…")
+    print(f"    Converting OBS-TN links to TSV…")
     output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath('OBS')
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
-    output_filepath = output_folderpath.joinpath(f'OBS_tq.tsv')
-    num_questions = j = 0
+    output_filepath = output_folderpath.joinpath(f'OBS_tn.tsv')
+    num_quotes = 0
     with open(output_filepath, 'wt') as output_TSV_file:
         # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
-        output_TSV_file.write('Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tAnnotation\n')
+        output_TSV_file.write('Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tNote\n')
         previous_ids:List[str] = ['']
-        for j, (_line_number,story_number,frame_number,question,answer) in enumerate(get_source_questions(), start=1):
-            # print(f"{j:3}/ Line {line_number:<5} {BBB} {C:>3}:{V:<3} '{question}' {answer}")
+        for _j, (_line_number,story_number,frame_number,quote,note) in enumerate(get_source_notes(), start=1):
+            # print(f"{_j:3}/ Line {line_number:<5} {BBB} {C:>3}:{V:<3} '{quote}' {note}")
             generated_id = ''
             while generated_id in previous_ids:
                 generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
             previous_ids.append(generated_id)
 
-            reference = f'{story_number}:{frame_number}'
+            reference = f'{story_number}:{"intro" if frame_number==0 else frame_number}'
             tags = ''
             support_reference = ''
-            quote = ''
-            occurrence = ''
-            question = question.strip()
-            answer = answer.strip()
-            annotation = f'{question}\\n\\n> {answer}' # This is the Markdown quoted block formatting
-            output_line = f'{reference}\t{generated_id}\t{tags}\t{support_reference}\t{quote}\t{occurrence}\t{annotation}'
+            orig_quote = quote.strip()
+            orig_quote = orig_quote.replace('...', '…')
+            orig_quote = orig_quote.replace(' …', '…').replace('… ', '…')
+            orig_quote = orig_quote.replace('…', '◊')
+            occurrence = '1' # default assumption -- could be wrong???
+            note = note.strip()
+            note = note.replace('<br>', '\\n')
+            output_line = f'{reference}\t{generated_id}\t{tags}\t{support_reference}\t{orig_quote}\t{occurrence}\t{note}'
             output_TSV_file.write(f'{output_line}\n')
-            num_questions += 1
-    print(f"      {num_questions:,} questions and answers written")
-    return num_questions
+            num_quotes += 1
+    print(f"      {num_quotes:,} quotes and notes written")
+    return num_quotes
 # end of make_TSV_file function
 
 
 def main():
     """
     """
-    print("OBSTQ2tsv.py")
+    print("OBS_TN_MD_to_TSV7.py")
     print(f"  Source folderpath is {LOCAL_SOURCE_BASE_FOLDERPATH}/")
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
     make_TSV_file()
@@ -124,4 +126,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-# end of OBSTQ2tsv.py
+# end of OBS_TN_MD_to_TSV7.py

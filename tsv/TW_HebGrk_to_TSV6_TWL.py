@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 #
-# TW_HebGrk_to_TSV7_TWL.py.py
+# TW_HebGrk_to_TSV6_TWL.py
 #
-# Copyright (c) 2020 unfoldingWord
+# Copyright (c) 2020-2021 unfoldingWord
 # http://creativecommons.org/licenses/MIT/
 # See LICENSE file for details.
 #
@@ -10,11 +10,11 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Apr 2020 by RJH
-#   Last modified: 2020-12-18 by RJH
+#   Last modified: 2021-02-10 by RJH
 #
 """
 Quick script to copy TW links out of UHB and UGNT
-    and put into a TSV file with the same format (7 columns) as UTN.
+    and put into a TSV file with 6 columns.
 """
 from typing import List, Tuple
 import os
@@ -255,7 +255,7 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
     num_simple_links = num_complex_links = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
         # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
-        output_TSV_file.write('Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tAnnotation\n')
+        output_TSV_file.write('Reference\tID\tTags\tOrigQuote\tOccurrence\tTWLink\n')
         previously_generated_ids:List[str] = ['']
         for j, (_line_number,BBB,C,V,word,occurrence,link) in enumerate(get_source_lines(BBB, nn), start=1):
             # if occurrence != 1:
@@ -266,14 +266,13 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
             elif '/bible/names/' in link: tags = 'name'
             elif '/bible/kt/' in link: tags = 'keyterm'
             # elif '/bible/other/' in link: tags = 'other'
-            annotation = ''
 
             found_id = None
             # print(f"NEW {reference} ---- {tags} {link} {word} {occurrence} '{annotation}'")
             for old_line in original_TWL_lines:
                 old_reference, old_id, old_tags, old_link, old_word, old_occurrence, old_annotation = old_line.split('\t')
                 # print(f"OLD {old_reference} {old_id} {old_tags} {old_link} {old_word} {old_occurrence} '{old_annotation}'")
-                if old_reference==reference and old_tags==tags and old_link==link and old_word==word and old_occurrence==str(occurrence) and old_annotation==annotation:
+                if old_reference==reference and old_tags==tags and old_link==link and old_word==word and old_occurrence==str(occurrence) and old_annotation=='':
                     found_id = old_id
                     break
             if found_id:
@@ -286,11 +285,11 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
                 generated_id = ''
                 while generated_id in previously_generated_ids:
                     generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
-                print(f"        Generated {generated_id} for {reference} {tags} {link} {word} {occurrence}")
+                print(f"        Generated {generated_id} for {BBB} {reference} {tags} {word} {occurrence} {link}")
                 row_id = generated_id
             previously_generated_ids.append(row_id)
 
-            output_line = f'{reference}\t{row_id}\t{tags}\t{link}\t{word}\t{occurrence}\t{annotation}'
+            output_line = f'{reference}\t{row_id}\t{tags}\t{word}\t{occurrence}\t{link}'
             output_TSV_file.write(f'{output_line}\n')
             if ' ' in word: num_complex_links += 1
             else: num_simple_links += 1
@@ -302,7 +301,7 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
 def main():
     """
     """
-    print("TW_HebGrk_to_TSV7_TWL.py.py")
+    print("TW_HebGrk_to_TSV6_TWL.py")
     print(f"  Source folderpath is {LOCAL_SOURCE_BASE_FOLDERPATH}/")
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
     total_simple_links = total_complex_links = 0
@@ -319,4 +318,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-# end of TW_HebGrk_to_TSV7_TWL.py.py
+# end of TW_HebGrk_to_TSV6_TWL.py

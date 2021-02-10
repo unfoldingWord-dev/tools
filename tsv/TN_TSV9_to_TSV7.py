@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-01-11 by RJH
+#   Last modified: 2021-02-10 by RJH
 #
 """
 Quick script to copy TN from 9-column TSV files
@@ -89,7 +89,7 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
             # print(f"{j:3}/ Line {_line_number:<5} {BBB} {C:>3}:{V:<3} {ID }'{support_reference}' '{orig_quote}' '{occurrence}' '{_gl_quote}' '{occurrence_note}'")
             if j == 1:
                 assert B=='Book' and C=='Chapter' and V=='Verse' # etc.
-                output_line = 'Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tAnnotation'
+                output_line = 'Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tNote'
             else:
                 # Do some tidying up while we're at it
                 C = C.strip(); V = V.strip(); ID = ID.strip()

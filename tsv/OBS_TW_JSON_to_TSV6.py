@@ -2,7 +2,7 @@
 #
 # OBSTW2tsv.py
 #
-# Copyright (c) 2020 unfoldingWord
+# Copyright (c) 2020-2021 unfoldingWord
 # http://creativecommons.org/licenses/MIT/
 # See LICENSE file for details.
 #
@@ -10,11 +10,11 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Apr 2020 by RJH
-#   Last modified: 2020-10-14 by RJH
+#   Last modified: 2021-02-10 by RJH
 #
 """
-Quick script to copy TW links out of UHB and UGNT
-    and put into a TSV file with the same format (7 columns) as UTN.
+Quick script to copy TW links out of Catalog v2 JSON
+    and put into a TSV file with the 6 columns.
 """
 from typing import List, Tuple
 import os
@@ -83,7 +83,7 @@ def make_TSV_file() -> Tuple[int,int]:
     num_links = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
         # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
-        output_TSV_file.write('Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tAnnotation\n')
+        output_TSV_file.write('Reference\tID\tTags\tOrigWords\tOccurrence\tTWLink\n')
         previous_ids:List[str] = ['']
         for j, (story_number_string, frame_number_string, word) in enumerate(get_source_lines(), start=1):
             # print(f"{j:3}/ Line {line_number:<5} '{word}' {story_number_string} {frame_number_string}")
@@ -113,10 +113,9 @@ def make_TSV_file() -> Tuple[int,int]:
             elif '/bible/kt/' in link: tags = 'keyterm'
             # elif '/bible/other/' in link: tags = 'other'
 
-            occurrence = 1
-            annotation = ''
+            occurrence = 1 # assumed
 
-            output_line = f'{reference}\t{generated_id}\t{tags}\t{link}\t{word}\t{occurrence}\t{annotation}'
+            output_line = f'{reference}\t{generated_id}\t{tags}\t{word}\t{occurrence}\t{link}'
             output_TSV_file.write(f'{output_line}\n')
             num_links += 1
     print(f"      {j:,} links found ({num_links:,} links written)")

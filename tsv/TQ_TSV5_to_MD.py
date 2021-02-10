@@ -10,10 +10,10 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Nov 2020 by RJH
-#   Last modified: 2021-01-12 by RJH
+#   Last modified: 2021-02-10 by RJH
 #
 """
-Quick script to copy TQ from 7-column TSV files
+Quick script to copy TQ from 5-column TSV files
     and put back into the older markdown format (for compatibility reasons)
 """
 from typing import List, Tuple, Optional
@@ -117,14 +117,14 @@ BOOK_INFO_DICT = { "gen": {"id": "gen", "title": "Genesis", "usfm": "01-GEN", "t
 
 def get_TSV_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str]:
     """
-    Generator to read the TQ 7-column TSV files
+    Generator to read the TQ 5-column TSV files
         and return the needed fields.
 
     Skips the heading row.
     Checks that unused fields are actually unused.
 
-    Returns a 2-tuple with:
-        reference, annotation
+    Returns a 3-tuple with:
+        reference, question, response
     """
     print(f"    Loading TQ {BBB} links from 7-column TSV…")
     input_filepath = input_folderpath.joinpath(f'{BBB}_tq.tsv')
@@ -133,18 +133,18 @@ def get_TSV_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str]:
             line = line.rstrip('\n\r')
             # print(f"{line_number:3}/ {line}")
             if line_number == 1:
-                assert line == 'Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tAnnotation'
+                assert line == 'Reference\tID\tTags\tQuestion\tResponse'
             else:
-                reference, rowID, tags, support_reference, quote, occurrence, annotation = line.split('\t')
-                assert reference; assert rowID; assert annotation
-                assert not tags; assert not support_reference; assert not quote; assert not occurrence
-                yield reference, annotation
+                reference, rowID, tags, question, response = line.split('\t')
+                assert reference; assert rowID; assert question; assert response
+                assert not tags
+                yield reference, question, response
 # end of get_TSV_fields function
 
 
 current_BCV = None
 markdown_text = ''
-def handle_output(output_folderpath:Path, BBB:str, fields:Optional[Tuple[str,str]]) -> int:
+def handle_output(output_folderpath:Path, BBB:str, fields:Optional[Tuple[str,str,str]]) -> int:
     """
     Function to write the TQ markdown files.
 
@@ -157,7 +157,7 @@ def handle_output(output_folderpath:Path, BBB:str, fields:Optional[Tuple[str,str
     num_files_written = 0
 
     if fields is not None:
-        reference, annotation = fields
+        reference, question, response = fields
         C, V = reference.split(':')
         # print(BBB,C,V,repr(annotation))
 
@@ -173,9 +173,9 @@ def handle_output(output_folderpath:Path, BBB:str, fields:Optional[Tuple[str,str
 
     if fields is not None:
         current_BCV = BBB, C, V
-        question, answer = annotation.split('\\n\\n> ')
+        # question, answer = annotation.split('\\n\\n> ')
         if markdown_text: markdown_text += '\n' # Blank line between questions
-        markdown_text += f'# {question}\n\n{answer}\n' # will be written on the next call
+        markdown_text += f'# {question}\n\n{response}\n' # will be written on the next call
 
     return num_files_written
 # end of handle_output

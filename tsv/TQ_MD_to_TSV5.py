@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 #
-# TQ_MD_to_TSV7.py
+# TQ_MD_to_TSV5.py
 #
-# Copyright (c) 2020 unfoldingWord
+# Copyright (c) 2020-2021 unfoldingWord
 # http://creativecommons.org/licenses/MIT/
 # See LICENSE file for details.
 #
@@ -10,11 +10,11 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2020-11-13 by RJH
+#   Last modified: 2021-02-10 by RJH
 #
 """
 Quick script to copy TQ from markdown files
-    and put into a TSV file with the same format (7 columns) as UTN.
+    and put into a TSV file with the new format (5 columns).
 """
 from typing import List, Tuple
 import os
@@ -118,11 +118,11 @@ BOOK_INFO_DICT = { "gen": {"id": "gen", "title": "Genesis", "usfm": "01-GEN", "t
 def get_source_questions(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str]:
     """
     Generator to read the TQ markdown files
-        and return questions and answers.
+        and return questions and responses.
 
     Returns a 6-tuple with:
         line number B C V reference strings
-        question answer
+        question response
     """
     bbb = BBB.lower()
     source_folderpath = LOCAL_SOURCE_FOLDERPATH.joinpath(f'{bbb}/')
@@ -142,7 +142,7 @@ def get_source_questions(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str]:
                 continue
 
             state = 0
-            question = answer = None
+            question = response = None
             with open(filepath, 'rt') as mdFile:
                 for line_number,line in enumerate(mdFile, start=1):
                     line = line.rstrip() # Remove trailing whitespace including nl char
@@ -151,18 +151,18 @@ def get_source_questions(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str]:
                     if line.startswith('# '):
                         if state == 0:
                             assert not question
-                            assert not answer
-                            question, answer = line[2:], None
+                            assert not response
+                            question, response = line[2:], None
                             state = 1
                             continue
                         else: halt
                     if state == 1:
                         assert question
-                        assert not answer
-                        answer = line
+                        assert not response
+                        response = line
                         state = 0
-                        yield line_number, BBB,C,V, question,answer
-                        question = answer = None
+                        yield line_number, BBB,C,V, question,response
+                        question = response = None
 # end of get_source_questions function
 
 
@@ -176,10 +176,10 @@ def make_TSV_file(BBB:str, nn:str) -> int:
     num_questions = 0
     with open(output_filepath, 'wt') as output_TSV_file:
         # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
-        output_TSV_file.write('Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tAnnotation\n')
+        output_TSV_file.write('Reference\tID\tTags\tQuestion\tResponse\n')
         previous_ids:List[str] = ['']
-        for _j, (_line_number,BBB,C,V,question,answer) in enumerate(get_source_questions(BBB, nn), start=1):
-            # print(f"{_j:3}/ Line {_line_number:<5} {BBB} {C:>3}:{V:<3} '{question}' {answer}")
+        for _j, (_line_number,BBB,C,V,question,response) in enumerate(get_source_questions(BBB, nn), start=1):
+            # print(f"{_j:3}/ Line {_line_number:<5} {BBB} {C:>3}:{V:<3} '{question}' {response}")
             generated_id = ''
             while generated_id in previous_ids:
                 generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
@@ -187,16 +187,13 @@ def make_TSV_file(BBB:str, nn:str) -> int:
 
             reference = f'{C}:{V}'
             tags = ''
-            support_reference = ''
-            quote = ''
-            occurrence = ''
             question = question.strip()
-            answer = answer.strip()
-            annotation = f'{question}\\n\\n> {answer}' # This is the Markdown quoted block formatting
-            output_line = f'{reference}\t{generated_id}\t{tags}\t{support_reference}\t{quote}\t{occurrence}\t{annotation}'
+            response = response.strip()
+            # annotation = f'{question}\\n\\n> {response}' # This is the Markdown quoted block formatting
+            output_line = f'{reference}\t{generated_id}\t{tags}\t{question}\t{response}'
             output_TSV_file.write(f'{output_line}\n')
             num_questions += 1
-    print(f"      {num_questions:,} questions and answers written")
+    print(f"      {num_questions:,} questions and responses written")
     return num_questions
 # end of make_TSV_file function
 
@@ -204,16 +201,16 @@ def make_TSV_file(BBB:str, nn:str) -> int:
 def main():
     """
     """
-    print("TQ_MD_to_TSV7.py")
+    print("TQ_MD_to_TSV5.py")
     print(f"  Source folderpath is {LOCAL_SOURCE_FOLDERPATH}/")
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
     total_questions = 0
     for BBB,nn in BBB_NUMBER_DICT.items():
         question_count = make_TSV_file(BBB,nn)
         total_questions += question_count
-    print(f"    {total_questions:,} total questions and answers written to {LOCAL_OUTPUT_FOLDERPATH}/")
+    print(f"    {total_questions:,} total questions and responses written to {LOCAL_OUTPUT_FOLDERPATH}/")
 # end of main function
 
 if __name__ == '__main__':
     main()
-# end of TQ_MD_to_TSV7.py
+# end of TQ_MD_to_TSV5.py

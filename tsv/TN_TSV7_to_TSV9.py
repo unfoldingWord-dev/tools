@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Nov 2020 by RJH
-#   Last modified: 2021-01-11 by RJH
+#   Last modified: 2021-02-10 by RJH
 #
 """
 Quick script to copy TN from 7-column TSV files
@@ -142,7 +142,7 @@ def get_TSV_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str,str,str,
     Checks that unused fields are actually unused.
 
     Returns a 6-tuple with:
-        reference, rowID, support_reference, quote, occurrence, annotation
+        reference, rowID, support_reference, quote, occurrence, note
     """
     print(f"    Loading TQ {BBB} links from 7-column TSV…")
     input_filepath = input_folderpath.joinpath(f'{BBB}_tn.tsv')
@@ -151,14 +151,14 @@ def get_TSV_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str,str,str,
             line = line.rstrip('\n\r')
             # print(f"{line_number:3}/ {line}")
             if line_number == 1:
-                assert line == 'Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tAnnotation'
+                assert line == 'Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tNote'
             else:
-                reference, rowID, tags, support_reference, quote, occurrence, annotation = line.split('\t')
-                assert reference; assert rowID; assert annotation
+                reference, rowID, tags, support_reference, quote, occurrence, note = line.split('\t')
+                assert reference; assert rowID; assert note
                 if quote: assert occurrence and occurrence != '0'
                 if occurrence and occurrence != '0': assert quote
                 assert not tags
-                yield reference, rowID, support_reference, quote, occurrence, annotation
+                yield reference, rowID, support_reference, quote, occurrence, note
 # end of get_TSV_fields function
 
 
@@ -179,9 +179,9 @@ def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:st
     output_filepath = output_folderpath.joinpath(f'en_tn_{nn}-{BBB}.tsv')
     with open(output_filepath, 'wt') as output_TSV_file:
         output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
-        for line_count, (reference, rowID, support_reference, quote, occurrence, annotation) in enumerate(get_TSV_fields(input_folderpath, BBB), start=1):
+        for line_count, (reference, rowID, support_reference, quote, occurrence, note) in enumerate(get_TSV_fields(input_folderpath, BBB), start=1):
             C, V = reference.split(':')
-            # print(BBB,C,V,repr(annotation))
+            # print(BBB,C,V,repr(note))
 
             orig_quote = quote.strip()
             orig_quote = orig_quote.replace(' & ', '…')
@@ -190,7 +190,7 @@ def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:st
 
             gl_quote = getGLQuote(BBB, C, V, orig_quote, occurrence)
 
-            occurrence_note = annotation.replace('\\n', '<br>')
+            occurrence_note = note.replace('\\n', '<br>')
             occurrence_note = occurrence_note.replace('rc://*/', 'rc://en/')
             occurrence_note = occurrence_note.strip().replace('  ', ' ')
 
