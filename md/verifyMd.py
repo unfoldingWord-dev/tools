@@ -20,17 +20,17 @@
 #          Check for ASCII titles in toc.yaml files (tA projects only)
 
 # Globals
-source_dir = r'C:\DCS\Bengali\bn_tn.RPP'
-language_code = 'bn'
-resource_type = 'tn'
-#ta_dir = r'C:\DCS\English\en_ta.v13'    # English tA
-ta_dir = r'C:\DCS\Malayalam\ml_ta'    # Target language tA
-obstn_dir = r'C:\DCS\Nepali\ne_obs-tn\content'    # should end in 'content'
+source_dir = r'C:\DCS\Chinese\zh_tw.RPP\bible'
+language_code = 'zh'
+resource_type = 'tw'
+#ta_dir = r'C:\DCS\English\en_ta.v13'    # English tA may be substituted for target language
+ta_dir = r'C:\DCS\Marathi\mr_ta.STR'    # Target language tA
+obstn_dir = r'C:\DCS\Kannada\kn_obs-tn\content'    # should end in 'content'
 en_tn_dir = r'C:\DCS\English\en_tn.md-orig'
 en_tq_dir = r'C:\DCS\English\en_tq.v10'
-tn_dir = r'C:\DCS\Malayalam\ml_tn.RPP'    # Target language tN, needed if note links are to be checked
+tn_dir = r'C:\DCS\Lao\lo_tn.RPP'    # Target language tN, for note link validation
 #tn_dir = r'C:\DCS\English\en_tn.md-orig'
-tw_dir = r'C:\DCS\Telugu\te_tw'
+tw_dir = r'C:\DCS\Lao\lo_tw.RPP'
 
 nChecked = 0
 nChanged = 0
@@ -45,21 +45,22 @@ suppress5 = False    # Suppress warnings about invalid passage links
 suppress6 = False    # Suppress warnings about invalid OBS links
 suppress7 = False    # Suppress warnings about file starting with blank line
 suppress8 = False    # Suppress warnings about invalid list style
-suppress9 = True    # Suppress warnings about ASCII content
+suppress9 = False    # Suppress warnings about ASCII content
 suppress10 = False   # Suppress warnings about heading levels
 suppress11 = True    # Suppress warnings about unbalanced parentheses
 suppress12 = False     # Suppress warnings about newlines at end of file
-suppress13 = True     # Suppress warnings about mistmatched **
+suppress13 = False     # Suppress warnings about mistmatched **
 suppress14 = False     # Suppress "invalid note link" warnings
 suppress15 = True     # Suppress punctuation warnings.
-suppress16 = True     # Suppress warnings about empty files
+suppress16 = False     # Suppress warnings about empty files
+suppress17 = True     # Suppress the missing intro.md file warning
 
 if resource_type == "ta":
     suppress1 = True
     suppress7 = True
 #    suppress8 = True
 #    suppress10 = True
-if language_code in {'en','ha','hr','id','nag','pmy','sw'}:    # ASCII content
+if language_code in {'en','ha','hr','id','nag','pmy','pt-br','sw'}:    # ASCII content
     suppress9 = True
 
 # Markdown line types
@@ -217,7 +218,6 @@ heading_re = re.compile(r'#+[ \t]')
 multiHash_re = re.compile(r'#+[ \t].+#', re.UNICODE)
 closedHeading_re = re.compile(r'#+[ \t].*#+[ \t]*$', re.UNICODE)
 badclosedHeading_re = re.compile(r'#+[ \t].*[^# \t]#+[ \t]*$', re.UNICODE)  # closing hash without preceding space
-toobold_re = re.compile(r'#+[ \t]+[\*_]', re.UNICODE)        # unwanted formatting in headings
 
 def take(line):
     global current_file
@@ -286,6 +286,13 @@ def take(line):
 # the lists render beautifully. I am commenting out this rule check, 1/29/19.
 #            if i > 1 and state.linetype[i-1] == BLANKLINE and state.linetype[i-2] == ORDEREDLIST_ITEM:
 #                reportError("invalid ordered list style")
+    checkLineContents(line)
+
+toobold_re = re.compile(r'#+[ \t]+[\*_]', re.UNICODE)        # unwanted formatting in headings
+unexpected_re = re.compile(r'\([^\)\[]*\]', re.UNICODE)         # ']' after left paren
+unexpected2_re = re.compile(r'\[[^\]\(]*\)', re.UNICODE)         # ')' after left square bracket
+
+def checkLineContents(line):    
     if line.find('# #') != -1:
         reportError('heading syntax error')
     if len(line) > 2 and line[0:2] == '% ':
@@ -297,7 +304,15 @@ def take(line):
             reportError("extra formatting in heading")
     if not suppress13 and line.count("**") % 2 == 1:
         reportError("Line seems to have mismatched '**'")
-    
+    if not suppress13 and line.count("***") % 2 == 1:
+        reportError("Line seems to have mismatched '***'")
+    if not suppress13 and line.count("__") % 2 == 1:
+        reportError("Line seems to have mismatched '__'")
+    if unexpected_re.search(line):
+        reportError("found ']' after left paren")
+    if unexpected2_re.search(line):
+        reportError("found ')' after left square bracket")
+
 # Looks for underscores in TA links.
 # Looks for :en: and rc://en in the line
 def checkUnconvertedLinks(line):
@@ -313,7 +328,7 @@ talink_re = re.compile(r'(\(rc://[\*\w\-]+/ta/man/)(.+?/.+?)(\).*)', flags=re.UN
 obsJpg_re = re.compile(r'https://cdn.door43.org/obs/jpg/360px/obs-en-[0-9]+\-[0-9]+\.jpg$', re.UNICODE)
 reversedlink_re = re.compile(r'\(.*\) *\[.*\]', flags=re.UNICODE)
 
-# Parse tA manual page names from the link.
+# Parse tA manual page names from the line.
 # Verifies the existence of the referenced page.
 def checkTALinks(line):
     found = False
@@ -407,9 +422,9 @@ def checkTNLinks(line):
     notelink = notelink_re.search(line)     # rc://.../tn/help/...
     while notelink:
         found = True
-        if notelink.group(2) != "*" and notelink.group(2) != language_code:
-            reportError("invalid language code in note link: " + notelink.group(2))
-        elif not suppress14:
+        if notelink.group(2) != "*":        # and notelink.group(2) != language_code:
+            reportError("need wildcard * in note link: " + notelink.group(2))
+        if not suppress14:
 #            chunkmd = notelink.group(5) + ".md"
             notePath = os.path.join(tn_dir, notelink.group(4))
             notePath = os.path.join(notePath, notelink.group(5) + ".md")
@@ -419,8 +434,17 @@ def checkTNLinks(line):
         notelink = notelink_re.search(notelink.group(6))
 
     return found
+    
+def checkOBSTNLink(link, fullpath):
+    contentDir = os.path.dirname( os.path.dirname(fullpath))
+    story = link[0: link.find("/")]
+    paragraph = link[link.find("/")+1:]
+    if story.isdigit() and paragraph.isdigit():     # otherwise it's not a story link
+        referencedPath = os.path.join( os.path.join(contentDir, story), paragraph + ".md")
+        if not os.path.isfile(referencedPath):
+            reportError("invalid OBS story link: " + link)
 
-passagelink_re = re.compile(r'] ?\(([^\)]*?)\)(.*)', flags=re.UNICODE)
+passagelink_re = re.compile(r'] *\(([^\)]*?)\)(.*)', flags=re.UNICODE)  # [blah](some-kind-of-link)...
 
 # If there is a match to passageLink_re, passage.group(1) is the URL or other text between
 # the parentheses,
@@ -429,22 +453,14 @@ def checkPassageLinks(line, fullpath):
     global resource_type
     passage = passagelink_re.search(line)
     while passage:
-        referent = passage.group(1).strip()
+        link = passage.group(1).strip()
         if resource_type == 'obs-tn':
-            contentDir = os.path.dirname( os.path.dirname(fullpath))
-            story = referent[0: referent.find("/")]
-            paragraph = referent[referent.find("/")+1:]
-            if story.isdigit() and paragraph.isdigit():     # otherwise it's not a story link
-                referencedPath = os.path.join( os.path.join(contentDir, story), paragraph + ".md")
-                if not os.path.isfile(referencedPath):
-                    reportError("invalid OBS story link: " + referent)
-#                    reported = True
-        elif not (resource_type == 'obs' and obsJpg_re.match(referent)):
-            if referent.isascii() and not referent.startswith("http"):
-                referencedPath = os.path.join( os.path.dirname(fullpath), referent )
+            checkOBSTNLink(link, fullpath)
+        elif not (resource_type == 'obs' and obsJpg_re.match(link)):
+            if link.isascii() and not link.startswith("http") and not "/ta/" in link and not '/tn/' in link:
+                referencedPath = os.path.join( os.path.dirname(fullpath), link )
                 if not suppress5 and not os.path.isfile(referencedPath):
-                    reportError("invalid link: " + referent)
-#                    reported = True
+                    reportError("invalid link: " + link)
         passage = passagelink_re.search(passage.group(2))
 
 def checkReversedLinks(line):
@@ -550,7 +566,7 @@ def verifyFrontFolder(path):
 def verifyChapter(path, chapter, book):
     state = State()
     state.setPath(path)
-    if resource_type == 'tn':
+    if resource_type == 'tn' and not suppress17:
         intropath = os.path.join(path, "intro.md")
         if not os.path.isfile(intropath):
             reportError("Chapter is missing an intro.md file: " + shortname(path))
@@ -563,6 +579,8 @@ def verifyChapter(path, chapter, book):
         nverses = usfm_verses.verseCounts[book.upper()]['verses'][int(chapter)-1]
         files = os.listdir(path)
         enpath = os.path.join(enpath, chapter)
+        if book == 'psa' and len(chapter) == 3 and chapter[0] == '0' and not os.path.isdir(enpath):
+            enpath = os.path.join( os.path.join(en_tq_dir, book), chapter[1:])
         en_files = os.listdir(enpath)
         if len(files) * 4 < len(en_files):
             reportError("Not enough files in: " + shortname(path))
@@ -626,7 +644,7 @@ def verifyBook(path, book):
     state = State()
     state.setPath(path)
     if nchapters_found < nchapters:
-        reportError("Not enough chapter folders in: " + shortname(path) + ". Need " + str(nchapters) + " chapters.")
+        reportError("There are only " + str(nchapters_found) + " chapter folders in: " + shortname(path) + ". Need " + str(nchapters) + " chapters.")
     elif nchapters_found > nchapters:
         reportError("Extraneous chapter folder(s) in: " + shortname(path))
 
@@ -638,7 +656,7 @@ def verifyFilename(path, fname):
     fname_re = fname2_re
     if resource_type == 'tn' and "psa" in path:
         fname_re = fname3_re
-    if not skip and not fname_re.match(fname) and fname != "intro.md":
+    if not skip and not fname_re.match(fname) and not fname == "intro.md" and not fname.endswith(".md.orig"):
         path = os.path.join(path, fname)
         reportError("Invalid file name: " + path, False)
 
