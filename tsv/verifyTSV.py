@@ -17,26 +17,26 @@
 # A lot of these checks are done by tsv2rc.py as well.
 
 # Globals
-source_dir = r'C:\DCS\Kannada\TN.tCC'
+source_dir = r'C:\DCS\Marathi\TN\mr_tn_65-3JN.tsv'
 language_code = 'mr'
 source_language = 'en'         # The language that the notes are translated from, usually en
 #ta_dir = r'C:\DCS\English\en_tA.v13'    # English tA
-ta_dir = r'C:\DCS\Kannada\kn_ta.STR'    # Use Target language tA if available
+ta_dir = r'C:\DCS\Marathi\mr_ta.STR'    # Use Target language tA if available
 #obs_dir = r'C:\DCS\English\en_obs\content'    # should end in 'content'
 obs_dir = r'C:\DCS\Kannada\kn_obs\content'
 
-suppress1 = True    # Suppress warnings about text before first heading and TA page references in headings
+suppress1 = False    # Suppress warnings about text before first heading and TA page references in headings
 suppress2 = False    # Suppress warnings about blank headings
-suppress3 = True    # Suppress warnings about markdown list syntax
+suppress3 = False    # Suppress warnings about markdown list syntax
 suppress4 = False    # Suppress warnings about closed headings
 suppress5 = True     # Suppress warnings about invalid passage links (don't know how to validate these with TSV)
 suppress6 = False    # Suppress warnings about invalid OBS links
 suppress7 = False    # Suppress warnings about file starting with blank line
-suppress8 = True    # Suppress warnings about invalid list style
 suppress9 = False    # Suppress warnings about ASCII content in column 9
 suppress10 = False   # Suppress warnings about heading levels
 suppress11 = True    # Suppress warnings about unbalanced parentheses
 suppress12 = False    # Suppress warnings about markdown syntax in 1-line notes
+suppress13 = True    # Suppress warnings about multiple lines in non-intro notes
 if language_code in {'hr','id','nag','pmy','sw','en'}:    # Expect ASCII content with these languages
     suppress9 = True
 
@@ -180,29 +180,50 @@ def reportError(msg):
     global rowno
     state = State()
     shortpath = shortname(state.path)
-#    key = state.key
     locater = state.locator     # the first four columns of a row
     id = ""
     if locater:
         id = locater[3]
         if len(id) > 8:
             id = id[0:8] + "..."
-
     if locater and len(locater) > 3:
         if state.md_lineno > 0:
             issue = shortpath + ": " + locater[0] + " " + locater[1] + ":" + locater[2] + " ID=(" + id + "), row " + str(rowno) + "." + str(state.md_lineno) + ": " + msg + ".\n"
         else:
             issue = shortpath + ": " + locater[0] + " " + locater[1] + ":" + locater[2] + " ID=(" + id + "), row " + str(rowno) + ": " + msg + ".\n"
-#    elif key.isascii():
-#        issue = shortpath + "ID=(" + key + "), row " + str(rowno) + ": " + msg + ".\n"
     else:
         issue = shortpath + ": row " + str(rowno) + ": " + msg + ".\n"
     sys.stderr.write(issue)
-#    except UnicodeEncodeError as e:
-#        sys.stderr.write(shortpath + ": (Unicode...), row " + str(rowno) + ": " + msg + "\n")
-#    openIssuesFile()
-#    global issuesfile
     issuesFile().write(issue)
+
+def reportSuppression(msg):
+    sys.stderr.write(msg + "\n")
+    issuesFile().write(msg + "\n")
+
+def reportSuppressions():
+    reportSuppression("")
+    if suppress1:
+        reportSuppression("Warnings about text before first heading and TA page references in headings were suppressed")
+    if suppress2:
+        reportSuppression("Warnings about blank headings were suppressed")
+    if suppress3:
+        reportSuppression("Warnings about markdown list syntax were suppressed")
+    if suppress4:
+        reportSuppression("Warnings about closed headings were suppressed")
+    if suppress6:
+        reportSuppression("Warnings about invalid OBS links were suppressed")
+    if suppress7:
+        reportSuppression("Warnings about file starting with blank line were suppressed")
+    if suppress9:
+        reportSuppression("Warnings about ASCII content in column 9 were suppressed")
+    if suppress10:
+        reportSuppression("Warnings about heading levels were suppressed")
+    if suppress11:
+        reportSuppression("Warnings about unbalanced parentheses were suppressed")
+    if suppress12:
+        reportSuppression("Warnings about markdown syntax in 1-line notes were suppressed")
+    if suppress13:
+        reportSuppression("Warnings about multiple lines in non-intro notes were suppressed")
 
 # This function, instead of take(), checks most notes.
 # Most notes consist of a single line with no headings or lists.
@@ -260,7 +281,7 @@ def take(line):
             if state.currheadinglevel > state.prevheadinglevel + 1:
                 if state.prevheadinglevel > 0:
                     reportError("heading level incremented by more than one level")
-    if state.currlinetype == LIST_ITEM and not suppress8:
+    if state.currlinetype == LIST_ITEM and not suppress3:
         if state.prevlinetype in { TEXT, HEADING }:
             reportError("invalid list syntax")
         i = state.md_lineno - 1
@@ -273,7 +294,7 @@ def take(line):
             if state.prevlinetype in { TEXT, HEADING }:
                 reportError("missing blank line before ordered list")
             i = state.md_lineno - 1
-            if i > 1 and state.linetype[i-1] == BLANKLINE and state.linetype[i-2] == ORDEREDLIST_ITEM and not suppress8:
+            if i > 1 and state.linetype[i-1] == BLANKLINE and state.linetype[i-2] == ORDEREDLIST_ITEM:
                 reportError("invalid ordered list style")
     if line.find('# #') != -1:
         reportError('Heading syntax error: # #')
@@ -402,13 +423,16 @@ def shortname(longpath):
         shortname = longpath[len(source_dir)+1:]
     return shortname
 
+unexpected_re = re.compile(r'\([^\)\[]*\]', re.UNICODE)         # ']' after left paren
+unexpected2_re = re.compile(r'\[[^\]\(]*\)', re.UNICODE)         # ')' after left square bracket
+
 # Column 9 (OccurrenceNote) verification
 def verifyNote(note, verse):
     state = State()
 
     lines = note.split("<br>")
     if len(lines) > 1:
-        if verse != "intro":
+        if verse != "intro" and not suppress13:
             reportError("Multiple lines in non-intro note")
         for line in lines:
             line = line.rstrip()
@@ -421,8 +445,10 @@ def verifyNote(note, verse):
     reportParens()
     if state.ascii and not suppress9:
         reportError("No non-ASCII content in note")
-#    if state.headingcount > state.textcount:
-#        reportError("At least one note heading is not followed by a note")
+    if unexpected_re.search(note):
+        reportError("found ']' after left paren")
+    if unexpected2_re.search(note):
+        reportError("found ')' after left square bracket")
 
 def checkColHeader(value, expected, col):
     if value != expected:
@@ -444,7 +470,7 @@ def checkHeader(row):
 def verifyGLQuote(quote, verse):
     if verse == "intro":
         if len(quote) != 0:
-            reportError("Unexpected value in GLQuote column")
+            reportError("Unexpected (non-empty) value in GLQuote column of intro note")
     else:
         if len(quote) > 0 and source_language not in {'en'}:
             if quote.isascii():
@@ -569,6 +595,7 @@ if __name__ == "__main__":
 
     print("Done. Checked " + str(nChecked) + " files.\n")
     if issuesfile:
+        reportSuppressions()
         issuesfile.close()
     else:
         print("No issues found.")
