@@ -3,13 +3,21 @@
 # An ordered list of tuples to be used for string substitutions.
 
 subs = [
- 	("\\[\\[", "[["),
- 	("\\]\\]", "]]"),
+ 	("\\ [", "["),
+ 	("\\ ]", "]"),
+ 	("\\[", "["),
+ 	("\\]", "]"),
+ 	(" ]", "]"),
  	("# <br>", "# "),
  	("#   ", "# "),
  	("#  ", "# "),
- 	("rc://en_ta/", "rc://kn/ta/"),
- 	("rc://en/", "rc://kn/")
+ 	("rc://en_ta/", "rc://te/ta/"),
+ 	("rc://en/", "rc://te/"),
+ 	("rc: ", "rc:"),
+ 	("/ ta /", "/ta/"),
+ 	("/ man /", "/man/"),
+ 	("/ translate /", "/translate/"),
+ 	("/ figs", "/figs"),
 ]
 
 #	("rc://en/", "rc://hi/"),
