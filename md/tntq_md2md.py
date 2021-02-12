@@ -9,10 +9,10 @@
 #    Fixes links of this form [[:en:...]]
 
 # Global variables
-source_dir = r'C:\DCS\Kannada\TQ'
-target_dir = r'C:\DCS\Kannada\kn_tq.STR'
+source_dir = r'C:\DCS\Marathi\TQ'
+target_dir = r'C:\DCS\Marathi\mr_tq.work'
+language_code = 'mr'
 resource_type = 'tq'
-language_code = 'kn'
 
 projects = []
 
@@ -150,6 +150,11 @@ def convertBook(path):
     bookTitle = getBookTitle(bookId)
     relativepath = shortname(path)
     if bookId and bookTitle:
+        chap01path = os.path.join(path, "01")
+        chap01pathAlt = os.path.join( os.path.join(path, bookId.lower(), "01"))
+        if os.path.isdir(chap01pathAlt) and not os.path.isdir(chap01path):
+            path = os.path.join(path, bookId.lower())
+            relativepath = shortname(path)
         nchapters = 0
         for dir in os.listdir(path):
             if isChapter(dir):
