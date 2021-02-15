@@ -13,11 +13,11 @@
 # This script doesn't do anything if the files are .md files already.
 
 # Global variables
-source_dir = r'C:\DCS\Arabic\TQ\arb_psa_tq'
-target_dir = r'C:\DCS\Arabic\ar_tq.work'
-language_code = 'ar'
+source_dir = r'C:\DCS\Chinese\TQ'
+target_dir = r'C:\DCS\Chinese\zh_tq.RPP'
+language_code = 'zh'
 resource_type = 'tq'
-placeholder_body = "X"      # Text to use (if any) in place of missing note
+placeholder_body = "x"      # Text to use in place of missing note. Leave blank if none desired.
 
 projects = []
 translators = []
@@ -63,7 +63,7 @@ def getBookId(path):
                 for source in manifest['source_translations']:
                     source_versions += source['version']
             except UnicodeDecodeError as e:
-                sys.stderr.write("Can't parse: " + shortname(manifestpath) + ". Compare this file to others.\n")
+                sys.stderr.write("Can't parse: " + shortname(manifestpath) + ". UnicodeDecodeError.\n")
     if not bookId:
         bookId = parseBookId( os.path.split(path)[1] )
     return bookId.upper()
@@ -90,7 +90,7 @@ def appendToProjects(bookId, bookTitle):
 # Returns path of temporary manifest file block listing projects converted
 def makeManifestPath():
     return os.path.join(target_dir, "projects.yaml")
-    
+
 def makeMdPath(id, chap, chunk):
     global resource_type
     mdPath = os.path.join(target_dir, id.lower())

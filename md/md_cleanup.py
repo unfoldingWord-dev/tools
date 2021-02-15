@@ -34,10 +34,14 @@ import sys
 from filecmp import cmp
 
 # Globals
-source_dir = r"C:\DCS\Kannada\kn_tn.RPP"
-language_code = 'kn'
-resource_type = 'tn'
-placeholder_heading = "(no title)"
+source_dir = r'C:\DCS\Chinese\zh_tw.RPP\bible'
+language_code = 'zh'
+resource_type = 'tw'
+
+nChanged = 0
+max_files = 1111
+
+placeholder_heading = ""
 import substitutions     # change substitutions modules as necessary; generic one is just "substitutions"
 
 suppress1 = False       # Suppress hash mark cleanup
@@ -45,15 +49,12 @@ suppress2 = True       # Suppress stdout informational messages
 if resource_type == 'ta':
     suppress1 = True
 
-nChanged = 0
-max_files = 11111
 #filename_re = re.compile(r'\d+\.md$')  # This can change for different collections of .md files
 filename_re = re.compile(r'.*\.md$')
 current_dir = ""
 if resource_type in {'tw','ta'}:
     filename_re = re.compile(r'.*\.md$')
 hash_re = re.compile(r' *(#+) +', flags=re.UNICODE)
-asterisk_re = re.compile('(\n *\* .*)\n(\n *\* )', flags=re.UNICODE)    # two list items with blank line between
 
 
 def shortname(longpath):
@@ -62,14 +63,25 @@ def shortname(longpath):
         shortname = longpath[len(source_dir)+1:]
     return shortname
 
+# asterisk_re = re.compile('(\n *\* .*)\n(\n *\* )', flags=re.UNICODE)    # two list items with blank line between
+ordered_re = re.compile(r'\n1\.[^ \n]')
+
 # Converts the text a whole file at a time.
 # Removes blank lines between list items.
+# Supplies missing space after ordered list item (1.)
+# Multiple replacements per file
 def fixLists(alltext):
-    # Multiple replacements per file
-    found = asterisk_re.search(alltext)
+    # I took out this code 11/16/20 since it appears that the markdown dialect that we support allows blank
+    # lines between list items.
+#    found = asterisk_re.search(alltext)
+#    while found:
+#        alltext = alltext[0:found.start()] + found.group(1) + found.group(2) + alltext[found.end():]
+#        found = asterisk_re.search(alltext)
+
+    found = ordered_re.search(alltext)
     while found:
-        alltext = alltext[0:found.start()] + found.group(1) + found.group(2) + alltext[found.end():]
-        found = asterisk_re.search(alltext)
+        alltext = alltext[:found.start()+3] + ' ' + alltext[found.end()-1:]
+        found = ordered_re.search(alltext)
     return alltext
 
 # Calculates and returns the new header level.
@@ -225,6 +237,7 @@ hashblanks_re = re.compile('#  +')      # multiple spaces after hash mark
 endblank_re = re.compile('[\n \t][\n \t]+\Z')     # multiple newlines/ white space at end of string
 jams_re = re.compile(r'^#+[^ \t#]', re.UNICODE+re.MULTILINE)    # hash(es) at beginning of line not followed by space
 multihash_re = re.compile(r'[^\n#]#+')  # hash group starting in the middle of a line
+percenthash_re = re.compile(r'\n% ', re.UNICODE+re.MULTILINE)   # % symbol was once used to mark a H2 heading at beginning of a line but not at the beginning of a file (verify each time)
 
 # Does some simple cleanup operations before starting the heavy conversions.
 def preliminary_cleanup(text):
@@ -244,11 +257,20 @@ def preliminary_cleanup(text):
     while found:
         text = text[:found.start()+1] + "\n\n" + text[found.start()+1:]
         found = multihash_re.search(text)
+    found = percenthash_re.search(text)
+    while found:
+        text = text[:found.start()] + "## " + text[found.end():]
+        found = percenthash_re.search(text)
     text = re.sub(hashblanks_re, "# ", text)
+    
     return text
 
-# Applies the substitutions found in substitutions.py, plus one that is language specific
+# Applies the substitutions found in substitutions.py, plus two that are language specific
 def substitution(text):
+    fromstr = "rc://" + language_code + "/"
+    text = text.replace(fromstr, "rc://*/")
+    fromstr = "rc://" + language_code + " /"
+    text = text.replace(fromstr, "rc://*/")
     substitutions.subs.append(	("rc://" + language_code + "/", "rc://*/") )
     for pair in substitutions.subs:
         text = text.replace(pair[0], pair[1])
@@ -260,6 +282,7 @@ keystring.append( re.compile(r'translate_', flags=re.UNICODE) )
 keystring.append( re.compile(r'writing_', flags=re.UNICODE) )
 keystring.append( re.compile(r'guidelines_', flags=re.UNICODE) )
 keystring.append( re.compile(r'bita_', flags=re.UNICODE) )
+extraBlankHeading_re = re.compile(r'^#+ *\n+(#+ +[\w\d])', flags=re.UNICODE+re.MULTILINE)
 
 # Reads the entire file as a string and converts it.
 def convertWholeFile(source, target):
@@ -281,10 +304,7 @@ def convertWholeFile(source, target):
     if fixHeadings and "## " in text:
         text = fixHeadingLevels(text)
 
-    # I took out this code 11/16/20 since it appears that the markdown dialect that we support allows blank
-    # lines between list items.
-    #    if asterisk_re.search(text) and not suppress2:
-    #        text = fixLists(text)
+    text = fixLists(text)
 
     # Expand the TA links
     convertme = False
@@ -297,11 +317,14 @@ def convertWholeFile(source, target):
     text = fixTnLinks(text)
     text = fixMdLinks(text)
     
+    if ebh := extraBlankHeading_re.search(text):
+        text = text[:ebh.start()] + ebh.group(1) + text[ebh.end():]
+    
     changed = (text != origtext)
     if changed:
         if len(text) < 3:
             sys.stderr.write("Empty or almost empty file: " + shortname(source) + '\n')
-        elif len(origtext) > 20 and len(text) < len(origtext) * 0.95:
+        elif len(origtext) - len(text) > 4 and len(text) < len(origtext) * 0.95:
             sys.stderr.write("Error processing (>5% size reduction): " + shortname(source) + '\n')
             changed = False
     if changed:
@@ -381,6 +404,11 @@ def convertFolder(folder):
     sys.stdout.flush()
 
 if __name__ == "__main__":
+    if resource_type == 'tq':
+        placeholder_heading = "??"
+    elif resource_type == 'tn':
+        placeholder_heading = "(note title)"
+
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         source_dir = sys.argv[1]
 

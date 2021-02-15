@@ -5,13 +5,13 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Bangwinji\bsj_reg.TA'
-language_code = 'bsj'
+source_dir = r'C:\DCS\Lao\lo_ulb.RPP\15-EZR.usfm'
+language_code = 'lo'
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
-suppress3 = False     # Suppress bad punctuation warnings
-suppress9 = True     # Suppress warnings about ASCII content
+suppress3 = True     # Suppress bad punctuation warnings
+suppress9 = False     # Suppress warnings about ASCII content
 
 if language_code in {'ha','hr','id','nag','pmy','sw'}:    # ASCII content
     suppress9 = True
@@ -21,7 +21,7 @@ nextToken = None
 issuesFile = None
 aligned_usfm = None
 
-# Set Path for files in support/
+# Set Path for files in support
 import os
 import sys
 import parseUsfm
@@ -50,6 +50,7 @@ class State:
     needPP = False
     needQQ = False
     needVerseText = False
+    textLength = 0
     textOkayHere = False
     footnote_starts = 0
     footnote_ends = 0
@@ -69,6 +70,7 @@ class State:
         State.footnote_starts = 0
         State.footnote_ends = 0
         State.needVerseText = False
+        State.textLength = 0
         State.textOkayHere = False
         State.lastRef = State.reference
         State.reference = id
@@ -102,6 +104,7 @@ class State:
         State.lastVerse = State.verse
         State.verse = int(v)
         State.needVerseText = True
+        State.textLength = 0
         State.textOkayHere = True
         State.lastRef = State.reference
         State.reference = State.ID + " " + str(State.chapter) + ":" + v
@@ -126,10 +129,14 @@ class State:
     
     def needText(self):
         return State.needVerseText
+
+    def getTextLength(self):
+        return State.textLength
         
-    def addText(self):
+    def addText(self, text):
         State.currMarker = OTHER
         State.needVerseText = False
+        State.textLength += len(text)
         State.textOkayHere = True
     
 #    def footnotes_started(self):
@@ -205,6 +212,15 @@ def reportError(msg):
     issues = openIssuesFile()       
     issues.write(msg + "\n")
 
+# Report missing text in previous verse
+def emptyVerseCheck():
+    state = State()
+    if not suppress1 and not isOptional(state.reference) and state.getTextLength() < 10:
+        if state.getTextLength() == 0:
+            reportError("Empty verse: " + state.reference)
+        else:
+            reportError("Verse fragment: " + state.reference)
+
 # Verifies that at least one book title is specified, other than the English book title.
 # This method is called just before chapter 1 begins, so there has been every
 # opportunity for the book title to be specified.
@@ -233,6 +249,7 @@ def verifyFootnotes():
     if state.footnote_starts != state.footnote_ends:
         reportError(state.ID + ": mismatched footnote tags (" + str(state.footnote_starts) + ":" + str(state.footnote_ends) + ")")
 
+# Checks whether the entire file was empty or unreadable
 def verifyNotEmpty(filename):
     state = State()
     if not state.ID or state.chapter == 0:
@@ -264,8 +281,13 @@ def takeID(id):
         reportError("Duplicate ID: " + id)
     state.addID(id)
     
+# Processes a chapter tag
 def takeC(c):
     state = State()
+    # Report missing text in previous verse
+    if c != "1":
+        emptyVerseCheck()
+
     state.addChapter(c)
     if len(state.IDs) == 0:
         reportError("Missing ID before chapter: " + c)
@@ -286,6 +308,8 @@ def takeFootnote(start, end):
 
 def takeP():
     state = State()
+    if state.currMarker == QQ:
+        reportError("Warning: \"useless \q before paragraph marker\" at: " + state.reference)
     state.addParagraph()
 
 def takeSection():
@@ -296,9 +320,12 @@ def takeSection():
         reportError("Warning: \"useless \q before section marker\" at: " + state.reference)
 
 # Receives a string containing a verse number or range of verse numbers.
+# Reports missing text in previous verse.
 # Reports errors related to the verse number(s), such as missing or duplicated verses.
 def takeV(vstr):
     state = State()
+    if vstr != "1":
+        emptyVerseCheck()   # Checks previous verse
     vlist = []
     if vstr.find('-') > 0:
         vv_range = vv_re.search(vstr)
@@ -357,7 +384,7 @@ def reportFootnote(trigger):
         reportError("Possible untagged footnote at square bracket at " + reference)        
 #    reportError("  preceding Token.type was " + lastToken.getType())   # 
 
-punctuation_re = re.compile(r'([\.\?!;\:,][^ \)\]\'"’”»›])', re.UNICODE)
+punctuation_re = re.compile(r'([\.\?!;\:,][^\s\u200b\)\]\'"’”»›])', re.UNICODE)  # note: \u200b is an invisible character, used like a space in Laotian
 spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’”»›])', re.UNICODE)
 spacey2_re = re.compile(r'[\s]([\(\'"])[\s]', re.UNICODE)
 
@@ -366,9 +393,13 @@ def reportPunctuation(text):
     state = State()
     if bad := punctuation_re.search(text):
         if text[bad.start():bad.end()+1] != '...':
-            if not (bad.group(1)[0] in ',.' and bad.group(1)[1] in "0123456789"):   # it's a number
-                if not (bad.group(1)[0] == ":" and bad.group(1)[1] in "0123456789" and lastToken.getType().startswith('f')):      # it's a verse reference inside a footnote
-                    reportError("Bad punctuation at " + state.reference + ": " + bad.group(1))
+            chars = bad.group(1)
+            if not (chars[0] in ',.' and chars[1] in "0123456789"):   # it's a number
+                if not (chars[0] == ":" and chars[1] in "0123456789"):
+                    reportError("Bad punctuation at " + state.reference + ": " + chars)
+                elif not (lastToken.getType().startswith('f') or lastToken.getType().startswith('io') \
+                          or lastToken.getType().startswith('ip')):
+                    reportError("Possible verse reference (" + chars + ") out of place: " + state.reference)
     if bad := spacey_re.search(text):
         reportError("Space before phrase ending mark at " + state.reference + ": " + bad.group(1))
     if bad := spacey2_re.search(text):
@@ -395,11 +426,11 @@ def takeText(t):
             reportError("Unresolved translation conflict near " + state.reference)
         else:
             reportError("Angle bracket not closed at " + state.reference)
-    if not suppress3:
+    if not suppress3 and not aligned_usfm:
         reportPunctuation(t)
     if lastToken.isV() and not aligned_usfm:
         reportFootnotes(t)
-    state.addText()
+    state.addText(t)
 
 # Returns true if token is part of a footnote
 def isFootnote(token):
@@ -424,17 +455,21 @@ def isOptional(ref, previous=False):
 'MRK 16:9', 'MRK 16:10', 'MRK 16:11', 'MRK 16:12', 'MRK 16:13', 'MRK 16:14', 'MRK 16:15', 'MRK 16:16',\
 'MRK 16:17', 'MRK 16:18', 'MRK 16:19', 'MRK 16:20', 
 'MRK 11:26', 'MRK 15:28', 'LUK 17:36', 'LUK 23:17', 'JHN 5:4', 'JHN 7:53', 'JHN 8:1', 'ACT 8:37', 'ACT 15:34',\
-'ACT 24:7', 'ACT 28:29', 'ROM 16:24' }
+'ACT 24:7', 'ACT 28:29', 'ROM 16:24', 'REV 12:18' }
 
 def isPoetry(token):
-    return token.isQ() or token.isQ1() or token.isQA() or token.isSP() or token.isQR() or \
-token.isQC() or token.isD()
+    return token.isQ() or token.isQ1() or token.isQ2() or token.isQ3() or token.isQA() or \
+           token.isSP() or token.isQR() or token.isQC()
 
 def isIntro(token):
-    return token.is_is() or token.is_ip() or token.is_iot() or token.is_io()
+    return token.is_is() or token.is_ip() or token.is_iot() or token.is_io() or token.is_im()
+
+def isSpecialText(token):
+    return token.isWJS() or token.isADDS() or token.isNDS() or token.isPNS() or token.isQTS() or token.is_k_s()
     
 def isTextCarryingToken(token):
-    return token.isB() or token.isM() or token.isD() or isFootnote(token) or isCrossRef(token) or isPoetry(token) or isIntro(token)
+    return token.isB() or token.isM() or isSpecialText(token) or token.isD() or \
+           isFootnote(token) or isCrossRef(token) or isPoetry(token) or isIntro(token)
     
 def take(token):
     global lastToken
@@ -443,11 +478,11 @@ def take(token):
     state = State()
     if isFootnote(token):
         state.addFootnote(token.isF_S(), token.isF_E())
-    if state.needText() and not isTextCarryingToken(token) and not suppress1 and not isOptional(state.reference):
-        if not token.isTEXT():
-            reportError("Empty verse: " + state.reference)
-        elif len(token.value) < 7 and not isPoetry(nextToken):      # Text follows verse marker but is very short
-            reportError("Verse fragment: " + state.reference)
+    # if state.needText() and not isTextCarryingToken(token) and not suppress1 and not isOptional(state.reference):
+    #     if not token.isTEXT():
+    #         reportError("Empty verse: " + state.reference)
+    #     elif len(token.value) < 14 and not isPoetry(nextToken):      # Text follows verse marker but is very short
+    #         reportError("Verse fragment: " + state.reference)
     if token.isID():
         takeID(token.value)
     elif token.isC():
@@ -471,7 +506,7 @@ def take(token):
         takeSection()
     elif token.isQA():
         state.addPoetryHeading()
-    elif token.isQ() or token.isQ1() or token.isQ2() or token.isQ3():
+    elif isPoetry(token):
         state.addPoetry()
     elif token.isH() or token.isTOC1() or token.isTOC2() or token.isMT() or token.is_imt():
         state.addTitle(token.value)
@@ -546,16 +581,19 @@ def reportOrphans(lines, path):
                 #  Will be reported later as an unresolved translation conflict
         prevline = line
 
+wjwj_re = re.compile(r' \\wj +\\wj\*', flags=re.UNICODE)
+
 # Corresponding entry point in tx-manager code is verify_contents_quiet()
 def verifyFile(path):
     global aligned_usfm
     input = io.open(path, "r", buffering=1, encoding="utf-8-sig")
     str = input.read(-1)
     input.close()
+    
+    if wjwj_re.search(str):
+        reportError(shortname(path) + " - contains empty \\wj \\wj* pair(s)")
     aligned_usfm = ("lemma=" in str)
     if aligned_usfm:
-        suppress1 = True    # don't report verse fragments
-        suppress3 = True    # don't report punctuation
         str = usfm_utils.unalign_usfm(str)
 
     print("CHECKING " + shortname(path))
@@ -569,6 +607,7 @@ def verifyFile(path):
             nextToken = tokens[n+1]
         take(token)
         n += 1
+    emptyVerseCheck()       # checks last verse in the file
     verifyNotEmpty(path)
     verifyVerseCount()      # for the last chapter
     verifyChapterCount()

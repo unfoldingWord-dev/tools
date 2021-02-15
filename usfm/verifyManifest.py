@@ -49,17 +49,17 @@
 # Verifies today's date on README file.
 #
 # To add:
-#   Check for missing config.yaml files
 #   Check for all valid file names in each bottom level folder.
 
 # Globals
-manifestDir = r'C:\DCS\Nepali\ne_tq.RPP'
+manifestDir = r'C:\DCS\Chinese\zh_tw.RPP'
 nIssues = 0
 projtype = ''
 issuesFile = None
 
 from datetime import datetime
 from datetime import date
+from datetime import timedelta
 import pathlib
 import sys
 import os
@@ -116,33 +116,35 @@ def countUsfmFiles():
 # Returns True if the specified string is a recognized Bible type of project type
 def isBibleType(id):
     return (id in {'ulb', 'udb', 'ust', 'ult', 'iev','irv','isv','reg','glt','gst', \
-                   'rlb','rob','rlob','rsb','rsob','stv','trs'})
+                   'rlb','rob','rlob','rsb','rsob','stv','trs','rlv'})
 
 # This function validates the project entries for a tA project.
 # tA projects should have four projects entries, each with specific content
+# However, the projet titles don't seem to matter. It's probably better if they are translated, but not required.
 def verifyAcademyProject(project):
     if len(project['categories']) != 1 or project['categories'][0] != 'ta':
         reportError("Invalid project:categories: " + project['categories'][0])
 
     section = project['identifier']
+    projtitle = project['title']
     if section == 'intro':
-        if project['title'] != "Introduction to Translation Academy":
-            reportError("Invalid project:title: " + project['title'])
+        if projtitle.isascii() and projtitle != "Introduction to Translation Academy":
+            reportError("Invalid project:title: " + projtitle)
         if project['sort'] != 0:
             reportError("Invalid project:sort: " + str(project['sort']))
     elif section == 'process':
-        if project['title'] != "Process Manual":
-            reportError("Invalid project:title: " + project['title'])
+        if projtitle.isascii() and projtitle != "Process Manual":
+            reportError("Invalid project:title: " + projtitle)
         if project['sort'] != 1:
             reportError("Invalid project:sort: " + str(project['sort']))
     elif section == 'translate':
-        if project['title'] != "Translation Manual":
-            reportError("Invalid project:title: " + project['title'])
+        if projtitle.isascii() and projtitle != "Translation Manual":
+            reportError("Invalid project:title: " + projtitle)
         if project['sort'] != 2:
             reportError("Invalid project:sort: " + str(project['sort']))
     elif section == 'checking':
-        if project['title'] != "Checking Manual":
-            reportError("Invalid project:title: " + project['title'])
+        if projtitle.isascii() and projtitle != "Checking Manual":
+            reportError("Invalid project:title: " + projtitle)
         if project['sort'] != 3:
             reportError("Invalid project:sort: " + str(project['sort']))
     else:
@@ -170,7 +172,7 @@ def verifyBooks(path):
             bookpath = os.path.join(path, book)
             if len(book) == 3 and os.path.isdir(bookpath) and book.upper() in usfm_verses.verseCounts: 
                 verifyBook(book, bookpath)
-            else:
+            elif not book.startswith("issues"):
                 reportError("Invalid(?) file or folder: " + shortname(bookpath))
 
 fname2_re = re.compile(r'[0-8][0-9]\.md$')
@@ -277,7 +279,8 @@ def verifyDir(dirpath):
         if not os.path.isfile(mediapath):
             reportError("Missing media.yaml file in: " + dirpath)
     if projtype == 'ta':
-        verifyTocYamls(dirpath)
+        for folder in ['checking', 'intro', 'process', 'translate']:
+            verifyYamls(dirpath, folder)
     if projtype in {'tn','tq'}:
         verifyBooks(dirpath)
     verifyReadme(dirpath)
@@ -359,16 +362,12 @@ def verifyLanguage(language):
         if language['title'].isascii():
             sys.stdout.write("Remember to localize language title: " + language['title'] + '\n')
 
-# Confirms the existence of LICENSE and README files
+# Confirms the existence of a LICENSE file
 def verifyOtherFiles():
     licensepath1 = os.path.join(manifestDir, "LICENSE.md")
     licensepath2 = os.path.join(manifestDir, "LICENSE")
-    readmepath1 = os.path.join(manifestDir, "README.md")
-    readmepath2 = os.path.join(manifestDir, "README")
     if not os.path.isfile(licensepath1) and not os.path.isfile(licensepath2):
         reportError("LICENSE file is missing")
-    if not os.path.isfile(readmepath1) and not os.path.isfile(readmepath2):
-        reportError("README file is missing")
 
 
 # Verifies that the project contains the six required fields and no others.
@@ -437,7 +436,7 @@ def verifyProject(project):
     else:
         sys.stdout.write("Verify each project entry manually.\n")   # temp until all projtypes are supported
 
-    # For most project types, the projects:identifier is really a part identifier, like book id (ULB, tQ, etc.), or section id (tA)
+# For most project types, the projects:identifier is really a part identifier, like book id (ULB, tQ, etc.), or section id (tA)
 
 # Verifies the projects list
 def verifyProjects(projects):
@@ -456,7 +455,7 @@ def verifyProjects(projects):
             reportError("There should be exactly 1 project listed under projects.")
         elif projtype == 'ta' and nprojects != 4:
             reportError("There should be exactly 4 projects listed under projects.")
-        elif projtype in {'tn','tn-tsv'} or isBibleType(projtype):
+        elif projtype in {'tn','tn-tsv','tq'} or isBibleType(projtype):
             if nprojects not in (27,39,66):
                 reportError("Number of projects listed: " + str(nprojects))
             
@@ -471,9 +470,19 @@ def verifyReadme(dirpath):
         reportError("No README file is found")
     else:
         pathlibpath = pathlib.Path(readmepath)
-        mtime = datetime.fromtimestamp(pathlibpath.stat().st_mtime)
-        if mtime.date() != date.today():
-            reportError("README file was not updated today")
+        modtime = datetime.fromtimestamp(pathlibpath.stat().st_mtime)
+        gitpath = os.path.join(dirpath, ".git/config")
+        if os.path.isfile(gitpath):
+            pathlibpath = pathlib.Path(gitpath)
+            delta = modtime - datetime.fromtimestamp(pathlibpath.stat().st_mtime)
+        else:
+            delta = timedelta(hours=2)
+        if modtime.date() != date.today():
+            reportError("Warning: README file was not updated today")
+        elif delta < timedelta(days=0, hours=0, minutes=1):
+            reportError("Reminder: README file was not updated")
+        else:
+            print("Remember to update README file.")
     
 # NOT DONE - need to support UHG-type entries
 def verifyRelation(rel):
@@ -515,7 +524,7 @@ def verifyRelations(relations):
         reportError("Must reference 'el-x-koine/ugnt?v=...' in relation")
     if projtype in {'tn-tsv','tw'} and '/glt' not in relations[0]:
         reportError("'glt' should be first relation listed for tn and tw projects, if there is a glt")
-        
+
 # Validates the source field, which is an array of dictionaries.
 def verifySource(source):
     if not source or len(source) < 1:
@@ -531,7 +540,7 @@ def verifySource(source):
         if dict['identifier'] != 'tn' and projtype == 'tn-tsv':
             reportError("Incorrect source:identifier for tn-tsv project: " + dict['identifier'])
         if not re.match(r'[a-z][a-z0-9-]', dict['identifier'], re.UNICODE):
-            reportError("Invalid source:identifier (prefer lower case ascii, no spaces): " + dict['identifier'])
+            reportError("Invalid source:identifier (need lower case ascii, no spaces): " + dict['identifier'])
         if dict['language'] == 'English':
             reportError("Use a language code in source:language, not \'" + dict['language'] + '\'')
         elif dict['language'] == getLanguageId():
@@ -565,7 +574,7 @@ def verifySubject(subject):
     elif projtype == 'tn-tsv':
         failure = (subject != 'TSV Translation Notes')
     elif projtype == 'tn':
-        failure = (subject not in {'Translation Notes', 'TSV Translation Notes'})
+        failure = (subject != 'Translation Notes')
     elif projtype == 'tq':
         failure = (subject != 'Translation Questions')
     elif isBibleType(projtype):
@@ -593,20 +602,29 @@ def verifyTitle(title):
         elif projtype in {'irv', 'isv', 'ulb', 'ult','glt'} and ("Easy" in title or "Dynamic" in title):
             reportError("Title contradicts project type: " + title)
 
+# Determines whether toc.yaml file exists.
+# Add checking for translated contents later.
 def verifyTocYaml(yamlpath):
-    yamlFile = io.open(yamlpath, "tr", encoding='utf-8-sig')
-    contents = yaml.safe_load(yamlFile)
-    yamlFile.close()
+    if os.path.isfile(yamlpath):
+        yamlFile = io.open(yamlpath, "tr", encoding='utf-8-sig')
+        contents = yaml.safe_load(yamlFile)
+        yamlFile.close()
+        sys.stdout.write("Remember to check contents of: " + shortname(yamlpath) + ' (title fields must be translated)\n')
+    else:
+        reportError("file missing: " + shortname(yamlpath))
 
-# For tA projects, verify that each folder has a valid toc.yaml file.
-def verifyTocYamls(dirpath):
-    for folder in ['checking', 'intro', 'process', 'translate']:
-        path = os.path.join(dirpath, folder)
-        path = os.path.join(path, "toc.yaml")
-        if os.path.isfile(path):
-            verifyTocYaml(path)
-        else:
-            reportError("toc.yaml file missing: " + shortname(path))
+# For tA projects, verify that each folder has a valid toc.yaml and congi.yaml file.
+def verifyYamls(dirpath, folder):
+    folderpath = os.path.join(dirpath, folder)
+    yamlpath = os.path.join(folderpath, "config.yaml")
+    if os.path.isfile(yamlpath):
+        yamlFile = io.open(yamlpath, "tr", encoding='utf-8-sig')
+        contents = yaml.safe_load(yamlFile)
+        yamlFile.close()
+    else:
+        reportError("file missing: " + shortname(yamlpath))
+    # For toc.yaml, need to check contents as well as existence of file
+    verifyTocYaml( os.path.join(folderpath, "toc.yaml") )
 
 def verifyType(type):
     failure = False

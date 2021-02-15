@@ -8,10 +8,11 @@
 #       folders are only one level deep under the English and target language folders.
 
 # Global variables
-en_ta_dir = r'C:\DCS\English\en_ta'
-en_tw_dir = r'C:\DCS\English\en_tw\bible'
-target_dir = r'C:\DCS\Malagasy\plt_tw\bible'     # should end in 'bible'
-language_code = 'plt'
+source_dir = r'C:\DCS\Chinese\TW\01'
+target_dir = r'C:\DCS\Chinese\zh_tw.RPP\bible'
+language_code = 'zh'
+en_ta_dir = r'C:\DCS\English\en_ta.v9'
+en_tw_dir = r'C:\DCS\English\en_tw.v10\bible'      # should end in 'bible'
 
 import re
 import io
@@ -47,12 +48,10 @@ def dumpArticles(dir):
         file.close()
         sys.stderr.write("Unresolved links, see " + shortname(path) + '\n')
 
-prefix_re = re.compile(r'C:\\DCS')
-
 def shortname(longpath):
     shortname = longpath
-    if prefix_re.match(longpath):
-        shortname = "..." + longpath[6:]
+    if source_dir in longpath:
+        shortname = longpath[len(source_dir)+1:]
     return shortname
 
 def makeMdPath(fname):
@@ -85,13 +84,16 @@ def convertFolder(fullpath):
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        folder = r'C:\DCS\Malagasy\plt_bible_tw_l3\01'
-    else:       # the first command line argument presumed to be a folder
-        folder = sys.argv[1]
+    if not target_dir.endswith("bible"):
+        target_dir = os.path.join(target_dir, "bible")
+    if not os.path.isdir(target_dir):
+        os.mkdir(target_dir)
 
-    if os.path.isdir(folder):
-        if not os.path.isdir(target_dir):
-            os.mkdir(target_dir)
-        convertFolder(folder)
-    print("\nDone.")
+    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
+        source_dir = sys.argv[1]
+    if source_dir and os.path.isdir(source_dir):
+        convertFolder(source_dir)
+        print("\nDone.")
+    else:
+        sys.stderr.write("Path not found: " + source_dir + '\n') 
+

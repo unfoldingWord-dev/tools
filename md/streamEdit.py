@@ -12,23 +12,18 @@ import string
 import sys
 
 # Globals
-source_dir = r'C:\DCS\Hindi\hi_tw\bible'
+source_dir = r'C:\DCS\Urdu-Deva\ur-deva_tn.RPP'
 nChanged = 0
-max_changes = 1
+max_changes = 1111
 filename_re = re.compile(r'.*\.md$')
 #filename_re = re.compile(r'.*\.usfm$')
 yes_backup = True
 
 
-# Strings to replace with
-# whole file matches use newstring[0]
-newstring = []
-newstring.append('# ')
-
 # Each element of inlinekey is matched against each line of a file.
 # The matches occur in sequence, so the result of one match impacts the next.
 inlinekey = []
-inlinekey.append( re.compile(r'(#+[^#\n]+)#+\s*$', flags=re.UNICODE) )
+inlinekey.append( re.compile(r'(##+ )', flags=re.UNICODE) )
 
 # Copies lines from input to output.
 # Modifies targeted input lines before writing them to output.
@@ -43,19 +38,18 @@ def convertByLine(path):
         if not os.path.isfile(bakpath):
             os.rename(path, bakpath)
     count = 0
-    output = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
+    output = io.open(path, "tw", encoding='utf-8', newline='\n')
     for line in lines:
         for i in range(len(inlinekey)):
             sub = inlinekey[i].match(line)
             if sub:
-                line = sub.group(1) + '\n'
+                line = line[len(sub.group(1)):]
         output.write(line)
     output.close
 
 
-# keystring is used only in line-by-line. It is searched against the entire file one time.
-keystring = re.compile(r'^#+[^#\n]+#+\s*$', flags=re.UNICODE+re.MULTILINE)
-# keystring.append( re.compile(r'\n# [^\n]+[^\?]\n', flags=re.UNICODE) )
+# keystring is used only in line-by-line, but it is searched against the entire file one time.
+keystring = re.compile(r'^##+ ', flags=re.UNICODE+re.MULTILINE)
 
 def convertFileByLines(path):
     global nChanged
@@ -69,8 +63,6 @@ def convertFileByLines(path):
         convertByLine(path)
         nChanged += 1    
         sys.stdout.write("Converted " + shortname(path) + "\n")
-
-prefix_re = re.compile(r'C:\\DCS')
 
 def shortname(longpath):
     shortname = longpath
@@ -164,22 +156,21 @@ def classic_pattern2(mdpath):
     return classic            
     
 
-wholestring = re.compile(r'# .*\n *\n# ', flags=re.UNICODE)
+wholestring = re.compile(r'([^#\n]+)(\n[^#\n])', flags=re.UNICODE)  # two non-empty lines, neither has a heading
+newstring = []
+newstring.append('# x\n\n')
+
 
 # Converts the text a whole file at a time.
 # Uses wholestring, newstring[0]
 def convertWholeFile(mdpath):
     global nChanged
 
-#    found = classic_pattern(mdpath)
     input = io.open(mdpath, "tr", 1, encoding="utf-8-sig")
     alltext = input.read()
     input.close()
-    found = wholestring.search(alltext)
+    found = wholestring.match(alltext)
     if found:
-#        input = io.open(mdpath, "tr", 1, encoding="utf-8-sig")
-#        alltext = input.read()
-#        input.close()
         if yes_backup:
             bakpath = mdpath + ".orig"
             if not os.path.isfile(bakpath):
@@ -187,10 +178,10 @@ def convertWholeFile(mdpath):
         output = io.open(mdpath, "tw", buffering=1, encoding='utf-8', newline='\n')
         
         # Use a loop for multiple replacements per file
-        while found:
-            output.write(alltext[0:found.end()-2])    # + newstring[0])
+        if found:
+            output.write("# " + found.group(1) + "\n" + found.group(2))
             alltext = alltext[found.end():]
-            found = wholestring.search(alltext)
+#            found = wholestring.search(alltext)
         output.write(alltext)
         output.close()
         sys.stdout.write("Converted " + shortname(mdpath) + "\n")
@@ -230,8 +221,8 @@ def convertFileBySub(path):
         nChanged += 1    
 
 def convertFile(path):
-    convertFileByLines(path)
-#    convertWholeFile(path)
+#    convertFileByLines(path)
+    convertWholeFile(path)
 #    convertFileBySub(path)
 
 
