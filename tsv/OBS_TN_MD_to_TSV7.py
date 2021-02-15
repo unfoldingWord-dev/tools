@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-02-10 by RJH
+#   Last modified: 2021-02-15 by RJH
 #
 """
 Quick script to copy OBS-TN from markdown files
@@ -103,7 +103,7 @@ def make_TSV_file() -> Tuple[int,int]:
             orig_quote = quote.strip()
             orig_quote = orig_quote.replace('...', '…')
             orig_quote = orig_quote.replace(' …', '…').replace('… ', '…')
-            orig_quote = orig_quote.replace('…', '◊')
+            orig_quote = orig_quote.replace('…', ' & ')
             occurrence = '1' # default assumption -- could be wrong???
             note = note.strip()
             note = note.replace('<br>', '\\n')

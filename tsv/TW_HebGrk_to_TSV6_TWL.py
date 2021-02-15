@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Apr 2020 by RJH
-#   Last modified: 2021-02-10 by RJH
+#   Last modified: 2021-02-15 by RJH
 #
 """
 Quick script to copy TW links out of UHB and UGNT
@@ -255,8 +255,8 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
     num_simple_links = num_complex_links = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
         # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
-        output_TSV_file.write('Reference\tID\tTags\tOrigQuote\tOccurrence\tTWLink\n')
-        previously_generated_ids:List[str] = ['']
+        output_TSV_file.write('Reference\tID\tTags\tOrigWords\tOccurrence\tTWLink\n')
+        previously_generated_ids:List[str] = [''] # We make ours unique per file (spec only says unique per verse)
         for j, (_line_number,BBB,C,V,word,occurrence,link) in enumerate(get_source_lines(BBB, nn), start=1):
             # if occurrence != 1:
             #     print(f"{j:3}/ Line {_line_number:<5} {BBB} {C:>3}:{V:<3} '{word}' {occurrence} {link}")
@@ -270,9 +270,9 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
             found_id = None
             # print(f"NEW {reference} ---- {tags} {link} {word} {occurrence} '{annotation}'")
             for old_line in original_TWL_lines:
-                old_reference, old_id, old_tags, old_link, old_word, old_occurrence, old_annotation = old_line.split('\t')
+                old_reference, old_id, old_tags, old_word, old_occurrence, old_link = old_line.split('\t')
                 # print(f"OLD {old_reference} {old_id} {old_tags} {old_link} {old_word} {old_occurrence} '{old_annotation}'")
-                if old_reference==reference and old_tags==tags and old_link==link and old_word==word and old_occurrence==str(occurrence) and old_annotation=='':
+                if old_reference==reference and old_tags==tags and old_link==link and old_word==word and old_occurrence==str(occurrence):
                     found_id = old_id
                     break
             if found_id:
@@ -284,7 +284,8 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
             else:
                 generated_id = ''
                 while generated_id in previously_generated_ids:
-                    generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
+                    # NOTE: We don't use 0o or 1il below coz they're easier to confuse
+                    generated_id = random.choice('abcdefghjkmnpqrstuvwxyz') + random.choice('abcdefghjkmnpqrstuvwxyz23456789') + random.choice('abcdefghjkmnpqrstuvwxyz23456789') + random.choice('abcdefghjkmnpqrstuvwxyz23456789')
                 print(f"        Generated {generated_id} for {BBB} {reference} {tags} {word} {occurrence} {link}")
                 row_id = generated_id
             previously_generated_ids.append(row_id)
@@ -293,6 +294,8 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
             output_TSV_file.write(f'{output_line}\n')
             if ' ' in word: num_complex_links += 1
             else: num_simple_links += 1
+            assert '&' not in word # We don't have any of these
+            assert '…' not in word # This one is now obsolete
     print(f"      {j:,} links written ({num_simple_links:,} simple links and {num_complex_links:,} complex links)")
     return num_simple_links, num_complex_links
 # end of make_TSV_file function
