@@ -254,7 +254,6 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
 
     num_simple_links = num_complex_links = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
-        # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
         output_TSV_file.write('Reference\tID\tTags\tOrigWords\tOccurrence\tTWLink\n')
         previously_generated_ids:List[str] = [''] # We make ours unique per file (spec only says unique per verse)
         for j, (_line_number,BBB,C,V,word,occurrence,link) in enumerate(get_source_lines(BBB, nn), start=1):

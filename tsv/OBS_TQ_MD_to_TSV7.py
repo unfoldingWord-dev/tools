@@ -10,11 +10,11 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-02-10 by RJH
+#   Last modified: 2021-02-16 by RJH
 #
 """
 Quick script to copy OBS-TQ from markdown files
-    and put into a TSV file with 5 columns.
+    and put into a TSV file with 7 columns.
 """
 from typing import List, Tuple
 import os
@@ -87,8 +87,7 @@ def make_TSV_file() -> Tuple[int,int]:
     output_filepath = output_folderpath.joinpath(f'OBS_tq.tsv')
     num_questions = 0
     with open(output_filepath, 'wt') as output_TSV_file:
-        # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
-        output_TSV_file.write('Reference\tID\tTags\tQuestion\tResponse\n')
+        output_TSV_file.write('Reference\tID\tTags\tQuote\tOccurrence\tQuestion\tResponse\n')
         previous_ids:List[str] = ['']
         for _j, (_line_number,story_number,frame_number,question,response) in enumerate(get_source_questions(), start=1):
             # print(f"{_j:3}/ Line {line_number:<5} {BBB} {C:>3}:{V:<3} '{question}' {response}")
@@ -99,13 +98,18 @@ def make_TSV_file() -> Tuple[int,int]:
 
             reference = f'{story_number}:{frame_number}'
             tags = ''
+
+            quote = ''
+            occurrence = ''
+
             question = question.strip()
             response = response.strip()
             # annotation = f'{question}\\n\\n> {response}' # This is the Markdown quoted block formatting
-            output_line = f'{reference}\t{generated_id}\t{tags}\t{question}\t{response}'
+
+            output_line = f'{reference}\t{generated_id}\t{tags}\t{quote}\t{occurrence}\t{question}\t{response}'
             output_TSV_file.write(f'{output_line}\n')
             num_questions += 1
-    print(f"      {num_questions:,} questions and responses written")
+    print(f"      {num_questions:,} 7-column questions and responses written")
     return num_questions
 # end of make_TSV_file function
 

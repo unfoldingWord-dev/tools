@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# OBS_SQ_MD_to_TSV5.py
+# OBS_SQ_MD_to_TSV7.py
 #
 # Copyright (c) 2020-2021 unfoldingWord
 # http://creativecommons.org/licenses/MIT/
@@ -10,11 +10,11 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-02-10 by RJH
+#   Last modified: 2021-02-19 by RJH
 #
 """
 Quick script to copy OBS-SQ from markdown files
-    and put into a TSV file with 5 columns.
+    and put into a TSV file with 7 columns.
 """
 from typing import List, Tuple
 import os
@@ -43,7 +43,7 @@ def get_source_questions() -> Tuple[str,str,str,str,str,str,str]:
     source_folderpath = LOCAL_SOURCE_FOLDERPATH.joinpath('content/')
     print(f"      Getting source lines from {source_folderpath}")
 
-    for story_number in range(1, 50+1):
+    for story_number in range(0, 50+1):
         filepath = source_folderpath.joinpath(f'{str(story_number).zfill(2)}.md')
         if os.path.exists(filepath):
             # print(f"Found {filepath}")
@@ -55,33 +55,40 @@ def get_source_questions() -> Tuple[str,str,str,str,str,str,str]:
         state = 0
         tag = question = response = None
         with open(filepath, 'rt') as mdFile:
-            for line_number,line in enumerate(mdFile, start=1):
-                line = line.rstrip() # Remove trailing whitespace including nl char
-                # print(f"  line={line}")
-                if not line: continue # Ignore blank lines
-                if line.startswith('# '): # Ignore the story title
-                    if state != 0: halt
-                if line.startswith('## '):
-                    assert not question
-                    assert not response
-                    tag = line[3:].strip()
-                    state = 1
-                if line.startswith('1. '):
-                    assert state == 1
-                    assert tag
-                    assert not question
-                    assert not response
-                    question, response = line[3:].strip(), None
-                    state = 2
-                    continue
-                if state == 2:
-                    assert tag
-                    assert question
-                    assert not response
-                    response = line.strip()
-                    state = 1
-                    yield line_number, story_number, tag,question,response
-                    question = response = None
+            if story_number == 0:
+                line_number = 1
+                tag = 'intro'
+                question = mdFile.read().replace('\n','\\n')
+                response = ''
+                yield line_number, story_number, tag,question,response
+            else: # stories 1..50
+                for line_number,line in enumerate(mdFile, start=1):
+                    line = line.rstrip() # Remove trailing whitespace including nl char
+                    # print(f"  line={line}")
+                    if not line: continue # Ignore blank lines
+                    if line.startswith('# '): # Ignore the story title
+                        if state != 0: halt
+                    if line.startswith('## '):
+                        assert not question
+                        assert not response
+                        tag = line[3:].strip()
+                        state = 1
+                    if line.startswith('1. '):
+                        assert state == 1
+                        assert tag
+                        assert not question
+                        assert not response
+                        question, response = line[3:].strip(), None
+                        state = 2
+                        continue
+                    if state == 2:
+                        assert tag
+                        assert question
+                        assert not response
+                        response = line.strip()
+                        state = 1
+                        yield line_number, story_number, tag,question,response
+                        question = response = None
 # end of get_source_questions function
 
 
@@ -95,8 +102,7 @@ def make_TSV_file() -> Tuple[int,int]:
     num_questions = 0
     frame_number = '?'
     with open(output_filepath, 'wt') as output_TSV_file:
-        # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
-        output_TSV_file.write('Reference\tID\tTags\tQuestion\tResponse\n')
+        output_TSV_file.write('Reference\tID\tTags\tQuote\tOccurrence\tQuestion\tResponse\n')
         previous_ids:List[str] = ['']
         for _j, (_line_number, story_number, tag,question,response) in enumerate(get_source_questions(), start=1):
             # print(f"{j:3}/ Line {line_number:<5} {BBB} {C:>3}:{V:<3} '{question}' {response}")
@@ -107,7 +113,7 @@ def make_TSV_file() -> Tuple[int,int]:
 
             if (ix := response.find('See: [')) != -1:
                 frame_number = int(response[ix+9:ix+11])
-            reference = f'{"front" if story_number==0 else story_number}:{"intro" if story_number==0 else frame_number}'
+            reference = f'{"front" if story_number==0 else story_number}:{"intro" if frame_number==0 else frame_number}'
 
 
             tags = ''
@@ -118,13 +124,17 @@ def make_TSV_file() -> Tuple[int,int]:
                 print(f"Using tag: {tag}")
                 tags = tag
 
+            quote = ''
+            occurrence = ''
+
             question = question.strip()
             response = response.strip()
             # annotation = f'{question}\\n\\n> {response}' # This is the Markdown quoted block formatting
-            output_line = f'{reference}\t{generated_id}\t{tags}\t{question}\t{response}'
+
+            output_line = f'{reference}\t{generated_id}\t{tags}\t{quote}\t{occurrence}\t{question}\t{response}'
             output_TSV_file.write(f'{output_line}\n')
             num_questions += 1
-    print(f"      {num_questions:,} questions and responses written")
+    print(f"      {num_questions:,} 7-column questions and responses written")
     return num_questions
 # end of make_TSV_file function
 
@@ -132,7 +142,7 @@ def make_TSV_file() -> Tuple[int,int]:
 def main():
     """
     """
-    print("OBS_SQ_MD_to_TSV5.py")
+    print("OBS_SQ_MD_to_TSV7.py")
     print(f"  Source folderpath is {LOCAL_SOURCE_BASE_FOLDERPATH}/")
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
     make_TSV_file()
@@ -140,4 +150,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-# end of OBS_SQ_MD_to_TSV5.py
+# end of OBS_SQ_MD_to_TSV7.py

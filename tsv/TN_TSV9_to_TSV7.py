@@ -79,7 +79,6 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
     output_filepath = output_folderpath.joinpath(f'{BBB}_tn.tsv')
     num_lines = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
-        # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
         for j, (_line_number,fields) in enumerate(get_source_lines(BBB, nn), start=1):
             try:
                 B,C,V,ID, support_reference,orig_quote,occurrence,_gl_quote,occurrence_note = fields

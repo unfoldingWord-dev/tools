@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Apr 2020 by RJH
-#   Last modified: 2021-02-10 by RJH
+#   Last modified: 2021-02-17 by RJH
 #
 """
 Quick script to copy TW links out of Catalog v2 JSON
@@ -82,7 +82,6 @@ def make_TSV_file() -> Tuple[int,int]:
     output_filepath = LOCAL_OUTPUT_FOLDERPATH.joinpath('OBS_twl.tsv')
     num_links = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
-        # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
         output_TSV_file.write('Reference\tID\tTags\tOrigWords\tOccurrence\tTWLink\n')
         previous_ids:List[str] = ['']
         for j, (story_number_string, frame_number_string, word) in enumerate(get_source_lines(), start=1):
@@ -108,9 +107,16 @@ def make_TSV_file() -> Tuple[int,int]:
                 continue
 
             tags = ''
-            if '/bible/kt/jesus' in link: tags = 'keyterm; name'
-            elif '/bible/names/' in link: tags = 'name'
-            elif '/bible/kt/' in link: tags = 'keyterm'
+            if '/bible/kt/jesus' in link:
+                tags = 'keyterm; name'
+                word = word.title()
+            elif '/bible/names/' in link:
+                tags = 'name'
+                word = word.title()
+            elif '/bible/kt/' in link:
+                tags = 'keyterm'
+                if word == 'god': word = 'God'
+                elif word == 'holyspirit': word = 'Spirit'
             # elif '/bible/other/' in link: tags = 'other'
 
             occurrence = 1 # assumed

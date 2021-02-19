@@ -87,7 +87,6 @@ def make_TSV_file() -> Tuple[int,int]:
     output_filepath = output_folderpath.joinpath(f'OBS_sn.tsv')
     num_quotes = 0
     with open(output_filepath, 'wt') as output_TSV_file:
-        # output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
         output_TSV_file.write('Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tNote\n')
         previous_ids:List[str] = ['']
         for _j, (_line_number,story_number,frame_number,quote,note) in enumerate(get_source_notes(), start=1):
