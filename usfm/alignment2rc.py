@@ -10,9 +10,11 @@ import sys
 import os
 
 # Global variables
-source_dir = r'C:\DCS\Marathi\IRV'   # folder containing usfm files to be converted
-target_dir = r'C:\DCS\Marathi\mr_irv.new'
+source_dir = r'C:\DCS\Russian\RSOB'   # folder containing usfm files to be converted
+target_dir = r'C:\DCS\Russian\ru_rsob.temp'
 projects = []
+contributors = []
+checkers = []
 # Set Path for files in support/
 # rootdiroftools = os.path.dirname(os.path.abspath(__file__))
 # sys.path.append(os.path.join(rootdiroftools,'support'))
@@ -22,6 +24,7 @@ import io
 import codecs
 import re
 import operator
+import json
 
 class State:
     ID = ""
@@ -136,6 +139,30 @@ class State:
 #     def __str__(self):
 # #        return repr(self.value)
 #         return self.value
+
+# Gets the translator and checker names from the manifest.json file in the specified folder.
+# Adds them to the global list.
+def parseManifestJson(folder):
+    path = os.path.join(folder, "manifest.json")
+    try:
+        jsonFile = io.open(path, "tr", encoding='utf-8-sig')
+    except IOError as e:
+        sys.stderr.write("   Can't open: " + path + "\n")
+        sys.stderr.flush()
+    else:
+        global contributors
+        global checkers
+        try:
+            manifest = json.load(jsonFile)
+        except ValueError as e:
+            sys.stderr.write("   Can't parse: " + path + ".\n")
+            sys.stderr.flush()
+        else:
+#            contributors += manifest['translators']
+            contributors += [x.title() for x in manifest['translators']]
+#            checkers += manifest['checkers']
+            checkers += [x.title() for x in manifest['checkers']]
+        jsonFile.close()
 
 # Returns True if the project already exists in the array of projects.
 def projectExists(id):
@@ -313,10 +340,32 @@ def convertFolder(folder):
         elif fname[-3:].lower() == 'sfm':
             try:
                 convertFile(path, fname)
+                parseManifestJson(folder)
                 appendToProjects()
             except RuntimeError as dup:
                 printError(str(dup))
             
+# Eliminates duplicates from contributors list and sorts the list.
+# Outputs list to contributors.txt.
+def dumpContributors():
+    global contributors
+    contribs = list(set(contributors))
+    contribs.sort()
+    path = os.path.join(target_dir, "contributors.txt")
+    f = io.open(path, 'tw', encoding='utf-8', newline='\n')
+    f.write("Translators:\n")
+    for name in contribs:
+        if name:
+            f.write('    - "' + name + '"\n')
+
+    contribs = list(set(checkers))
+    contribs.sort()            
+    f.write("\nCheckers:\n")
+    for name in contribs:
+        if name:
+            f.write('    - "' + name + '"\n')
+    f.close()
+
 # Sort the list of projects and write to projects.yaml
 def dumpProjects():
     global projects
@@ -345,6 +394,7 @@ if __name__ == "__main__":
         source_dir = sys.argv[1]
     convertFolder(source_dir)
     dumpProjects()
+    dumpContributors()
     sys.stderr.flush()
 
     print("\nDone.")
