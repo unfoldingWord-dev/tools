@@ -52,7 +52,7 @@
 #   Check for all valid file names in each bottom level folder.
 
 # Globals
-manifestDir = r'C:\DCS\Chinese\zh_tw.RPP'
+manifestDir = r'C:\DCS\Russian\ru_rsob.STR'
 nIssues = 0
 projtype = ''
 issuesFile = None
@@ -210,7 +210,7 @@ badname_re = re.compile(r'.*\d\d\d\d+.*\.md$')
 def verifyCleanDir(dirpath):
     for fname in os.listdir(dirpath):
         path = os.path.join(dirpath, fname)
-        if projtype in {'ta'} and fname == 'media.yaml':
+        if projtype == 'ta' and fname == 'media.yaml':
             reportError("Unwanted media.yaml file: " + shortname(path))
         if "temp" in fname or "tmp" in fname or "orig" in fname or "bak" in fname or \
            "Copy" in fname or "txt" in fname or "projects" in fname:
@@ -249,6 +249,8 @@ def verifyCore(core):
     pub = core['publisher']
     if pub.lower().find('unfolding') >= 0 and core['language']['identifier'] != 'en':
         reportError("Invalid publisher: " + pub)
+    if pub.lower() == "door43":
+        reportError("This is probably the wrong publisher name: ", + pub)
     verifyRelations(core['relation'])
     if 'rights' in list(core.keys()) and core['rights'] != 'CC BY-SA 4.0':  # would this work: 'rights' in core
         reportError("Invalid value for rights: " + core['rights'])
@@ -281,6 +283,7 @@ def verifyDir(dirpath):
     if projtype == 'ta':
         for folder in ['checking', 'intro', 'process', 'translate']:
             verifyYamls(dirpath, folder)
+        sys.stdout.write("Remember to check contents of 4 toc.yaml files. (Title fields must be translated.)\n")
     if projtype in {'tn','tq'}:
         verifyBooks(dirpath)
     verifyReadme(dirpath)
@@ -398,7 +401,7 @@ def verifyProject(project):
             reportError("Invalid project:categories: " + cat)
     elif projtype == 'tw':
         if project['title'] != 'translationWords':
-            reportError("Invalid project:title: " + project['title'])
+            reportError("Invalid project:title: " + project['title'] + ". Should be translationWords")
     elif isBibleType(projtype):
         bookinfo = usfm_verses.verseCounts[project['identifier'].upper()]
         if int(project['sort']) != bookinfo['sort']:
@@ -609,7 +612,6 @@ def verifyTocYaml(yamlpath):
         yamlFile = io.open(yamlpath, "tr", encoding='utf-8-sig')
         contents = yaml.safe_load(yamlFile)
         yamlFile.close()
-        sys.stdout.write("Remember to check contents of: " + shortname(yamlpath) + ' (title fields must be translated)\n')
     else:
         reportError("file missing: " + shortname(yamlpath))
 
