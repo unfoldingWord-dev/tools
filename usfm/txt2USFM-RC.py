@@ -8,9 +8,9 @@
 #    Converts multiple books at once.
 
 # Global variables
-source_dir = r'C:\DCS\Malagasy\plt_isa_text_ulb'
-target_dir = r'C:\DCS\Malagasy\plt_ulb'
-language_code = "plt"
+source_dir = r'C:\DCS\Amharic\UDB'
+target_dir = r'C:\DCS\Amharic\am_udb.temp'
+language_code = "am"
 mark_chunks = True   # Should be true for GL source text
 
 import usfm_verses
@@ -401,22 +401,26 @@ def parseManifest(path):
             sys.stderr.flush()
         else:
             bookId = manifest['project']['id']
-            contributors += manifest['translators']
+            contributors += [x.title() for x in manifest['translators']]
 
         jsonFile.close()
     return bookId.upper()
 
-# Parses all *manifest.json files in the current folder.
+# Parses all manifest.json files in the current folder.
 # If more than one manifest.json, their names vary.
 # Return upper case bookId, or empty string if failed to retrieve.
 # Also parses translator names out of the manifest, adds to global contributors list.
 def getBookId(folder):
-    bookId = ""
+    bookId = None
     for file in os.listdir(folder):
         if file.find("manifest") >= 0 and file.find(".json") >= 8:
             path = os.path.join(folder, file)
             if os.path.isfile(path):
                 bookId = parseManifest(path)
+    if not bookId:
+        matchstr = language_code + "_([a-zA-Z1-3][a-zA-Z][a-zA-Z])_"
+        if okname := re.match(matchstr, os.path.basename(folder)):
+            bookId = okname.group(1).upper()
     return bookId
 
 # Locates title.txt in either the front folder or 00 folder.
@@ -516,7 +520,7 @@ def writeHeader(usfmfile, bookId, bookTitle):
     usfmfile.write("\n\\toc3 " + bookId.lower())
     usfmfile.write("\n\\mt " + bookTitle + "\n")
 
-# Eliminates duplicates from contributors list and sorts the list.
+# Eliminates duplicates from contributors list and sorts it.
 # Outputs list to contributors.txt.
 def dumpContributors():
     global contributors
