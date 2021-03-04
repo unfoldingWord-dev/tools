@@ -8,9 +8,9 @@
 #       folders are only one level deep under the English and target language folders.
 
 # Global variables
-source_dir = r'C:\DCS\Chinese\TW\01'
-target_dir = r'C:\DCS\Chinese\zh_tw.RPP\bible'
-language_code = 'zh'
+source_dir = r'C:\DCS\Amharic\TW\01'
+target_dir = r'C:\DCS\Amharic\am_tw.RPP'
+language_code = 'am'
 en_ta_dir = r'C:\DCS\English\en_ta.v9'
 en_tw_dir = r'C:\DCS\English\en_tw.v10\bible'      # should end in 'bible'
 
@@ -77,10 +77,13 @@ def convertFile(fname, fullpath):
         convert2md.json2md(fullpath, mdPath, language_code, shortname)
 
 # This method is called to convert the text files in the specified folder.
-def convertFolder(fullpath):
-    for fname in os.listdir(fullpath):
-        if fname[-4:].lower() == ".txt":
-            convertFile(fname, os.path.join(fullpath, fname))
+def convertFolder(folder):
+    for entry in os.listdir(folder):
+        path = os.path.join(folder, entry)
+        if entry[0] != '.' and os.path.isdir(path):
+            convertFolder(path)
+        elif entry[-4:].lower() == ".txt":
+            convertFile(entry, path)
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
