@@ -18,19 +18,19 @@
 
 # To-do -- check for other kinds of links in headings, not just TA links.
 #          Check for ASCII titles in toc.yaml files (tA projects only)
+#          Check that tW files begin with H1 heading immediately followed by H2 heading.
 
 # Globals
-source_dir = r'C:\DCS\Chinese\zh_tw.RPP\bible'
-language_code = 'zh'
+source_dir = r'C:\DCS\Amharic\temp'
+language_code = 'am'
 resource_type = 'tw'
-#ta_dir = r'C:\DCS\English\en_ta.v13'    # English tA may be substituted for target language
-ta_dir = r'C:\DCS\Marathi\mr_ta.STR'    # Target language tA
+ta_dir = r'C:\DCS\Kannada\kn_ta.STR'    # Target language tA
 obstn_dir = r'C:\DCS\Kannada\kn_obs-tn\content'    # should end in 'content'
 en_tn_dir = r'C:\DCS\English\en_tn.md-orig'
 en_tq_dir = r'C:\DCS\English\en_tq.v10'
-tn_dir = r'C:\DCS\Lao\lo_tn.RPP'    # Target language tN, for note link validation
+tn_dir = r'C:\DCS\Kannada\kn_tn.RPP'    # Target language tN, for note link validation
 #tn_dir = r'C:\DCS\English\en_tn.md-orig'
-tw_dir = r'C:\DCS\Lao\lo_tw.RPP'
+tw_dir = r'C:\DCS\Amharic\am_tw.RPP'
 
 nChecked = 0
 nChanged = 0
@@ -42,15 +42,15 @@ suppress2 = False    # Suppress warnings about blank headings
 suppress3 = False    # Suppress warnings about item number not followed by period
 suppress4 = False    # Suppress warnings about closed headings
 suppress5 = False    # Suppress warnings about invalid passage links
-suppress6 = False    # Suppress warnings about invalid OBS links
+suppress6 = True    # Suppress warnings about invalid OBS links
 suppress7 = False    # Suppress warnings about file starting with blank line
-suppress8 = False    # Suppress warnings about invalid list style
+suppress8 = False    # Suppress warnings about blank lines before, after, and within lists
 suppress9 = False    # Suppress warnings about ASCII content
 suppress10 = False   # Suppress warnings about heading levels
 suppress11 = True    # Suppress warnings about unbalanced parentheses
 suppress12 = False     # Suppress warnings about newlines at end of file
 suppress13 = False     # Suppress warnings about mistmatched **
-suppress14 = False     # Suppress "invalid note link" warnings
+suppress14 = True     # Suppress "invalid note link" warnings
 suppress15 = True     # Suppress punctuation warnings.
 suppress16 = False     # Suppress warnings about empty files
 suppress17 = True     # Suppress the missing intro.md file warning
@@ -201,6 +201,13 @@ def reportError(msg, report_lineno=True):
         issues.write(shortname(state.path) + ": " + msg)
     state.reportedError()
 
+def verifyLineEndings(path):
+    input = io.open(path, "rb")
+    content = input.read()
+    input.close()
+    if b'\r\n' in content:
+        reportError("Windows line ending(s) found in file", False)
+
  
 # Reports empty file and returns True if file is empty.
 def verifyNotEmpty(mdPath):
@@ -267,13 +274,17 @@ def take(line):
                 if resource_type != "ta" or state.prevheadinglevel > 0:
                     reportError("heading level incremented by more than one level")
 
-# Removed 11/16/20 - Blank lines are optional around lists.
-#    if state.currlinetype == LIST_ITEM:
-#        if state.prevlinetype in { TEXT, HEADING }:
-#            reportError("invalid list syntax; need blank line before first list item")
-#        i = state.linecount - 1
-#        if i > 1 and state.linetype[i-1] == BLANKLINE and state.linetype[i-2] == LIST_ITEM and not suppress8:
-#            reportError("invalid list style")
+    # 11/16/20 - Blank lines are optional around lists on DCS
+    if not suppress8:
+        if state.currlinetype in {LIST_ITEM, ORDEREDLIST_ITEM}:
+            if state.prevlinetype in { TEXT, HEADING }:
+                reportError("need blank line before first list item")
+            i = state.linecount - 1     # 0-based index
+            if i > 1 and state.linetype[i-1] == BLANKLINE and state.linetype[i-2] == state.currlinetype:
+                reportError("blank line between list items")
+        elif state.currlinetype in {TEXT, HEADING}:
+            if state.prevlinetype in {LIST_ITEM, ORDEREDLIST_ITEM}:
+                reportError("need blank line after last list item")
 
     if state.currlinetype == ORDEREDLIST_ITEM:
         if badolistitem_re.match(line) and not suppress3:
@@ -291,6 +302,8 @@ def take(line):
 toobold_re = re.compile(r'#+[ \t]+[\*_]', re.UNICODE)        # unwanted formatting in headings
 unexpected_re = re.compile(r'\([^\)\[]*\]', re.UNICODE)         # ']' after left paren
 unexpected2_re = re.compile(r'\[[^\]\(]*\)', re.UNICODE)         # ')' after left square bracket
+unexpected3_re = re.compile(r'^[^\[]*\]', re.UNICODE)            # ']' before '['
+unexpected4_re = re.compile(r'\[[^\]]*$', re.UNICODE)            # '[' without following ']'
 
 def checkLineContents(line):    
     if line.find('# #') != -1:
@@ -308,16 +321,24 @@ def checkLineContents(line):
         reportError("Line seems to have mismatched '***'")
     if not suppress13 and line.count("__") % 2 == 1:
         reportError("Line seems to have mismatched '__'")
+    if "___" in line:
+        reportError("Triple underscore")
     if unexpected_re.search(line):
         reportError("found ']' after left paren")
     if unexpected2_re.search(line):
         reportError("found ')' after left square bracket")
+    if unexpected3_re.search(line):
+        reportError("found ']' without preceding '['")
+    if unexpected4_re.search(line):
+        reportError("found '[' without following ']'")
 
 # Looks for underscores in TA links.
 # Looks for :en: and rc://en in the line
 def checkUnconvertedLinks(line):
-    if ("figs_" in line or "translate_" in line) and not "ufw.io" in line:
+    if ("figs_" in line or "translate_" in line or "guidelines_" in line or "writing_" in line) and not "ufw.io" in line:
         reportError("Underscore in tA reference")
+    elif  " figs-" in line or " translate-" in line or " guidelines-" in line or " writing-" in line:
+        reportError("Malformed tA reference")
     if language_code != 'en':
         if line.find(':en:') >= 0 or line.find('rc://en/') >= 0:
             reportError("Unconverted language code")
@@ -409,7 +430,7 @@ def checkOBSLinks(line):
             obsPath = os.path.join(obstn_dir, link.group(4))
             obsPath = os.path.join(obsPath, link.group(5) + ".md")
             if not os.path.isfile(obsPath):
-                reportError("invalid OBS link: " + link.group(1) + link.group(2) + link.group(3) + link.group(4) + link.group(5))
+                reportError("invalid OBS link: " + link.group(1) + link.group(2) + link.group(3) + link.group(4) + '/' + link.group(5))
         link = obslink_re.search(link.group(6))
     return found
 
@@ -456,8 +477,8 @@ def checkPassageLinks(line, fullpath):
         link = passage.group(1).strip()
         if resource_type == 'obs-tn':
             checkOBSTNLink(link, fullpath)
-        elif not (resource_type == 'obs' and obsJpg_re.match(link)):
-            if link.isascii() and not link.startswith("http") and not "/ta/" in link and not '/tn/' in link:
+        elif not "/ta/" in link and not '/tn/' in link and not '/tw/' in link and not (resource_type == 'obs' and obsJpg_re.match(link)):
+            if link.isascii() and not link.startswith("http") :
                 referencedPath = os.path.join( os.path.dirname(fullpath), link )
                 if not suppress5 and not os.path.isfile(referencedPath):
                     reportError("invalid link: " + link)
@@ -500,7 +521,7 @@ storyfile_re = re.compile(r'[0-9][0-9]\.md$')
 def verifyFile(path):
     global current_file
     current_file = os.path.basename(path)
-    input = io.open(path, "tr", 1, encoding="utf-8-sig")
+    input = io.open(path, "tr", buffering=1, encoding="utf-8-sig")
     lines = input.readlines(-1)
     if not suppress12:          # newlines at end of file
         input.seek(0, io.SEEK_SET)      # rewind to beginning of file
@@ -669,10 +690,13 @@ def verify_ta_article(dirpath):
         verifyFile(path)
     else:
         reportError("Missing 01.md file in: " + shortname(dirpath), False)
-    if not os.path.isfile(os.path.join(dirpath, "title.md")):
-        reportError("Missing title.md files in: " + shortname(dirpath), False)
-    if not os.path.isfile(os.path.join(dirpath, "sub-title.md")):
-        reportError("Missing sub-title.md files in: " + shortname(dirpath), False)
+
+    for path in [os.path.join(dirpath, "title.md"), os.path.join(dirpath, "sub-title.md")]:
+        state.setPath(path)
+        if not os.path.isfile(path):
+            reportError("Missing file", False)
+        else:
+            verifyLineEndings(path)
     if len(os.listdir(dirpath)) > 3:
         reportError("Extraneous file(s) in: " + shortname(dirpath), False)
 
@@ -692,7 +716,7 @@ def verifyDir(dirpath):
             elif resource_type == "ta" and f in {"01.md", "title.md", "sub-title.md"}:
                 verify_ta_article(dirpath)
                 break
-            elif os.path.isfile(path) and resource_type in {"tn","tw","obs"} and verifiable(path, f):
+            elif os.path.isfile(path) and resource_type in {"tn","tw","obs","obs-tn"} and verifiable(path, f):
                 verifyFile(path)
 
 if __name__ == "__main__":
