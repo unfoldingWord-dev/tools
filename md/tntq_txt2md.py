@@ -13,9 +13,9 @@
 # This script doesn't do anything if the files are .md files already.
 
 # Global variables
-source_dir = r'C:\DCS\Chinese\TQ'
-target_dir = r'C:\DCS\Chinese\zh_tq.RPP'
-language_code = 'zh'
+source_dir = r'C:\DCS\Amharic\TQ'
+target_dir = r'C:\DCS\Amharic\am_tq.temp'
+language_code = 'am'
 resource_type = 'tq'
 placeholder_body = "x"      # Text to use in place of missing note. Leave blank if none desired.
 
@@ -59,7 +59,7 @@ def getBookId(path):
                 manifest = json.load(f)
                 f.close()
                 bookId = manifest['project']['id']
-                translators += manifest['translators']
+                translators += [x.title() for x in manifest['translators']]
                 for source in manifest['source_translations']:
                     source_versions += source['version']
             except UnicodeDecodeError as e:
