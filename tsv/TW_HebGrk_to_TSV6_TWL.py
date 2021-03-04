@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Apr 2020 by RJH
-#   Last modified: 2021-02-15 by RJH
+#   Last modified: 2021-03-05 by RJH
 #
 """
 Quick script to copy TW links out of UHB and UGNT
@@ -239,7 +239,7 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
     print(f"    Converting {source_text} {BBB} links to TSV…")
     output_folderpath = LOCAL_OUTPUT_FOLDERPATH
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
-    output_filepath = output_folderpath.joinpath(f'{BBB}_twl.tsv')
+    output_filepath = output_folderpath.joinpath(f'twl_{BBB}.tsv')
 
     try: # Load the previous file so we can use the same row ID fields
         with open(output_filepath, 'rt') as previous_file:

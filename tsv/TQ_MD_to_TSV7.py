@@ -10,11 +10,13 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-02-16 by RJH
+#   Last modified: 2021-03-05 by RJH
 #
 """
 Quick script to copy TQ from markdown files
     and put into a TSV file with the new format (7 columns).
+
+Note that each run of this script generates totally new/different/random ID fields.
 """
 from typing import List, Tuple
 import os
@@ -168,11 +170,14 @@ def get_source_questions(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str]:
 
 def make_TSV_file(BBB:str, nn:str) -> int:
     """
+    Function to assemble 7-column TSV rows and output them.
+
+    Note that each row gets a newly generated ID field.
     """
     print(f"    Converting TQ {BBB} links to TSV…")
     output_folderpath = LOCAL_OUTPUT_FOLDERPATH #.joinpath(BBB)
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
-    output_filepath = output_folderpath.joinpath(f'{BBB}_tq.tsv')
+    output_filepath = output_folderpath.joinpath(f'tq_{BBB}.tsv')
     num_questions = 0
     with open(output_filepath, 'wt') as output_TSV_file:
         output_TSV_file.write('Reference\tID\tTags\tQuote\tOccurrence\tQuestion\tResponse\n')

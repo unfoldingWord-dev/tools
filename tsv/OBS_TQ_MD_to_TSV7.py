@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-02-16 by RJH
+#   Last modified: 2021-03-05 by RJH
 #
 """
 Quick script to copy OBS-TQ from markdown files
@@ -84,7 +84,7 @@ def make_TSV_file() -> Tuple[int,int]:
     print(f"    Converting OBS-TQ links to TSV…")
     output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath('OBS')
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
-    output_filepath = output_folderpath.joinpath(f'OBS_tq.tsv')
+    output_filepath = output_folderpath.joinpath(f'tq_OBS.tsv')
     num_questions = 0
     with open(output_filepath, 'wt') as output_TSV_file:
         output_TSV_file.write('Reference\tID\tTags\tQuote\tOccurrence\tQuestion\tResponse\n')

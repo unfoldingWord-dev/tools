@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-02-10 by RJH
+#   Last modified: 2021-03-05 by RJH
 #
 """
 Quick script to copy TN from 9-column TSV files
@@ -76,7 +76,7 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
     print(f"    Converting TN {BBB} links to TSV…")
     output_folderpath = LOCAL_OUTPUT_FOLDERPATH #.joinpath(BBB)
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
-    output_filepath = output_folderpath.joinpath(f'{BBB}_tn.tsv')
+    output_filepath = output_folderpath.joinpath(f'tn_{BBB}.tsv')
     num_lines = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
         for j, (_line_number,fields) in enumerate(get_source_lines(BBB, nn), start=1):

@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Nov 2020 by RJH
-#   Last modified: 2021-02-10 by RJH
+#   Last modified: 2021-03-05 by RJH
 #
 """
 Quick script to copy TQ from 5-column TSV files
@@ -127,7 +127,7 @@ def get_TSV_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str]:
         reference, question, response
     """
     print(f"    Loading TQ {BBB} links from 7-column TSV…")
-    input_filepath = input_folderpath.joinpath(f'{BBB}_tq.tsv')
+    input_filepath = input_folderpath.joinpath(f'tq_{BBB}.tsv')
     with open(input_filepath, 'rt') as input_TSV_file:
         for line_number, line in enumerate(input_TSV_file, start=1):
             line = line.rstrip('\n\r')

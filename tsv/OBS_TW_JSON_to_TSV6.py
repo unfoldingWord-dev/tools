@@ -79,7 +79,7 @@ def make_TSV_file() -> Tuple[int,int]:
     """
     print(f"    Converting OBS TW links to TSV…")
     if not os.path.isdir(LOCAL_OUTPUT_FOLDERPATH): os.mkdir(LOCAL_OUTPUT_FOLDERPATH)
-    output_filepath = LOCAL_OUTPUT_FOLDERPATH.joinpath('OBS_twl.tsv')
+    output_filepath = LOCAL_OUTPUT_FOLDERPATH.joinpath('twl_OBS.tsv')
     num_links = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
         output_TSV_file.write('Reference\tID\tTags\tOrigWords\tOccurrence\tTWLink\n')
