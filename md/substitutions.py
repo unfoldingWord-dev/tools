@@ -11,8 +11,24 @@ subs = [
 	("</o:p>", ""),
 	("rc://en/", "rc://*/"),
 	("rc://*/obe/", "rc://*/tw/bible/"),
+#  these next few lines are for Burmese, probably don't apply to other languages
+#	(" figs-metaphor)", " [[rc://*/ta/man/translate/figs-metaphor]])"),
+#	(" figs-metaphor )", " [[rc://*/ta/man/translate/figs-metaphor]])"),
+#	(" figs-abstractnouns)", " [[rc://*/ta/man/translate/figs-abstractnouns]])"),
+#	(" figs-abstractnouns )", " [[rc://*/ta/man/translate/figs-abstractnouns]])"),
+#	(" figs-synecdoche)", " [[rc://*/ta/man/translate/figs-synecdoche]])"),
+#	(" figs-synecdoche )", " [[rc://*/ta/man/translate/figs-synecdoche]])"),
+ 	("\\ [", "["),
+ 	("\\ ]", "]"),
+ 	("\\[", "["),
+ 	("\\]", "]"),
+ 	(" ]", "]"),
+ 	("]]]]", "]]"),
 	(") [", "), ["),
 	(" \( ", " ("),
 	("/ )", "/)"),
-	("..md", ".md")
+	("____", "__"),
+	("___", "__"),
+	("..md", ".md"),
+	(".jpg?direct&", ".jpg")    # OBS image links
 ]
