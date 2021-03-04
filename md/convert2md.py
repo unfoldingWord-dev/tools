@@ -189,6 +189,7 @@ def uncloseHeading(line):
         line = closed.group(1)
     return line.rstrip()
 
+# Called by md2md()
 # Converts a line of markdown to a properly formatted line of markdown.
 # Outputs corrected line to mdFile.
 def convertLine(line, nIn, mdFile, path, shortname):
@@ -256,8 +257,9 @@ list3_re = re.compile(r'^\*([^ \*].*)', flags=re.UNICODE+re.DOTALL)      # no sp
 # Converts &nbsp; to space character
 # Returns fixed string.
 def normalize(ustr):
+    str = ustr.rstrip(" \t\r\n[({")
     # Poorly formed links
-    str = ustr.replace("[en:", "[:en:")
+    str = str.replace("[en:", "[:en:")
     str = str.replace("[ en:", "[:en:")
     str = str.replace("[: en:", "[:en:")
     str = str.replace("]]]]", "]]")
