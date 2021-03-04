@@ -34,26 +34,28 @@ import sys
 from filecmp import cmp
 
 # Globals
-source_dir = r'C:\DCS\Chinese\zh_tw.RPP\bible'
-language_code = 'zh'
-resource_type = 'tw'
+source_dir = r'C:\DCS\Amharic\temp'
+language_code = 'am'
+resource_type = 'tq'
 
 nChanged = 0
-max_files = 1111
+max_files = 11111
 
 placeholder_heading = ""
-import substitutions     # change substitutions modules as necessary; generic one is just "substitutions"
+import substitutions    # change substitutions modules as necessary; generic one is just "substitutions"
 
 suppress1 = False       # Suppress hash mark cleanup
 suppress2 = True       # Suppress stdout informational messages 
+suppress3 = False       # Suppress addition of blank lines before and after lists.
 if resource_type == 'ta':
     suppress1 = True
 
-#filename_re = re.compile(r'\d+\.md$')  # This can change for different collections of .md files
 filename_re = re.compile(r'.*\.md$')
 current_dir = ""
 if resource_type in {'tw','ta'}:
     filename_re = re.compile(r'.*\.md$')
+if resource_type == 'obs':
+    filename_re = re.compile(r'\d+\.md$')
 hash_re = re.compile(r' *(#+) +', flags=re.UNICODE)
 
 
@@ -63,7 +65,9 @@ def shortname(longpath):
         shortname = longpath[len(source_dir)+1:]
     return shortname
 
-# asterisk_re = re.compile('(\n *\* .*)\n(\n *\* )', flags=re.UNICODE)    # two list items with blank line between
+asterisk_re = re.compile('(\n *\* .*)\n(\n *\* )', flags=re.UNICODE)    # two list items with blank line between
+listOffset_re = re.compile(r'^[^\*] .*\n[\*1] ', flags=re.UNICODE+re.MULTILINE)
+listOffset2_re = re.compile(r'^[\*] .*\n[^\n\*1]', flags=re.UNICODE+re.MULTILINE)
 ordered_re = re.compile(r'\n1\.[^ \n]')
 
 # Converts the text a whole file at a time.
@@ -71,13 +75,23 @@ ordered_re = re.compile(r'\n1\.[^ \n]')
 # Supplies missing space after ordered list item (1.)
 # Multiple replacements per file
 def fixLists(alltext):
-    # I took out this code 11/16/20 since it appears that the markdown dialect that we support allows blank
-    # lines between list items.
-#    found = asterisk_re.search(alltext)
-#    while found:
-#        alltext = alltext[0:found.start()] + found.group(1) + found.group(2) + alltext[found.end():]
-#        found = asterisk_re.search(alltext)
+    # The markdown dialect that DCS supports allows blank lines between list items.
+    if not suppress3:
+        found = asterisk_re.search(alltext)
+        while found:
+            alltext = alltext[0:found.start()] + found.group(1) + found.group(2) + alltext[found.end():]
+            found = asterisk_re.search(alltext)
 
+        found = listOffset_re.search(alltext)
+        while found:
+            alltext = alltext[0:found.end()-2] + '\n' + alltext[found.end()-2:]
+            found = listOffset_re.search(alltext)
+        found = listOffset2_re.search(alltext)
+        while found:
+            alltext = alltext[0:found.end()-1] + '\n' + alltext[found.end()-1:]
+            found = listOffset_re.search(alltext)
+
+    # Change "1.foo" to "1. foo"
     found = ordered_re.search(alltext)
     while found:
         alltext = alltext[:found.start()+3] + ' ' + alltext[found.end()-1:]
@@ -186,11 +200,16 @@ def fixMdLinks(str):
     return newstr
 
 inlinekey = []      # These are the strings that are actually replaced
-inlinekey.append( re.compile(r'[\:\( ]figs_(\w*)', flags=re.UNICODE) )
-inlinekey.append( re.compile(r'[\:\( ]translate_(\w*)', flags=re.UNICODE) )
-inlinekey.append( re.compile(r'[\:\( ]writing_(\w*)', flags=re.UNICODE) )
-inlinekey.append( re.compile(r'[\:\( ]guidelines_(\w*)', flags=re.UNICODE) )
-inlinekey.append( re.compile(r'[\:\( ]bita_(\w*)', flags=re.UNICODE) )
+#inlinekey.append( re.compile(r'[：\:\(/ ]figs_(\w*)', flags=re.UNICODE) )
+#inlinekey.append( re.compile(r'[：\:\(/ ]translate_(\w*)', flags=re.UNICODE) )
+#inlinekey.append( re.compile(r'[：\:\(/ ]writing_(\w*)', flags=re.UNICODE) )
+#inlinekey.append( re.compile(r'[：\:\(/ ]guidelines_(\w*)', flags=re.UNICODE) )
+#inlinekey.append( re.compile(r'[：\:\(/ ]bita_(\w*)', flags=re.UNICODE) )
+inlinekey.append( re.compile(r'figs_(\w*)', flags=re.UNICODE) )
+inlinekey.append( re.compile(r'translate_(\w*)', flags=re.UNICODE) )
+inlinekey.append( re.compile(r'writing_(\w*)', flags=re.UNICODE) )
+inlinekey.append( re.compile(r'guidelines_(\w*)', flags=re.UNICODE) )
+inlinekey.append( re.compile(r'bita_(\w*)', flags=re.UNICODE) )
 newstring = []
 newstring.append( 'figs-' )
 newstring.append( 'translate-' )
@@ -332,6 +351,17 @@ def convertWholeFile(source, target):
         output.write(text)
         output.close()
 
+paren_re = re.compile(r'[^)]\)$', re.UNICODE)   # ends with single but not double right paren
+
+# Returns line with some corrections made
+def cleanupLine(line):
+    line = line.rstrip()
+    if line.count("**") == 1:   # mismatched '**' is a common error
+        line = line.replace("**", "")
+    if line.count('(') > line.count(')') and paren_re.search(line):
+        line += ')'
+    return line
+
 blankheading_re = re.compile(r'#+$')
 
 # Adds blank lines where needed before and after heading lines
@@ -347,7 +377,7 @@ def convertByLine(source, target):
     linetype = BLANK
     output = io.open(target, "tw", buffering=1, encoding='utf-8', newline='\n')
     for line in lines:
-        line = line.rstrip()
+        line = cleanupLine(line)
         prevlinetype = linetype
         if len(line) == 0:
             linetype = BLANK
