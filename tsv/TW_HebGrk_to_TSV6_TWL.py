@@ -52,6 +52,7 @@ WORD_FIELD_RE = re.compile(r'(\\w .+?\\w\*)')
 SINGLE_WORD_RE = re.compile(r'\\w (.+?)\|')
 SIMPLE_TW_LINK_RE = re.compile(r'x-tw="([:/\*a-z0-9]+?)" ?\\w\*') # Only occurs inside a \\w field (at end)
 MILESTONE_TW_LINK_RE = re.compile(r'\\k-s \| ?x-tw="([:/\*a-z0-9]+?)" ?\\\*')
+# WORD_JOINER_RE = re.compile(r'\\w\*(.)\\w ') # Whatever's between two word fields
 def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
     """
     Generator to read the original language (Heb/Grk) book
@@ -67,6 +68,7 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
     print(f"      Getting source lines from {source_filepath}…")
 
     C = V = ''
+    lastLine = ''
     is_in_k = False
     this_verse_words:List[str] = []
     with open(source_filepath, 'rt') as source_usfm_file:
@@ -92,6 +94,7 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
             # Get any words out of line (needed for occurrences)
             this_line_words = []
             word_match = SINGLE_WORD_RE.search(line, 0)
+            # NOTE: This doesn't tell us what the character is between the words -- we later wrongly assume it's just a space
             while word_match:
                 this_line_words.append(word_match.group(1))
                 this_verse_words.append(word_match.group(1))
@@ -131,7 +134,7 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
                     milestone_link = milestone_link_match.group(1)
                     assert milestone_link.startswith('rc://*/tw/dict/bible/')
                     remembered_line_number = line_number
-                    milestone_words = []
+                    milestone_words_list = []
                     searchW_startIndex = milestone_link_match.end()
                 else:
                     logging.critical(f"Have a problem with \\k-s on {BBB} {C}:{V} line {line_number:,} in {source_filename}")
@@ -145,9 +148,10 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
                         word_match = SINGLE_WORD_RE.search(word_field)
                         assert word_match
                         word = word_match.group(1)
+                        assert ' ' not in word
                         assert word_match.start() < ke_index
                         occurrence = this_verse_words.count(word)
-                        if is_in_k: milestone_words.append(word)
+                        if is_in_k: milestone_words_list.append(word)
                         simple_link_match = SIMPLE_TW_LINK_RE.search(word_field)
                         if simple_link_match:
                             word_link = simple_link_match.group(1)
@@ -158,16 +162,28 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
                     searchW_startIndex = 'BADBAD' # Just to catch any logic errors
 
                     is_in_k = False
-                    assert milestone_words
-                    milestone_words = ' '.join(milestone_words)
-                    # print("here0", C,V, milestone_words, occurrence, milestone_link)
+                    assert milestone_words_list
+                    if len(milestone_words_list) == 1:
+                        milestone_words = milestone_words_list[0]
+                    elif len(milestone_words_list) == 2:
+                        # print(f"HERE A2: {BBB} {C}:{V} have ({len(milestone_words_list)}) {milestone_words_list} from '{lastLine}'")
+                        joiner = '־' if '\\w*־\\w' in lastLine else ' '
+                        milestone_words = f"{milestone_words_list[0]}{joiner}{milestone_words_list[1]}"
+                    elif len(milestone_words_list) == 3:
+                        # print(f"HERE A3: {BBB} {C}:{V} have ({len(milestone_words_list)}) {milestone_words_list} from '{lastLine}'")
+                        second_joiner = '־' if '\\w*־\\w' in lastLine else ' '
+                        milestone_words = f"{milestone_words_list[0]} {milestone_words_list[1]}{second_joiner}{milestone_words_list[2]}"
+                    else:
+                        # print(f"HERE A9: {BBB} {C}:{V} have ({len(milestone_words_list)}) {milestone_words_list} from '{lastLine}'")
+                        milestone_words = ' '.join(milestone_words_list)
+                    # print("here0", C,V, milestone_words_list, occurrence, milestone_link)
                     yield remembered_line_number, BBB, C, V, milestone_words, occurrence, milestone_link
                     del remembered_line_number, milestone_words, milestone_link # Don't let them persist -- just so we catch any logic errors
                     continue
                 else: # k-s is fully open now
                     is_in_k = True
                 # There might still be a \w field on the line, but it's caught below
-            elif is_in_k:
+            elif is_in_k: # line started with \\k-s
                 if '\\k-s' in line:
                     assert line.startswith('\\k-s ')
                     assert line.count('x-tw="') >= 1
@@ -176,7 +192,7 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
                         milestone_link = milestone_link_match.group(1)
                         assert milestone_link.startswith('rc://*/tw/dict/bible/')
                         remembered_line_number = line_number
-                        milestone_words = []
+                        milestone_words_list = []
                         searchW_startIndex = milestone_link_match.end()
                     else:
                         logging.critical(f"Have a problem with \\k-s on {BBB} {C}:{V} line {line_number:,} in {source_filename}")
@@ -187,16 +203,28 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
                     assert '\\w' not in line  #  } Don't really care about
                     assert 'x-tw' not in line #  }  any left-over Hebrew chars in line
                     is_in_k = False
-                    assert milestone_words
-                    milestone_words = ' '.join(milestone_words)
-                    # print("here1a", C,V, milestone_words, occurrence, milestone_link, this_verse_words)
-                    words_occurrence = ' '.join(this_verse_words).count(milestone_words)
+                    assert milestone_words_list
+                    if len(milestone_words_list) == 1:
+                        milestone_words = milestone_words_list[0]
+                    elif len(milestone_words_list) == 2:
+                        # print(f"HERE B2: {BBB} {C}:{V} have ({len(milestone_words_list)}) {milestone_words_list} from '{lastLine}'");
+                        joiner = '־' if '\\w*־\\w' in lastLine else ' '
+                        milestone_words = f"{milestone_words_list[0]}{joiner}{milestone_words_list[1]}"
+                    elif len(milestone_words_list) == 3:
+                        # print(f"HERE B3: {BBB} {C}:{V} have ({len(milestone_words_list)}) {milestone_words_list} from '{lastLine}'");
+                        second_joiner = '־' if '\\w*־\\w' in lastLine else ' '
+                        milestone_words = f"{milestone_words_list[0]} {milestone_words_list[1]}{second_joiner}{milestone_words_list[2]}"
+                    else:
+                        # print(f"HERE B9: {BBB} {C}:{V} have ({len(milestone_words_list)}) {milestone_words_list} from '{lastLine}'");
+                        milestone_words = ' '.join(milestone_words_list)
+                    # print("here1a", C,V, milestone_words_list, occurrence, milestone_link, this_verse_words)
+                    words_occurrence = ' '.join(this_verse_words).count(' '.join(milestone_words_list))
                     assert words_occurrence >= 1 # else we didn't find the words at all! (What about punctuation???)
                     if words_occurrence != occurrence:
                         occurrence = words_occurrence
                         # print("here1b", C,V, milestone_words, occurrence, milestone_link)
                     yield remembered_line_number, BBB, C, V, milestone_words, occurrence, milestone_link
-                    del remembered_line_number, milestone_words, milestone_link # Don't let them persist -- just so we catch any logic errors
+                    del remembered_line_number, milestone_words_list, milestone_link # Don't let them persist -- just so we catch any logic errors
                     continue
                 else: # the simpler single line case -- usually one, sometimes two \\w fields on a line
                     searchW_startIndex = 0 # Look for words right from the beginning of the line
@@ -217,9 +245,10 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
                     # print(f"          word_match={word_match}")
                     assert word_match
                     word = word_match.group(1)
+                    assert ' ' not in word
                     occurrence = this_verse_words.count(word)
                     # print(f"          occurrence={occurrence}")
-                    if is_in_k: milestone_words.append(word)
+                    if is_in_k: milestone_words_list.append(word)
                     simple_link_match = SIMPLE_TW_LINK_RE.search(word_field)
                     # print(f"          simple_link_match={simple_link_match}")
                     if simple_link_match:
@@ -229,6 +258,8 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
                         yield line_number, BBB, C, V, word, occurrence, word_link
                     word_field_match = WORD_FIELD_RE.search(line, word_field_match.end())
                 searchW_startIndex = 'BADBADBAD' # Just to catch any logic errors above
+
+            lastLine = line
 # end of get_source_lines function
 
 
@@ -308,7 +339,7 @@ def main():
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
     total_simple_links = total_complex_links = 0
     for BBB,nn in BBB_NUMBER_DICT.items():
-        # if BBB != 'EPH': continue
+        # if BBB != 'EZR': continue
         try:
             simple_count, complex_count = make_TSV_file(BBB,nn)
             total_simple_links += simple_count
