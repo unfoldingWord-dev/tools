@@ -13,7 +13,7 @@
 #   Last modified: 2021-03-23 by RJH
 #
 """
-Quick script to copy TQ from 5-column TSV files
+Quick script to copy TQ from 7-column TSV files
     and put back into the older markdown format (for compatibility reasons)
 """
 from typing import List, Tuple, Optional
@@ -47,7 +47,7 @@ assert len(BBB_LIST) == 66
 
 def get_TSV_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str]:
     """
-    Generator to read the TQ 5-column TSV file for a given book (BBB)
+    Generator to read the TQ 7-column TSV file for a given book (BBB)
         and return the needed fields.
 
     Skips the heading row.
