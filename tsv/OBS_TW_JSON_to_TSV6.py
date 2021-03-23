@@ -25,6 +25,7 @@ import re
 import logging
 
 
+# Downloaded from https://cdn.door43.org/v2/ts/obs/en/tw_cat.json
 LOCAL_SOURCE_FILEPATH = Path('/home/robert/Downloads/tw_cat.json')
 
 LOCAL_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
