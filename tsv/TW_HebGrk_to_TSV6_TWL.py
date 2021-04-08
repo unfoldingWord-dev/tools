@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Apr 2020 by RJH
-#   Last modified: 2021-03-05 by RJH
+#   Last modified: 2021-04-07 by RJH
 #
 """
 Quick script to copy TW links out of UHB and UGNT
@@ -53,6 +53,7 @@ SINGLE_WORD_RE = re.compile(r'\\w (.+?)\|')
 SIMPLE_TW_LINK_RE = re.compile(r'x-tw="([:/\*a-z0-9]+?)" ?\\w\*') # Only occurs inside a \\w field (at end)
 MILESTONE_TW_LINK_RE = re.compile(r'\\k-s \| ?x-tw="([:/\*a-z0-9]+?)" ?\\\*')
 # WORD_JOINER_RE = re.compile(r'\\w\*(.)\\w ') # Whatever's between two word fields
+
 def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
     """
     Generator to read the original language (Heb/Grk) book
@@ -237,7 +238,7 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
                 # print(f"        this_line_words ({len(this_line_words)})={this_line_words}")
                 word_field_match = WORD_FIELD_RE.search(line, searchW_startIndex)
                 while word_field_match:
-                    # print(f"          searchW_startIndex={searchW_startIndex}")
+                    # print(f"\n          {C}:{V} searchW_startIndex={searchW_startIndex}")
                     # print(f"          word_field_match={word_field_match}")
                     word_field = word_field_match.group(1)
                     # print(f"          word_field={word_field}")
@@ -339,7 +340,7 @@ def main():
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
     total_simple_links = total_complex_links = 0
     for BBB,nn in BBB_NUMBER_DICT.items():
-        # if BBB != 'EZR': continue
+        # if BBB != 'MAT': continue
         try:
             simple_count, complex_count = make_TSV_file(BBB,nn)
             total_simple_links += simple_count
