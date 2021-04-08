@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-03-05 by RJH
+#   Last modified: 2021-04-08 by RJH
 #
 """
 Quick script to copy TQ from markdown files
@@ -71,7 +71,7 @@ BOOK_INFO_DICT = { "gen": {"id": "gen", "title": "Genesis", "usfm": "01-GEN", "t
   "ecc": {"id": "ecc", "title": "Ecclesiastes", "usfm": "21-ECC", "testament": "old", "verseCount": 222, "chapters": [18, 26, 22, 16, 20, 12, 29, 17, 18, 20, 10, 14]},
   "sng": {"id": "sng", "title": "Song of Songs", "usfm": "22-SNG", "testament": "old", "verseCount": 117, "chapters": [17, 17, 11, 16, 16, 13, 13, 14]},
   "isa": {"id": "isa", "title": "Isaiah", "usfm": "23-ISA", "testament": "old", "verseCount": 1292, "chapters": [31, 22, 26, 6, 30, 13, 25, 22, 21, 34, 16, 6, 22, 32, 9, 14, 14, 7, 25, 6, 17, 25, 18, 23, 12, 21, 13, 29, 24, 33, 9, 20, 24, 17, 10, 22, 38, 22, 8, 31, 29, 25, 28, 28, 25, 13, 15, 22, 26, 11, 23, 15, 12, 17, 13, 12, 21, 14, 21, 22, 11, 12, 19, 12, 25, 24]},
-  "jer": {"id": "jer", "title": "Jermiah", "usfm": "24-JER", "testament": "old", "verseCount": 1364, "chapters": [19, 37, 25, 31, 31, 30, 34, 22, 26, 25, 23, 17, 27, 22, 21, 21, 27, 23, 15, 18, 14, 30, 40, 10, 38, 24, 22, 17, 32, 24, 40, 44, 26, 22, 19, 32, 21, 28, 18, 16, 18, 22, 13, 30, 5, 28, 7, 47, 39, 46, 64, 34]},
+  "jer": {"id": "jer", "title": "Jeremiah", "usfm": "24-JER", "testament": "old", "verseCount": 1364, "chapters": [19, 37, 25, 31, 31, 30, 34, 22, 26, 25, 23, 17, 27, 22, 21, 21, 27, 23, 15, 18, 14, 30, 40, 10, 38, 24, 22, 17, 32, 24, 40, 44, 26, 22, 19, 32, 21, 28, 18, 16, 18, 22, 13, 30, 5, 28, 7, 47, 39, 46, 64, 34]},
   "lam": {"id": "lam", "title": "Lamentations", "usfm": "25-LAM", "testament": "old", "verseCount": 154, "chapters": [22, 22, 66, 22, 22]},
   "ezk": {"id": "ezk", "title": "Ezekiel", "usfm": "26-EZK", "testament": "old", "verseCount": 1273, "chapters": [28, 10, 27, 17, 17, 14, 27, 18, 11, 22, 25, 28, 23, 23, 8, 63, 24, 32, 14, 49, 32, 31, 49, 27, 17, 21, 36, 26, 21, 26, 18, 32, 33, 31, 15, 38, 28, 23, 29, 49, 26, 20, 27, 31, 25, 24, 23, 35]},
   "dan": {"id": "dan", "title": "Daniel", "usfm": "27-DAN", "testament": "old", "verseCount": 357, "chapters": [21, 49, 30, 37, 31, 28, 28, 27, 27, 21, 45, 13]},
@@ -95,9 +95,9 @@ BOOK_INFO_DICT = { "gen": {"id": "gen", "title": "Genesis", "usfm": "01-GEN", "t
   "rom": {"id": "rom", "title": "Romans", "usfm": "46-ROM", "testament": "new", "verseCount": 433, "chapters": [32, 29, 31, 25, 21, 23, 25, 39, 33, 21, 36, 21, 14, 23, 33, 27]},
   "1co": {"id": "1co", "title": "1 Corinthians", "usfm": "47-1CO", "testament": "new", "verseCount": 437, "chapters": [31, 16, 23, 21, 13, 20, 40, 13, 27, 33, 34, 31, 13, 40, 58, 24]},
   "2co": {"id": "2co", "title": "2 Corinthians", "usfm": "48-2CO", "testament": "new", "verseCount": 257, "chapters": [24, 17, 18, 18, 21, 18, 16, 24, 15, 18, 33, 21, 14]},
-  "gal": {"id": "gal", "title": "Galations", "usfm": "49-GAL", "testament": "new", "verseCount": 149, "chapters": [24, 21, 29, 31, 26, 18]},
+  "gal": {"id": "gal", "title": "Galatians", "usfm": "49-GAL", "testament": "new", "verseCount": 149, "chapters": [24, 21, 29, 31, 26, 18]},
   "eph": {"id": "eph", "title": "Ephesians", "usfm": "50-EPH", "testament": "new", "verseCount": 155, "chapters": [23, 22, 21, 32, 33, 24]},
-  "php": {"id": "php", "title": "Phillipians", "usfm": "51-PHP", "testament": "new", "verseCount": 104, "chapters": [30, 30, 21, 23]},
+  "php": {"id": "php", "title": "Philippians", "usfm": "51-PHP", "testament": "new", "verseCount": 104, "chapters": [30, 30, 21, 23]},
   "col": {"id": "col", "title": "Colossians", "usfm": "52-COL", "testament": "new", "verseCount": 95, "chapters": [29, 23, 25, 18]},
   "1th": {"id": "1th", "title": "1 Thessalonians", "usfm": "53-1TH", "testament": "new", "verseCount": 89, "chapters": [10, 20, 13, 18, 28]},
   "2th": {"id": "2th", "title": "2 Thessalonians", "usfm": "54-2TH", "testament": "new", "verseCount": 47, "chapters": [12, 17, 18]},
@@ -172,38 +172,158 @@ def make_TSV_file(BBB:str, nn:str) -> int:
     """
     Function to assemble 7-column TSV rows and output them.
 
+    If consecutive verses have an identical question and answer, they're combined into a verse range
+
     Note that each row gets a newly generated ID field.
     """
     print(f"    Converting TQ {BBB} links to TSV…")
     output_folderpath = LOCAL_OUTPUT_FOLDERPATH #.joinpath(BBB)
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
     output_filepath = output_folderpath.joinpath(f'tq_{BBB}.tsv')
-    num_questions = 0
+
+    last_CV_reference = this_CV_reference = '0:0'
+    last_verse_question_responses, this_verse_question_responses = [], []
+    repeat_dict = {} # Key is QR, Value is list of consecutive references
+    num_written_questions = num_with_ranges = 0
+    tags = quote = occurrence = ''
     with open(output_filepath, 'wt') as output_TSV_file:
         output_TSV_file.write('Reference\tID\tTags\tQuote\tOccurrence\tQuestion\tResponse\n')
         previous_ids:List[str] = ['']
         for _j, (_line_number,BBB,C,V,question,response) in enumerate(get_source_questions(BBB, nn), start=1):
             # print(f"{_j:3}/ Line {_line_number:<5} {BBB} {C:>3}:{V:<3} '{question}' {response}")
+
+            new_CV_reference = f'{C}:{V}'
+            if new_CV_reference != this_CV_reference: # We're into a new verse
+                # See if we need to write a question/response with a verse range
+                for qr,refs in repeat_dict.copy().items():
+                    if this_CV_reference not in refs:
+                        q = qr.split('\t')[0]
+                        # print(f"    Now heading into {BBB} {new_CV_reference} after {this_CV_reference}, need to write '{q[:20]}…' for {refs}")
+
+                        generated_id = ''
+                        while generated_id in previous_ids:
+                            generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
+                        previous_ids.append(generated_id)
+
+                        # Just check that repeat questions didn't cross a chapter boundary (our code doesn't handle that yet)
+                        refs_C = refs[0].split(':')[0]
+                        for ref in refs[1:]: assert ref.split(':')[0] == refs_C # Should all be in the same chapter
+
+                        output_line = f"{refs_C}:{refs[0].split(':')[-1]}-{refs[-1].split(':')[-1]}\t{generated_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
+                        output_TSV_file.write(f'{output_line}\n')
+                        num_written_questions += 1
+                        num_with_ranges += 1
+                        del repeat_dict[qr]
+                        last_verse_question_responses.remove(qr) # So we don't get the last QR repeated again in the file
+                # Write the QRs for the verse BEFORE the one just finished
+                for qr in last_verse_question_responses:
+                    if qr not in repeat_dict:
+                        generated_id = ''
+                        while generated_id in previous_ids:
+                            generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
+                        previous_ids.append(generated_id)
+
+                        output_line = f"{last_CV_reference}\t{generated_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
+                        output_TSV_file.write(f'{output_line}\n')
+                        num_written_questions += 1
+                # Update our variables
+                last_verse_question_responses = this_verse_question_responses
+                this_verse_question_responses = []
+                last_CV_reference = this_CV_reference
+                this_CV_reference = new_CV_reference
+
+            question = question.strip()
+            response = response.strip()
+            qr = f'{question}\t{response}'
+            this_verse_question_responses.append(qr)
+            if qr in last_verse_question_responses: # found the same question&response in at least two consecutive verses
+                if qr not in repeat_dict: repeat_dict[qr] = [last_CV_reference]
+                repeat_dict[qr].append(this_CV_reference)
+                # print(f"    Got {BBB} repeated '{question[:20]}…' in {repeat_dict[qr]}")
+                # NOTE: this qr is also in this_verse_question_responses so output of that will have to be suppressed later
+
+        # NOTE: I think that at least part of the EOF stuff below is unnecessary (will never execute) but never mind
+        # if repeat_dict: print(f"  At end of {BBB} with {len(repeat_dict)} saved QRs: {repeat_dict}")
+        # if last_verse_question_responses:
+        #     print(f"    last_CV_reference = {last_CV_reference}")
+        #     print(f"    Have {BBB} {len(last_verse_question_responses)} last_verse_question_responses: {last_verse_question_responses}")
+        # if this_verse_question_responses:
+        #     print(f"    this_CV_reference = {this_CV_reference}")
+        #     print(f"    Have {BBB} {len(this_verse_question_responses)} this_verse_question_responses: {this_verse_question_responses}")
+
+        # See if we need to write a question/response with a verse range
+        for qr,refs in repeat_dict.copy().items():
+            if this_CV_reference not in refs:
+                q = qr.split('\t')[0]
+                # print(f"    Now heading into {BBB} end after {this_CV_reference}, need to write '{q[:20]}…' for {refs}")
+
+                generated_id = ''
+                while generated_id in previous_ids:
+                    generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
+                previous_ids.append(generated_id)
+
+                # Just check that repeat questions didn't cross a chapter boundary (our code doesn't handle that yet)
+                refs_C = refs[0].split(':')[0]
+                for ref in refs[1:]: assert ref.split(':')[0] == refs_C # Should all be in the same chapter
+
+                output_line = f"{refs_C}:{refs[0].split(':')[-1]}-{refs[-1].split(':')[-1]}\t{generated_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
+                output_TSV_file.write(f'{output_line}\n')
+                num_written_questions += 1
+                num_with_ranges += 1
+                del repeat_dict[qr]
+                last_verse_question_responses.remove(qr) # So we don't get the last QR repeated again in the file
+
+        # Write the QRs for the 2nd-to-last verse
+        # print(f"  Have {BBB} {len(last_verse_question_responses)} last_verse_question_responses: {last_verse_question_responses}")
+        for qr in last_verse_question_responses:
+            if qr not in repeat_dict:
+                generated_id = ''
+                while generated_id in previous_ids:
+                    generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
+                previous_ids.append(generated_id)
+
+                output_line = f"{last_CV_reference}\t{generated_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
+                output_TSV_file.write(f'{output_line}\n')
+                num_written_questions += 1
+
+        # See if we need to write a question/response with a verse range
+        for qr,refs in repeat_dict.copy().items():
+            q = qr.split('\t')[0]
+            print(f"    Finally heading into {BBB} end after {this_CV_reference} after {last_CV_reference}, need to write '{q[:20]}…' for {refs}")
+
             generated_id = ''
             while generated_id in previous_ids:
                 generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
             previous_ids.append(generated_id)
 
-            reference = f'{C}:{V}'
-            tags = ''
+            # Just check that repeat questions didn't cross a chapter boundary (our code doesn't handle that yet)
+            refs_C = refs[0].split(':')[0]
+            for ref in refs[1:]: assert ref.split(':')[0] == refs_C # Should all be in the same chapter
 
-            quote = ''
-            occurrence = ''
-
-            question = question.strip()
-            response = response.strip()
-            # annotation = f'{question}\\n\\n> {response}' # This is the Markdown quoted block formatting
-
-            output_line = f'{reference}\t{generated_id}\t{tags}\t{quote}\t{occurrence}\t{question}\t{response}'
+            output_line = f"{refs_C}:{refs[0].split(':')[-1]}-{refs[-1].split(':')[-1]}\t{generated_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
             output_TSV_file.write(f'{output_line}\n')
-            num_questions += 1
-    print(f"      {num_questions:,} 7-column questions and responses written")
-    return num_questions
+            num_written_questions += 1
+            num_with_ranges += 1
+            del repeat_dict[qr]
+            this_verse_question_responses.remove(qr) # So we don't get the last QR repeated again in the file
+        assert not repeat_dict # We haven't written code to handle repeat questions right near the end of the file
+
+        # Write the QRs for the last verse
+        # print(f"  Have {BBB} {len(this_verse_question_responses)} this_verse_question_responses: {this_verse_question_responses}")
+        for qr in this_verse_question_responses:
+            if qr not in repeat_dict:
+                generated_id = ''
+                while generated_id in previous_ids:
+                    generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
+                previous_ids.append(generated_id)
+
+                output_line = f"{this_CV_reference}\t{generated_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
+                output_TSV_file.write(f'{output_line}\n')
+                num_written_questions += 1
+
+    aux_string = f" (including {num_with_ranges} with verse ranges)" if num_with_ranges else ''
+    print(f"      {num_written_questions:,} seven-column questions and response lines written{aux_string}")
+    return num_written_questions
 # end of make_TSV_file function
 
 
@@ -215,6 +335,7 @@ def main():
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
     total_questions = 0
     for BBB,nn in BBB_NUMBER_DICT.items():
+        # if BBB != 'MAT': continue
         question_count = make_TSV_file(BBB,nn)
         total_questions += question_count
     print(f"    {total_questions:,} total questions and responses written to {LOCAL_OUTPUT_FOLDERPATH}/")
