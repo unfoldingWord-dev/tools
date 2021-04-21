@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Nov 2020 by RJH
-#   Last modified: 2021-03-23 by RJH
+#   Last modified: 2021-04-20 by RJH
 #
 """
 Quick script to copy TQ from 7-column TSV files
@@ -45,7 +45,7 @@ BBB_LIST = ('GEN','EXO','LEV','NUM','DEU',
 assert len(BBB_LIST) == 66
 
 
-def get_TSV_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str]:
+def get_TSV_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str]:
     """
     Generator to read the TQ 7-column TSV file for a given book (BBB)
         and return the needed fields.
