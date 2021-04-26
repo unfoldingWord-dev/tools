@@ -50,7 +50,7 @@ BBB_NUMBER_DICT = {'GEN':'01','EXO':'02','LEV':'03','NUM':'04','DEU':'05',
 
 WORD_FIELD_RE = re.compile(r'(\\w .+?\\w\*)')
 SINGLE_WORD_RE = re.compile(r'\\w (.+?)\|')
-SIMPLE_TW_LINK_RE = re.compile(r'x-tw="([:/\*a-z0-9]+?)" ?\\w\*') # Only occurs inside a \\w field (at end)
+SIMPLE_TW_LINK_RE = re.compile(r'x-tw="([-:/\*a-z0-9]+?)" ?\\w\*') # Only occurs inside a \\w field (at end)
 MILESTONE_TW_LINK_RE = re.compile(r'\\k-s \| ?x-tw="([:/\*a-z0-9]+?)" ?\\\*')
 # WORD_JOINER_RE = re.compile(r'\\w\*(.)\\w ') # Whatever's between two word fields
 
