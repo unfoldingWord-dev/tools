@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Apr 2020 by RJH
-#   Last modified: 2021-04-07 by RJH
+#   Last modified: 2021-04-30 by RJH
 #
 """
 Quick script to copy TW links out of UHB and UGNT
@@ -52,6 +52,8 @@ WORD_FIELD_RE = re.compile(r'(\\w .+?\\w\*)')
 SINGLE_WORD_RE = re.compile(r'\\w (.+?)\|')
 SIMPLE_TW_LINK_RE = re.compile(r'x-tw="([-:/\*a-z0-9]+?)" ?\\w\*') # Only occurs inside a \\w field (at end)
 MILESTONE_TW_LINK_RE = re.compile(r'\\k-s \| ?x-tw="([:/\*a-z0-9]+?)" ?\\\*')
+BAD_CONSECUTIVE_TW_LINK_RE = re.compile(r'x-tw="([-:/\*a-z0-9]+?)" ?x-tw="([-:/\*a-z0-9]+?)" ?\\w\*')
+BAD_CONSECUTIVE_MORPH_RE = re.compile(r'x-morph="([,A-za-z0-9]+?)" ?x-morph="([,A-za-z0-9]+?)" ?\\w\*')
 # WORD_JOINER_RE = re.compile(r'\\w\*(.)\\w ') # Whatever's between two word fields
 
 def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
@@ -104,6 +106,9 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
             if 'x-tw' not in line and '\\k' not in line and not is_in_k:
                 continue # Ignore unnecessary lines
             # print(f"{BBB} {C}:{V} line={line}")
+            assert line.count('x-tw') <= line.count('\\w ') + line.count('\\k-s'), f"Too many x-tw's in line: '{line}' -- please fix first and rerun"
+            assert not BAD_CONSECUTIVE_MORPH_RE.search(line), f"Too many consecutive x-morph's in word: '{line}' -- please fix first and rerun"
+            assert not BAD_CONSECUTIVE_TW_LINK_RE.search(line), f"Too many consecutive x-tw's in word: '{line}' -- please fix first and rerun"
 
             # Should only have relevant lines of the file now
             # NOTE: Be careful as \\k-s can occur mid-line, e.g., NEH 9:9 !!!
@@ -284,7 +289,7 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
         print(f"      Loaded {len(original_TWL_lines):,} lines from previous version of {output_filepath}")
     except Exception: original_TWL_lines = [] # ignore this if it fails
 
-    num_simple_links = num_complex_links = j = 0
+    num_simple_links = num_multiword_links = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
         output_TSV_file.write('Reference\tID\tTags\tOrigWords\tOccurrence\tTWLink\n')
         previously_generated_ids:List[str] = [''] # We make ours unique per file (spec only says unique per verse)
@@ -323,12 +328,12 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
 
             output_line = f'{reference}\t{row_id}\t{tags}\t{word}\t{occurrence}\t{link}'
             output_TSV_file.write(f'{output_line}\n')
-            if ' ' in word: num_complex_links += 1
+            if ' ' in word: num_multiword_links += 1
             else: num_simple_links += 1
             assert '&' not in word # We don't have any of these
             assert '…' not in word # This one is now obsolete
-    print(f"      {j:,} links written ({num_simple_links:,} simple links and {num_complex_links:,} complex links)")
-    return num_simple_links, num_complex_links
+    print(f"      {j:,} links written ({num_simple_links:,} simple links and {num_multiword_links:,} multiword links)")
+    return num_simple_links, num_multiword_links
 # end of make_TSV_file function
 
 
@@ -338,16 +343,22 @@ def main():
     print("TW_HebGrk_to_TSV6_TWL.py")
     print(f"  Source folderpath is {LOCAL_SOURCE_BASE_FOLDERPATH}/")
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
-    total_simple_links = total_complex_links = 0
+    total_simple_links = total_multiword_links = 0
+    fail_list = []
     for BBB,nn in BBB_NUMBER_DICT.items():
         # if BBB != 'MAT': continue
         try:
             simple_count, complex_count = make_TSV_file(BBB,nn)
             total_simple_links += simple_count
-            total_complex_links += complex_count
+            total_multiword_links += complex_count
         except Exception as e:
+            fail_list.append(BBB)
             print(f"ERROR: failed to process {BBB}: {e}")
-    print(f"    {total_simple_links+total_complex_links:,} total links written ({total_simple_links:,} simple links and {total_complex_links:,} multiword links) to {LOCAL_OUTPUT_FOLDERPATH}/")
+    if fail_list:
+        print(f"The following {len(fail_list)} books FAILED: {fail_list}")
+        print("PLEASE REVERT THESE CHANGES, FIX THE FAILING BOOKS, AND THEN RERUN!")
+    else:
+        print(f"    {total_simple_links+total_multiword_links:,} total links written ({total_simple_links:,} simple links and {total_multiword_links:,} multiword links) to {LOCAL_OUTPUT_FOLDERPATH}/")
 # end of main function
 
 if __name__ == '__main__':

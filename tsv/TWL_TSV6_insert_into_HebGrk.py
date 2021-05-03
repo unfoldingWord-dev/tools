@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Apr 2021 by RJH
-#   Last modified: 2021-04-26 by RJH
+#   Last modified: 2021-05-03 by RJH
 #
 """
 Quick script to:
@@ -183,29 +183,32 @@ def handle_book(BBB:str, nn:str) -> Tuple[int,int]:
 
     new_USFM_lines = []
     current_usfm_V = -1
-    origL_words_in_this_verse = [] # Built up from USFM as we process the verse (in order to detect multiple occurrences)
+    origLang_words_in_this_USFM_verse = [] # Built up from USFM as we process the verse (in order to detect multiple occurrences)
     outstanding_orig_words_list = [] # Outstanding TWL orig_words still be be processed
     processed_first_outstanding_orig_word = False
     handled_USFM_line = True; finished_USFM = False
     handled_TWL_line = True; finished_TWL = False
+    added_origL_words = True
     while True:
         # Get a new USFM line if necessary
         if handled_USFM_line and not finished_USFM:
+            if not finished_TWL: assert added_origL_words
             try:
                 source_filepath, usfm_line_number, usfm_C, usfm_V, usfm_line, usfm_marker, usfm_rest = adjust_USFM_line(next(USFM_source_generator))
                 if usfm_line == 'SKIP': # This means that it was an end milestone and we want to delete the entire (now blank) line
                     source_filepath, usfm_line_number, usfm_C, usfm_V, usfm_line, usfm_marker, usfm_rest = adjust_USFM_line(next(USFM_source_generator))
-                print(f"Got USFM {source_filepath}, {usfm_line_number}, {usfm_C}, {usfm_V}, '{usfm_line}' with {outstanding_orig_words_list} and {origL_words_in_this_verse}")
+                print(f"Got USFM {source_filepath} {usfm_line_number} {usfm_C}:{usfm_V} {current_usfm_V=} '{usfm_line}' with {len(outstanding_orig_words_list)} {outstanding_orig_words_list} and {len(origLang_words_in_this_USFM_verse)} {origLang_words_in_this_USFM_verse}")
                 assert usfm_line != 'SKIP'
                 handled_USFM_line = False
+                if '\\w ' in usfm_line: added_origL_words = False # We will need to do this
             except StopIteration: print("Finished USFM"); finished_USFM = True
-        # if usfm_C == 1 and usfm_V == 14: break
+        # if usfm_C == 1 and usfm_V == 4: break
 
         # Get a new TWL line if necessary
         if handled_TWL_line and not finished_TWL:
             try:
                 twl_C, twl_V, orig_words, occurrence, tw_category, tw_word = adjust_TWL_TSV_fields(next(TWL_source_generator))
-                print(f"Got TWL {twl_C}, {twl_V}, '{orig_words}', {occurrence}, {tw_category}, {tw_word} with {outstanding_orig_words_list} and {origL_words_in_this_verse}")
+                print(f"Got TWL {BBB} {twl_C}:{twl_V}, '{orig_words}', {occurrence}, '{tw_category}/{tw_word}' with {len(outstanding_orig_words_list)} {outstanding_orig_words_list} and {len(origLang_words_in_this_USFM_verse)} {origLang_words_in_this_USFM_verse}")
                 handled_TWL_line = False
             except StopIteration: print("Finished TWL"); orig_words = ''; finished_TWL = True
 
@@ -218,7 +221,9 @@ def handle_book(BBB:str, nn:str) -> Tuple[int,int]:
             handled_USFM_line = True
             continue # Get next usfm line
 
-        if usfm_C == twl_C and usfm_V > twl_V+1:
+        if usfm_C > twl_C+1 \
+        or (usfm_C == twl_C+1 and usfm_V > 1) \
+        or  (usfm_C == twl_C and usfm_V > twl_V+1):
             raise Exception(f"USFM {BBB} {usfm_C}:{usfm_V} went too far past TWL {twl_C}:{twl_V} '{orig_words}' {occurrence}")
 
         if not handled_USFM_line:
@@ -228,7 +233,7 @@ def handle_book(BBB:str, nn:str) -> Tuple[int,int]:
             and twl_C==usfm_C and twl_V > usfm_V : # Have a new USFM verse change but no left over TWLs from the last verse
                 print(f"Clearing verse list ready for USFM {BBB} {usfm_C}:{usfm_V} {current_usfm_V=} {twl_C}:{twl_V} '{orig_words}' {occurrence}")
                 current_usfm_V = usfm_V
-                origL_words_in_this_verse = []
+                origLang_words_in_this_USFM_verse = [] # definition of a word here is "inside a \w ...\w*" field in the Heb/Grk
 
             if '\\w ' not in usfm_line: # we're not really interested in it
                 new_USFM_lines.append(usfm_line)
@@ -238,53 +243,44 @@ def handle_book(BBB:str, nn:str) -> Tuple[int,int]:
             # Add origL words that we've found in this verse
             num_words_in_this_line = usfm_line.count('\\w ')
             # print(f"For {BBB} line {usfm_line_number} {usfm_C}:{usfm_V} with marker '{usfm_marker}' found {num_words_in_this_line=}")
-            num_words_added_just_now = 0
-            if num_words_in_this_line:
-                if usfm_marker == '\\w':
-                    bar_index = usfm_rest.index('|')
-                    orig_word = usfm_rest[:bar_index]
-                    assert ' ' not in orig_word and '|' not in orig_word
-                    origL_words_in_this_verse.append(orig_word)
+            if num_words_in_this_line and not added_origL_words:
+                num_words_added_just_now = 0
+                bar_index = -1
+                for x in range(0, num_words_in_this_line):
+                    w_index = usfm_line.index('\\w ', bar_index+1)
+                    bar_index = usfm_line.index('|', w_index+3)
+                    origLang_USFM_word = usfm_line[w_index+3:bar_index]
+                    # print(f"  About to add '{origLang_USFM_word}' space={' ' in origLang_USFM_word} bar={'|' in origLang_USFM_word} maqaf={'־' in origLang_USFM_word}")
+                    assert ' ' not in origLang_USFM_word and '|' not in origLang_USFM_word and '־' not in origLang_USFM_word # maqaf
+                    origLang_words_in_this_USFM_verse.append(origLang_USFM_word) # definition of a word here is "inside a \w ...\w*" field in the Heb/Grk
                     num_words_added_just_now += 1
-                else:
-                    w_index = usfm_rest.index('\\w ')
-                    bar_index = usfm_rest.index('|', w_index+3)
-                    orig_word = usfm_rest[w_index+3:bar_index]
-                    assert ' ' not in orig_word and '|' not in orig_word
-                    origL_words_in_this_verse.append(orig_word)
-                    num_words_added_just_now += 1
-                for x in range(1, num_words_in_this_line):
-                    w_index = usfm_rest.index('\\w ', bar_index+2)
-                    bar_index = usfm_rest.index('|', w_index+3)
-                    orig_word = usfm_rest[w_index+3:bar_index]
-                    assert ' ' not in orig_word and '|' not in orig_word
-                    origL_words_in_this_verse.append(orig_word)
-                    num_words_added_just_now += 1
-            # if origL_words_in_this_verse: print(f"For {BBB} line {usfm_line_number} {usfm_C}:{usfm_V} just added {num_words_added_just_now}/{num_words_in_this_line} to have ({len(origL_words_in_this_verse)}): {origL_words_in_this_verse}")
-            assert num_words_added_just_now == num_words_in_this_line
+                if origLang_words_in_this_USFM_verse: print(f"Just added {num_words_added_just_now}/{num_words_in_this_line} words to have ({len(origLang_words_in_this_USFM_verse)}) {origLang_words_in_this_USFM_verse} for {BBB} line {usfm_line_number} {usfm_C}:{usfm_V}")
+                assert num_words_added_just_now == num_words_in_this_line
+                added_origL_words = True
 
-            if ' ' not in orig_words:
+            if ' ' not in orig_words and '־' not in orig_words:
                 if twl_C > usfm_C or twl_V > usfm_V: # USFM needs to catch up
                     print(f"Catch up USFM from {BBB} {usfm_C}:{usfm_V} to {twl_C}:{twl_V}")
                     new_USFM_lines.append(usfm_line)
                     handled_USFM_line = True
                     continue
 
-        if orig_words and ' ' not in orig_words \
+        if orig_words and ' ' not in orig_words and '־' not in orig_words \
         and twl_C==usfm_C and twl_V==usfm_V: # in the right verse with a single word TWL
             print(f"In right verse at {BBB} {usfm_C}:{usfm_V} with single word: '{orig_words}'")
             # print(f"Only one origL word: {orig_words}")
             orig_word = orig_words # There's only one!
             if f'w {orig_word}|' not in usfm_line:
-                print(f"No, {BBB} {twl_C}:{twl_V} '{orig_word}' doesn't go in this line: {usfm_C}:{usfm_V} '{usfm_line}'")
+                print(f"No, {BBB} {twl_C}:{twl_V} '{orig_word}' doesn't go in this line: {usfm_C}:{usfm_V} '{usfm_line}' having {origLang_words_in_this_USFM_verse}")
                 new_USFM_lines.append(usfm_line)
                 handled_USFM_line = True
                 continue
-            if occurrence > origL_words_in_this_verse.count(orig_word): # not there yet
-                print(f"No, {orig_word} not at occurrence {occurrence} yet")
+            if occurrence > origLang_words_in_this_USFM_verse.count(orig_word): # not there yet
+                print(f"No, '{orig_word}' not at occurrence {occurrence} yet")
                 new_USFM_lines.append(usfm_line)
                 handled_USFM_line = True
                 continue
+            else: print(f"Yes, seems that '{orig_word}' is at occurrence {occurrence} already with {len(origLang_words_in_this_USFM_verse)} {origLang_words_in_this_USFM_verse}")
             if usfm_line.count('\\w ') == 1: # simple case -- only one word on the line
                 print(f"Doing single simple action {BBB} {twl_C}:{twl_V} {orig_word}, {occurrence}, {tw_category}, {tw_word} with {usfm_line_number} {usfm_marker} {usfm_rest}")
                 usfm_line = usfm_line.replace('\\w*', f' x-tw="rc://*/tw/dict/bible/{tw_category}/{tw_word}"\\w*', 1) # Add TWL to end of \w field
@@ -317,8 +313,8 @@ def handle_book(BBB:str, nn:str) -> Tuple[int,int]:
                     handled_USFM_line = True
                 continue
 
-        if ' ' in orig_words: # multiple origL words in TWL -- this is WAY more complex -- we need \\k milestones
-            print(f"At USFM {BBB} {usfm_C}:{usfm_V} and TWL {twl_C}:{twl_V} with multiple TWL words: '{orig_words}' {occurrence}")
+        if ' ' in orig_words or '־' in orig_words: # multiple origL words in TWL -- this is WAY more complex -- we need \\k milestones
+            print(f"At USFM {BBB} {usfm_C}:{usfm_V} and TWL {twl_C}:{twl_V} with multiple TWL words: '{orig_words}' {occurrence} {outstanding_orig_words_list}")
             if new_USFM_lines[-5]: print(f" 6th previous line: {new_USFM_lines[-6]}")
             if new_USFM_lines[-5]: print(f" 5th previous line: {new_USFM_lines[-5]}")
             if new_USFM_lines[-4]: print(f" 4th previous line: {new_USFM_lines[-4]}")
@@ -327,64 +323,76 @@ def handle_book(BBB:str, nn:str) -> Tuple[int,int]:
             if new_USFM_lines[-1]: print(f"     Previous line: {new_USFM_lines[-1]}")
             print(f"      Current line: {usfm_line}")
             if (usfm_C>twl_C or (twl_C==usfm_C and usfm_V>=twl_V)):
-                print(f"In multi-word right place at USFM {BBB} {usfm_C}:{usfm_V} and TWL {twl_C}:{twl_V} for '{orig_words}' {occurrence}")
+                print(f"In multi-word right place at USFM {BBB} {usfm_C}:{usfm_V} and TWL {twl_C}:{twl_V} for '{orig_words}' {occurrence} {outstanding_orig_words_list}")
 
                 # if orig_words == 'θυσιαστηρίου τοῦ θυμιάματος': print(f"{usfm_C}:{usfm_V} {twl_C}:{twl_V}")
                 # assert occurrence == 1 # Not true!!!
                 assert ',' not in orig_words
                 if not outstanding_orig_words_list: # we're at the first processing of the words
-                    outstanding_orig_words_list = orig_words.split(' ')
+                    temp_words = orig_words.replace('־', ' ') # We want to split on either
+                    outstanding_orig_words_list = temp_words.split(' ')
+                    assert len(outstanding_orig_words_list) > 1
                     processed_first_outstanding_orig_word = False
                     complex_TWL_count += 1
 
                 if outstanding_orig_words_list:
-                    print(f"Have outstanding TWL words: {outstanding_orig_words_list}")
+                    print(f"Have outstanding TWL origLang words: {outstanding_orig_words_list}")
+
                     if not processed_first_outstanding_orig_word \
-                    and occurrence > ' '.join(origL_words_in_this_verse).count(orig_words): # not there yet
-                        print(f"No, not at right occurrence of phrase yet: '{orig_words}' {occurrence}")
+                    and occurrence > ' '.join(origLang_words_in_this_USFM_verse).count(orig_words.replace('־', ' ')): # not there yet
+                        print(f"No, not at right occurrence of {BBB} {twl_C}:{twl_V} phrase yet: '{orig_words}' {occurrence} with {origLang_words_in_this_USFM_verse}")
                         new_USFM_lines.append(usfm_line)
                         handled_USFM_line = True
                         continue
 
                     if not processed_first_outstanding_orig_word: # haven't processed any of the multiple words yet, but they should all be there now I think
-                        print( f"HERE with {outstanding_orig_words_list=} and {origL_words_in_this_verse=}" )
-                        assert occurrence <= ' '.join(origL_words_in_this_verse).count(orig_words)
+                        print( f"NEED ACTION NOW coz here with {outstanding_orig_words_list=} and {origLang_words_in_this_USFM_verse=}" )
+                        assert occurrence <= ' '.join(origLang_words_in_this_USFM_verse).count(orig_words.replace('־', ' '))
+                        # NOTE: We handle the multi-word TWL from the end, i.e., process the last word first
                         last_word = outstanding_orig_words_list[-1]
                         print( f"{ outstanding_orig_words_list=} {usfm_line=}")
-                        start_at = 999
+                        start_at_line_offset = 999
                         if f'w {last_word}|' in usfm_line:
-                            print(f"Mark final word '{last_word}' off in current {usfm_line=}")
+                            print(f"Mark final word '{last_word}' of {len(outstanding_orig_words_list)} off in current {usfm_line=}")
                             del outstanding_orig_words_list[-1]
                             new_USFM_lines.append(usfm_line) # Note: These appends and inserts push the lines containing the earlier words even further back
                             handled_USFM_line = True
                             new_USFM_lines.append('\\k-e\\*')
-                            start_at = -3
+                            start_at_line_offset = -2
                         else: # look for the last_word in lines that were previously saved
                             for index in range (1, 7):
                                 print(f"In loop1 {index=}")
                                 if len(new_USFM_lines)>=index and f'w {last_word}|' in new_USFM_lines[-index]:
-                                    print(f"Mark final word '{last_word}' off in {-index} line {new_USFM_lines[-index]=}")
+                                    print(f"Mark final word '{last_word}' of {len(outstanding_orig_words_list)} off in {-index} line {new_USFM_lines[-index]=}")
                                     del outstanding_orig_words_list[-1]
                                     if index == 1: new_USFM_lines.append('\\k-e\\*')
                                     else: new_USFM_lines.insert(1-index, '\\k-e\\*')
-                                    start_at = -index
+                                    start_at_line_offset = -index
                                     break
 
-                        if start_at < 0: # we found the first word
-                            offset = 0
+                        if start_at_line_offset < 0: # we found the first word of a multi-word TWL
+                            next_line_offset = 0
                             while outstanding_orig_words_list:
-                                print(f"  In outer loop2 with '{outstanding_orig_words_list}' {start_at=}")
+                                print(f"  In outer loop2 with '{outstanding_orig_words_list}' {start_at_line_offset=}")
                                 while True:
                                     last_word = outstanding_orig_words_list[-1]
-                                    print(f"    In inner loop2 with '{last_word}' {start_at=} {offset=} so {start_at-offset=} {offset-start_at=}")
-                                    if len(new_USFM_lines)>=offset-start_at and f'w {last_word}|' in new_USFM_lines[start_at-offset]:
-                                        print(f"Mark next last word '{last_word}' off in {start_at-offset} line {new_USFM_lines[start_at-offset]=}")
+                                    print(f"    In inner loop2 with '{last_word}' {start_at_line_offset=} {next_line_offset=} so {start_at_line_offset-next_line_offset=} {next_line_offset-start_at_line_offset=}")
+                                    if len(new_USFM_lines)>=next_line_offset-start_at_line_offset and f'w {last_word}|' in new_USFM_lines[start_at_line_offset-next_line_offset]:
+                                        print(f"Mark next last word '{last_word}' off in {start_at_line_offset-next_line_offset} line {new_USFM_lines[start_at_line_offset-next_line_offset]=}")
                                         del outstanding_orig_words_list[-1]
-                                        if not outstanding_orig_words_list:
-                                            new_USFM_lines[start_at-offset] = f'\\k-s |x-tw="rc://*/tw/dict/bible/{tw_category}/{tw_word}"\\*{new_USFM_lines[start_at-offset]}'
+                                        if not outstanding_orig_words_list: # we've place all the words
+                                            # Now we need to place the k-s milestone correctly within the line
+                                            old_line_contents = new_USFM_lines[start_at_line_offset-next_line_offset]
+                                            char_index = 0 # default to start of line
+                                            old_line_word_indexes = [match.start() for match in re.finditer(rf'\\w {last_word}\|', old_line_contents)]
+                                            # print(f"Got {len(old_line_word_indexes)} re matches: {old_line_word_indexes=}")
+                                            assert len(old_line_word_indexes) == 1 # Otherwise the same word appears twice in a single line!
+                                            char_index = old_line_word_indexes[0]
+                                            # print(f"Got {char_index=}")
+                                            new_USFM_lines[start_at_line_offset-next_line_offset] = f'{old_line_contents[:char_index]}\\k-s |x-tw="rc://*/tw/dict/bible/{tw_category}/{tw_word}"\\*{old_line_contents[char_index:]}'
                                         break
-                                    offset += 1
-                                    if offset > 7:
+                                    next_line_offset += 1
+                                    if next_line_offset > 7:
                                         loop_overload
                             assert not outstanding_orig_words_list
 
@@ -399,7 +407,7 @@ def handle_book(BBB:str, nn:str) -> Tuple[int,int]:
                 handled_USFM_line = True
                 continue
 
-        raise Exception(f"Why are we looping in {BBB} USFM {usfm_C}:{usfm_V} with TWL {twl_C}:{twl_V}")
+        raise Exception(f"Why are we looping in {BBB} USFM {usfm_C}:{usfm_V} with TWL {twl_C}:{twl_V} '{orig_words}'")
 
     # if new_USFM_lines: print(f"Created USFM ({len(new_USFM_lines)}): {new_USFM_lines}")
     # assert finished_USFM and finished_TWL
@@ -408,7 +416,8 @@ def handle_book(BBB:str, nn:str) -> Tuple[int,int]:
         print(f"Writing {len(new_USFM_lines):,} lines to {source_filepath}")
         usfm_text = '\n'.join(new_USFM_lines)
         # Fix known multi-line issues
-        usfm_text = usfm_text.replace('\\k-e\\*\n.', '\\k-e\\*.').replace('\\k-e\\*\n,', '\\k-e\\*,').replace('\\k-e\\*\n;', '\\k-e\\*;').replace('\\k-e\\*\n!', '\\k-e\\*!').replace('\\k-e\\*\n?', '\\k-e\\*?')
+        usfm_text = usfm_text.replace('\\k-e\\*\n.', '\\k-e\\*.').replace('\\k-e\\*\n,', '\\k-e\\*,').replace('\\k-e\\*\n;', '\\k-e\\*;').replace('\\k-e\\*\n!', '\\k-e\\*!').replace('\\k-e\\*\n?', '\\k-e\\*?') \
+            .replace('\\k-e\\*\nס', '\\k-e\\*ס').replace('\\k-e\\*\nפ', '\\k-e\\*פ').replace('\\k-e\\*\n׃', '\\k-e\\*׃')
         with open(source_filepath, 'wt') as new_USFM_output_file:
             new_USFM_output_file.write(f'{usfm_text}\n')
     return simple_TWL_count, complex_TWL_count
@@ -422,18 +431,24 @@ def main():
     print(f"  TWL source folderpath is {LOCAL_TWL_SOURCE_FOLDERPATH}/")
     print(f"  OrigL folderpaths are {LOCAL_OT_FOLDERPATH}/ and {LOCAL_NT_FOLDERPATH}/")
     total_simple_links = total_complex_links = 0
+    badBooks = ('JOS','NEH','MAT')
+    fail_list = []
     for BBB,nn in BBB_NUMBER_DICT.items(): # This script just handles exactly 66 books
-        # if BBB != '1PE': continue
-        # if BBB in ('GEN','EXO'): continue
-        # if BBB not in ('MAT','MRK','LUK','JHN','ACT','ROM','1CO','2CO','GAL','EPH','PHP','COL','1TH','2TH','1TI','2TI','TIT','PHM','HEB','JAS','1PE','2PE','1JN','2JN','3JN','JUD','REV'): continue
-        # try:
-        if 1:
+        # if BBB != 'JON': continue
+        if BBB in badBooks: continue
+        # if BBB == 'MAT': break # skip NT
+        try:
             simple_count, complex_count = handle_book(BBB, nn)
             total_simple_links += simple_count
             total_complex_links += complex_count
-        # except Exception as e:
-        #     print(f"ERROR: failed to process {BBB}: {e}")
-    print(f"    {total_simple_links+total_complex_links:,} total links written ({total_simple_links:,} simple links and {total_complex_links:,} multiword links) to {LOCAL_OT_FOLDERPATH}/ and {LOCAL_NT_FOLDERPATH}/")
+        except Exception as e:
+            fail_list.append(BBB)
+            print(f"ERROR: failed to process {BBB}: {e}")
+    if fail_list:
+        print(f"The following {len(fail_list)} books FAILED: {fail_list}")
+        print("PLEASE REVERT THESE CHANGES, FIX THE FAILING BOOKS, AND THEN RERUN!")
+    else:
+        print(f"    {total_simple_links+total_complex_links:,} total links written ({total_simple_links:,} simple links and {total_complex_links:,} multiword links) to {LOCAL_OT_FOLDERPATH}/ and {LOCAL_NT_FOLDERPATH}/")
 # end of main function
 
 if __name__ == '__main__':
