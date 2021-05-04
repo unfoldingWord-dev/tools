@@ -134,7 +134,7 @@ def get_source_questions(BBB:str, nn:str) -> Tuple[str,str,str,str,str]:
     verses_per_chapter = book_info_line['chapters']
 
     for C in range(1, len(verses_per_chapter)+1):
-        for V in range(1, verses_per_chapter[C-1]):
+        for V in range(1, verses_per_chapter[C-1]+1):
             filepath = source_folderpath.joinpath(str(C).zfill(2), f'{str(V).zfill(2)}.md')
             if os.path.exists(filepath):
                 # print(f"Found {filepath}")
@@ -369,7 +369,6 @@ def main():
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
     total_questions = 0
     for BBB,nn in BBB_NUMBER_DICT.items():
-        # if BBB != 'MAT': continue
         question_count = make_TSV_file(BBB,nn)
         total_questions += question_count
     print(f"    {total_questions:,} total questions and responses written to {LOCAL_OUTPUT_FOLDERPATH}/")
