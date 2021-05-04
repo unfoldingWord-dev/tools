@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-04-08 by RJH
+#   Last modified: 2021-05-04 by RJH
 #
 """
 Quick script to copy TQ from markdown files
@@ -117,13 +117,13 @@ BOOK_INFO_DICT = { "gen": {"id": "gen", "title": "Genesis", "usfm": "01-GEN", "t
 }
 
 
-def get_source_questions(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str]:
+def get_source_questions(BBB:str, nn:str) -> Tuple[str,str,str,str,str]:
     """
     Generator to read the TQ markdown files
         and return questions and responses.
 
-    Returns a 6-tuple with:
-        line number B C V reference strings
+    Returns a 5-tuple with:
+        B C V reference strings
         question response
     """
     bbb = BBB.lower()
@@ -146,7 +146,7 @@ def get_source_questions(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str]:
             state = 0
             question = response = None
             with open(filepath, 'rt') as mdFile:
-                for line_number,line in enumerate(mdFile, start=1):
+                for line in mdFile:
                     line = line.rstrip() # Remove trailing whitespace including nl char
                     # print(f"  line={line}")
                     if not line: continue # Ignore blank lines
@@ -163,7 +163,7 @@ def get_source_questions(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str]:
                         assert not response
                         response = line
                         state = 0
-                        yield line_number, BBB,C,V, question,response
+                        yield BBB,C,V, question,response
                         question = response = None
 # end of get_source_questions function
 
@@ -181,6 +181,54 @@ def make_TSV_file(BBB:str, nn:str) -> int:
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
     output_filepath = output_folderpath.joinpath(f'tq_{BBB}.tsv')
 
+    try: # Load the previous file so we can use the same row ID fields
+        with open(output_filepath, 'rt') as previous_file:
+            previous_text = previous_file.read()
+        original_TSV_TQ_lines = previous_text.split('\n')
+        # for j,line in enumerate(original_TSV_TQ_lines):
+        #     print(f"{j+1}: '{line}'")
+        original_TSV_TQ_lines = original_TSV_TQ_lines[1:] # Skip header row
+        if not original_TSV_TQ_lines[-1]: original_TSV_TQ_lines = original_TSV_TQ_lines[:-1] # Skip last empty line
+        print(f"      Loaded {len(original_TSV_TQ_lines):,} lines from previous version of {output_filepath}")
+        # print(original_TSV_TQ_lines[:10])
+    except Exception: original_TSV_TQ_lines = [] # ignore this if it fails
+
+    def get_rowID(reference:str, tags:str, quote:str, occurrence:str, qr:str) -> str:
+        """
+        """
+        # print(f"{BBB} get_rowID({reference}, {tags=}, {quote=}, {occurrence}, {qr=})…")
+        question, response = qr.split('\t')
+        found_id = None
+        for old_line in original_TSV_TQ_lines:
+            old_reference, old_id, old_tags, old_quote, old_occurrence, old_question, old_response = old_line.split('\t')
+            # print(f"OLD {old_reference} {old_id} {old_tags} {old_quote} {old_occurrence} '{old_question}' '{old_response}'")
+            if old_reference==reference and old_tags==tags and old_quote==quote and old_occurrence==occurrence \
+            and old_question==question and old_response==response:
+                found_id = old_id
+                break
+            # else:
+            #     print(f"Ref '{old_reference}', '{reference}', {old_reference==reference}")
+            #     print(f"Tags '{old_tags}', '{tags}', {old_tags==tags}")
+            #     print(f"Quote '{old_quote}', '{quote}', {old_quote==quote}")
+            #     print(f"Occurrence '{old_occurrence}', '{occurrence}', {old_occurrence==occurrence}")
+            #     print(f"Question '{old_question}', '{question}', {old_question==question}")
+            #     print(f"Response '{old_response}', '{response}', {old_response==response}")
+        if found_id:
+            # print(f"        Found {found_id} for {reference} {tags} {quote} {occurrence} {question} {response}")
+            if found_id in previously_generated_ids:
+                print(f"We had an error with {found_id} for {reference} {tags} {occurrence} {question} {response}!!!")
+                halt
+            # print(f"  Returning {found_id=}")
+            return found_id
+        else:
+            generated_id = ''
+            while generated_id in previously_generated_ids:
+                generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
+            previously_generated_ids.append(generated_id)
+            print(f"        Returning generated id for {BBB} {reference}: {generated_id} '{question}'")
+            return generated_id
+    #end of get_rowID function
+
     last_CV_reference = this_CV_reference = '0:0'
     last_verse_question_responses, this_verse_question_responses = [], []
     repeat_dict = {} # Key is QR, Value is list of consecutive references
@@ -188,9 +236,10 @@ def make_TSV_file(BBB:str, nn:str) -> int:
     tags = quote = occurrence = ''
     with open(output_filepath, 'wt') as output_TSV_file:
         output_TSV_file.write('Reference\tID\tTags\tQuote\tOccurrence\tQuestion\tResponse\n')
-        previous_ids:List[str] = ['']
-        for _j, (_line_number,BBB,C,V,question,response) in enumerate(get_source_questions(BBB, nn), start=1):
-            # print(f"{_j:3}/ Line {_line_number:<5} {BBB} {C:>3}:{V:<3} '{question}' {response}")
+        previously_generated_ids:List[str] = [''] # We make ours unique per file (spec only says unique per verse)
+        for _j, (BBB,C,V,question,response) in enumerate(get_source_questions(BBB, nn), start=1):
+            # print(f"{_j:3}/ {BBB} {C:>3}:{V:<3} '{question}' {response}")
+            # print(f"    {last_verse_question_responses=} {this_verse_question_responses=} {repeat_dict=}")
 
             new_CV_reference = f'{C}:{V}'
             if new_CV_reference != this_CV_reference: # We're into a new verse
@@ -200,16 +249,14 @@ def make_TSV_file(BBB:str, nn:str) -> int:
                         q = qr.split('\t')[0]
                         # print(f"    Now heading into {BBB} {new_CV_reference} after {this_CV_reference}, need to write '{q[:20]}…' for {refs}")
 
-                        generated_id = ''
-                        while generated_id in previous_ids:
-                            generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
-                        previous_ids.append(generated_id)
-
                         # Just check that repeat questions didn't cross a chapter boundary (our code doesn't handle that yet)
                         refs_C = refs[0].split(':')[0]
                         for ref in refs[1:]: assert ref.split(':')[0] == refs_C # Should all be in the same chapter
 
-                        output_line = f"{refs_C}:{refs[0].split(':')[-1]}-{refs[-1].split(':')[-1]}\t{generated_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
+                        range_CV_reference = f"{refs_C}:{refs[0].split(':')[-1]}-{refs[-1].split(':')[-1]}"
+                        row_id = get_rowID(range_CV_reference, tags, quote, occurrence, qr)
+
+                        output_line = f"{range_CV_reference}\t{row_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
                         output_TSV_file.write(f'{output_line}\n')
                         num_written_questions += 1
                         num_with_ranges += 1
@@ -218,12 +265,9 @@ def make_TSV_file(BBB:str, nn:str) -> int:
                 # Write the QRs for the verse BEFORE the one just finished
                 for qr in last_verse_question_responses:
                     if qr not in repeat_dict:
-                        generated_id = ''
-                        while generated_id in previous_ids:
-                            generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
-                        previous_ids.append(generated_id)
+                        row_id = get_rowID(last_CV_reference, tags, quote, occurrence, qr)
 
-                        output_line = f"{last_CV_reference}\t{generated_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
+                        output_line = f"{last_CV_reference}\t{row_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
                         output_TSV_file.write(f'{output_line}\n')
                         num_written_questions += 1
                 # Update our variables
@@ -257,16 +301,14 @@ def make_TSV_file(BBB:str, nn:str) -> int:
                 q = qr.split('\t')[0]
                 # print(f"    Now heading into {BBB} end after {this_CV_reference}, need to write '{q[:20]}…' for {refs}")
 
-                generated_id = ''
-                while generated_id in previous_ids:
-                    generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
-                previous_ids.append(generated_id)
-
                 # Just check that repeat questions didn't cross a chapter boundary (our code doesn't handle that yet)
                 refs_C = refs[0].split(':')[0]
                 for ref in refs[1:]: assert ref.split(':')[0] == refs_C # Should all be in the same chapter
 
-                output_line = f"{refs_C}:{refs[0].split(':')[-1]}-{refs[-1].split(':')[-1]}\t{generated_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
+                range_CV_reference = f"{refs_C}:{refs[0].split(':')[-1]}-{refs[-1].split(':')[-1]}"
+                row_id = get_rowID(range_CV_reference, tags, quote, occurrence, qr)
+
+                output_line = f"{range_CV_reference}\t{row_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
                 output_TSV_file.write(f'{output_line}\n')
                 num_written_questions += 1
                 num_with_ranges += 1
@@ -277,30 +319,25 @@ def make_TSV_file(BBB:str, nn:str) -> int:
         # print(f"  Have {BBB} {len(last_verse_question_responses)} last_verse_question_responses: {last_verse_question_responses}")
         for qr in last_verse_question_responses:
             if qr not in repeat_dict:
-                generated_id = ''
-                while generated_id in previous_ids:
-                    generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
-                previous_ids.append(generated_id)
+                row_id = get_rowID(last_CV_reference, tags, quote, occurrence, qr)
 
-                output_line = f"{last_CV_reference}\t{generated_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
+                output_line = f"{last_CV_reference}\t{row_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
                 output_TSV_file.write(f'{output_line}\n')
                 num_written_questions += 1
 
         # See if we need to write a question/response with a verse range
         for qr,refs in repeat_dict.copy().items():
             q = qr.split('\t')[0]
-            print(f"    Finally heading into {BBB} end after {this_CV_reference} after {last_CV_reference}, need to write '{q[:20]}…' for {refs}")
-
-            generated_id = ''
-            while generated_id in previous_ids:
-                generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
-            previous_ids.append(generated_id)
+            # print(f"    Finally heading into {BBB} end after {this_CV_reference} after {last_CV_reference}, need to write '{q[:20]}…' for {refs}")
 
             # Just check that repeat questions didn't cross a chapter boundary (our code doesn't handle that yet)
             refs_C = refs[0].split(':')[0]
             for ref in refs[1:]: assert ref.split(':')[0] == refs_C # Should all be in the same chapter
 
-            output_line = f"{refs_C}:{refs[0].split(':')[-1]}-{refs[-1].split(':')[-1]}\t{generated_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
+            range_CV_reference = f"{refs_C}:{refs[0].split(':')[-1]}-{refs[-1].split(':')[-1]}"
+            row_id = get_rowID(range_CV_reference, tags, quote, occurrence, qr)
+
+            output_line = f"{range_CV_reference}\t{row_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
             output_TSV_file.write(f'{output_line}\n')
             num_written_questions += 1
             num_with_ranges += 1
@@ -312,12 +349,9 @@ def make_TSV_file(BBB:str, nn:str) -> int:
         # print(f"  Have {BBB} {len(this_verse_question_responses)} this_verse_question_responses: {this_verse_question_responses}")
         for qr in this_verse_question_responses:
             if qr not in repeat_dict:
-                generated_id = ''
-                while generated_id in previous_ids:
-                    generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
-                previous_ids.append(generated_id)
+                row_id = get_rowID(this_CV_reference, tags, quote, occurrence, qr)
 
-                output_line = f"{this_CV_reference}\t{generated_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
+                output_line = f"{this_CV_reference}\t{row_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
                 output_TSV_file.write(f'{output_line}\n')
                 num_written_questions += 1
 
