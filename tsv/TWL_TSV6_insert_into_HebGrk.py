@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Apr 2021 by RJH
-#   Last modified: 2021-05-03 by RJH
+#   Last modified: 2021-05-05 by RJH
 #
 """
 Quick script to:
@@ -431,12 +431,8 @@ def main():
     print(f"  TWL source folderpath is {LOCAL_TWL_SOURCE_FOLDERPATH}/")
     print(f"  OrigL folderpaths are {LOCAL_OT_FOLDERPATH}/ and {LOCAL_NT_FOLDERPATH}/")
     total_simple_links = total_complex_links = 0
-    badBooks = ('JOS','NEH','MAT')
     fail_list = []
     for BBB,nn in BBB_NUMBER_DICT.items(): # This script just handles exactly 66 books
-        # if BBB != 'JON': continue
-        if BBB in badBooks: continue
-        # if BBB == 'MAT': break # skip NT
         try:
             simple_count, complex_count = handle_book(BBB, nn)
             total_simple_links += simple_count
