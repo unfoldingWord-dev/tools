@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-05-04 by RJH
+#   Last modified: 2021-05-05 by RJH
 #
 """
 Quick script to copy TQ from markdown files
@@ -123,8 +123,8 @@ def get_source_questions(BBB:str, nn:str) -> Tuple[str,str,str,str,str]:
         and return questions and responses.
 
     Returns a 5-tuple with:
-        B C V reference strings
-        question response
+        BBB C V (reference strings)
+        question response (strings)
     """
     bbb = BBB.lower()
     source_folderpath = LOCAL_SOURCE_FOLDERPATH.joinpath(f'{bbb}/')
@@ -157,7 +157,7 @@ def get_source_questions(BBB:str, nn:str) -> Tuple[str,str,str,str,str]:
                             question, response = line[2:], None
                             state = 1
                             continue
-                        else: halt
+                        else: programmer_error
                     if state == 1:
                         assert question
                         assert not response
@@ -181,7 +181,8 @@ def make_TSV_file(BBB:str, nn:str) -> int:
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
     output_filepath = output_folderpath.joinpath(f'tq_{BBB}.tsv')
 
-    try: # Load the previous file so we can use the same row ID fields
+    # Load the previous file so we can use the same row ID fields
+    try:
         with open(output_filepath, 'rt') as previous_file:
             previous_text = previous_file.read()
         original_TSV_TQ_lines = previous_text.split('\n')
@@ -191,7 +192,9 @@ def make_TSV_file(BBB:str, nn:str) -> int:
         if not original_TSV_TQ_lines[-1]: original_TSV_TQ_lines = original_TSV_TQ_lines[:-1] # Skip last empty line
         print(f"      Loaded {len(original_TSV_TQ_lines):,} lines from previous version of {output_filepath}")
         # print(original_TSV_TQ_lines[:10])
-    except Exception: original_TSV_TQ_lines = [] # ignore this if it fails
+    except Exception as e:
+        print(f"      Failed to load {output_filepath}: {e}")
+        original_TSV_TQ_lines = []
 
     def get_rowID(reference:str, tags:str, quote:str, occurrence:str, qr:str) -> str:
         """
@@ -227,7 +230,7 @@ def make_TSV_file(BBB:str, nn:str) -> int:
             previously_generated_ids.append(generated_id)
             print(f"        Returning generated id for {BBB} {reference}: {generated_id} '{question}'")
             return generated_id
-    #end of get_rowID function
+    #end of make_TSV_file.get_rowID function
 
     last_CV_reference = this_CV_reference = '0:0'
     last_verse_question_responses, this_verse_question_responses = [], []
@@ -257,6 +260,7 @@ def make_TSV_file(BBB:str, nn:str) -> int:
                         row_id = get_rowID(range_CV_reference, tags, quote, occurrence, qr)
 
                         output_line = f"{range_CV_reference}\t{row_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
+                        # print(f"      WriteA: {output_line}")
                         output_TSV_file.write(f'{output_line}\n')
                         num_written_questions += 1
                         num_with_ranges += 1
@@ -268,6 +272,7 @@ def make_TSV_file(BBB:str, nn:str) -> int:
                         row_id = get_rowID(last_CV_reference, tags, quote, occurrence, qr)
 
                         output_line = f"{last_CV_reference}\t{row_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
+                        # print(f"      WriteB: {output_line}")
                         output_TSV_file.write(f'{output_line}\n')
                         num_written_questions += 1
                 # Update our variables
@@ -280,12 +285,15 @@ def make_TSV_file(BBB:str, nn:str) -> int:
             response = response.strip()
             qr = f'{question}\t{response}'
             this_verse_question_responses.append(qr)
-            if qr in last_verse_question_responses: # found the same question&response in at least two consecutive verses
-                if qr not in repeat_dict: repeat_dict[qr] = [last_CV_reference]
-                repeat_dict[qr].append(this_CV_reference)
-                # print(f"    Got {BBB} repeated '{question[:20]}…' in {repeat_dict[qr]}")
-                # NOTE: this qr is also in this_verse_question_responses so output of that will have to be suppressed later
-
+            if qr in last_verse_question_responses: # found the same question&response in at least two verses, but are they consecutive?
+                lastV = int(last_CV_reference.split(':')[1])
+                thisV = int(this_CV_reference.split(':')[1])
+                if thisV == lastV+1: # they're consecutive
+                    if qr not in repeat_dict: repeat_dict[qr] = [last_CV_reference]
+                    repeat_dict[qr].append(this_CV_reference)
+                    # print(f"    Got {BBB} repeated '{question[:20]}…' in {repeat_dict[qr]}")
+                    # NOTE: this qr is also in this_verse_question_responses so output of that will have to be suppressed later
+                # else: print(f"    {BBB } '{question[:20]}…' NOT in consecutive verses: {last_CV_reference} and {this_CV_reference}")
         # NOTE: I think that at least part of the EOF stuff below is unnecessary (will never execute) but never mind
         # if repeat_dict: print(f"  At end of {BBB} with {len(repeat_dict)} saved QRs: {repeat_dict}")
         # if last_verse_question_responses:
@@ -309,6 +317,7 @@ def make_TSV_file(BBB:str, nn:str) -> int:
                 row_id = get_rowID(range_CV_reference, tags, quote, occurrence, qr)
 
                 output_line = f"{range_CV_reference}\t{row_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
+                # print(f"      WriteC: {output_line}")
                 output_TSV_file.write(f'{output_line}\n')
                 num_written_questions += 1
                 num_with_ranges += 1
@@ -322,6 +331,7 @@ def make_TSV_file(BBB:str, nn:str) -> int:
                 row_id = get_rowID(last_CV_reference, tags, quote, occurrence, qr)
 
                 output_line = f"{last_CV_reference}\t{row_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
+                # print(f"      WriteD: {output_line}")
                 output_TSV_file.write(f'{output_line}\n')
                 num_written_questions += 1
 
@@ -338,6 +348,7 @@ def make_TSV_file(BBB:str, nn:str) -> int:
             row_id = get_rowID(range_CV_reference, tags, quote, occurrence, qr)
 
             output_line = f"{range_CV_reference}\t{row_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
+            # print(f"      WriteE: {output_line}")
             output_TSV_file.write(f'{output_line}\n')
             num_written_questions += 1
             num_with_ranges += 1
@@ -352,6 +363,7 @@ def make_TSV_file(BBB:str, nn:str) -> int:
                 row_id = get_rowID(this_CV_reference, tags, quote, occurrence, qr)
 
                 output_line = f"{this_CV_reference}\t{row_id}\t{tags}\t{quote}\t{occurrence}\t{qr}"
+                # print(f"      WriteZ: {output_line}")
                 output_TSV_file.write(f'{output_line}\n')
                 num_written_questions += 1
 

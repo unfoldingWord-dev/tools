@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Nov 2020 by RJH
-#   Last modified: 2021-04-20 by RJH
+#   Last modified: 2021-05-05 by RJH
 #
 """
 Quick script to copy TQ from 7-column TSV files
@@ -18,6 +18,7 @@ Quick script to copy TQ from 7-column TSV files
 """
 from typing import List, Tuple, Optional
 import os
+import shutil
 from pathlib import Path
 import random
 import re
@@ -28,7 +29,7 @@ LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
 LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_tq2/')
 
 # The output folder below must also already exist!
-LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_tq-backported/')
+LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_tq/')
 
 BBB_LIST = ('GEN','EXO','LEV','NUM','DEU',
                 'JOS','JDG','RUT','1SA','2SA','1KI',
@@ -84,30 +85,46 @@ def handle_output(output_folderpath:Path, BBB:str, fields:Optional[Tuple[str,str
     Returns the number of markdown files that were written in the call.
     """
     global current_BCV, markdown_text
+    # print(f"handle_output({output_folderpath}, {BBB}, {fields})…")
+
     num_files_written = 0
 
-    if fields is not None:
+    if fields is None:
+        v1 = v2 = '1' # Any value would do here
+    else: # have fields
         reference, question, response = fields
         C, V = reference.split(':')
-        # print(BBB,C,V,repr(annotation))
+        # if C == '18' and V =='3': halt
 
-    if (fields is None # We need to write the last file
-    or (markdown_text and (BBB,C,V) != current_BCV)): # need to write the previous verse file
-        assert BBB == current_BCV[0]
-        prevC, prevV = current_BCV[1:]
-        this_folderpath = output_folderpath.joinpath(f'{BBB.lower()}/{prevC.zfill(2)}/')
-        if not os.path.exists(this_folderpath): os.makedirs(this_folderpath)
-        output_filepath = this_folderpath.joinpath(f'{prevV.zfill(2)}.md')
-        with open(output_filepath, 'wt') as output_markdown_file:
-            output_markdown_file.write(markdown_text)
-        num_files_written += 1
-        markdown_text = ''
+        if '-' in V: v1, v2 = V.split('-') # it's a range
+        else: v1 = v2 = V
 
-    if fields is not None:
-        current_BCV = BBB, C, V
-        # question, answer = annotation.split('\\n\\n> ')
-        if markdown_text: markdown_text += '\n' # Blank line between questions
-        markdown_text += f'# {question}\n\n{response}\n' # will be written on the next call
+    for intV in range(int(v1), int(v2)+1):
+        V = str(intV)
+        if (fields is None # We need to write the last file
+        or (markdown_text and (BBB,C,V) != current_BCV)): # need to write the previous verse file
+            assert BBB == current_BCV[0]
+            prevC, prevV = current_BCV[1:]
+            this_folderpath = output_folderpath.joinpath(f'{BBB.lower()}/{prevC.zfill(2)}/')
+            if not os.path.exists(this_folderpath): os.makedirs(this_folderpath)
+            output_filepath = this_folderpath.joinpath(f'{prevV.zfill(2)}.md')
+            try:
+                with open(output_filepath, 'rt') as previous_markdown_file:
+                    previous_markdown_text = previous_markdown_file.read()
+            except FileNotFoundError: previous_markdown_text = ''
+            if previous_markdown_text:
+                # markdown_text = f"{markdown_text}\n{previous_markdown_text}"
+                markdown_text = f"{previous_markdown_text}\n{markdown_text}"
+            with open(output_filepath, 'wt') as output_markdown_file:
+                output_markdown_file.write(markdown_text)
+            # print(f"  Wrote {len(markdown_text):,} bytes to {str(output_filepath).replace(str(output_folderpath), '')}")
+            num_files_written += 1
+            markdown_text = ''
+
+        if fields is not None:
+            current_BCV = BBB, C, V
+            if markdown_text: markdown_text += '\n' # Blank line between questions
+            markdown_text += f'# {question}\n\n{response}\n' # will be written on the next call
 
     return num_files_written
 # end of handle_output function
@@ -121,6 +138,9 @@ def main():
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
     total_files_read = total_questions = total_files_written = 0
     for BBB in BBB_LIST:
+        # Remove the folder first in case any questions have been deleted
+        try: shutil.rmtree(LOCAL_OUTPUT_FOLDERPATH.joinpath(f'{BBB.lower()}/'))
+        except FileNotFoundError: pass # wasn't there
         for input_fields in get_TSV_fields(LOCAL_SOURCE_FOLDERPATH,BBB):
             total_files_written += handle_output(LOCAL_OUTPUT_FOLDERPATH,BBB,input_fields)
             total_questions += 1
