@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Nov 2020 by RJH
-#   Last modified: 2021-04-08 by RJH
+#   Last modified: 2021-05-05 by RJH
 #
 """
 Quick script to copy TN from 7-column TSV files
@@ -24,6 +24,7 @@ from pathlib import Path
 import random
 import re
 import logging
+import subprocess
 
 
 LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
@@ -49,23 +50,20 @@ BBB_NUMBER_DICT = {'GEN':'01','EXO':'02','LEV':'03','NUM':'04','DEU':'05',
                 '3JN':'65', 'JUD':'66', 'REV':'67' }
 
 
-cheat_lines = []
-def getGLQuote(BBB, C, V, orig_quote, occurrence):
-    """
-    TODO: TO BE WRITTEN
-    """
-    gl_quote = 'NOT DONE YET!'
+# def getGLQuote(BBB:str, C:int, V:int, orig_quote:str, occurrence:int) -> str:
+#     """
+#     """
+#     print(f"getGLQuote({BBB}, {C}, {V}, '{orig_quote}', {occurrence})…")
+#     print("About to run Proskomma…")
+#     completed_process_result = subprocess.run(['node', 'OL_Quote_to_GL_Quote.js', orig_quote], capture_output=True)
+#     print(f"Proskomma result was: {completed_process_result}")
+#     halt
 
-    # Steal it from the source file for now !!!
-    for cheat_line in cheat_lines:
-        if cheat_line.startswith(f'{BBB}\t{C}\t{V}\t') and f'\t{orig_quote}\t{occurrence}\t' in cheat_line:
-            return cheat_line.split('\t')[7]
-
-    return gl_quote
-# end of getGLQuote
+#     return gl_quote
+# # end of getGLQuote
 
 
-def get_TSV_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str,str,str,str]:
+def get_TSV7_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str,str,str,str]:
     """
     Generator to read the TN 7-column TSV files
         and return the needed fields.
@@ -91,9 +89,10 @@ def get_TSV_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str,str,str,
                 if occurrence and occurrence != '0': assert quote
                 assert not tags
                 yield reference, rowID, support_reference, quote, occurrence, note
-# end of get_TSV_fields function
+# end of get_TSV7_fields function
 
 
+QL_QUOTE_PLACEHOLDER = "NO GLQuote YET!!!"
 def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:str) -> int:
     """
     Function to read and write the TN markdown files.
@@ -103,31 +102,63 @@ def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:st
 
     Returns the number of markdown files that were written in the call.
     """
-    global cheat_lines
-    # Get cheat lines before we overwrite the existing file
-    with open(LOCAL_OUTPUT_FOLDERPATH.joinpath(f'en_tn_{nn}-{BBB}.tsv')) as cheat_file:
-        cheat_lines = cheat_file.read().split('\n')
-
     output_filepath = output_folderpath.joinpath(f'en_tn_{nn}-{BBB}.tsv')
-    with open(output_filepath, 'wt') as output_TSV_file:
-        output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
-        for line_count, (reference, rowID, support_reference, quote, occurrence, note) in enumerate(get_TSV_fields(input_folderpath, BBB), start=1):
+    temp_output_filepath = Path(f"{output_filepath}.tmp")
+    with open(temp_output_filepath, 'wt') as temp_output_TSV_file:
+        temp_output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
+        for line_count, (reference, rowID, support_reference, quote, occurrence, note) in enumerate(get_TSV7_fields(input_folderpath, BBB), start=1):
             C, V = reference.split(':')
             # print(BBB,C,V,repr(note))
 
-            orig_quote = quote.strip()
-            orig_quote = orig_quote.replace(' & ', '…')
+            orig_quote = quote.replace(' & ', '…')
+            orig_quote = orig_quote.replace('\u00A0', ' ') # Replace non-break spaces
+            orig_quote = orig_quote.replace('\u200B', '') # Delete zero-width spaces
+            orig_quote = orig_quote.strip()
 
-            support_reference = support_reference.split('/')[-1]
+            support_reference = support_reference.split('/')[-1] # We only use the very end of the full RC link
 
-            gl_quote = getGLQuote(BBB, C, V, orig_quote, occurrence)
+            gl_quote = QL_QUOTE_PLACEHOLDER if orig_quote else ""
 
             occurrence_note = note.replace('\\n', '<br>')
             occurrence_note = occurrence_note.replace('rc://*/', 'rc://en/')
             occurrence_note = occurrence_note.strip().replace('  ', ' ')
 
-            output_TSV_file.write(f'{BBB}\t{C}\t{V}\t{rowID}\t{support_reference}\t{orig_quote}\t{occurrence}\t{gl_quote}\t{occurrence_note}\n')
-        return line_count
+            temp_output_TSV_file.write(f'{BBB}\t{C}\t{V}\t{rowID}\t{support_reference}\t{orig_quote}\t{occurrence}\t{gl_quote}\t{occurrence_note}\n')
+
+    # Now use Proskomma to find the ULT GLQuote fields for the OrigQuotes in the temporary outputted file
+    print(f"    Running Proskomma for {BBB}… (might take a minute)")
+    completed_process_result = subprocess.run(['node', 'TN_TSV9_OLQuotes_to_ULT_GLQuotes.js', temp_output_filepath], capture_output=True)
+    # print(f"Proskomma result was: {completed_process_result}")
+    if completed_process_result.returncode:
+        print(f"Proskomma ERROR result was: {completed_process_result.returncode}")
+    if completed_process_result.stderr:
+        print(f"Proskomma error output was: {completed_process_result.stderr.decode()}")
+    proskomma_output_string = completed_process_result.stdout.decode()
+    # print(f"Proskomma output was: {proskomma_output_string}")
+    output_lines = proskomma_output_string.split('\n')
+    print(f"      Proskomma got: {' / '.join(output_lines[:11])}")
+    print(f"      Proskomma did: {output_lines[-2]}")
+    # Put the GL Quotes into a dict for easy access
+    match_dict = {}
+    for match in re.finditer(r'(\w{3})_(\d{1,3}):(\d{1,3}) ►(.+?)◄ “(.+?)”', proskomma_output_string):
+        # print(match)
+        B, C, V, orig_quote, gl_quote = match.groups()
+        assert B == BBB
+        match_dict[(C,V,orig_quote)] = gl_quote
+    print(f"      Got {len(match_dict)} GL Quotes back from Proskomma")
+
+    # Now put the GL Quotes into the file
+    with open(temp_output_filepath, 'rt') as temp_input_TSV_file:
+        with open(output_filepath, 'wt') as output_TSV_file:
+            output_TSV_file.write(temp_input_TSV_file.readline()) # Write the TSV header
+            for line in temp_input_TSV_file:
+                B, C, V, rowID, support_reference, orig_quote, occurrence, gl_quote, occurrence_note = line.split('\t')
+                if orig_quote: gl_quote = match_dict[(C,V,orig_quote)]
+                output_TSV_file.write(f'{B}\t{C}\t{V}\t{rowID}\t{support_reference}\t{orig_quote}\t{occurrence}\t{gl_quote}\t{occurrence_note}')
+
+    os.remove(temp_output_filepath)
+
+    return line_count
 # end of convert_TN_TSV
 
 

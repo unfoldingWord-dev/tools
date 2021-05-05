@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-03-05 by RJH
+#   Last modified: 2021-05-05 by RJH
 #
 """
 Quick script to copy TN from 9-column TSV files
@@ -70,8 +70,17 @@ def get_source_lines(BBB:str, nn:str) -> Tuple[str,str,str,str,str,str,str]:
 # end of get_source_lines function
 
 
-def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
+def make_TSV_file(BBB:str, nn:str) -> int:
     """
+    Combines chapter and verse number into reference
+
+    Does a little checking and cleaning of other fields
+
+    Drops the GL Quote field
+
+    Writes the 7-column TSV file
+
+    Returns the number of lines written
     """
     print(f"    Converting TN {BBB} links to TSV…")
     output_folderpath = LOCAL_OUTPUT_FOLDERPATH #.joinpath(BBB)
@@ -79,13 +88,13 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
     output_filepath = output_folderpath.joinpath(f'tn_{BBB}.tsv')
     num_lines = j = 0
     with open(output_filepath, 'wt') as output_TSV_file:
-        for j, (_line_number,fields) in enumerate(get_source_lines(BBB, nn), start=1):
+        for j, (line_number,fields) in enumerate(get_source_lines(BBB, nn), start=1):
             try:
                 B,C,V,ID, support_reference,orig_quote,occurrence,_gl_quote,occurrence_note = fields
             except ValueError:
                 print(f"Expected 9 fields but found {len(fields)} in {fields}")
                 raise ValueError
-            # print(f"{j:3}/ Line {_line_number:<5} {BBB} {C:>3}:{V:<3} {ID }'{support_reference}' '{orig_quote}' '{occurrence}' '{_gl_quote}' '{occurrence_note}'")
+            # print(f"{j:3}/ Line {line_number:<5} {BBB} {C:>3}:{V:<3} {ID }'{support_reference}' '{orig_quote}' '{occurrence}' '{_gl_quote}' '{occurrence_note}'")
             if j == 1:
                 assert B=='Book' and C=='Chapter' and V=='Verse' # etc.
                 output_line = 'Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tNote'
@@ -93,22 +102,42 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
                 # Do some tidying up while we're at it
                 C = C.strip(); V = V.strip(); ID = ID.strip()
                 reference = f'{C}:{V}'
+
                 assert len(ID) == 4
+                if ID[0] not in 'abcdefghijklmnopqrstuvwxyz':
+                    print(f"Bad ID: {BBB} {reference} {line_number} '{ID}' fixed.")
+                    convert_dict = {'1':'a', '2':'t', '3':'c', '4':'d', '5':'f', '6':'g', '7':'s', '8':'h', '9':'n', '0':'z' }
+                    ID = f"{convert_dict[ID[0]]}{ID[1:]}" # We don't use i l o (more easily confused)
+                assert ID[0] in 'abcdefghijklmnopqrstuvwxyz'
+                assert ID[1] in 'abcdefghijklmnopqrstuvwxyz0123456789'
+                assert ID[2] in 'abcdefghijklmnopqrstuvwxyz0123456789'
+                assert ID[3] in 'abcdefghijklmnopqrstuvwxyz0123456789'
+
                 tags = ''
+
                 support_reference = support_reference.strip()
                 if support_reference: support_reference = f'rc://*/ta/man/translate/{support_reference}'
-                orig_quote = orig_quote.strip()
+
+                orig_quote = orig_quote.replace('\u00A0', ' ') # Replace non-break spaces
+                orig_quote = orig_quote.replace('\u200B', '') # Delete zero-width spaces
                 orig_quote = orig_quote.replace('...', '…')
                 orig_quote = orig_quote.replace(' …', '…').replace('… ', '…')
                 orig_quote = orig_quote.replace('…', ' & ')
+                orig_quote = orig_quote.strip()
+
                 occurrence = occurrence.strip()
+
                 occurrence_note = occurrence_note.strip()
                 occurrence_note = occurrence_note.replace('<BR>', '<br>')
                 if occurrence_note.startswith('<br>'): occurrence_note = occurrence_note[4:]
                 if occurrence_note.endswith('<br>'): occurrence_note = occurrence_note[:-4]
                 occurrence_note = occurrence_note.replace('<br>', '\\n')
                 occurrence_note = occurrence_note.replace('rc://en/', 'rc://*/')
-                occurrence_note = occurrence_note.strip().replace('  ', ' ')
+                occurrence_note = occurrence_note.replace('…', ' … ').replace('  …', ' …').replace('…  ', '… ')
+                while '*  ' in occurrence_note: occurrence_note = occurrence_note.replace('*  ', '* ')
+                occurrence_note = occurrence_note.strip() #.replace('  ', ' ')
+                if '  ' in occurrence_note: print(f"NOTE: {BBB} {reference} {line_number} OccurrenceNote has double-spaces: '{occurrence_note}'")
+
                 output_line = f'{reference}\t{ID}\t{tags}\t{support_reference}\t{orig_quote}\t{occurrence}\t{occurrence_note}'
             output_TSV_file.write(f'{output_line}\n')
             num_lines += 1
