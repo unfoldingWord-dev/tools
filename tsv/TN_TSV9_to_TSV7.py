@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-05-05 by RJH
+#   Last modified: 2021-05-07 by RJH
 #
 """
 Quick script to copy TN from 9-column TSV files
@@ -122,6 +122,7 @@ def make_TSV_file(BBB:str, nn:str) -> int:
                 orig_quote = orig_quote.replace('\u200B', '') # Delete zero-width spaces
                 orig_quote = orig_quote.replace('...', '…')
                 orig_quote = orig_quote.replace(' …', '…').replace('… ', '…')
+                orig_quote = orig_quote.strip('…') # Should only be BETWEEN words
                 orig_quote = orig_quote.replace('…', ' & ')
                 orig_quote = orig_quote.strip()
 
@@ -135,7 +136,10 @@ def make_TSV_file(BBB:str, nn:str) -> int:
                 occurrence_note = occurrence_note.replace('rc://en/', 'rc://*/')
                 occurrence_note = occurrence_note.replace('…', ' … ').replace('  …', ' …').replace('…  ', '… ')
                 while '*  ' in occurrence_note: occurrence_note = occurrence_note.replace('*  ', '* ')
-                occurrence_note = occurrence_note.strip() #.replace('  ', ' ')
+                occurrence_note = occurrence_note.replace('\\n   ', '\\n@@@').replace('\\n  ', '\\n@@')
+                occurrence_note = occurrence_note.replace('  ', ' ') # Might mess up markdown indents ???
+                occurrence_note = occurrence_note.replace('\\n@@@', '\\n   ').replace('\\n@@', '\\n  ')
+                occurrence_note = occurrence_note.strip()
                 if '  ' in occurrence_note: print(f"NOTE: {BBB} {reference} {line_number} OccurrenceNote has double-spaces: '{occurrence_note}'")
 
                 output_line = f'{reference}\t{ID}\t{tags}\t{support_reference}\t{orig_quote}\t{occurrence}\t{occurrence_note}'
