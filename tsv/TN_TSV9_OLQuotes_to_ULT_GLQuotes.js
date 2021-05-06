@@ -1,18 +1,16 @@
 const Axios = require("axios");
 const YAML = require('js-yaml-parser');
 
-const {readTsv} = require('uw-proskomma/src/utils/tsv');
-// const {getDocuments} = require('uw-proskomma/src/utils/download');
-const {doAlignmentQuery} = require('uw-proskomma/src/utils/query');
-const {gl4Source} = require('uw-proskomma/src/utils/search');
-const {UWProskomma} = require('uw-proskomma/src/index');
+const { readTsv } = require('uw-proskomma/src/utils/tsv');
+const { doAlignmentQuery } = require('uw-proskomma/src/utils/query');
+const { gl4Source } = require('uw-proskomma/src/utils/search');
+const { UWProskomma } = require('uw-proskomma/src/index');
 
 // Adapted from https://github.com/unfoldingWord-box3/uw-proskomma/blob/main/src/utils/download.js May 2021
-const getDocuments = async (pk, book, verbose, serialize) => {
-    const baseURLs = [
-        ["unfoldingWord", "hbo", "uhb", "https://git.door43.org/unfoldingWord/hbo_uhb/raw/branch/master"],
-        ["unfoldingWord", "grc", "ugnt", "https://git.door43.org/unfoldingWord/el-x-koine_ugnt/raw/branch/master"],
-        // ["unfoldingWord", "en", "ust", "https://git.door43.org/unfoldingWord/en_ust/raw/branch/master"],
+const getDocuments = async (pk, testament, book, verbose, serialize) => {
+    const baseURLs = [testament === 'OT' ?
+            ["unfoldingWord", "hbo", "uhb", "https://git.door43.org/unfoldingWord/hbo_uhb/raw/branch/master"] :
+            ["unfoldingWord", "grc", "ugnt", "https://git.door43.org/unfoldingWord/el-x-koine_ugnt/raw/branch/master"],
         ["unfoldingWord", "en", "ult", "https://git.door43.org/unfoldingWord/en_ult/raw/branch/master"]
     ];
     verbose = verbose || false;
@@ -27,7 +25,7 @@ const getDocuments = async (pk, book, verbose, serialize) => {
         if (verbose) console.log(`  ${org}/${lang}/${abbr}`)
         const content = [];
         await Axios.request(
-            {method: "get", "url": `${baseURL}/manifest.yaml`}
+            { method: "get", "url": `${baseURL}/manifest.yaml` }
         )
             .then(
                 async response => {
@@ -41,7 +39,7 @@ const getDocuments = async (pk, book, verbose, serialize) => {
                         if (verbose) console.log(`    ${pathBook}`)
                         try {
                             await Axios.request(
-                                {method: "get", "url": `${baseURL}/${bookPath}`}
+                                { method: "get", "url": `${baseURL}/${bookPath}` }
                             )
                                 .then(response => {
                                     if (response.status !== 200) {
@@ -81,13 +79,35 @@ const getDocuments = async (pk, book, verbose, serialize) => {
 }
 
 
+/*
 // Adapted from https://github.com/unfoldingWord-box3/uw-proskomma/blob/main/src/utils/render.js May 2021
 const highlightedAsString = highlighted =>
     highlighted
-        // .map(tp => tp[1] ? tp[0].toUpperCase() : tp[0])
-        .map(tp => tp[0]) // Don't want UPPERCASE
+        .map(tp => tp[1] ? tp[0].toUpperCase() : tp[0])
+        // .map(tp => tp[0]) // Don't want UPPERCASE
         .join("")
         .trim();
+*/
+
+// Drops non-matching words and puts an ellipse between non-contiguous matching words
+const getTidiedData = (dataPairs) => {
+    // console.log(`(${dataPairs.length}) ${dataPairs}`);
+    let tidiedData = '';
+    inEllipse = false
+    for (const somePair of dataPairs) {
+        // console.log(`something: (${somePair.length}) ${somePair}`);
+        if (somePair[1]) {
+            tidiedData += somePair[0];
+            inEllipse = false;
+        } else if (somePair[0]===' ' || somePair[0]===',') { // some spaces are marked as matches and some not -- almost seems random
+            tidiedData += somePair[0];
+        } else {
+            if (! inEllipse) tidiedData += '…';
+            inEllipse = true;
+        }
+    }
+    return tidiedData.replace(/  /g, ' ').replace(/ …/g, '…').replace(/… /g, '…'); // tidy-up surplus spaces around ellipses
+}
 
 
 // Start of main code
@@ -95,54 +115,55 @@ const pk = new UWProskomma();
 const args = process.argv.slice(2);
 const tsvPath = args[0]; // Path to TSV9 TN
 const book = tsvPath.split("/").reverse()[0].split(".")[0].split("-")[1];
+const testament = args[1] // 'OT' or 'NT'
 // const prune = (args[1] === "prune") || false;
 const prune = true; // only return the matching quote -- not the entire verse text
 
 
-getDocuments(pk, book, true)
+getDocuments(pk, testament, book, true) //last parameter is "verbose"
     .then(async () => {
-            // Query Proskomma which now contains the books
-            // Returns the tokens for each verse, accessible by
-            // [abbr][book][chapter:verse]
-            const tokenLookup = await doAlignmentQuery(pk);
-            // Iterate over TSV records
-            let nRecords = 0;
-            let counts = {pass:0, fail:0};
-            for (const tsvRecord of readTsv(tsvPath)) {
-                nRecords++;
-                const cv = `${tsvRecord.chapter}:${tsvRecord.verse}`;
-                // console.log(`  ${tsvRecord.book} ${cv}`);
-                // console.log(`    Search string: ${tsvRecord.origQuote}`);
-                // Iterate over GLs
-                // for (const gl of ["ult", "ust"]) {
-                const gl = 'ult';
-                    // Pick the right source for the book (inelegant but works)
-                    const source = tokenLookup.uhb || tokenLookup.ugnt;
-                    // Get the tokens for BCV
-                    const sourceTokens = source[book][cv];
-                    const glTokens = tokenLookup[gl][book][cv];
-                    // Do the alignment
-                    const highlighted = gl4Source(
-                        book,
-                        cv,
-                        sourceTokens,
-                        glTokens,
-                        tsvRecord.origQuote,
-                        prune
-                    );
-                    // Returned object has either "data" or "error"
-                    if ("data" in highlighted) {
-                        counts.pass++;
-                        // console.log(`    ${gl}: “${highlightedAsString(highlighted.data)}”`);
-                        console.log(`${tsvRecord.book}_${cv} ►${tsvRecord.origQuote}◄ “${highlightedAsString(highlighted.data)}”`);
-                    } else {
-                        counts.fail++;
-                        console.log(`    Error: ${highlighted.error}`);
-                        console.log(`Verse tokens: ${JSON.stringify(sourceTokens.filter(t => t.subType === "wordLike").map(t => t.payload))}`);
-                        console.log(`Verse codepoints: ${sourceTokens.filter(t => t.subType === "wordLike").map(t => t.payload).map(s => "|" + Array.from(s).map(c => c.charCodeAt(0).toString(16)))}`);
-                    }
-                // }
+        // Query Proskomma which now contains the books
+        // Returns the tokens for each verse, accessible by
+        // [abbr][book][chapter:verse]
+        const tokenLookup = await doAlignmentQuery(pk);
+        // Iterate over TSV records
+        let nRecords = 0;
+        let counts = { pass: 0, fail: 0 };
+        for (const tsvRecord of readTsv(tsvPath)) {
+            nRecords++;
+            const cv = `${tsvRecord.chapter}:${tsvRecord.verse}`;
+            // console.log(`  ${tsvRecord.book} ${cv}`);
+            // console.log(`    Search string: ${tsvRecord.origQuote}`);
+            // Iterate over GLs
+            // for (const gl of ["ult", "ust"]) {
+            const gl = 'ult';
+            // Pick the right source for the book (inelegant but works)
+            const source = testament === 'OT' ? tokenLookup.uhb : tokenLookup.ugnt;
+            // Get the tokens for BCV
+            const sourceTokens = source[book][cv];
+            const glTokens = tokenLookup[gl][book][cv];
+            // Do the alignment
+            const highlighted = gl4Source(
+                book,
+                cv,
+                sourceTokens,
+                glTokens,
+                tsvRecord.origQuote,
+                prune
+            );
+            // Returned object has either "data" or "error"
+            if ("data" in highlighted) {
+                counts.pass++;
+                // console.log(`    ${gl}: “${highlightedAsString(highlighted.data)}”`);
+                console.log(`${tsvRecord.book}_${cv} ►${tsvRecord.origQuote}◄ “${getTidiedData(highlighted.data)}”`);
+            } else {
+                counts.fail++;
+                console.log(`    Error: ${highlighted.error}`);
+                console.log(`Verse tokens: ${JSON.stringify(sourceTokens.filter(t => t.subType === "wordLike").map(t => t.payload))}`);
+                console.log(`Verse codepoints: ${sourceTokens.filter(t => t.subType === "wordLike").map(t => t.payload).map(s => "|" + Array.from(s).map(c => c.charCodeAt(0).toString(16)))}`);
             }
-            console.log(counts);
+            // }
         }
+        console.log(counts);
+    }
     )

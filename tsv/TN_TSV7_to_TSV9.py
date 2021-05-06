@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Nov 2020 by RJH
-#   Last modified: 2021-05-05 by RJH
+#   Last modified: 2021-05-06 by RJH
 #
 """
 Quick script to copy TN from 7-column TSV files
@@ -102,6 +102,7 @@ def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:st
 
     Returns the number of markdown files that were written in the call.
     """
+    testament = 'OT' if int(nn)<40 else 'NT'
     output_filepath = output_folderpath.joinpath(f'en_tn_{nn}-{BBB}.tsv')
     temp_output_filepath = Path(f"{output_filepath}.tmp")
     with open(temp_output_filepath, 'wt') as temp_output_TSV_file:
@@ -126,8 +127,8 @@ def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:st
             temp_output_TSV_file.write(f'{BBB}\t{C}\t{V}\t{rowID}\t{support_reference}\t{orig_quote}\t{occurrence}\t{gl_quote}\t{occurrence_note}\n')
 
     # Now use Proskomma to find the ULT GLQuote fields for the OrigQuotes in the temporary outputted file
-    print(f"    Running Proskomma for {BBB}… (might take a minute)")
-    completed_process_result = subprocess.run(['node', 'TN_TSV9_OLQuotes_to_ULT_GLQuotes.js', temp_output_filepath], capture_output=True)
+    print(f"    Running Proskomma for {testament} {BBB}… (might take a minute)")
+    completed_process_result = subprocess.run(['node', 'TN_TSV9_OLQuotes_to_ULT_GLQuotes.js', temp_output_filepath, testament], capture_output=True)
     # print(f"Proskomma result was: {completed_process_result}")
     if completed_process_result.returncode:
         print(f"Proskomma ERROR result was: {completed_process_result.returncode}")
@@ -136,7 +137,7 @@ def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:st
     proskomma_output_string = completed_process_result.stdout.decode()
     # print(f"Proskomma output was: {proskomma_output_string}")
     output_lines = proskomma_output_string.split('\n')
-    print(f"      Proskomma got: {' / '.join(output_lines[:11])}")
+    print(f"      Proskomma got: {' / '.join(output_lines[:9])}")
     print(f"      Proskomma did: {output_lines[-2]}")
     # Put the GL Quotes into a dict for easy access
     match_dict = {}
