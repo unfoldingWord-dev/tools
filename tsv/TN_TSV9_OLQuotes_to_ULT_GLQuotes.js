@@ -3,7 +3,9 @@ const YAML = require('js-yaml-parser');
 
 const { readTsv } = require('uw-proskomma/src/utils/tsv');
 const { doAlignmentQuery } = require('uw-proskomma/src/utils/query');
-const { gl4Source } = require('uw-proskomma/src/utils/search');
+const {pruneTokens, slimSourceTokens, slimGLTokens} = require('uw-proskomma/src/utils/tokens');
+// const { gl4Source } = require('uw-proskomma/src/utils/search');
+const { highlightedAsString } = require('uw-proskomma/src/utils/render');
 const { UWProskomma } = require('uw-proskomma/src/index');
 
 // Adapted from https://github.com/unfoldingWord-box3/uw-proskomma/blob/main/src/utils/download.js May 2021
@@ -79,6 +81,97 @@ const getDocuments = async (pk, testament, book, verbose, serialize) => {
 }
 
 
+// Adapted from https://github.com/unfoldingWord-box3/uw-proskomma/blob/main/src/utils/search.js May 2021
+/**
+ *
+ * @param {string} origString -- the string of original language words being searched for (may include ellipsis)
+ * @returns a list of 2-tuples with (origWord, flag if origWord follows an ellipsis)
+ */
+const searchWordRecords = origString => {
+    const ret = [];
+    for (let searchExpr of xre.split(origString, /[\s־]/)) {
+        searchExpr = xre.replace(searchExpr,/[,’?;.!׃]/, ""); // remove sentence punctuation (incl. all plain apostrophes!)
+        if (searchExpr.includes("…")) {
+            const searchExprParts = searchExpr.split("…");
+            ret.push([searchExprParts[0], false]);
+            searchExprParts.slice(1).forEach(p => ret.push([p, true]));
+        } else {
+            ret.push([searchExpr, false]);
+        }
+    }
+    return ret.filter(t => t[0] !== "׀"); // why is this needed?
+}
+
+
+// Adapted from https://github.com/unfoldingWord-box3/uw-proskomma/blob/main/src/utils/search.js May 2021
+/**
+ *
+ * @param {Array} searchTuples -- a list of 2-tuples with (origWord, flag if origWord follows an ellipsis) for the OrigL search string
+ * @param {Array} tokens -- a list of token objects -- one for each OrigL word in the OrigL verse
+ * @returns a list of 2-tuples with (origWord, occurrenNumber) including elided words (was that intended or not???)
+ */
+const contentForSearchWords = (searchTuples, tokens) => { // used recursively
+
+    // What would lfsw1 stand for???
+    const lfsw1 = (searchTuples, tokens, content) => {
+        if (!content) {
+            content = [];
+        }
+        if (searchTuples.length === 0) { // Everything matched
+            return content;
+        } else if (tokens.length === 0) { // No more tokens - fail
+            return null;
+        } else if (tokens[0].payload === searchTuples[0][0]) { // First word matched, try next one
+            return lfsw1(searchTuples.slice(1), tokens.slice(1), content.concat([[tokens[0].payload, tokens[0].occurrence]])); // Wouldn't .push be simpler here x2 ???
+        } else if (searchTuples[0][1]) { // non-greedy wildcard, try again on next token
+            return lfsw1(searchTuples, tokens.slice(1), content.concat([[tokens[0].payload, tokens[0].occurrence]]));
+        } else { // No wildcard and no match - fail
+            return null;
+        }
+    }
+
+    if (tokens.length === 0) {
+        return null;
+    }
+    return lfsw1(searchTuples, tokens) || contentForSearchWords(searchTuples, tokens.slice(1)); // why do we need a recursive call here?
+}
+
+
+// Adapted from https://github.com/unfoldingWord-box3/uw-proskomma/blob/main/src/utils/search.js May 2021
+const highlightedAlignedGlText = (glTokens, content) => {
+    console.log(`highlightedAlignedGlText = ((${glTokens.length}), ${content})…`);
+    return glTokens.map(token => {
+            const matchingContent = content.filter(c => (token.occurrence.length > 0) && token.blContent.includes(c[0]) && token.occurrence.includes(c[1]));
+            return [token.payload, (matchingContent.length > 0)];
+        }
+    )
+};
+
+
+// Adapted from https://github.com/unfoldingWord-box3/uw-proskomma/blob/main/src/utils/search.js#L53 May 2021
+const gl4Source = (book, cv, sourceTokens, glTokens, searchString, prune) => {
+    console.log(`gl4Source = (${book}, ${cv}, (${sourceTokens.length}), (${glTokens.length}), ${searchString}, ${prune})…`);
+    const searchTuples = searchWordRecords(searchString);
+    console.log(`  searchTuples = (${searchTuples.length}) ${searchTuples}`);
+    // NOTE: We lose the Greek apostrophes (e.g., from κατ’) in the next line
+    const ugntTokens = slimSourceTokens(sourceTokens.filter(t => t.subType === "wordLike")); // drop out punctuation, space, eol, etc., tokens
+    console.log(`  ugntTokens = (${ugntTokens.length}) ${JSON.stringify(ugntTokens)}`); // The length of this list is now the number of Greek words in the verse
+    const content = contentForSearchWords(searchTuples, ugntTokens);
+    console.log(`  content = (${content.length}) ${content}`);
+    if (!content) {
+        return {
+            "error":
+                `NO MATCH IN SOURCE\nSearch Tuples: ${JSON.stringify(searchTuples)}\nCodepoints: ${searchTuples.map(s => "|" + Array.from(s[0]).map(c => c.charCodeAt(0).toString(16)))}`
+        }
+    }
+    const highlightedTokens = highlightedAlignedGlText(slimGLTokens(glTokens), content);
+    if (prune) {
+        return {"data": pruneTokens(highlightedTokens)};
+    } else {
+        return {"data": highlightedTokens};
+    }
+}
+
 /*
 // Adapted from https://github.com/unfoldingWord-box3/uw-proskomma/blob/main/src/utils/render.js May 2021
 const highlightedAsString = highlighted =>
@@ -89,13 +182,14 @@ const highlightedAsString = highlighted =>
         .trim();
 */
 
+
 // Drops non-matching words and puts an ellipse between non-contiguous matching words
 const getTidiedData = (dataPairs) => {
     // console.log(`(${dataPairs.length}) ${dataPairs}`);
     let tidiedData = '';
     inEllipse = false
     for (const somePair of dataPairs) {
-        // console.log(`something: (${somePair.length}) ${somePair}`);
+        console.log(somePair);
         if (somePair[1]) {
             tidiedData += somePair[0];
             inEllipse = false;
@@ -106,7 +200,11 @@ const getTidiedData = (dataPairs) => {
             inEllipse = true;
         }
     }
-    return tidiedData.replace(/  /g, ' ').replace(/ …/g, '…').replace(/… /g, '…'); // tidy-up surplus spaces around ellipses
+    return tidiedData.replace(/     /g, ' ').replace(/    /g, ' ').replace(/   /g, ' ').replace(/  /g, ' ')
+    .replace(/ …/g, '…').replace(/… /g, '…') // tidy-up surplus spaces around ellipses
+    .replace(/…, /g, '…') // removing hanging comma
+    .replace(/ …/g, '…').replace(/… /g, '…') // tidy-up surplus spaces around ellipses
+    .replace(/^…/, '').replace(/…$/, ''); // remove leading and trailing ellipses
 }
 
 
@@ -117,7 +215,7 @@ const tsvPath = args[0]; // Path to TSV9 TN
 const book = tsvPath.split("/").reverse()[0].split(".")[0].split("-")[1];
 const testament = args[1] // 'OT' or 'NT'
 // const prune = (args[1] === "prune") || false;
-const prune = true; // only return the matching quote -- not the entire verse text
+const prune = false; // only return the matching quote -- not the entire verse text
 
 
 getDocuments(pk, testament, book, true) //last parameter is "verbose"
@@ -130,6 +228,7 @@ getDocuments(pk, testament, book, true) //last parameter is "verbose"
         let nRecords = 0;
         let counts = { pass: 0, fail: 0 };
         for (const tsvRecord of readTsv(tsvPath)) {
+            if (tsvRecord.verse === '4') break;
             nRecords++;
             const cv = `${tsvRecord.chapter}:${tsvRecord.verse}`;
             // console.log(`  ${tsvRecord.book} ${cv}`);
@@ -141,7 +240,9 @@ getDocuments(pk, testament, book, true) //last parameter is "verbose"
             const source = testament === 'OT' ? tokenLookup.uhb : tokenLookup.ugnt;
             // Get the tokens for BCV
             const sourceTokens = source[book][cv];
+            // console.log(`  source tokens = (${sourceTokens.length}) ${JSON.stringify(sourceTokens)}`);
             const glTokens = tokenLookup[gl][book][cv];
+            // console.log(`  GL tokens = (${glTokens.length}) ${JSON.stringify(glTokens)}`);
             // Do the alignment
             const highlighted = gl4Source(
                 book,
@@ -154,7 +255,8 @@ getDocuments(pk, testament, book, true) //last parameter is "verbose"
             // Returned object has either "data" or "error"
             if ("data" in highlighted) {
                 counts.pass++;
-                // console.log(`    ${gl}: “${highlightedAsString(highlighted.data)}”`);
+                console.log(`  returned data: (${highlighted.data.length}) ${highlighted.data}`);
+                console.log(`    ${gl}: “${highlightedAsString(highlighted.data)}”`);
                 console.log(`${tsvRecord.book}_${cv} ►${tsvRecord.origQuote}◄ “${getTidiedData(highlighted.data)}”`);
             } else {
                 counts.fail++;
