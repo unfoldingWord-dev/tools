@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Nov 2020 by RJH
-#   Last modified: 2021-05-06 by RJH
+#   Last modified: 2021-05-14 by RJH
 #
 """
 Quick script to copy TN from 7-column TSV files
@@ -48,19 +48,6 @@ BBB_NUMBER_DICT = {'GEN':'01','EXO':'02','LEV':'03','NUM':'04','DEU':'05',
                 'PHM':'58','HEB':'59','JAS':'60','1PE':'61','2PE':'62','1JN':'63',
                 '2JN':'64',
                 '3JN':'65', 'JUD':'66', 'REV':'67' }
-
-
-# def getGLQuote(BBB:str, C:int, V:int, orig_quote:str, occurrence:int) -> str:
-#     """
-#     """
-#     print(f"getGLQuote({BBB}, {C}, {V}, '{orig_quote}', {occurrence})…")
-#     print("About to run Proskomma…")
-#     completed_process_result = subprocess.run(['node', 'OL_Quote_to_GL_Quote.js', orig_quote], capture_output=True)
-#     print(f"Proskomma result was: {completed_process_result}")
-#     halt
-
-#     return gl_quote
-# # end of getGLQuote
 
 
 def get_TSV7_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str,str,str,str]:
@@ -127,7 +114,7 @@ def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:st
             temp_output_TSV_file.write(f'{BBB}\t{C}\t{V}\t{rowID}\t{support_reference}\t{orig_quote}\t{occurrence}\t{gl_quote}\t{occurrence_note}\n')
 
     # Now use Proskomma to find the ULT GLQuote fields for the OrigQuotes in the temporary outputted file
-    print(f"    Running Proskomma for {testament} {BBB}… (might take a minute)")
+    print(f"    Running Proskomma for {testament} {BBB}… (might take a few minutes)")
     completed_process_result = subprocess.run(['node', 'TN_TSV9_OLQuotes_to_ULT_GLQuotes.js', temp_output_filepath, testament], capture_output=True)
     # print(f"Proskomma result was: {completed_process_result}")
     if completed_process_result.returncode:
@@ -171,7 +158,7 @@ def main():
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
     total_files_read = total_notes = 0
     for BBB,nn in BBB_NUMBER_DICT.items():
-        if BBB != 'TIT': continue
+        if BBB not in ('TIT','2JN','3JN'): continue
         total_notes += convert_TN_TSV(LOCAL_SOURCE_FOLDERPATH, LOCAL_OUTPUT_FOLDERPATH, BBB, nn)
         total_files_read += 1
     print(f"  {total_notes:,} total notes read from {total_files_read} TSV files")
