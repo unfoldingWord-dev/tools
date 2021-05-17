@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# TN_TSV7_to_TSV9.py
+# TN_TSV7_to_TSV9_via_Proskomma.py
 #
 # Copyright (c) 2020-2021 unfoldingWord
 # http://creativecommons.org/licenses/MIT/
@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Nov 2020 by RJH
-#   Last modified: 2021-05-14 by RJH
+#   Last modified: 2021-05-17 by RJH
 #
 """
 Quick script to copy TN from 7-column TSV files
@@ -61,7 +61,7 @@ def get_TSV7_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str,str,str
     Returns a 6-tuple with:
         reference, rowID, support_reference, quote, occurrence, note
     """
-    print(f"    Loading TQ {BBB} links from 7-column TSV…")
+    print(f"    Loading {BBB} TQ links from 7-column TSV…")
     input_filepath = input_folderpath.joinpath(f'tn_{BBB}.tsv')
     with open(input_filepath, 'rt') as input_TSV_file:
         for line_number, line in enumerate(input_TSV_file, start=1):
@@ -71,6 +71,7 @@ def get_TSV7_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str,str,str
                 assert line == 'Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tNote'
             else:
                 reference, rowID, tags, support_reference, quote, occurrence, note = line.split('\t')
+                # print(f"{reference=} {rowID=} {tags=} {support_reference=} {quote=} {occurrence=} {note[:10]=}")
                 assert reference; assert rowID; assert note
                 if quote: assert occurrence and occurrence != '0'
                 if occurrence and occurrence != '0': assert quote
@@ -87,7 +88,7 @@ def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:st
     Needs to be called one extra time with fields = None
         to write the last entry.
 
-    Returns the number of markdown files that were written in the call.
+    Returns the number of unique GLQuotes that were written in the call.
     """
     testament = 'OT' if int(nn)<40 else 'NT'
     output_filepath = output_folderpath.joinpath(f'en_tn_{nn}-{BBB}.tsv')
@@ -114,57 +115,84 @@ def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:st
             temp_output_TSV_file.write(f'{BBB}\t{C}\t{V}\t{rowID}\t{support_reference}\t{orig_quote}\t{occurrence}\t{gl_quote}\t{occurrence_note}\n')
 
     # Now use Proskomma to find the ULT GLQuote fields for the OrigQuotes in the temporary outputted file
-    print(f"    Running Proskomma for {testament} {BBB}… (might take a few minutes)")
+    print(f"      Running Proskomma for {testament} {BBB}… (might take a few minutes)")
     completed_process_result = subprocess.run(['node', 'TN_TSV9_OLQuotes_to_ULT_GLQuotes.js', temp_output_filepath, testament], capture_output=True)
     # print(f"Proskomma result was: {completed_process_result}")
     if completed_process_result.returncode:
-        print(f"Proskomma ERROR result was: {completed_process_result.returncode}")
+        print(f"      Proskomma {BBB} ERROR result was: {completed_process_result.returncode}")
     if completed_process_result.stderr:
-        print(f"Proskomma error output was: {completed_process_result.stderr.decode()}")
+        print(f"      Proskomma {BBB} error output was:\n{completed_process_result.stderr.decode()}")
     proskomma_output_string = completed_process_result.stdout.decode()
-    # print(f"Proskomma output was: {proskomma_output_string}")
+    # print(f"Proskomma {BBB} output was: {proskomma_output_string}") # For debugging only
     output_lines = proskomma_output_string.split('\n')
-    print(f"      Proskomma got: {' / '.join(output_lines[:9])}")
-    print(f"      Proskomma did: {output_lines[-2]}")
+    if output_lines:
+        # Log any errors that occurred -- not really needed now coz they go to stderr
+        print_next_line_counter = 0
+        for output_line in output_lines:
+            if 'Error:' in output_line:
+                logging.error(output_line)
+                print_next_line_counter = 2 # Log this many following lines as well
+            elif print_next_line_counter > 0:
+                logging.error(output_line)
+                print_next_line_counter -= 1
+        # print(f"      Proskomma got: {' / '.join(output_lines[:9])}") # Displays the UHB/UGNT and ULT loading times
+        print(f"        Proskomma did: {output_lines[-2]}")
+    else: logging.critical("No output from Proskomma!!!")
     # Put the GL Quotes into a dict for easy access
     match_dict = {}
     for match in re.finditer(r'(\w{3})_(\d{1,3}):(\d{1,3}) ►(.+?)◄ “(.+?)”', proskomma_output_string):
         # print(match)
         B, C, V, orig_quote, gl_quote = match.groups()
         assert B == BBB
+        assert gl_quote
         match_dict[(C,V,orig_quote)] = gl_quote
-    print(f"      Got {len(match_dict)} GL Quotes back from Proskomma")
+    print(f"        Got {len(match_dict):,} unique GL Quotes back from Proskomma for {BBB}")
 
-    # Now put the GL Quotes into the file
-    with open(temp_output_filepath, 'rt') as temp_input_TSV_file:
-        with open(output_filepath, 'wt') as output_TSV_file:
-            output_TSV_file.write(temp_input_TSV_file.readline()) # Write the TSV header
-            for line in temp_input_TSV_file:
-                B, C, V, rowID, support_reference, orig_quote, occurrence, gl_quote, occurrence_note = line.split('\t')
-                if orig_quote: gl_quote = match_dict[(C,V,orig_quote)]
-                output_TSV_file.write(f'{B}\t{C}\t{V}\t{rowID}\t{support_reference}\t{orig_quote}\t{occurrence}\t{gl_quote}\t{occurrence_note}')
+    match_count = 0
+    if match_dict: # (if not, the ULT book probably isn't aligned yet)
+        # Now put the GL Quotes into the file
+        with open(temp_output_filepath, 'rt') as temp_input_TSV_file:
+            with open(output_filepath, 'wt') as output_TSV_file:
+                output_TSV_file.write(temp_input_TSV_file.readline()) # Write the TSV header
+                for line in temp_input_TSV_file:
+                    B, C, V, rowID, support_reference, orig_quote, occurrence, gl_quote, occurrence_note = line.split('\t')
+                    try:
+                        if orig_quote:
+                            gl_quote = match_dict[(C,V,orig_quote)]
+                            match_count += 1
+                    except KeyError:
+                        logging.critical(f"Unable to find GLQuote for {BBB} {C}:{V} '{orig_quote}'")
+                    output_TSV_file.write(f'{B}\t{C}\t{V}\t{rowID}\t{support_reference}\t{orig_quote}\t{occurrence}\t{gl_quote}\t{occurrence_note}')
 
     os.remove(temp_output_filepath)
 
-    return line_count
+    return line_count, match_count
 # end of convert_TN_TSV
 
 
 def main():
     """
     """
-    print("TN_TSV7_to_TSV9.py")
+    print("TN_TSV7_to_TSV9_via_Proskomma.py")
     print(f"  Source folderpath is {LOCAL_SOURCE_FOLDERPATH}/")
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
-    total_files_read = total_notes = 0
+    total_files_read = total_files_written = 0
+    total_lines_read = total_quotes_written = 0
     for BBB,nn in BBB_NUMBER_DICT.items():
-        if BBB not in ('TIT','2JN','3JN'): continue
-        total_notes += convert_TN_TSV(LOCAL_SOURCE_FOLDERPATH, LOCAL_OUTPUT_FOLDERPATH, BBB, nn)
+        # if (int(nn) < 41): continue # skip OT
+        # if BBB != 'RUT': continue # Just process this one book
+        if BBB in ('GEN','EXO','JOS','JOL'): continue # skip OT books that fail data validation
+        if BBB in ('MAT','MRK','JHN','ACT','2CO','HEB','JAS','REV'): continue # skip NT books that fail data validation
+        lines_read, this_note_count = convert_TN_TSV(LOCAL_SOURCE_FOLDERPATH, LOCAL_OUTPUT_FOLDERPATH, BBB, nn)
+        total_lines_read += lines_read
         total_files_read += 1
-    print(f"  {total_notes:,} total notes read from {total_files_read} TSV files")
-    print(f"  {total_files_read:,} total TSV files written to {LOCAL_OUTPUT_FOLDERPATH}/")
+        if this_note_count:
+            total_quotes_written += this_note_count
+            total_files_written += 1
+    print(f"  {total_lines_read:,} lines read from {total_files_read} TSV files")
+    print(f"  {total_quotes_written:,} GL quotes written to {total_files_written} TSV files in {LOCAL_OUTPUT_FOLDERPATH}/")
 # end of main function
 
 if __name__ == '__main__':
     main()
-# end of TN_TSV7_to_TSV9.py
+# end of TN_TSV7_to_TSV9_via_Proskomma.py
