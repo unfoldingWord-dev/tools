@@ -4,7 +4,8 @@ const xre = require('xregexp');
 const deepcopy = require('deepcopy');
 
 const { readTsv } = require('uw-proskomma/src/utils/tsv');
-const { doAlignmentQuery } = require('uw-proskomma/src/utils/query');
+const { rejigAlignment } = require('uw-proskomma/src/utils/rejig_alignment');
+// const { doAlignmentQuery } = require('uw-proskomma/src/utils/query');
 const { pruneTokens, slimSourceTokens } = require('uw-proskomma/src/utils/tokens');
 const { UWProskomma } = require('uw-proskomma/src/index');
 
@@ -28,7 +29,7 @@ const getDocuments = async (pk, testament, book, verbose, serialize) => {
             abbr
         };
         if (verbose) console.log(`  ${org}/${lang}/${abbr}`)
-        const content = [];
+        let content = [];
         await Axios.request(
             { method: "get", "url": `${baseURL}/manifest.yaml` }
         )
@@ -63,7 +64,13 @@ const getDocuments = async (pk, testament, book, verbose, serialize) => {
             continue;
         }
         if (verbose) console.log(`      Downloaded`)
+
         const startTime = Date.now();
+        if (abbr === 'ult') {
+            // console.log(`content1: ${typeof content} (${content.length}) ${Object.keys(content)}`);
+            content = [rejigAlignment(content)]; // Tidy-up ULT USFM alignment info
+            // console.log(`content2: ${typeof content} (${content.length}) ${content}`);
+        }
         pk.importDocuments(selectors, "usfm", content, {});
         if (verbose) console.log(`      Imported in ${Date.now() - startTime} msec`);
         if (serialize) {
@@ -81,6 +88,53 @@ const getDocuments = async (pk, testament, book, verbose, serialize) => {
         }
     }
     return pk;
+}
+
+
+// Adapted from https://github.com/unfoldingWord-box3/uw-proskomma/blob/main/src/utils/query.js May 2021
+const doAlignmentQuery = async pk => {
+    const query = ('{' +
+        'docSets {' +
+        '  abbr: selector(id:"abbr")' +
+        '  documents {' +
+        '    book: header(id:"bookCode")' +
+        '    mainSequence {' +
+        '      itemGroups (' +
+        '        byScopes:["chapter/", "verses/"]' +
+        '        includeContext:true' +
+        '      ) {' +
+        '        scopeLabels' +
+        '        tokens {' +
+        '          subType' +
+        '          payload' +
+        '          position' +
+        // '          scopes(startsWith:["attribute/milestone/zaln/x-content", "attribute/milestone/zaln/x-occurrence"])' +
+        '          scopes(startsWith:"attribute/milestone/zaln/x-align")' + // This line was changed
+        '        }' +
+        '      }' +
+        '    }' +
+        '  }' +
+        '}' +
+        '}');
+    const result = await pk.gqlQuery(query);
+    if (result.errors) {
+        throw new Error(result.errors);
+    }
+    const ret = {};
+    for (const docSet of result.data.docSets) {
+        ret[docSet.abbr] = {};
+        for (const document of docSet.documents) {
+            ret[docSet.abbr][document.book] = {};
+            for (const itemGroup of document.mainSequence.itemGroups) {
+                const chapter = itemGroup.scopeLabels.filter(s => s.startsWith("chapter/"))[0].split("/")[1];
+                for (const verse of itemGroup.scopeLabels.filter(s => s.startsWith("verses/"))[0].split("/")[1].split("-")) {
+                    const cv = `${chapter}:${verse}`;
+                    ret[docSet.abbr][document.book][cv] = itemGroup.tokens;
+                }
+            }
+        }
+    }
+    return ret;
 }
 
 
@@ -107,6 +161,47 @@ const searchWordRecords = origString => {
         }
     }
     return ret.filter(t => t[0] !== "׀"); // why is this needed -- ah for \w fields I guess
+}
+
+
+// Adapted from https://github.com/unfoldingWord-box3/uw-proskomma/blob/main/src/utils/tokens.js#L24 May 2021
+/**
+ *
+ * @param {Array} glTokens -- GL token objects with many fields
+ * @returns the same number of tokens but with refactored fields in each object (scopes is replaced by blContent and occurrence)
+ */
+// e.g., {"subType":"wordLike","payload":"But","position":50,"scopes":["attribute/milestone/zaln/x-occurrence/0/1","attribute/milestone/zaln/x-occurrences/0/1","attribute/milestone/zaln/x-content/0/δὲ"]}
+//   becomes {"subType":"wordLike","payload":"But","position":50,"blContent":["δὲ"],"occurrence":[1]}
+// and {"subType":"eol","payload":"\n","position":null,"scopes":[]}
+//   becomes {"subType":"eol","payload":" ","position":null,"blContent":[],"occurrence":[]}
+// and {"subType":"wordLike","payload":"essential","position":925,"scopes":["attribute/milestone/zaln/x-occurrence/0/1","attribute/milestone/zaln/x-occurrences/0/1","attribute/milestone/zaln/x-content/0/τὰς","attribute/milestone/zaln/x-content/0/ἀναγκαίας"]}
+//   becomes {"subType":"wordLike","payload":"essential","position":925,"blContent":["τὰς","ἀναγκαίας"],"occurrence":[1]}
+const slimGLTokens = (glTokens) => {
+    // console.log(`slimGLTokens = ((${glTokens.length}) ${JSON.stringify(glTokens)})…`);
+
+    const ret = [];
+    if (!glTokens) {
+        return null;
+    }
+    for (const glToken of glTokens) {
+        const t2 = deepcopy(glToken);
+        // const occurrenceScopes = t2.scopes.filter(s => s.startsWith("attribute/milestone/zaln/x-occurrence") && !s.split("/")[3].endsWith("s"));
+        // const xContentScopes = t2.scopes.filter(s => s.startsWith("attribute/milestone/zaln/x-content"));
+        const alignScopes = t2.scopes.filter(s => s.startsWith("attribute/milestone/zaln/x-align"));
+        // We have to ensure that these GL tokens have the same punctuation as the search text that they'll be compared with later
+        // TODO: What about other punctuation -- why do we just remove apostrophe -- where's the other punctuation removed ???
+        // t2.blContent = xContentScopes.map(s => s.split("/")[5] // Get the word(s)
+        t2.blContent = alignScopes.map(s => s.split('/')[5].split(':')[0] // Get the word(s)
+            .replace('’', '')); // delete one apostrophe -- anything else should be deleted here???
+        t2.payload = t2.payload.replace(/[ \t\r\n]+/g, " ");
+        // t2.occurrence = occurrenceScopes.map(o => parseInt(o.split("/")[5]));
+        t2.occurrence = alignScopes.map(o => parseInt(o.split('/')[5].split(':')[1]));
+        console.assert(t2.blContent.length === t2.occurrence.length, `Expected blContent ${t2.blContent} and occurrence ${t2.occurrence} to be the same length!`);
+        delete t2.scopes;
+        ret.push(t2);
+    }
+    // console.log(`  slimGLTokens returning (${ret.length}) ${JSON.stringify(ret)}`);
+    return ret;
 }
 
 
@@ -220,6 +315,7 @@ const contentForSearchWords = (searchTuples, searchOccurrence, origLTokens) => {
 
     // At this point, we may have removed the beginning of the string
     //  so that we can always guarantee that the first match of the first word will be the correct occurrence
+    // console.log(`Now searching for (${searchTuples.length}) '${searchTuples}'`);
     const origLWordsSoFar = [];
     const result = [];
     let searchTupleIndex = 0;
@@ -238,59 +334,24 @@ const contentForSearchWords = (searchTuples, searchOccurrence, origLTokens) => {
                 console.assert(result.length === searchTuples.length, `contentForSearchWords(${searchTuples}) should return the same number of words! ${result}`);
                 return result; // all done
             }
-        } else // we didn't find the word that we were looking for
+        } else  { // we didn't find the word that we were looking for
+            // console.log(`Nope: ${searchTupleIndex} '${searchWord}' ${notConsecutive} didn't match with '${token.payload}'`);
             if (searchTupleIndex > 0 && !notConsecutive) { // They should have been consecutive words
                 if (searchTupleIndex > 0 && searchTuples[searchTupleIndex - 1][1]) { // Then we're searching for the second contiguous part and might have gotten a false start
                     --searchTupleIndex;
                     result.pop();
                     console.log(`  Seems a mismatch when searching for '${searchWord}': resetting searchTupleIndex back to ${searchTupleIndex}`);
                 } else { // TODO: We step back 1 above -- may need to step back further in some complex cases ???
-                    console.log(`contentForSearchWords = ((${searchTuples.length}) '${searchTuples}', ${searchOccurrence}, (${origLTokens.length}) ${JSON.stringify(origLTokens)})`);
-                    console.log(`  Was searching in (${adjustedOrigLTokens.length}) ${JSON.stringify(adjustedOrigLTokens)}`);
-                    console.log(`ERROR: contentForSearchWords() didn\'t match consecutive word '${token.payload}' with searchTupleIndex=${searchTupleIndex} ${searchTuples[searchTupleIndex]}`);
+                    console.error(`contentForSearchWords = ((${searchTuples.length}) '${searchTuples}', ${searchOccurrence}, (${origLTokens.length}) ${JSON.stringify(origLTokens)})`);
+                    console.error(`  Was searching in (${adjustedOrigLTokens.length}) ${JSON.stringify(adjustedOrigLTokens)}`);
+                    console.error(`ERROR: contentForSearchWords() didn\'t match consecutive word '${token.payload}' with searchTupleIndex=${searchTupleIndex} ${searchTuples[searchTupleIndex]}`);
                     return null;
                 }
             }
+        }
     }
-    console.log(`ERROR: contentForSearchWords() didn\'t match all words '${searchTuples}'`);
+    console.error(`ERROR: contentForSearchWords() didn't match all words '${searchTuples}' in ${origLWordsSoFar}`);
     return null;
-}
-
-
-// Adapted from https://github.com/unfoldingWord-box3/uw-proskomma/blob/main/src/utils/tokens.js#L24 May 2021
-/**
- *
- * @param {Array} tokens -- GL token objects with many fields
- * @returns the same number of tokens but with refactored fields in each object (scopes is replaced by blContent and occurrence)
- */
-// e.g., {"subType":"wordLike","payload":"But","position":50,"scopes":["attribute/milestone/zaln/x-occurrence/0/1","attribute/milestone/zaln/x-occurrences/0/1","attribute/milestone/zaln/x-content/0/δὲ"]}
-//   becomes {"subType":"wordLike","payload":"But","position":50,"blContent":["δὲ"],"occurrence":[1,1]}
-// and {"subType":"eol","payload":"\n","position":null,"scopes":[]}
-//   becomes {"subType":"eol","payload":" ","position":null,"blContent":[],"occurrence":[]}
-const slimGLTokens = (tokens) => {
-    // console.log(`slimGLTokens = ((${tokens.length}) ${JSON.stringify(tokens)})…`);
-
-    const ret = [];
-    if (!tokens) {
-        return null;
-    }
-    for (const token of tokens) {
-        const t2 = deepcopy(token);
-        // TODO: Find out what the endswith "s" is supposed to be stopping
-        // The code adds the occurrence AND the occurrences so maybe it's not working how it should be ???
-        const occurrenceScopes = t2.scopes.filter(s => s.startsWith("attribute/milestone/zaln/x-occurrence") && !s.endsWith("s"));
-        const xContentScopes = t2.scopes.filter(s => s.startsWith("attribute/milestone/zaln/x-content"));
-        // We have to ensure that these GL tokens have the same punctuation as the search text that they'll be compared with later
-        // TODO: What about other punctuation -- why do we just remove apostrophe ???
-        t2.blContent = xContentScopes.map(s => s.split("/")[5] // Get the word(s)
-            .replace('’', '')); // delete one apostrophe -- anything else should be deleted here???
-        t2.payload = t2.payload.replace(/[ \t\r\n]+/g, " ");
-        t2.occurrence = occurrenceScopes.map(o => parseInt(o.split("/")[5]));
-        delete t2.scopes;
-        ret.push(t2);
-    }
-    // console.log(`  slimGLTokens returning (${ret.length}) ${JSON.stringify(ret)}`);
-    return ret;
 }
 
 
@@ -361,7 +422,8 @@ const gl4Source = (book, cv, sourceTokens, glTokens, searchString, searchOccurre
         return {
             "error":
                 // `NO MATCH IN SOURCE\nSearch Tuples: ${JSON.stringify(searchTuples)}\nCodepoints: ${searchTuples.map(s => "|" + Array.from(s[0]).map(c => c.charCodeAt(0).toString(16)))}`
-                `NO MATCH IN SOURCE\n    Search String: ${book} ${cv} '${searchString}' ${searchOccurrence}\n      from origLTokens (${origLTokens.length}) ${JSON.stringify(origLTokens)}`
+                // `NO MATCH IN BIBLICAL LANGUAGE SOURCE\n    Search String: ${book} ${cv} '${searchString}' ${searchOccurrence}\n      from origLTokens (${origLTokens.length}) ${JSON.stringify(origLTokens)}`
+                `NO MATCH IN BIBLICAL LANGUAGE SOURCE\n    Search String: ${book} ${cv} '${searchString}' ${searchOccurrence}`
         }
     }
     // console.log(`  After contentForSearchWords(…): contentTuplesWithOccurrences = (${contentTuplesWithOccurrences.length}) ${contentTuplesWithOccurrences}`);
@@ -372,7 +434,7 @@ const gl4Source = (book, cv, sourceTokens, glTokens, searchString, searchOccurre
         return {
             "error":
                 // `EMPTY MATCH IN SOURCE\nSearch Tuples: ${JSON.stringify(searchTuples)}\nCodepoints: ${searchTuples.map(s => "|" + Array.from(s[0]).map(c => c.charCodeAt(0).toString(16)))}`
-                `EMPTY MATCH IN SOURCE\n    Search String: ${book} ${cv} '${searchString}' ${searchOccurrence}\n      from origLTokens (${origLTokens.length}) ${JSON.stringify(origLTokens)}\n       then slimmedGlTokens (${slimmedGlTokens.length}) ${JSON.stringify(slimmedGlTokens)}`
+                `EMPTY MATCH IN GL SOURCE\n    Search String: ${book} ${cv} '${searchString}' ${searchOccurrence}\n      from origLTokens (${origLTokens.length}) ${JSON.stringify(origLTokens)}\n       then contentTuplesWithOccurrences (${contentTuplesWithOccurrences.length}) ${contentTuplesWithOccurrences}\n       then slimmedGlTokens (${slimmedGlTokens.length}) ${JSON.stringify(slimmedGlTokens)}`
         }
     }
     if (prune) {
@@ -380,7 +442,7 @@ const gl4Source = (book, cv, sourceTokens, glTokens, searchString, searchOccurre
         if (!prunedTokens.length) {
             return {
                 "error":
-                    `PRUNING LEFT NOTHING\n    Search String: ${book} ${cv} '${searchString}' ${searchOccurrence}\n      from origLTokens (${origLTokens.length}) ${JSON.stringify(origLTokens)}\n       then slimmedGlTokens (${slimmedGlTokens.length}) ${JSON.stringify(slimmedGlTokens)}\n       then highlightedGlTokens (${highlightedGlTokens.length}) ${highlightedGlTokens}`
+                    `PRUNING LEFT NOTHING\n    Search String: ${book} ${cv} '${searchString}' ${searchOccurrence}\n      from origLTokens (${origLTokens.length}) ${JSON.stringify(origLTokens)}\n       then contentTuplesWithOccurrences (${contentTuplesWithOccurrences.length}) ${contentTuplesWithOccurrences}\n       then slimmedGlTokens (${slimmedGlTokens.length}) ${JSON.stringify(slimmedGlTokens)}\n       then highlightedGlTokens (${highlightedGlTokens.length}) ${highlightedGlTokens}`
             }
         }
         return { "data": prunedTokens };
@@ -465,8 +527,9 @@ getDocuments(pk, testament, book, true) //last parameter is "verbose"
         let counts = { pass: 0, fail: 0 };
         const gl = 'ult';
         for (const tsvRecord of readTsv(tsvPath)) {
-            console.log(`tsvRecord = ${JSON.stringify(tsvRecord)}`);
-            // if (tsvRecord.verse === '19') break;
+            // console.log(`tsvRecord = ${JSON.stringify(tsvRecord)}`);
+            // if (tsvRecord.chapter === '3') break;
+            // if (tsvRecord.verse === '2') break;
             nRecords++;
             const cv = `${tsvRecord.chapter}:${tsvRecord.verse}`;
             // console.log(`  ${tsvRecord.book} ${cv}`);
@@ -500,7 +563,7 @@ getDocuments(pk, testament, book, true) //last parameter is "verbose"
                 console.assert(!highlighted.data);
                 counts.fail++;
                 console.error(`  Error: ${book} ${cv} ${tsvRecord.id} ${highlighted.error}`);
-                console.error(`    Verse tokens: ${JSON.stringify(sourceTokens.filter(t => t.subType === "wordLike").map(t => t.payload))}`);
+                console.error(`    Verse words: ${JSON.stringify(sourceTokens.filter(t => t.subType === "wordLike").map(t => t.payload))}\n`);
                 // console.error(`    Verse codepoints: ${sourceTokens.filter(t => t.subType === "wordLike").map(t => t.payload).map(s => "|" + Array.from(s).map(c => c.charCodeAt(0).toString(16)))}`);
             }
             // }

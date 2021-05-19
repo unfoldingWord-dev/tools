@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Nov 2020 by RJH
-#   Last modified: 2021-05-17 by RJH
+#   Last modified: 2021-05-19 by RJH
 #
 """
 Quick script to copy TN from 7-column TSV files
@@ -68,19 +68,21 @@ def get_TSV7_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str,str,str
             line = line.rstrip('\n\r')
             # print(f"{line_number:3}/ {line}")
             if line_number == 1:
-                assert line == 'Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tNote'
+                assert line == 'Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tNote', "Bad TSV header!!!"
             else:
                 reference, rowID, tags, support_reference, quote, occurrence, note = line.split('\t')
                 # print(f"{reference=} {rowID=} {tags=} {support_reference=} {quote=} {occurrence=} {note[:10]=}")
                 assert reference; assert rowID; assert note
-                if quote: assert occurrence and occurrence != '0'
-                if occurrence and occurrence != '0': assert quote
-                assert not tags
+                if quote and (not occurrence or occurrence == '0'):
+                    logging.error(f"{BBB} {reference} {rowID} Expected Occurrence when have a Quote '{quote}'")
+                if occurrence and occurrence!='0' and not quote:
+                    logging.error(f"{BBB} {reference} {rowID} Expected a quote when have an Occurrence '{occurrence}'")
+                assert not tags, "Expected no tags!"
                 yield reference, rowID, support_reference, quote, occurrence, note
 # end of get_TSV7_fields function
 
 
-QL_QUOTE_PLACEHOLDER = "NO GLQuote YET!!!"
+QL_QUOTE_PLACEHOLDER = "NO GLQuote AVAILABLE!!!"
 def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:str) -> int:
     """
     Function to read and write the TN markdown files.
@@ -107,6 +109,11 @@ def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:st
             support_reference = support_reference.split('/')[-1] # We only use the very end of the full RC link
 
             gl_quote = QL_QUOTE_PLACEHOLDER if orig_quote else ""
+            for text in ('Connecting Statement:','General Information:','A Bible Story from'):
+                complete_text = f"# {text}\\n\\n"
+                if note.startswith(complete_text):
+                    gl_quote = text
+                    note = note[len(complete_text):]
 
             occurrence_note = note.replace('\\n', '<br>')
             occurrence_note = occurrence_note.replace('rc://*/', 'rc://en/')
@@ -117,7 +124,7 @@ def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:st
     # Now use Proskomma to find the ULT GLQuote fields for the OrigQuotes in the temporary outputted file
     print(f"      Running Proskomma for {testament} {BBB}… (might take a few minutes)")
     completed_process_result = subprocess.run(['node', 'TN_TSV9_OLQuotes_to_ULT_GLQuotes.js', temp_output_filepath, testament], capture_output=True)
-    # print(f"Proskomma result was: {completed_process_result}")
+    # print(f"Proskomma {BBB} result was: {completed_process_result}")
     if completed_process_result.returncode:
         print(f"      Proskomma {BBB} ERROR result was: {completed_process_result.returncode}")
     if completed_process_result.stderr:
@@ -143,12 +150,14 @@ def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:st
     for match in re.finditer(r'(\w{3})_(\d{1,3}):(\d{1,3}) ►(.+?)◄ “(.+?)”', proskomma_output_string):
         # print(match)
         B, C, V, orig_quote, gl_quote = match.groups()
-        assert B == BBB
-        assert gl_quote
-        match_dict[(C,V,orig_quote)] = gl_quote
+        assert B == BBB, f"{B} {C}:{V} '{orig_quote}' Should be equal '{B}' '{BBB}'"
+        if gl_quote:
+            match_dict[(C,V,orig_quote)] = gl_quote
+        else:
+            logging.error(f"{B} {C}:{V} '{orig_quote}' Should have a gotten a GLQuote")
     print(f"        Got {len(match_dict):,} unique GL Quotes back from Proskomma for {BBB}")
 
-    match_count = 0
+    match_count = fail_count = 0
     if match_dict: # (if not, the ULT book probably isn't aligned yet)
         # Now put the GL Quotes into the file
         with open(temp_output_filepath, 'rt') as temp_input_TSV_file:
@@ -161,12 +170,13 @@ def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:st
                             gl_quote = match_dict[(C,V,orig_quote)]
                             match_count += 1
                     except KeyError:
-                        logging.critical(f"Unable to find GLQuote for {BBB} {C}:{V} '{orig_quote}'")
+                        logging.error(f"Unable to find GLQuote for {BBB} {C}:{V} {rowID} '{orig_quote}'")
+                        fail_count += 1
                     output_TSV_file.write(f'{B}\t{C}\t{V}\t{rowID}\t{support_reference}\t{orig_quote}\t{occurrence}\t{gl_quote}\t{occurrence_note}')
 
     os.remove(temp_output_filepath)
 
-    return line_count, match_count
+    return line_count, match_count, fail_count
 # end of convert_TN_TSV
 
 
@@ -178,19 +188,28 @@ def main():
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
     total_files_read = total_files_written = 0
     total_lines_read = total_quotes_written = 0
+    total_GLQuote_failures = 0
+    failed_book_list = []
     for BBB,nn in BBB_NUMBER_DICT.items():
-        # if (int(nn) < 41): continue # skip OT
-        # if BBB != 'RUT': continue # Just process this one book
-        if BBB in ('GEN','EXO','JOS','JOL'): continue # skip OT books that fail data validation
-        if BBB in ('MAT','MRK','JHN','ACT','2CO','HEB','JAS','REV'): continue # skip NT books that fail data validation
-        lines_read, this_note_count = convert_TN_TSV(LOCAL_SOURCE_FOLDERPATH, LOCAL_OUTPUT_FOLDERPATH, BBB, nn)
+        # if BBB != '1PE': continue # Just process this one book
+        try:
+            lines_read, this_note_count, fail_count = convert_TN_TSV(LOCAL_SOURCE_FOLDERPATH, LOCAL_OUTPUT_FOLDERPATH, BBB, nn)
+        except Exception as e:
+            print(f"   {BBB} got an error: {e}")
+            failed_book_list.append((BBB,str(e)))
+            lines_read = this_note_count = fail_count = 0
         total_lines_read += lines_read
         total_files_read += 1
         if this_note_count:
             total_quotes_written += this_note_count
             total_files_written += 1
-    print(f"  {total_lines_read:,} lines read from {total_files_read} TSV files")
-    print(f"  {total_quotes_written:,} GL quotes written to {total_files_written} TSV files in {LOCAL_OUTPUT_FOLDERPATH}/")
+        total_GLQuote_failures += fail_count
+    print(f"  {total_lines_read:,} lines read from {total_files_read} TSV file{'' if total_files_read==1 else 's'}")
+    print(f"  {total_quotes_written:,} GL quotes written to {total_files_written} TSV file{'' if total_files_written==1 else 's'} in {LOCAL_OUTPUT_FOLDERPATH}/")
+    if total_GLQuote_failures:
+        print(f"  Had a total of {total_GLQuote_failures:,} GLQuote failure{'' if total_GLQuote_failures==1 else 's'}!")
+    if failed_book_list:
+        logging.critical(f"{len(failed_book_list)} books failed completely: {failed_book_list}")
 # end of main function
 
 if __name__ == '__main__':

@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-05-07 by RJH
+#   Last modified: 2021-05-19 by RJH
 #
 """
 Quick script to copy TN from 9-column TSV files
@@ -90,7 +90,7 @@ def make_TSV_file(BBB:str, nn:str) -> int:
     with open(output_filepath, 'wt') as output_TSV_file:
         for j, (line_number,fields) in enumerate(get_source_lines(BBB, nn), start=1):
             try:
-                B,C,V,ID, support_reference,orig_quote,occurrence,_gl_quote,occurrence_note = fields
+                B,C,V,ID, support_reference,orig_quote,occurrence,gl_quote,occurrence_note = fields
             except ValueError:
                 print(f"Expected 9 fields but found {len(fields)} in {fields}")
                 raise ValueError
@@ -126,6 +126,11 @@ def make_TSV_file(BBB:str, nn:str) -> int:
                 orig_quote = orig_quote.replace('…', ' & ')
                 orig_quote = orig_quote.strip()
 
+                if not orig_quote and occurrence != '0':
+                    logging.error(f"Expected occurrence=='0' for {BBB} {reference} {ID} {support_reference} '{orig_quote}' {occurrence} '{gl_quote}'")
+                if occurrence == '0' and orig_quote:
+                    logging.error(f"Expected no orig_quote for {BBB} {reference} {ID} {support_reference} '{orig_quote}' {occurrence} '{gl_quote}'")
+
                 occurrence = occurrence.strip()
 
                 occurrence_note = occurrence_note.strip()
@@ -141,6 +146,14 @@ def make_TSV_file(BBB:str, nn:str) -> int:
                 occurrence_note = occurrence_note.replace('\\n@@@', '\\n   ').replace('\\n@@', '\\n  ')
                 occurrence_note = occurrence_note.strip()
                 if '  ' in occurrence_note: print(f"NOTE: {BBB} {reference} {line_number} OccurrenceNote has double-spaces: '{occurrence_note}'")
+
+                # Normally GL Quote is a Bible quote
+                gl_quote = gl_quote.strip()
+                if gl_quote == 'Connecting Statement:'\
+                or gl_quote == 'General Information:'\
+                or gl_quote == 'A Bible Story from':
+                    occurrence_note = f"# {gl_quote}\\n\\n{occurrence_note}"
+                    gl_quote = ''
 
                 output_line = f'{reference}\t{ID}\t{tags}\t{support_reference}\t{orig_quote}\t{occurrence}\t{occurrence_note}'
             output_TSV_file.write(f'{output_line}\n')
@@ -160,7 +173,7 @@ def main():
     for BBB,nn in BBB_NUMBER_DICT.items():
         try:
             question_count = make_TSV_file(BBB,nn)
-        except ValueError as err:
+        except (ValueError, AssertionError) as err:
             print(f"ERROR: Failed to process {BBB}: {err}")
         total_questions += question_count
     print(f"    {total_questions:,} total notes written to {LOCAL_OUTPUT_FOLDERPATH}/")
