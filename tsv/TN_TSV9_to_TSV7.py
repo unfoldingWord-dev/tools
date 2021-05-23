@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-05-19 by RJH
+#   Last modified: 2021-05-24 by RJH
 #
 """
 Quick script to copy TN from 9-column TSV files
@@ -103,7 +103,7 @@ def make_TSV_file(BBB:str, nn:str) -> int:
                 C = C.strip(); V = V.strip(); ID = ID.strip()
                 reference = f'{C}:{V}'
 
-                assert len(ID) == 4
+                assert len(ID) == 4, f"Expected {BBB} {C}:{V} row ID to be four-characters (not {len(ID)}"
                 if ID[0] not in 'abcdefghijklmnopqrstuvwxyz':
                     print(f"Bad ID: {BBB} {reference} {line_number} '{ID}' fixed.")
                     convert_dict = {'1':'a', '2':'t', '3':'c', '4':'d', '5':'f', '6':'g', '7':'s', '8':'h', '9':'n', '0':'z' }
@@ -151,7 +151,7 @@ def make_TSV_file(BBB:str, nn:str) -> int:
                 gl_quote = gl_quote.strip()
                 if gl_quote == 'Connecting Statement:'\
                 or gl_quote == 'General Information:'\
-                or gl_quote == 'A Bible Story from':
+                or gl_quote == 'A Bible story from':
                     occurrence_note = f"# {gl_quote}\\n\\n{occurrence_note}"
                     gl_quote = ''
 
@@ -170,13 +170,16 @@ def main():
     print(f"  Source folderpath is {LOCAL_SOURCE_BASE_FOLDERPATH}/")
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
     total_questions = 0
+    failed_books = []
     for BBB,nn in BBB_NUMBER_DICT.items():
         try:
             question_count = make_TSV_file(BBB,nn)
+            total_questions += question_count
         except (ValueError, AssertionError) as err:
             print(f"ERROR: Failed to process {BBB}: {err}")
-        total_questions += question_count
+            failed_books.append(BBB)
     print(f"    {total_questions:,} total notes written to {LOCAL_OUTPUT_FOLDERPATH}/")
+    logging.critical(f"Had {len(failed_books)} failed books: {failed_books}")
 # end of main function
 
 if __name__ == '__main__':
