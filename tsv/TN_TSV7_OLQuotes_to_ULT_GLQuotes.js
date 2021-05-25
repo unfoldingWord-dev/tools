@@ -66,7 +66,7 @@ const getDocuments = async (pk, testament, book, verbose, serialize) => {
         if (verbose) console.log(`      Downloaded`)
 
         const startTime = Date.now();
-        if (abbr === 'ult') {
+        if (abbr === 'ult') { // Preprocess x-occurrence,x-occurrences,x-content into x-align="content:occurrence:occurrences" for easier handling later
             // console.log(`content1: ${typeof content} (${content.length}) ${Object.keys(content)}`);
             content = [rejigAlignment(content)]; // Tidy-up ULT USFM alignment info
             // console.log(`content2: ${typeof content} (${content.length}) ${content}`);
@@ -108,8 +108,7 @@ const doAlignmentQuery = async pk => {
         '          subType' +
         '          payload' +
         '          position' +
-        // '          scopes(startsWith:["attribute/milestone/zaln/x-content", "attribute/milestone/zaln/x-occurrence"])' +
-        '          scopes(startsWith:"attribute/milestone/zaln/x-align")' + // This line was changed
+        '          scopes(startsWith:"attribute/milestone/zaln/x-align")' + // This line was changed (and assumes preprocessing of alignment info)
         '        }' +
         '      }' +
         '    }' +
@@ -161,7 +160,7 @@ const searchWordRecords = origString => {
             ret.push([searchExpr, false]);
         }
     }
-    return ret.filter(t => t[0] !== "׀"); // why is this needed -- ah for \w fields maybe ???
+    return ret.filter(t => t[0] !== "׀"); // why is this needed -- ah for \w fields maybe -- still not really sure ???
 }
 
 
@@ -171,12 +170,12 @@ const searchWordRecords = origString => {
  * @param {Array} glTokens -- GL token objects with many fields
  * @returns the same number of tokens but with refactored fields in each object (scopes is replaced by blContent and occurrence)
  */
-// e.g., {"subType":"wordLike","payload":"But","position":50,"scopes":["attribute/milestone/zaln/x-occurrence/0/1","attribute/milestone/zaln/x-occurrences/0/1","attribute/milestone/zaln/x-content/0/δὲ"]}
+// e.g., {"subType":"wordLike","payload":"But","position":50,"scopes":["attribute/milestone/zaln/x-align/δὲ:1:1"]}
 //   becomes {"subType":"wordLike","payload":"But","position":50,"blContent":["δὲ"],"occurrence":[1]}
 // and {"subType":"eol","payload":"\n","position":null,"scopes":[]}
 //   becomes {"subType":"eol","payload":" ","position":null,"blContent":[],"occurrence":[]}
-// and {"subType":"wordLike","payload":"essential","position":925,"scopes":["attribute/milestone/zaln/x-occurrence/0/1","attribute/milestone/zaln/x-occurrences/0/1","attribute/milestone/zaln/x-content/0/τὰς","attribute/milestone/zaln/x-content/0/ἀναγκαίας"]}
-//   becomes {"subType":"wordLike","payload":"essential","position":925,"blContent":["τὰς","ἀναγκαίας"],"occurrence":[1]}
+// and {"subType":"wordLike","payload":"essential","position":925,"scopes":["attribute/milestone/zaln/x-align/τὰς:1:1","attribute/milestone/zaln/x-align/ἀναγκαίας:1:1"]}
+//   becomes {"subType":"wordLike","payload":"essential","position":925,"blContent":["τὰς","ἀναγκαίας"],"occurrence":[1,1]}
 const slimGLTokens = (glTokens) => {
     // console.log(`slimGLTokens = ((${glTokens.length}) ${JSON.stringify(glTokens)})…`);
 
@@ -186,16 +185,12 @@ const slimGLTokens = (glTokens) => {
     }
     for (const glToken of glTokens) {
         const t2 = deepcopy(glToken);
-        // const occurrenceScopes = t2.scopes.filter(s => s.startsWith("attribute/milestone/zaln/x-occurrence") && !s.split("/")[3].endsWith("s"));
-        // const xContentScopes = t2.scopes.filter(s => s.startsWith("attribute/milestone/zaln/x-content"));
         const alignScopes = t2.scopes.filter(s => s.startsWith("attribute/milestone/zaln/x-align"));
         // We have to ensure that these GL tokens have the same punctuation as the search text that they'll be compared with later
         // TODO: What about other punctuation -- why do we just remove apostrophe -- where's the other punctuation removed ???
-        // t2.blContent = xContentScopes.map(s => s.split("/")[5] // Get the word(s)
         t2.blContent = alignScopes.map(s => s.split('/')[5].split(':')[0] // Get the word(s)
             .replace('’', '')); // delete one apostrophe -- anything else should be deleted here???
         t2.payload = t2.payload.replace(/[ \t\r\n]+/g, " ");
-        // t2.occurrence = occurrenceScopes.map(o => parseInt(o.split("/")[5]));
         t2.occurrence = alignScopes.map(o => parseInt(o.split('/')[5].split(':')[1]));
         console.assert(t2.blContent.length === t2.occurrence.length, `Expected blContent ${t2.blContent} and occurrence ${t2.occurrence} to be the same length!`);
         // console.assert(t2.blContent.length <= 6, `Trying to discover the maximum length of blContent: now have ${t2.blContent.length}`);
@@ -315,7 +310,7 @@ const contentForSearchWords = (searchTuples, searchOccurrence, origLTokens) => {
         }
     }
 
-    // At this point, we may have removed the beginning of the string
+    // At this point, we may have removed the beginning of the string if necessary
     //  so that we can always guarantee that the first match of the first word will be the correct occurrence
     // console.log(`Now searching for (${searchTuples.length}) '${searchTuples}'`);
     const origLWordsSoFar = [];
@@ -328,8 +323,6 @@ const contentForSearchWords = (searchTuples, searchOccurrence, origLTokens) => {
         const [searchWord, notConsecutive] = searchTuples[searchTupleIndex];
         // console.log(`  searchWord='${searchWord}' consecutive=${!notConsecutive}`);
         if (token.payload === searchWord) {
-            // && (searchTupleIndex > 0 // we've already started matching
-            //     || countOccurrences(origLWordsSoFar, searchWord) === occurrenceNumber)) {
             result.push([token.payload, token.occurrence]);
             if (++searchTupleIndex === searchTuples.length) {
                 // console.log(`  contentForSearchWords() returning (${result.length}) ${result}`);
@@ -366,12 +359,12 @@ const contentForSearchWords = (searchTuples, searchOccurrence, origLTokens) => {
  * @returns {Array} -- a list (the same length as the first parameter) of 2-tuples (GLWord, flag if part of match)
  */
 // Some slimmedGlTokens are:
-//  {"subType":"wordLike","payload":"But","position":50,"blContent":["δὲ"],"occurrence":[1,1]},
+//  {"subType":"wordLike","payload":"But","position":50,"blContent":["δὲ"],"occurrence":[1]},
 //  {"subType":"eol","payload":" ","position":null,"blContent":[],"occurrence":[]},
-//  {"subType":"wordLike","payload":"at","position":51,"blContent":["καιροῖς"],"occurrence":[1,1]}
-//  {"subType":"eol","payload":" ","position":null,"blContent":["καιροῖς"],"occurrence":[1,1]} NOTE: space (correctly) mapped to Grk word
+//  {"subType":"wordLike","payload":"at","position":51,"blContent":["καιροῖς"],"occurrence":[1]}
+//  {"subType":"eol","payload":" ","position":null,"blContent":["καιροῖς"],"occurrence":[1]} NOTE: space (correctly) mapped to Grk word
 // but NOTE
-//  {"subType":"wordLike","payload":"agrees","position":27,"blContent":["κατ’"],"occurrence":[1,1]} NOTE: the word here DOES HAVE the apostrophe
+//  {"subType":"wordLike","payload":"agrees","position":27,"blContent":["κατ’"],"occurrence":[1]} NOTE: the word here DOES HAVE the apostrophe
 // Typical contentTuplesWithOccurrences (from ULT Titus 1:3):
 //  [(ἐφανέρωσεν,1),(τὸν,1),(λόγον,1),(αὐτοῦ,1)]
 const highlightedAlignedGlText = (slimmedGlTokens, contentTuplesWithOccurrences) => {
@@ -380,14 +373,6 @@ const highlightedAlignedGlText = (slimmedGlTokens, contentTuplesWithOccurrences)
     return slimmedGlTokens.map(glToken => {
         // console.log(`    Processing GL token: ${JSON.stringify(glToken)}`);
 
-        // TODO: The following code is failing when there's multiple blContent words
-        //          My attempt below that fixed some cases but caused many others to fail -- needs further debugging
-        //          It may be because the occurrence array contains `occurrences` also mixed in there
-        // const matchingContent = contentTuplesWithOccurrences.filter(contentWordOccurrenceTuple =>
-        //     (glToken.occurrence.length > 0) // it's a real word with an occurrence
-        //     && glToken.blContent.includes(contentWordOccurrenceTuple[0])
-        //     && glToken.occurrence[0] === contentWordOccurrenceTuple[1]
-        //     );
         const matchingContent = contentTuplesWithOccurrences.filter(contentWordOccurrenceTuple =>
             (glToken.occurrence.length > 0) // it's a real word with an occurrence
             && ((glToken.blContent[0] === contentWordOccurrenceTuple[0] && glToken.occurrence[0] === contentWordOccurrenceTuple[1])
@@ -460,16 +445,6 @@ const gl4Source = (book, cv, sourceTokens, glTokens, searchString, searchOccurre
     }
 }
 
-/*
-// Copied from https://github.com/unfoldingWord-box3/uw-proskomma/blob/main/src/utils/render.js May 2021
-const highlightedAsString = highlighted =>
-    highlighted
-        .map(tp => tp[1] ? tp[0].toUpperCase() : tp[0])
-        // .map(tp => tp[0]) // Don't want UPPERCASE
-        .join("")
-        .trim();
-*/
-
 
 /**
  *
@@ -513,11 +488,11 @@ const getTidiedData = (dataPairs) => {
         }
         lastPair = somePair;
     }
-    // TODO: Better if we don't end up with fields like '…,          ,             of the truth …   ,' -- where/why is this happening???
+    // TODO: Better if we don't end up with fields like '…,          ,             of the truth …   ,'
     if (originalDataString.indexOf('  ') !== -1 || originalDataString.indexOf(' ,') !== -1) console.log(`Do final tidy of '${originalDataString}'`);
     // NOTE: We need three loops if prune was false
     let tidiedDataString = originalDataString;
-    /*
+    /* Don't seem to need this clean-up now -- we tried to get it right above instead
     for (let n = 0; n < 2; ++n) // Run through this clean-up multiple times to ensure we catch everything
         tidiedDataString = tidiedDataString
             .trim() // remove leading and trailing spaces
@@ -568,12 +543,8 @@ getDocuments(pk, testament, book, true, false) //last parameters are "verbose" a
             // if (tsvRecord.verse === '2') break;
             nRecords++;
             const cv = `${tsvRecord.chapter}:${tsvRecord.verse}`;
-            // console.log(`  ${tsvRecord.book} ${cv}`);
-            // console.log(`    Search string: ${tsvRecord.origQuote}`);
-            // Iterate over GLs
-            // for (const gl of ["ult", "ust"]) {
             const source = testament === 'OT' ? tokenLookup.uhb : tokenLookup.ugnt;
-            // Get the tokens for BCV
+            // Get the tokens for this BCV
             const sourceTokens = source[book][cv];
             // console.log(`  source tokens = (${sourceTokens.length}) ${JSON.stringify(sourceTokens)}`);
 
