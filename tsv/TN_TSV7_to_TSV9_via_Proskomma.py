@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Nov 2020 by RJH
-#   Last modified: 2021-05-19 by RJH
+#   Last modified: 2021-05-25 by RJH
 #
 """
 Quick script to copy TN from 7-column TSV files
@@ -21,7 +21,7 @@ NOTE: This requires the addition of the GLQuote column!
 from typing import List, Tuple
 import os
 from pathlib import Path
-import random
+# import random
 import re
 import logging
 import subprocess
@@ -48,6 +48,8 @@ BBB_NUMBER_DICT = {'GEN':'01','EXO':'02','LEV':'03','NUM':'04','DEU':'05',
                 'PHM':'58','HEB':'59','JAS':'60','1PE':'61','2PE':'62','1JN':'63',
                 '2JN':'64',
                 '3JN':'65', 'JUD':'66', 'REV':'67' }
+
+HELPER_PROGRAM_NAME = 'TN_TSV7_OLQuotes_to_ULT_GLQuotes.js'
 
 
 def get_TSV7_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str,str,str,str]:
@@ -109,7 +111,7 @@ def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:st
             support_reference = support_reference.split('/')[-1] # We only use the very end of the full RC link
 
             gl_quote = QL_QUOTE_PLACEHOLDER if orig_quote else ""
-            for text in ('Connecting Statement:','General Information:','A Bible Story from'):
+            for text in ('Connecting Statement:','General Information:','A Bible story from'):
                 complete_text = f"# {text}\\n\\n"
                 if note.startswith(complete_text):
                     gl_quote = text
@@ -123,14 +125,14 @@ def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:st
 
     # Now use Proskomma to find the ULT GLQuote fields for the OrigQuotes in the temporary outputted file
     print(f"      Running Proskomma for {testament} {BBB}… (might take a few minutes)")
-    completed_process_result = subprocess.run(['node', 'TN_TSV9_OLQuotes_to_ULT_GLQuotes.js', temp_output_filepath, testament], capture_output=True)
+    completed_process_result = subprocess.run(['node', HELPER_PROGRAM_NAME, temp_output_filepath, testament], capture_output=True)
     # print(f"Proskomma {BBB} result was: {completed_process_result}")
     if completed_process_result.returncode:
         print(f"      Proskomma {BBB} ERROR result was: {completed_process_result.returncode}")
     if completed_process_result.stderr:
         print(f"      Proskomma {BBB} error output was:\n{completed_process_result.stderr.decode()}")
     proskomma_output_string = completed_process_result.stdout.decode()
-    # print(f"Proskomma {BBB} output was: {proskomma_output_string}") # For debugging only
+    # print(f"Proskomma {BBB} output was: {proskomma_output_string}") # For debugging JS helper program only
     output_lines = proskomma_output_string.split('\n')
     if output_lines:
         # Log any errors that occurred -- not really needed now coz they go to stderr
@@ -182,6 +184,9 @@ def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:st
 
 def main():
     """
+    Go through the list of Bible books
+        and convert them
+        while keeping track of some basic statistics
     """
     print("TN_TSV7_to_TSV9_via_Proskomma.py")
     print(f"  Source folderpath is {LOCAL_SOURCE_FOLDERPATH}/")
@@ -191,7 +196,7 @@ def main():
     total_GLQuote_failures = 0
     failed_book_list = []
     for BBB,nn in BBB_NUMBER_DICT.items():
-        # if BBB != '1PE': continue # Just process this one book
+        # if BBB != 'EST': continue # Just process this one book
         try:
             lines_read, this_note_count, fail_count = convert_TN_TSV(LOCAL_SOURCE_FOLDERPATH, LOCAL_OUTPUT_FOLDERPATH, BBB, nn)
         except Exception as e:

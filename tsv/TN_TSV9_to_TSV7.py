@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-05-24 by RJH
+#   Last modified: 2021-05-25 by RJH
 #
 """
 Quick script to copy TN from 9-column TSV files
@@ -86,14 +86,17 @@ def make_TSV_file(BBB:str, nn:str) -> int:
     output_folderpath = LOCAL_OUTPUT_FOLDERPATH #.joinpath(BBB)
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
     output_filepath = output_folderpath.joinpath(f'tn_{BBB}.tsv')
-    num_lines = j = 0
+    num_lines = num_errors = j = 0
+    rowID_list = []
     with open(output_filepath, 'wt') as output_TSV_file:
         for j, (line_number,fields) in enumerate(get_source_lines(BBB, nn), start=1):
             try:
                 B,C,V,ID, support_reference,orig_quote,occurrence,gl_quote,occurrence_note = fields
             except ValueError:
-                print(f"Expected 9 fields but found {len(fields)} in {fields}")
-                raise ValueError
+                num_errors += 1
+                logging.critical(f"Expected 9 fields but found {len(fields)} in {BBB} with {fields}")
+                continue
+                # raise ValueError # Better if we continue and process the rest of the file ???
             # print(f"{j:3}/ Line {line_number:<5} {BBB} {C:>3}:{V:<3} {ID }'{support_reference}' '{orig_quote}' '{occurrence}' '{_gl_quote}' '{occurrence_note}'")
             if j == 1:
                 assert B=='Book' and C=='Chapter' and V=='Verse' # etc.
@@ -103,7 +106,10 @@ def make_TSV_file(BBB:str, nn:str) -> int:
                 C = C.strip(); V = V.strip(); ID = ID.strip()
                 reference = f'{C}:{V}'
 
-                assert len(ID) == 4, f"Expected {BBB} {C}:{V} row ID to be four-characters (not {len(ID)}"
+                if len(ID) != 4:
+                    num_errors += 1
+                    logging.critical(f"Expected {BBB} {C}:{V} row ID to be four-characters (not {len(ID)} with '{ID}')")
+                    ID = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
                 if ID[0] not in 'abcdefghijklmnopqrstuvwxyz':
                     print(f"Bad ID: {BBB} {reference} {line_number} '{ID}' fixed.")
                     convert_dict = {'1':'a', '2':'t', '3':'c', '4':'d', '5':'f', '6':'g', '7':'s', '8':'h', '9':'n', '0':'z' }
@@ -112,6 +118,10 @@ def make_TSV_file(BBB:str, nn:str) -> int:
                 assert ID[1] in 'abcdefghijklmnopqrstuvwxyz0123456789'
                 assert ID[2] in 'abcdefghijklmnopqrstuvwxyz0123456789'
                 assert ID[3] in 'abcdefghijklmnopqrstuvwxyz0123456789'
+                if ID in rowID_list:
+                    logging.error(f"RowID '{ID}' is duplicated in {BBB} file")
+                else:
+                    rowID_list.append(ID)
 
                 tags = ''
 
@@ -159,7 +169,7 @@ def make_TSV_file(BBB:str, nn:str) -> int:
             output_TSV_file.write(f'{output_line}\n')
             num_lines += 1
     print(f"      {num_lines:,} lines written")
-    return num_lines
+    return num_lines, num_errors
 # end of make_TSV_file function
 
 
@@ -169,17 +179,23 @@ def main():
     print("TN_TSV9_to_TSV7.py")
     print(f"  Source folderpath is {LOCAL_SOURCE_BASE_FOLDERPATH}/")
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
-    total_questions = 0
+    total_questions = num_major_errors = 0
     failed_books = []
     for BBB,nn in BBB_NUMBER_DICT.items():
         try:
-            question_count = make_TSV_file(BBB,nn)
+            question_count, major_error_count = make_TSV_file(BBB,nn)
+            if major_error_count:
+                logging.critical(f"Had {major_error_count} major error{'' if major_error_count==1 else 's'} in {BBB} (i.e., possible lost notes)")
             total_questions += question_count
+            num_major_errors += major_error_count
         except (ValueError, AssertionError) as err:
             print(f"ERROR: Failed to process {BBB}: {err}")
             failed_books.append(BBB)
     print(f"    {total_questions:,} total notes written to {LOCAL_OUTPUT_FOLDERPATH}/")
-    logging.critical(f"Had {len(failed_books)} failed books: {failed_books}")
+    if failed_books:
+        logging.critical(f"Had {len(failed_books)} failed books: {failed_books}")
+    if num_major_errors:
+        logging.critical(f"Had {num_major_errors} major error{'' if num_major_errors==1 else 's'} in various books (i.e., possible lost notes)")
 # end of main function
 
 if __name__ == '__main__':

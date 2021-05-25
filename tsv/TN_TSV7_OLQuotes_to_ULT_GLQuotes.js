@@ -150,8 +150,9 @@ const searchWordRecords = origString => {
     const ret = [];
     for (let searchExpr of xre.split(origString, /[\s־]/)) {
         // The UHB/UGNT "sourceTokens" have all punctuation (incl. word punctuation) as separate tokens!
-        // Remove sentence punctuation (incl. all apostrophes!)
-        searchExpr = xre.replace(searchExpr, /[,’?:;.!׃]/, ""); // Added colon -- last char is Hebrew sof pasuq
+        // So remove sentence punctuation (incl. all apostrophes!) from our individual search words
+        // Added 'all' scope flag below to handle words with multiple punctuation marks to be removed, e.g. "(word),"
+        searchExpr = xre.replace(searchExpr, /[(),’?:;.!׃]/, '', 'all'); // Added colon and parentheses -- last char is Hebrew sof pasuq
         if (searchExpr.includes("…")) {
             const searchExprParts = searchExpr.split("…");
             ret.push([searchExprParts[0], false]);
@@ -160,7 +161,7 @@ const searchWordRecords = origString => {
             ret.push([searchExpr, false]);
         }
     }
-    return ret.filter(t => t[0] !== "׀"); // why is this needed -- ah for \w fields I guess
+    return ret.filter(t => t[0] !== "׀"); // why is this needed -- ah for \w fields maybe ???
 }
 
 
@@ -197,6 +198,7 @@ const slimGLTokens = (glTokens) => {
         // t2.occurrence = occurrenceScopes.map(o => parseInt(o.split("/")[5]));
         t2.occurrence = alignScopes.map(o => parseInt(o.split('/')[5].split(':')[1]));
         console.assert(t2.blContent.length === t2.occurrence.length, `Expected blContent ${t2.blContent} and occurrence ${t2.occurrence} to be the same length!`);
+        // console.assert(t2.blContent.length <= 6, `Trying to discover the maximum length of blContent: now have ${t2.blContent.length}`);
         delete t2.scopes;
         ret.push(t2);
     }
@@ -215,7 +217,7 @@ const slimGLTokens = (glTokens) => {
 /*const contentForSearchWords = (searchTuples, tokens) => { // used recursively
     console.log(`contentForSearchWords = ((${searchTuples.length}) ${searchTuples}, (${tokens.length}) ${JSON.stringify(tokens)})…`);
 
-    // What would lfsw1 stand for???
+    // NOTE: lfsw = lemmaForSearchWords -- see src/scripts/greek_quote_to_gl_via_lemma.js
     const lfsw1 = (searchTuples, tokens, content) => {
         if (!content) {
             content = [];
@@ -334,7 +336,7 @@ const contentForSearchWords = (searchTuples, searchOccurrence, origLTokens) => {
                 console.assert(result.length === searchTuples.length, `contentForSearchWords(${searchTuples}) should return the same number of words! ${result}`);
                 return result; // all done
             }
-        } else  { // we didn't find the word that we were looking for
+        } else { // we didn't find the word that we were looking for
             // console.log(`Nope: ${searchTupleIndex} '${searchWord}' ${notConsecutive} didn't match with '${token.payload}'`);
             if (searchTupleIndex > 0 && !notConsecutive) { // They should have been consecutive words
                 if (searchTupleIndex > 0 && searchTuples[searchTupleIndex - 1][1]) { // Then we're searching for the second contiguous part and might have gotten a false start
@@ -381,17 +383,21 @@ const highlightedAlignedGlText = (slimmedGlTokens, contentTuplesWithOccurrences)
         // TODO: The following code is failing when there's multiple blContent words
         //          My attempt below that fixed some cases but caused many others to fail -- needs further debugging
         //          It may be because the occurrence array contains `occurrences` also mixed in there
-        const matchingContent = contentTuplesWithOccurrences.filter(contentWordOccurrenceTuple =>
-            (glToken.occurrence.length > 0) // it's a real word with an occurrence
-            && glToken.blContent.includes(contentWordOccurrenceTuple[0])
-            && glToken.occurrence[0] === contentWordOccurrenceTuple[1]); // FIXED: it's the correct occurrence
         // const matchingContent = contentTuplesWithOccurrences.filter(contentWordOccurrenceTuple =>
         //     (glToken.occurrence.length > 0) // it's a real word with an occurrence
-        //     && ((glToken.blContent[0] === contentWordOccurrenceTuple[0] && glToken.occurrence[0] === contentWordOccurrenceTuple[1])
-        //         || (glToken.blContent.length > 1 && glToken.blContent[1] === contentWordOccurrenceTuple[0] && glToken.occurrence[3] === contentWordOccurrenceTuple[1])
-        //         || (glToken.blContent.length > 2 && glToken.blContent[2] === contentWordOccurrenceTuple[0] && glToken.occurrence[5] === contentWordOccurrenceTuple[1])
-        //     )
-        // ); // FIXED: it's the correct occurrence
+        //     && glToken.blContent.includes(contentWordOccurrenceTuple[0])
+        //     && glToken.occurrence[0] === contentWordOccurrenceTuple[1]
+        //     );
+        const matchingContent = contentTuplesWithOccurrences.filter(contentWordOccurrenceTuple =>
+            (glToken.occurrence.length > 0) // it's a real word with an occurrence
+            && ((glToken.blContent[0] === contentWordOccurrenceTuple[0] && glToken.occurrence[0] === contentWordOccurrenceTuple[1])
+                || (glToken.blContent.length > 1 && glToken.blContent[1] === contentWordOccurrenceTuple[0] && glToken.occurrence[1] === contentWordOccurrenceTuple[1])
+                || (glToken.blContent.length > 2 && glToken.blContent[2] === contentWordOccurrenceTuple[0] && glToken.occurrence[2] === contentWordOccurrenceTuple[1])
+                || (glToken.blContent.length > 3 && glToken.blContent[3] === contentWordOccurrenceTuple[0] && glToken.occurrence[3] === contentWordOccurrenceTuple[1])
+                || (glToken.blContent.length > 4 && glToken.blContent[4] === contentWordOccurrenceTuple[0] && glToken.occurrence[4] === contentWordOccurrenceTuple[1])
+                || (glToken.blContent.length > 5 && glToken.blContent[5] === contentWordOccurrenceTuple[0] && glToken.occurrence[5] === contentWordOccurrenceTuple[1])
+            )
+        );
         // if (matchingContent.length > 0) { console.log(`      matchingContent = ${matchingContent} so getting glToken '${token.payload}'`); }
         return [glToken.payload, (matchingContent.length > 0)]; // Returns all slimmedGlTokens payloads, but with added bool for match
     }
@@ -422,8 +428,8 @@ const gl4Source = (book, cv, sourceTokens, glTokens, searchString, searchOccurre
         return {
             "error":
                 // `NO MATCH IN SOURCE\nSearch Tuples: ${JSON.stringify(searchTuples)}\nCodepoints: ${searchTuples.map(s => "|" + Array.from(s[0]).map(c => c.charCodeAt(0).toString(16)))}`
-                // `NO MATCH IN BIBLICAL LANGUAGE SOURCE\n    Search String: ${book} ${cv} '${searchString}' ${searchOccurrence}\n      from origLTokens (${origLTokens.length}) ${JSON.stringify(origLTokens)}`
-                `NO MATCH IN BIBLICAL LANGUAGE SOURCE\n    Search String: ${book} ${cv} '${searchString}' ${searchOccurrence}`
+                // `NO MATCH IN BIBLICAL LANGUAGE SOURCE\n    Search String: ${book} ${cv} '${searchString}' occurrence=${searchOccurrence}\n      from origLTokens (${origLTokens.length}) ${JSON.stringify(origLTokens)}`
+                `NO MATCH IN BIBLICAL LANGUAGE SOURCE\n    Search String: ${book} ${cv} '${searchString}' occurrence=${searchOccurrence}`
         }
     }
     // console.log(`  After contentForSearchWords(…): contentTuplesWithOccurrences = (${contentTuplesWithOccurrences.length}) ${contentTuplesWithOccurrences}`);
@@ -434,7 +440,7 @@ const gl4Source = (book, cv, sourceTokens, glTokens, searchString, searchOccurre
         return {
             "error":
                 // `EMPTY MATCH IN SOURCE\nSearch Tuples: ${JSON.stringify(searchTuples)}\nCodepoints: ${searchTuples.map(s => "|" + Array.from(s[0]).map(c => c.charCodeAt(0).toString(16)))}`
-                `EMPTY MATCH IN GL SOURCE\n    Search String: ${book} ${cv} '${searchString}' ${searchOccurrence}\n      from origLTokens (${origLTokens.length}) ${JSON.stringify(origLTokens)}\n       then contentTuplesWithOccurrences (${contentTuplesWithOccurrences.length}) ${contentTuplesWithOccurrences}\n       then slimmedGlTokens (${slimmedGlTokens.length}) ${JSON.stringify(slimmedGlTokens)}`
+                `EMPTY MATCH IN GL SOURCE\n    Search String: ${book} ${cv} '${searchString}' occurrence=${searchOccurrence}\n      from origLTokens (${origLTokens.length}) ${JSON.stringify(origLTokens)}\n       then contentTuplesWithOccurrences (${contentTuplesWithOccurrences.length}) ${contentTuplesWithOccurrences}\n       then slimmedGlTokens (${slimmedGlTokens.length}) ${JSON.stringify(slimmedGlTokens)}`
         }
     }
     if (prune) {
@@ -442,7 +448,10 @@ const gl4Source = (book, cv, sourceTokens, glTokens, searchString, searchOccurre
         if (!prunedTokens.length) {
             return {
                 "error":
-                    `PRUNING LEFT NOTHING\n    Search String: ${book} ${cv} '${searchString}' ${searchOccurrence}\n      from origLTokens (${origLTokens.length}) ${JSON.stringify(origLTokens)}\n       then contentTuplesWithOccurrences (${contentTuplesWithOccurrences.length}) ${contentTuplesWithOccurrences}\n       then slimmedGlTokens (${slimmedGlTokens.length}) ${JSON.stringify(slimmedGlTokens)}\n       then highlightedGlTokens (${highlightedGlTokens.length}) ${highlightedGlTokens}`
+                    // I think this is saying that the OrigL source quote was found,
+                    //  but no GL words were aligned to it!
+                    // `PRUNING LEFT NOTHING—NOTHING ALIGNED TO Quote?\n    Search String: ${book} ${cv} '${searchString}' occurrence=${searchOccurrence}\n      from origLTokens (${origLTokens.length}) ${JSON.stringify(origLTokens)}\n       then contentTuplesWithOccurrences (${contentTuplesWithOccurrences.length}) ${contentTuplesWithOccurrences}\n       then slimmedGlTokens (${slimmedGlTokens.length}) ${JSON.stringify(slimmedGlTokens)}\n       then highlightedGlTokens (${highlightedGlTokens.length}) ${highlightedGlTokens}`
+                    `NOTHING ALIGNED TO Quote?\n    Search String: ${book} ${cv} '${searchString}' occurrence=${searchOccurrence}`
             }
         }
         return { "data": prunedTokens };
@@ -462,27 +471,53 @@ const highlightedAsString = highlighted =>
 */
 
 
-// Drops non-matching words and puts an ellipse between non-contiguous matching words
+/**
+ *
+ * @param {Array} dataPairs a list of pairs containing a string (may be empty) and a boolean (true if GL string matched)
+ * @description Drops non-matching words and puts an ellipse between non-contiguous matching words
+ * @returns a tidyied string with the matching words
+ */
 const getTidiedData = (dataPairs) => {
-    // console.log(`getTidiedData(${dataPairs.length}) ${dataPairs})…`);
+    // console.log(`getTidiedData((${dataPairs.length}) ${dataPairs})…`);
+
     let originalDataString = '';
-    inEllipse = false
-    for (const somePair of dataPairs) {
+    let lastItem;
+    let inEllipse = false;
+    let lastPair = [null, false];
+    for (const somePair of dataPairs) { // Each pair contains a string (may be empty) and a boolean (true if GL string matched)
         // console.log("somePair", somePair);
-        if (somePair[1]) {
-            originalDataString += somePair[0];
+        if (somePair[1]) {// it was a match
+            if (lastItem
+                && lastItem !== ' ' // Don't want a space before (a matching) space
+                && ' ,:.!?)'.indexOf(somePair[0]) === -1 // Don't want a space before (matching) punctuation
+                // This next line is very English-centric
+                && !(/^\d+$/.test(somePair[0]) && lastItem === ',' && /^\d+$/.test(originalDataString.slice(-2, -1))) // Don't want a space inside something like 75,000
+            )
+                originalDataString += ' '; // Put a space between words
+            if (somePair[0] !== ' '
+                || lastItem !== ',' || !/^\d+$/.test(originalDataString.slice(-2, -1)) // Don't want a space inside something like 75,000
+            ) {
+                originalDataString += somePair[0];
+                lastItem = somePair[0]
+            }
             inEllipse = false;
-        } else if (somePair[0] === ' ' || somePair[0] === ',') { // some spaces are marked as matches and some not -- almost seems random
-            originalDataString += somePair[0];
-        } else {
+        } else if (',:.!?)'.indexOf(somePair[0]) !== -1) { // it's punctuation
+            if (lastPair[1]) {// even though somePair[1] is false, this is trailing punctuation that probably/possibly should be included ???
+                originalDataString += somePair[0];
+                lastItem = somePair[0]
+            }
+        } else if (somePair[0] !== ' ') { // it's not a match nor punctuation nor a space, so presumably a non-matching word
             if (!inEllipse) originalDataString += '…';
             inEllipse = true;
+            lastItem = null;
         }
+        lastPair = somePair;
     }
     // TODO: Better if we don't end up with fields like '…,          ,             of the truth …   ,' -- where/why is this happening???
-    // console.log(`Do final tidy of '${tidiedData}'`);
+    if (originalDataString.indexOf('  ') !== -1 || originalDataString.indexOf(' ,') !== -1) console.log(`Do final tidy of '${originalDataString}'`);
     // NOTE: We need three loops if prune was false
     let tidiedDataString = originalDataString;
+    /*
     for (let n = 0; n < 2; ++n) // Run through this clean-up multiple times to ensure we catch everything
         tidiedDataString = tidiedDataString
             .trim() // remove leading and trailing spaces
@@ -495,6 +530,7 @@ const getTidiedData = (dataPairs) => {
             .replace(/ …/g, '…').replace(/… /g, '…') // tidy-up surplus spaces around ellipses
             .replace(/^…/, '').replace(/…$/, '') // remove leading and trailing ellipses (again)
             .trim(); // remove leading and trailing spaces (again)
+            */
     console.assert(tidiedDataString.length, `getTidiedData() Should have some tidiedDataString left from ${dataPairs}!`);
     console.assert(' ,.…'.indexOf(tidiedDataString[0] === -1), `getTidiedData() These characters shouldn't occur at beginning from '${originalDataString}'!`);
     console.assert(' ,.…'.indexOf(tidiedDataString.slice(-1) === -1), `getTidiedData() These characters shouldn't occur at end from '${originalDataString}'!`);
@@ -516,7 +552,7 @@ const testament = args[1] // 'OT' or 'NT'
 const prune = true; // only return the matching quote -- not the entire verse text
 
 
-getDocuments(pk, testament, book, true) //last parameter is "verbose"
+getDocuments(pk, testament, book, true, false) //last parameters are "verbose" and "serialize"
     .then(async () => {
         // Query Proskomma which now contains the books
         // Returns the tokens for each verse, accessible by
@@ -540,6 +576,7 @@ getDocuments(pk, testament, book, true) //last parameter is "verbose"
             // Get the tokens for BCV
             const sourceTokens = source[book][cv];
             // console.log(`  source tokens = (${sourceTokens.length}) ${JSON.stringify(sourceTokens)}`);
+
             const glTokens = tokenLookup[gl][book][cv];
             // console.log(`  GL tokens = (${glTokens.length}) ${JSON.stringify(glTokens)}`);
             // Do the alignment
