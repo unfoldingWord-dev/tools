@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-05-25 by RJH
+#   Last modified: 2021-05-28 by RJH
 #
 """
 Quick script to copy TN from 9-column TSV files
@@ -108,7 +108,7 @@ def make_TSV_file(BBB:str, nn:str) -> int:
 
                 if len(ID) != 4:
                     num_errors += 1
-                    logging.critical(f"Expected {BBB} {C}:{V} row ID to be four-characters (not {len(ID)} with '{ID}')")
+                    logging.critical(f"Expected {BBB} {C}:{V} row ID to be 4 characters (not {len(ID)} characters with '{ID}')")
                     ID = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
                 if ID[0] not in 'abcdefghijklmnopqrstuvwxyz':
                     print(f"Bad ID: {BBB} {reference} {line_number} '{ID}' fixed.")

@@ -10,13 +10,14 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-05-05 by RJH
+#   Last modified: 2021-05-28 by RJH
 #
 """
 Quick script to copy TQ from markdown files
     and put into a TSV file with the new format (7 columns).
 
-Note that each run of this script generates totally new/different/random ID fields.
+Note that each run of this script tries to read any existing TSV files
+    so that it can reuse the same ID fields where possible.
 """
 from typing import List, Tuple
 import os
@@ -239,7 +240,7 @@ def make_TSV_file(BBB:str, nn:str) -> int:
     tags = quote = occurrence = ''
     with open(output_filepath, 'wt') as output_TSV_file:
         output_TSV_file.write('Reference\tID\tTags\tQuote\tOccurrence\tQuestion\tResponse\n')
-        previously_generated_ids:List[str] = [''] # We make ours unique per file (spec only says unique per verse)
+        previously_generated_ids:List[str] = [''] # We make ours unique per file (spec only used to say unique per verse)
         for _j, (BBB,C,V,question,response) in enumerate(get_source_questions(BBB, nn), start=1):
             # print(f"{_j:3}/ {BBB} {C:>3}:{V:<3} '{question}' {response}")
             # print(f"    {last_verse_question_responses=} {this_verse_question_responses=} {repeat_dict=}")
