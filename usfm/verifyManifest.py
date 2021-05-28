@@ -41,18 +41,15 @@
 #   project identifiers correspond to type of project 
 #   project categories correspond to type of project 
 #   project paths exist
+#   checks for extraneous files in the folder and subfolders.
+#   verifies presence of LICENSE and README files.
+#   verifies presence of valid toc.yaml files in tA projects.
+#   verifies today's date on README file.
+#   verifies presence of media.yaml file for OBS projects.
 #
-# Also checks for extraneous files in the folder with the manifest file.
-# Verifies presence of LICENSE and README files.
-# Verifies presence of media.yaml file for OBS projects.
-# Verifies presence of valid toc.yaml files in tA projects.
-# Verifies today's date on README file.
-#
-# To add:
-#   Check for all valid file names in each bottom level folder.
 
 # Globals
-manifestDir = r'C:\DCS\Russian\ru_rsob.STR'
+manifestDir = r'C:\DCS\English-WACS\en_udb.RPP'
 nIssues = 0
 projtype = ''
 issuesFile = None
@@ -116,7 +113,7 @@ def countUsfmFiles():
 # Returns True if the specified string is a recognized Bible type of project type
 def isBibleType(id):
     return (id in {'ulb', 'udb', 'ust', 'ult', 'iev','irv','isv','reg','glt','gst', \
-                   'rlb','rob','rlob','rsb','rsob','stv','trs','rlv'})
+                   'rlb','rob','rlob','rsb','rsob','stv','trs','rlv','ocb','gnt'})
 
 # This function validates the project entries for a tA project.
 # tA projects should have four projects entries, each with specific content
@@ -168,7 +165,7 @@ def verifyBook(book, bookpath):
 # for tN and tQ projects only.
 def verifyBooks(path):
     for book in os.listdir(path):
-        if book not in {".git", "LICENSE", "LICENSE.md", "README.md", "manifest.yaml"}:
+        if book not in {".git", "LICENSE", "LICENSE.md", "README.md", "manifest.yaml", "media.yaml"}:
             bookpath = os.path.join(path, book)
             if len(book) == 3 and os.path.isdir(bookpath) and book.upper() in usfm_verses.verseCounts: 
                 verifyBook(book, bookpath)
@@ -249,8 +246,8 @@ def verifyCore(core):
     pub = core['publisher']
     if pub.lower().find('unfolding') >= 0 and core['language']['identifier'] != 'en':
         reportError("Invalid publisher: " + pub)
-    if pub.lower() == "door43":
-        reportError("This is probably the wrong publisher name: ", + pub)
+    if len(pub) > 3 and pub != "Wycliffe Associates":
+            reportError("This may be the wrong publisher name: " + pub + ". Use 'BCS' as the publisher for BCS resources.")
     verifyRelations(core['relation'])
     if 'rights' in list(core.keys()) and core['rights'] != 'CC BY-SA 4.0':  # would this work: 'rights' in core
         reportError("Invalid value for rights: " + core['rights'])
@@ -301,7 +298,7 @@ def verifyFile(path):
     verifyProjects(manifest['projects'])
 
 # Verifies format field is a valid string, depending on project type.
-# Done with iev, irv, isv, obs, obs-tn, obs-tq, reg, ta, tq, tn, tw, tsv, ulb, udb, ust
+# Done with iev, irv, isv, obs, obs-tn, obs-tq, obs-sn, obs-sq, reg, ta, tq, tn, tw, tsv, ulb, udb, ust
 def verifyFormat(core):
     global projtype
     if verifyStringField(core, 'format', 8):
@@ -312,7 +309,7 @@ def verifyFormat(core):
                 print("projtype = " + projtype)
             elif format != 'text/markdown':
                 reportError("Invalid format: " + format)
-        elif projtype in {'ta', 'tq', 'tw', 'obs', 'obs-tn', 'obs-tq'}:
+        elif projtype in {'ta', 'tq', 'tw', 'obs', 'obs-tn', 'obs-tq', 'obs-sn', 'obs-sq'}:
             if format != 'text/markdown':
                 reportError("Invalid format: " + format)
         elif isBibleType(projtype):
@@ -331,7 +328,7 @@ def verifyIdentifier(core):
     global manifestDir
     if verifyStringField(core, 'identifier', 2):
         id = core['identifier']
-        if id not in {'tn', 'tq', 'tw', 'ta', 'obs', 'obs-tn', 'obs-tq'} and not isBibleType(id):
+        if id not in {'tn','tq','tw','ta','obs','obs-tn','obs-tq','obs-sn','obs-sq'} and not isBibleType(id):
             reportError("Invalid id: " + id)
         else:
             projtype = id
@@ -396,6 +393,8 @@ def verifyProject(project):
         bookinfo = usfm_verses.verseCounts[project['identifier'].upper()]
         if project['sort'] != bookinfo['sort']:
             reportError("Incorrect project:sort: " + str(project['sort']))
+        if project['versification'] != 'ufw':
+            reportError("Invalid project:versification: " + project['versification'] + ". Should be 'ufw'")
         cat = project['categories'][0]
         if len(project['categories']) != 1 or cat not in {'bible-ot', 'bible-nt'}:
             reportError("Invalid project:categories: " + cat)
@@ -407,7 +406,7 @@ def verifyProject(project):
         if int(project['sort']) != bookinfo['sort']:
             reportError("Incorrect project:sort: " + str(project['sort']))
         if project['versification'] != 'ufw':
-            reportError("Invalid project:versification: " + project['versification'])
+            reportError("Invalid project:versification: " + project['versification'] + ". Should be 'ufw'")
         if len(project['identifier']) != 3:
             reportError("Invalid project:identifier: " + project['identifier'])
         cat = project['categories'][0]
@@ -422,20 +421,23 @@ def verifyProject(project):
             reportError("Invalid project:identifier: " + project['identifier'])
         if project['title'] != 'Open Bible Stories':
             reportError("Invalid project:title: " + project['title'])
-    elif projtype == 'obs-tn':
+    elif projtype in {'obs-tn','obs-tq','obs-sn','obs-sq'}:
         if project['categories'] and len(project['categories']) != 0:
             reportError("Categories list should be empty: project:categories")
-        if project['identifier'] != 'obs':
+        if project['identifier'] != projtype:
             reportError("Invalid project:identifier: " + project['identifier'])
-        if project['title'] != 'Open Bible Stories Translation Notes' and project['title'] != 'OBS translationNotes':
-            reportError("Invalid project:title: " + project['title'])
-    elif projtype == 'obs-tq':
-        if project['categories']:
-            reportError("Categories list should be empty: projects:categories")
-        if project['identifier'] != 'obs':
-            reportError("Invalid project:identifier: " + project['identifier'])
-        if project['title'] != 'Open Bible Stories Translation Questions':
-            reportError("Invalid project:title: " + project['title'])
+        if projtype == 'obs-tn':
+            if not project['title'].endswith('Open Bible Stories Translation Notes') and project['title'] != 'OBS translationNotes':
+                reportError("Invalid project:title: " + project['title'])
+        elif projtype == 'obs-tq':
+            if not project['title'].endswith('Open Bible Stories Translation Questions'):
+                reportError("Invalid project:title: " + project['title'])
+        elif projtype == 'obs-sn':
+            if project['title'] != 'Open Bible Stories Study Notes':
+                reportError("Invalid project:title: " + project['title'])
+        elif projtype == 'obs-sq':
+            if project['title'] != 'Open Bible Stories Study Questions':
+                reportError("Invalid project:title: " + project['title'])
     else:
         sys.stdout.write("Verify each project entry manually.\n")   # temp until all projtypes are supported
 
@@ -454,7 +456,7 @@ def verifyProjects(projects):
             reportError("Number of projects listed " + str(nprojects) + " does not match number of usfm files: " + str(countUsfmFiles()))
         if projtype in {'tn', 'tq'} and nprojects != countBookDirs():
             reportError("Number of projects listed " + str(nprojects) + " does not match number of book folders: " + str(countBookDirs()))
-        if projtype in ['obs', 'obs-tn', 'obs-tq', 'tw'] and nprojects != 1:
+        if projtype in ['obs','obs-tn','obs-tq','obs-sn','obs-sq', 'tw'] and nprojects != 1:
             reportError("There should be exactly 1 project listed under projects.")
         elif projtype == 'ta' and nprojects != 4:
             reportError("There should be exactly 4 projects listed under projects.")
@@ -482,8 +484,6 @@ def verifyReadme(dirpath):
             delta = timedelta(hours=2)
         if modtime.date() != date.today():
             reportError("Warning: README file was not updated today")
-        elif delta < timedelta(days=0, hours=0, minutes=1):
-            reportError("Reminder: README file was not updated")
         else:
             print("Remember to update README file.")
     
@@ -501,10 +501,10 @@ def verifyRelation(rel):
             global projtype
             if parts[0] != getLanguageId() and parts[0] != "el-x-koine" and parts[0] != "hbo":
                 reportError("Incorrect language code for relation element: " + rel)
-            if parts[1] not in {'obs','obs-tn','obs-tq','tn','tq','tw','ta'} and not isBibleType(parts[1]):
+            if parts[1] not in {'obs','obs-tn','obs-tq','obs-sn','obs-sq','tn','tq','tw','ta','tm'} and not isBibleType(parts[1]):
                 if parts[1][0:4] != 'ugnt' and parts[1][0:3] != 'uhb':
                     reportError("Invalid project code in relation element: " + rel)
-            if parts[1] == projtype:
+            if parts[1] == projtype or (projtype == 'tn-tsv' and parts[1] == 'tn'):
                 reportError("Project code in relation element is same as current project: " + rel)
 
 # The relation element is a list of strings.
@@ -516,7 +516,7 @@ def verifyRelations(relations):
         reportError("The relations list seems incomplete")
     uhg = False
     if len(relations) < 1 and projtype != 'reg':
-        reportError("Missing relations in: relation")
+        reportError("No relations are listed")
     for r in relations:
         verifyRelation(r)
         if projtype == 'tn-tsv':
@@ -536,7 +536,7 @@ def verifySource(source):
         verifyKeys("source[x]", dict, ['language', 'identifier', 'version'])
 
         global projtype
-        if dict['identifier'] != projtype and projtype in {'obs', 'obs-tn', 'obs-tq', 'tn', 'tq', 'tw'}:
+        if dict['identifier'] != projtype and projtype in {'obs', 'obs-tn','obs-tq','obs-sn','obs-sq', 'tn', 'tq', 'tw'}:
             reportError("Inappropriate source:identifier (" + dict['identifier'] + ") for project type: " + projtype)
         if dict['identifier'] != 'ulb' and projtype == 'reg':
             reportError("Incorrect source:identifier for reg project: " + dict['identifier'])
@@ -567,31 +567,36 @@ def verifyStringField(dict, key, minlength):
 
 # Validates the subject field
 def verifySubject(subject):
-    failure = False
-    if projtype == 'ta':
-        failure = (subject != 'Translation Academy')
+    if isBibleType(projtype) and subject not in {'Bible', 'Aligned Bible'}:
+        reportError("Invalid subject: " + subject + " (expected 'Bible' or 'Aligned Bible')")
+        expected_subject = subject  # to avoid redundant error msgs
+    elif projtype == 'ta':
+        expected_subject = 'Translation Academy'
     elif projtype == 'tw':
-        failure = (subject != 'Translation Words')
+        expected_subject = 'Translation Words'
     elif projtype == 'tn':
-        failure = (subject != 'Translation Notes')
+        expected_subject = 'Translation Notes'
     elif projtype == 'tn-tsv':
-        failure = (subject != 'TSV Translation Notes')
+        expected_subject = 'TSV Translation Notes'
     elif projtype == 'tn':
-        failure = (subject != 'Translation Notes')
+        expected_subject = 'Translation Notes'
     elif projtype == 'tq':
-        failure = (subject != 'Translation Questions')
-    elif isBibleType(projtype):
-        failure = (subject not in {'Bible', 'Aligned Bible'})
+        expected_subject = 'Translation Questions'
     elif projtype == 'obs':
-        failure = (subject != 'Open Bible Stories')
+        expected_subject = 'Open Bible Stories'
     elif projtype == 'obs-tq':
-        failure = (subject != 'OBS Translation Questions')
+        expected_subject = 'OBS Translation Questions'
     elif projtype == 'obs-tn':
-        failure = (subject != 'OBS Translation Notes')
+        expected_subject = 'OBS Translation Notes'
+    elif projtype == 'obs-sq':
+        expected_subject = 'OBS Study Questions'
+    elif projtype == 'obs-sn':
+        expected_subject = 'OBS Study Notes'
     else:
         sys.stdout.write("Verify subject manually.\n")
-    if failure:
-        reportError("Invalid subject: " + subject)
+        expected_subject = subject
+    if subject != expected_subject:
+        reportError("Invalid subject: " + subject + " (expected '" + expected_subject + "')")
 
 # Verifies that the title
 def verifyTitle(title):
@@ -615,7 +620,7 @@ def verifyTocYaml(yamlpath):
     else:
         reportError("file missing: " + shortname(yamlpath))
 
-# For tA projects, verify that each folder has a valid toc.yaml and congi.yaml file.
+# For tA projects, verify that each folder has a valid toc.yaml and config.yaml file.
 def verifyYamls(dirpath, folder):
     folderpath = os.path.join(dirpath, folder)
     yamlpath = os.path.join(folderpath, "config.yaml")
@@ -634,7 +639,7 @@ def verifyType(type):
         failure = (type != 'man')
     elif projtype == 'tw':
         failure = (type != 'dict')
-    elif projtype in {'tn', 'tn-tsv', 'tq', 'obs-tn', 'obs-tq'}:
+    elif projtype in {'tn', 'tn-tsv', 'tq', 'obs-tn','obs-tq','obs-sn','obs-sq'}:
         failure = (type != 'help')
     elif isBibleType(projtype):
         failure = (type != 'bundle')
