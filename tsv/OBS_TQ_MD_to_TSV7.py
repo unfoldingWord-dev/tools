@@ -136,7 +136,7 @@ def make_TSV_file() -> Tuple[int,int]:
             while generated_id in previously_generated_ids:
                 generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
             previously_generated_ids.append(generated_id)
-            print(f"        Returning generated id for {BBB} {reference}: {generated_id} '{question}'")
+            print(f"        Returning generated id for OBS {reference}: {generated_id} '{question}'")
             return generated_id
     #end of make_TSV_file.get_rowID function
 
