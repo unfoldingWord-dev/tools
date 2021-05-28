@@ -5,10 +5,10 @@
 #    Uses convert2md.md2md() to convert links and things.
 
 # Global variables
-source_dir = r'C:\DCS\Telugu\TA.changed\Stage 2'      # Source and target directories must be at the same level
-target_dir = r'C:\DCS\Telugu\te_ta.STR'
-language_code = 'te'
-resource_type = 'ta'    # should be ta or tw
+source_dir = r'C:\DCS\English-WACS\TW/bible'      # Source and target directories must be at the same level
+target_dir = r'C:\DCS\English-WACS\en_tw.work/bible'
+language_code = 'en'
+resource_type = 'tw'    # should be ta or tw
 
 import re
 import io
@@ -50,6 +50,11 @@ def makeTargetDir(fullpath):
     
 def copyFile(fname, fullpath):
     targetDir = makeTargetDir(fullpath)
+    targetPath = os.path.join(targetDir, fname)
+    if os.path.exists(targetPath):
+        bakpath = targetPath + ".orig"
+        if not os.path.exists(bakpath):
+            os.rename(targetPath, bakpath)
     copy(fullpath, targetDir)       # copy() is from shutil
 
 # Copy file with minimal change: ensure only one trailing newline
