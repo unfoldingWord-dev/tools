@@ -11,8 +11,6 @@ subs = [
  	("# <br>", "# "),
  	("#   ", "# "),
  	("#  ", "# "),
- 	("rc://en_ta/", "rc://te/ta/"),
- 	("rc://en/", "rc://te/"),
  	("rc: ", "rc:"),
  	("/ ta /", "/ta/"),
  	("/ man /", "/man/"),
@@ -20,7 +18,6 @@ subs = [
  	("/ figs", "/figs"),
 ]
 
-#	("rc://en/", "rc://hi/"),
 # 	("//ro/t", "//*/t") # specific to Oriya tN
 # 	("translate/writing-connectingwords", "translate/grammar-connect-words-phrases")
 #   ("translate/grammar-connect-words-phrases", "translate/writing-connectingwords")
