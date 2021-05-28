@@ -5,15 +5,16 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Lao\lo_ulb.RPP\15-EZR.usfm'
-language_code = 'lo'
+source_dir = r'C:\DCS\English-WACS\en_udb.RPP'
+language_code = 'en'
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
 suppress3 = True     # Suppress bad punctuation warnings
+suppress4 = True     # Suppress warnings about useless markers before section markers
 suppress9 = False     # Suppress warnings about ASCII content
 
-if language_code in {'ha','hr','id','nag','pmy','sw'}:    # ASCII content
+if language_code in {'en','ha','hr','id','nag','pmy','sw'}:    # ASCII content
     suppress9 = True
 
 lastToken = None
@@ -215,7 +216,7 @@ def reportError(msg):
 # Report missing text in previous verse
 def emptyVerseCheck():
     state = State()
-    if not suppress1 and not isOptional(state.reference) and state.getTextLength() < 10:
+    if not suppress1 and not isOptional(state.reference) and state.getTextLength() < 10 and state.verse != 0:
         if state.getTextLength() == 0:
             reportError("Empty verse: " + state.reference)
         else:
@@ -239,21 +240,25 @@ def verifyBookTitle():
 def verifyVerseCount():
     state = State()
     if state.chapter > 0 and state.verse != state.nVerses(state.ID, state.chapter):
-        # Revelation 12 may have 17 or 18 verses
-        # 3 John may have 14 or 15 verses
-        if state.reference != 'REV 12:18' and state.reference != '3JN 1:15' and state.reference != '2CO 13:13':
+        # Acts may have 40 o4 41 verses, normally 41.
+        # 2 Cor. may have 13 or 14 verses, normally 14.
+        # 3 John may have 14 or 15 verses, normally 14.
+        # Revelation 12 may have 17 or 18 verses, normally 17.
+        if state.reference != 'REV 12:18' and state.reference != '3JN 1:15' and state.reference != '2CO 13:13' \
+            and state.reference != 'ACT 19:40':
             reportError("Chapter should have " + str(state.nVerses(state.ID, state.chapter)) + " verses: "  + state.reference)
 
 def verifyFootnotes():
     state = State()
     if state.footnote_starts != state.footnote_ends:
-        reportError(state.ID + ": mismatched footnote tags (" + str(state.footnote_starts) + ":" + str(state.footnote_ends) + ")")
+        reportError(state.ID + ": mismatched footnote tags (" + str(state.footnote_starts) + " started and " + str(state.footnote_ends) + " ended)")
 
 # Checks whether the entire file was empty or unreadable
 def verifyNotEmpty(filename):
     state = State()
     if not state.ID or state.chapter == 0:
-        reportError(filename + " -- may be empty, or open in another program.")
+        if not state.ID in {'FRT','BAK'}:
+            reportError(filename + " -- may be empty, or open in another program.")
 
 def verifyChapterCount():
     state = State()
@@ -308,16 +313,17 @@ def takeFootnote(start, end):
 
 def takeP():
     state = State()
-    if state.currMarker == QQ:
+    if state.currMarker == QQ and not suppress4:
         reportError("Warning: \"useless \q before paragraph marker\" at: " + state.reference)
     state.addParagraph()
 
 def takeSection():
-    state = State()
-    if state.currMarker == PP:
-        reportError("Warning: \"useless paragraph {p,m,nb} marker before section marker\" at: " + state.reference)
-    elif state.currMarker == QQ:
-        reportError("Warning: \"useless \q before section marker\" at: " + state.reference)
+    if not suppress4:
+        state = State()
+        if state.currMarker == PP:
+            reportError("Warning: \"useless paragraph {p,m,nb} marker before section marker\" at: " + state.reference)
+        elif state.currMarker == QQ:
+            reportError("Warning: \"useless \q before section marker\" at: " + state.reference)
 
 # Receives a string containing a verse number or range of verse numbers.
 # Reports missing text in previous verse.
@@ -512,7 +518,7 @@ def take(token):
         state.addTitle(token.value)
         if token.isMT() and token.value.isascii() and not suppress9:
             reportError("mt token has ASCII value in " + state.reference)
-    elif token.isTOC3() and (len(token.value) != 3 or not token.value.isascii() or token.value.lower() != token.value):
+    elif token.isTOC3() and (len(token.value) != 3 or not token.value.isascii()):
         reportError("Invalid toc3 value in " + state.reference)
     elif token.isUnknown():
         if token.value == "p":
@@ -638,7 +644,8 @@ if __name__ == "__main__":
         source_dir = os.path.dirname(path)
         verifyFile(path)
     else:
-        reportError("File not found: " + source_dir)
+        sys.stderr.write("No such folder: " + source_dir)
+        exit(-1)
     
     if issuesFile:
         issuesFile.close()
