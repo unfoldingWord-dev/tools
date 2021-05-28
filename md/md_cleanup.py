@@ -34,12 +34,12 @@ import sys
 from filecmp import cmp
 
 # Globals
-source_dir = r'C:\DCS\Amharic\temp'
-language_code = 'am'
+source_dir = r'C:\DCS\English-WACS\en_tq.RPP'
+language_code = 'en'
 resource_type = 'tq'
 
 nChanged = 0
-max_files = 11111
+max_files = 111111
 
 placeholder_heading = ""
 import substitutions    # change substitutions modules as necessary; generic one is just "substitutions"
@@ -52,8 +52,6 @@ if resource_type == 'ta':
 
 filename_re = re.compile(r'.*\.md$')
 current_dir = ""
-if resource_type in {'tw','ta'}:
-    filename_re = re.compile(r'.*\.md$')
 if resource_type == 'obs':
     filename_re = re.compile(r'\d+\.md$')
 hash_re = re.compile(r' *(#+) +', flags=re.UNICODE)
@@ -66,8 +64,8 @@ def shortname(longpath):
     return shortname
 
 asterisk_re = re.compile('(\n *\* .*)\n(\n *\* )', flags=re.UNICODE)    # two list items with blank line between
-listOffset_re = re.compile(r'^[^\*] .*\n[\*1] ', flags=re.UNICODE+re.MULTILINE)
-listOffset2_re = re.compile(r'^[\*] .*\n[^\n\*1]', flags=re.UNICODE+re.MULTILINE)
+# listOffset_re = re.compile(r'^[^\*] .*\n[\*1] ', flags=re.UNICODE+re.MULTILINE)
+listOffset2_re = re.compile(r'^[\*] .*\n *[^\n\*1 ]', flags=re.UNICODE+re.MULTILINE)
 ordered_re = re.compile(r'\n1\.[^ \n]')
 
 # Converts the text a whole file at a time.
@@ -78,16 +76,16 @@ def fixLists(alltext):
     # The markdown dialect that DCS supports allows blank lines between list items.
     if not suppress3:
         found = asterisk_re.search(alltext)
-        while found:
+        while found:        # remove blank lines between list items
             alltext = alltext[0:found.start()] + found.group(1) + found.group(2) + alltext[found.end():]
             found = asterisk_re.search(alltext)
 
-        found = listOffset_re.search(alltext)
-        while found:
-            alltext = alltext[0:found.end()-2] + '\n' + alltext[found.end()-2:]
-            found = listOffset_re.search(alltext)
+        # found = listOffset_re.search(alltext)
+        # while found:
+        #     alltext = alltext[0:found.end()-2] + '\n' + alltext[found.end()-2:]
+        #     found = listOffset_re.search(alltext)
         found = listOffset2_re.search(alltext)
-        while found:
+        while found:        # add blank line after end of list
             alltext = alltext[0:found.end()-1] + '\n' + alltext[found.end()-1:]
             found = listOffset_re.search(alltext)
 
@@ -257,6 +255,10 @@ endblank_re = re.compile('[\n \t][\n \t]+\Z')     # multiple newlines/ white spa
 jams_re = re.compile(r'^#+[^ \t#]', re.UNICODE+re.MULTILINE)    # hash(es) at beginning of line not followed by space
 multihash_re = re.compile(r'[^\n#]#+')  # hash group starting in the middle of a line
 percenthash_re = re.compile(r'\n% ', re.UNICODE+re.MULTILINE)   # % symbol was once used to mark a H2 heading at beginning of a line but not at the beginning of a file (verify each time)
+office_re = re.compile(r'<o\:p[^>\n]*?>', re.UNICODE)     # nasty MS Office codes
+bibleq_re = re.compile(r'\[+rc:.*?bible[ /\:]+quest.*?\]+', flags=re.UNICODE)     # obsolete bible/questions links
+reversedlink_re = re.compile(r'\)[ ]*?\[')
+brokebracket = re.compile(r'(\[[^]]*?)[ \n]+\]', re.MULTILINE)
 
 # Does some simple cleanup operations before starting the heavy conversions.
 def preliminary_cleanup(text):
@@ -276,21 +278,31 @@ def preliminary_cleanup(text):
     while found:
         text = text[:found.start()+1] + "\n\n" + text[found.start()+1:]
         found = multihash_re.search(text)
-    found = percenthash_re.search(text)
-    while found:
-        text = text[:found.start()] + "## " + text[found.end():]
-        found = percenthash_re.search(text)
+
+    text = re.sub(percenthash_re, "\n## ", text)
     text = re.sub(hashblanks_re, "# ", text)
+    text = re.sub(office_re, "", text)
+    text = re.sub(bibleq_re, "", text)
+    text = re.sub(reversedlink_re, "), [", text)
     
+    found = brokebracket.search(text)
+    while found:
+        text = text[:found.start()] + found.group(1) + text[found.end()-1:]
+        found = brokebracket.search(text)
+
     return text
 
 # Applies the substitutions found in substitutions.py, plus two that are language specific
 def substitution(text):
-    fromstr = "rc://" + language_code + "/"
-    text = text.replace(fromstr, "rc://*/")
-    fromstr = "rc://" + language_code + " /"
-    text = text.replace(fromstr, "rc://*/")
-    substitutions.subs.append(	("rc://" + language_code + "/", "rc://*/") )
+    if language_code != 'en':
+#        fromstr = "rc://" + language_code + "/"
+#        text = text.replace(fromstr, "rc://*/")
+#        fromstr = "rc://" + language_code + " /"
+#        text = text.replace(fromstr, "rc://*/")
+        substitutions.subs.append(	("rc://" + language_code + "/", "rc://*/") )
+        substitutions.subs.append(	("rc://" + language_code + " /", "rc://*/") )
+        substitutions.subs.append(	("rc://en/", "rc://*/") )
+
     for pair in substitutions.subs:
         text = text.replace(pair[0], pair[1])
     return text
@@ -312,8 +324,8 @@ def convertWholeFile(source, target):
     input.close()
 
     origtext = text
+    text = substitution(text)   # Need to substitute HTML strings containing hash marks before doing header cleanup
     text = preliminary_cleanup(text)
-    text = substitution(text)
     if not text.startswith("# "):
         if not suppress2:
             sys.stdout.write(shortname(source) + " does not begin with level 1 heading, so no headings will be touched.\n")
@@ -343,9 +355,9 @@ def convertWholeFile(source, target):
     if changed:
         if len(text) < 3:
             sys.stderr.write("Empty or almost empty file: " + shortname(source) + '\n')
-        elif len(origtext) - len(text) > 4 and len(text) < len(origtext) * 0.95:
-            sys.stderr.write("Error processing (>5% size reduction): " + shortname(source) + '\n')
-            changed = False
+#        elif len(origtext) - len(text) > 4 and len(text) < len(origtext) * 0.95:
+#            sys.stderr.write("Error processing (>5% size reduction): " + shortname(source) + '\n')
+#            changed = False
     if changed:
         output = io.open(target, "tw", encoding='utf-8', newline='\n')
         output.write(text)
@@ -355,7 +367,8 @@ paren_re = re.compile(r'[^)]\)$', re.UNICODE)   # ends with single but not doubl
 
 # Returns line with some corrections made
 def cleanupLine(line):
-    line = line.rstrip()
+    line = line.rstrip("\n\t \[\(\{")
+    line = line.lstrip("\]\)\}")
     if line.count("**") == 1:   # mismatched '**' is a common error
         line = line.replace("**", "")
     if line.count('(') > line.count(')') and paren_re.search(line):
@@ -389,7 +402,8 @@ def convertByLine(source, target):
             linetype = TEXT
         if (linetype == HEADER and prevlinetype != BLANK) or (linetype == TEXT and prevlinetype == HEADER):
             output.write('\n')
-        output.write(line + '\n')
+        if not (linetype == BLANK and prevlinetype == BLANK):
+            output.write(line + '\n')
     output.close
 
 def convertFile(path):
@@ -423,6 +437,7 @@ def convertFolder(folder):
     current_dir = folder
     if nChanged >= max_files:
         return
+    sys.stdout.write("Processing " + shortname(folder) + "\n")
     for entry in os.listdir(folder):
         path = os.path.join(folder, entry)
         if os.path.isdir(path) and entry[0] != '.':
