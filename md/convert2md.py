@@ -205,7 +205,7 @@ def convertLine(line, nIn, mdFile, path, shortname):
         if state.prevlinetype and state.prevlinetype != BLANKLINE:
             needblank = True
     elif state.currlinetype == LIST_ITEM:
-        if state.prevlinetype != LIST_ITEM and state.prevlinetype != BLANKLINE:
+        if state.prevlinetype in {HEADING, TEXT, ORDEREDLIST_ITEM}:
             needblank = True
     elif state.currlinetype == ORDEREDLIST_ITEM:
         if state.prevlinetype != ORDEREDLIST_ITEM and state.prevlinetype != BLANKLINE:
@@ -230,8 +230,9 @@ def keepNote(note):
         keep = False
     
     # I deleted notes containing "bible:questions" from the Vietnamese collection.
-    # if keep and note['title'].find(u"bible:questions") > 0 and note['body'].find(u"bible:questions") > 0:
-    #     keep = False
+#    if keep and "bible:questions" in note['title'] and "bible:questions" in note['body']:
+#        keep = False
+#        sys.stderr.write("  Losing note with questions\n")
     return keep
 
 #
@@ -267,7 +268,7 @@ def normalize(ustr):
     str = str.replace("[[[[", "[[")
     str = str.replace("[[[", "[[")
     str = str.replace("\t", " ")
-    str = re.sub(r'\] *\(', '](', str)
+#    str = re.sub(r'\] *\(', '](', str)     I took this out because sometimes the ] ( is not a link.
     str = re.sub(r'\n *-', '\n*', str)
     str = re.sub(r'&nbsp;', ' ', str, count=0)
     
