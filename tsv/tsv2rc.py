@@ -16,10 +16,10 @@
 ######################################################
 
 # Global variables
-source_dir = r'C:\DCS\Kannada\TN.translationCore'
-target_dir = r'C:\DCS\Kannada\kn_tn.work'
-language_code = 'kn'
-english_dir = r'C:\DCS\English\en_tn.v33'    # English tN
+source_dir = r'C:\DCS\Russian\TN'
+target_dir = r'C:\DCS\Russian\ru_tn.STR'
+language_code = 'ru'
+english_dir = r'C:\DCS\English\en_tn.v46'    # latest English tN from https://git.door43.org/Door43-Catalog/en_tn
 
 book = ''
 chapter = 0
@@ -269,7 +269,8 @@ if __name__ == "__main__":
         source_dir = os.path.dirname(path)
         convertFile(path, os.path.basename(path))
     else:
-        reportError("Invalid directory: " + source_dir) 
+        sys.stderr.write("Invalid directory: " + source_dir) 
+        exit(-1)
 
     if issuesFile:
         issuesFile.close()
