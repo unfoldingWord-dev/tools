@@ -10,8 +10,8 @@
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Malayalam\IEV\Stage 3'
-target_dir = r'C:\DCS\Malayalam\ml_iev.work2'
+source_dir = r'C:\DCS\English-WACS\ULB'
+target_dir = r'C:\DCS\English-WACS\en_ulb'
 en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
 
 projects = []
@@ -435,7 +435,7 @@ def writeHeader():
 
 backslash_re = re.compile(r'\\\s')
 jammed_re = re.compile(r'(\\v [-0-9]+[^-\s0-9])', re.UNICODE)
-usfmcode_re = re.compile(r'\\[^A-Za-z]', re.UNICODE)
+usfmcode_re = re.compile(r'\\[^A-Za-z\+]', re.UNICODE)
 
 def isParseable(str, fname):
     parseable = True
