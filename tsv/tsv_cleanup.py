@@ -32,9 +32,9 @@ import tsv
 import substitutions    # this module specifies the string substitutions to apply
 
 # Globals
-max_files = 99     # How many files do you want to process
-source_dir = r'C:\DCS\Kannada\TN.tCC'  # Where are the files located
-language_code = 'kn'
+source_dir = r'C:\DCS\Russian\TN'  # Where are the files located
+language_code = 'ru'
+max_files = 2     # How many files do you want to process
 nProcessed = 0
 filename_re = re.compile(r'.*\.tsv$')
 
@@ -98,7 +98,7 @@ def fixSpacing(note):
 # The fix applies if column 3 has more than four characters, and the row has exactly 8 columns to start.
 # The fix assumes that the first four characters are valid and should have been followed by a tab.
 # This output row should have 9 columns and column 3 should have four characters.
-# This fixes a common problem with Gujarati tN files.
+# This fixes a common problem with Gujarati and Nagamese tN files.
 def fixID(row):
     if len(row) == 8 and len(row[3]) > 4:
         col4 = row[3][4:]
@@ -111,16 +111,17 @@ def fixID(row):
 def cleanNote(note):
     note = note.rstrip(" #[\\")
     replacement = "rc://" + language_code + "/"
-    note = note.replace("rc://en/", replacement)
     note = note.replace("rc://*/", replacement)
-#    lcode = "rc://" + language_code + "/"
-#    note = note.replace(lcode, "rc://*/")
+    note = note.replace("rc://en/", replacement)
+    note = note.replace("rc://en_ta/", "rc://" + language_code + "/ta/")
+    
     for pair in substitutions.subs:
         note = note.replace(pair[0], pair[1])
     note = fixSpacing(note)     # fix spacing around hash marks
     note = fixHeadingLevels(note)
     while note.endswith("<br>"):
         note = note[0:-4]
+        note = note.rstrip(" #[\\")
     return note
 
 # Combines rows that appear to be incorrectly broken.
@@ -134,14 +135,14 @@ def mergeRows(data):
     i = 1
     while i < nrows - 1:
         row = data[i]
-        while len(row) == 9 and row[0] == standard and i+1 < nrows and len(data[i+1]) == 1:
+        while len(row) in {8,9} and row[0] == standard and i+1 < nrows and len(data[i+1]) == 1:
             fragment = data[i+1][0].rstrip()
             if len(fragment) > 0:
-                if row[2] == "intro":   # intro rows have multiple "lines" and markdown syntax
-                    row[8] += "<br>"
+                if row[2] == "intro" and not row[-1].endswith('#'):   # intro rows have multiple "lines" and markdown syntax
+                    row[-1] += "<br>"
                 else:
-                    row[8] += " "
-                row[8] += fragment
+                    row[-1] += " "
+                row[-1] += fragment
             i += 1
         newdata.append(row)
         i += 1
@@ -152,23 +153,35 @@ def mergeRows(data):
 def cleanRow(row):
     i = 0
     while i < len(row):
-        row[i] = row[i].strip('" ')     # remove leading and trailing spaces and quotes  
+        if row[i].startswith('"') or row[i].count('"') == 1:
+            chars = '" '
+        else:
+            chars = ' '
+        row[i] = row[i].strip(chars)     # remove leading and trailing spaces and quotes  
         i += 1
-    if len(row) == 8 and len(row[3]) > 4: # A common problem in Gujarati tN, where the ID column is merged with the next column.
-        row = fixID(row)
+    if len(row) == 8:
+        if len(row[3]) > 4: # A common problem, where the ID column is merged with the next column.
+            row = fixID(row)
+        elif not row[4].isascii():   # another common problem where the SupportReference is omitted
+            row.insert(4, "")
+        elif len(row[4]) == 0 and row[5] in {'0','1'}:
+            row.insert(4, "")
     if len(row) == 9:
         row[8] = cleanNote(row[8])
     return row
 
 def cleanFile(path):
+    sys.stdout.write(shortname(path) + '\n')
+    sys.stdout.flush()
     data = tsv.tsvRead(path)  # The entire file is returned as a list of lists of strings (rows); each row is a list of strings.
 
     if len(data) > 2 and data[0][0] == "Book" and len(data[1][0]) == 3:
         data = mergeRows(data)
     for row in data:
-        row = cleanRow(row)
+        if len(row) > 1:
+            row = cleanRow(row)
 
-    bakpath = path + ".orig"
+    bakpath = path.replace(".tsv", ".tsvorig")
     if not os.path.isfile(bakpath):
         os.rename(path, bakpath)
     tsv.tsvWrite(data, path)
@@ -179,7 +192,6 @@ def cleanFolder(folder):
     global max_files
     if nProcessed >= max_files:
         return
-    sys.stdout.write(shortname(folder) + '\n')
     for entry in os.listdir(folder):
         path = os.path.join(folder, entry)
         if os.path.isdir(path) and entry[0] != '.':
