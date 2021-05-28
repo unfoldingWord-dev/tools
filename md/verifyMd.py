@@ -21,16 +21,16 @@
 #          Check that tW files begin with H1 heading immediately followed by H2 heading.
 
 # Globals
-source_dir = r'C:\DCS\Amharic\temp'
-language_code = 'am'
-resource_type = 'tw'
-ta_dir = r'C:\DCS\Kannada\kn_ta.STR'    # Target language tA
-obstn_dir = r'C:\DCS\Kannada\kn_obs-tn\content'    # should end in 'content'
-en_tn_dir = r'C:\DCS\English\en_tn.md-orig'
-en_tq_dir = r'C:\DCS\English\en_tq.v10'
-tn_dir = r'C:\DCS\Kannada\kn_tn.RPP'    # Target language tN, for note link validation
+source_dir = r'C:\DCS\English-WACS\en_tq.RPP'
+language_code = 'en'
+resource_type = 'tq'
+ta_dir = r'C:\DCS\English-WACS\en_tm'    # Target language tA
+obstn_dir = r'C:\DCS\Spanish\es-419_obs-tn\content'    # should end in 'content'
+en_tn_dir = r'C:\DCS\English-WACS\en_tn'
+en_tq_dir = r'C:\DCS\English-WACS\en_tq.RPP'
+tn_dir = r'C:\DCS\English-WACS\en_tn'    # Markdown-style tN folder in target language, for note link validation
 #tn_dir = r'C:\DCS\English\en_tn.md-orig'
-tw_dir = r'C:\DCS\Amharic\am_tw.RPP'
+tw_dir = r'C:\DCS\English-WACS\en_tw.RPP'
 
 nChecked = 0
 nChanged = 0
@@ -60,7 +60,7 @@ if resource_type == "ta":
     suppress7 = True
 #    suppress8 = True
 #    suppress10 = True
-if language_code in {'en','ha','hr','id','nag','pmy','pt-br','sw'}:    # ASCII content
+if language_code in {'en','es-419','ha','hr','id','nag','pmy','pt-br','sw'}:    # ASCII content
     suppress9 = True
 
 # Markdown line types
@@ -310,7 +310,8 @@ def checkLineContents(line):
         reportError('heading syntax error')
     if len(line) > 2 and line[0:2] == '% ':
         reportError("% used to mark a heading")
-    if line.find("<!--") != -1 or line.find("&nbsp;") != -1 or line.find("o:p") != -1:
+    pos = line.find('&')
+    if "<!--" in line or "o:p" in line or (pos >= 0 and line.find(';') > pos):
         reportError("html code")
     if toobold_re.match(line):
         if resource_type != "tn" or current_file != "intro.md":
@@ -331,6 +332,8 @@ def checkLineContents(line):
         reportError("found ']' without preceding '['")
     if unexpected4_re.search(line):
         reportError("found '[' without following ']'")
+    if '[[[' in line or '[[[' in line or '(((' in line or ')))' in line:
+        reportError("Extra parens or brackets")
 
 # Looks for underscores in TA links.
 # Looks for :en: and rc://en in the line
@@ -443,7 +446,10 @@ def checkTNLinks(line):
     notelink = notelink_re.search(line)     # rc://.../tn/help/...
     while notelink:
         found = True
-        if notelink.group(2) != "*":        # and notelink.group(2) != language_code:
+        if language_code == 'en':
+            if notelink.group(2) != 'en':
+                reportError("Probably need 'en' in note link in place of '" + notelink.group(2) + "'")
+        elif notelink.group(2) != "*":
             reportError("need wildcard * in note link: " + notelink.group(2))
         if not suppress14:
 #            chunkmd = notelink.group(5) + ".md"
@@ -456,12 +462,11 @@ def checkTNLinks(line):
 
     return found
     
-def checkOBSTNLink(link, fullpath):
-    contentDir = os.path.dirname( os.path.dirname(fullpath))
+def checkOBSTNLink(link):
     story = link[0: link.find("/")]
     paragraph = link[link.find("/")+1:]
     if story.isdigit() and paragraph.isdigit():     # otherwise it's not a story link
-        referencedPath = os.path.join( os.path.join(contentDir, story), paragraph + ".md")
+        referencedPath = os.path.join( os.path.join(obstn_dir, story), paragraph + ".md")
         if not os.path.isfile(referencedPath):
             reportError("invalid OBS story link: " + link)
 
@@ -475,8 +480,8 @@ def checkPassageLinks(line, fullpath):
     passage = passagelink_re.search(line)
     while passage:
         link = passage.group(1).strip()
-        if resource_type == 'obs-tn':
-            checkOBSTNLink(link, fullpath)
+        if resource_type in {'obs-tn','obs-tq','obs-sn','obs-sq'}:
+            checkOBSTNLink(link)
         elif not "/ta/" in link and not '/tn/' in link and not '/tw/' in link and not (resource_type == 'obs' and obsJpg_re.match(link)):
             if link.isascii() and not link.startswith("http") :
                 referencedPath = os.path.join( os.path.dirname(fullpath), link )
@@ -543,9 +548,9 @@ def verifyFile(path):
         if state.ascii and not suppress9:
             reportError("No non-ASCII content", False)
         if state.headingcount > state.textcount:
-            if resource_type in {"tn", "obs-tn"} and not "intro.md" in path:
+            if resource_type in {"tn", "obs-tn", "obs-sn"} and not "intro.md" in path:
                 reportError("At least one note heading is not followed by a note", False)
-            elif resource_type in {"tq", "obs-tq"}:
+            elif resource_type in {"tq", "obs-tq", "obs-sq"}:
                 reportError("At least one question heading does not have a corresponding answer", False)
         if not suppress12:
             if state.currlinetype == BLANKLINE and len(lines) > 1:
@@ -716,16 +721,13 @@ def verifyDir(dirpath):
             elif resource_type == "ta" and f in {"01.md", "title.md", "sub-title.md"}:
                 verify_ta_article(dirpath)
                 break
-            elif os.path.isfile(path) and resource_type in {"tn","tw","obs","obs-tn"} and verifiable(path, f):
+            elif resource_type in {"tn","tw","obs","obs-tn","obs-tq","obs-sn","obs-sq"} and verifiable(path, f):
                 verifyFile(path)
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         source_dir = sys.argv[1]
 
-    if resource_type == "ta":
-        sys.stdout.write("Checking only files named 01.md.\n\n")
-        sys.stdout.flush()
     if not tw_dir.endswith("bible"):
         tw_dir = os.path.join(tw_dir, "bible")
 
