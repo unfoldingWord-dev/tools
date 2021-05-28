@@ -5,6 +5,7 @@
 #import re
 
 subs = [
+    ("*​", "* "),       # converts * followed by an invisible Unicode character, to "* "
     ("''''", "'\""),
     ("'''", "'\""),
     ("''", "\""),
