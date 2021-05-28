@@ -139,6 +139,8 @@ xq      = usfmTokenValue("xq", phrase)
 # Not sure if this is the best way to handle it? (RJH May 2019)
 xt      = usfmTokenValue('xt', phrase)
 xt_e    = usfmEndToken('xt')
+xtnested      = usfmTokenValue('+xt', phrase)
+xtnested_e    = usfmEndToken('+xt')
 
 wj_s     = usfmToken('wj')
 wj_e     = usfmEndToken('wj')
@@ -301,7 +303,7 @@ element =  MatchFirst([ide, id,
                        xdc_s, xdc_e,
                        xo,
                        xq,
-                       xt, xt_e,
+                       xt, xt_e, xtnested, xtnested_e,
                        ist,
                        ien,
                        wj_s, wj_e,
@@ -461,6 +463,7 @@ def createToken(t):
         'xo':   XOToken,
         'xq':   XQToken,
         'xt':   XTToken, 'xt*': XTEndToken,
+        '+xt':  XTToken, '+xt*': XTEndToken,
         'wj':   WJStartToken, 'wj*':  WJEndToken,
         'tl':   TLStartToken, 'tl*':  TLEndToken,
         'it':   ITStartToken, 'it*':  ITEndToken,
