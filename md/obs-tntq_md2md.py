@@ -6,10 +6,10 @@
 #    Removes leading spaces.
 
 # Global variables
+source_dir = r'C:\DCS\Russian\OBS-TN\content'
+target_dir = r'C:\DCS\Russian\ru_obs-tn.work\content'    # path should end with "\content"
 resource_type = 'obs-tn'
-language_code = 'ne'
-source_dir = r'C:\DCS\Nepali\OBSTN\content'
-target_dir = r'C:\DCS\Nepali\ne_obs-tn\content'    # path should end with "\content"
+language_code = 'ru'
 
 import re
 import io
@@ -50,14 +50,23 @@ def convertStory(story, fullpath):
         if (re.match('\d\d\.md', fname) and fname != '00.md'):
             convertFile(story, fname, os.path.join(fullpath, fname))
 
+# It looks like OBS-sQ repos consist only of 50 .md files in one folder
+def convertSQfolder(folder):
+    for fname in os.listdir(folder):
+        if re.match('\d\d\.md', fname):
+            convertFile("", fname, os.path.join(folder, fname))
+
 # Converts the stories contained in the specified folder
 def convert(source_dir):
     if not os.path.isdir(target_dir):
         os.mkdir(target_dir)
-    for item in os.listdir(source_dir):
-        folder = os.path.join(source_dir, item)
-        if os.path.isdir(folder):
-            convertStory(item, folder)
+    if resource_type == 'obs-sq':
+        convertSQfolder(source_dir)
+    else:
+        for item in os.listdir(source_dir):
+            folder = os.path.join(source_dir, item)
+            if os.path.isdir(folder):
+                convertStory(item, folder)
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
