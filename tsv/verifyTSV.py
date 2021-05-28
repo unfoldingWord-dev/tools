@@ -17,13 +17,12 @@
 # A lot of these checks are done by tsv2rc.py as well.
 
 # Globals
-source_dir = r'C:\DCS\Marathi\TN\mr_tn_65-3JN.tsv'
-language_code = 'mr'
+source_dir = r'C:\DCS\Russian\TN'
+language_code = 'ru'
 source_language = 'en'         # The language that the notes are translated from, usually en
 #ta_dir = r'C:\DCS\English\en_tA.v13'    # English tA
-ta_dir = r'C:\DCS\Marathi\mr_ta.STR'    # Use Target language tA if available
-#obs_dir = r'C:\DCS\English\en_obs\content'    # should end in 'content'
-obs_dir = r'C:\DCS\Kannada\kn_obs\content'
+ta_dir = r'C:\DCS\Russian\ru_ta.STR'    # Use Target language tA if available
+obs_dir = r'C:\DCS\Russian\ru_obs.STR\content'
 
 suppress1 = False    # Suppress warnings about text before first heading and TA page references in headings
 suppress2 = False    # Suppress warnings about blank headings
@@ -36,8 +35,8 @@ suppress9 = False    # Suppress warnings about ASCII content in column 9
 suppress10 = False   # Suppress warnings about heading levels
 suppress11 = True    # Suppress warnings about unbalanced parentheses
 suppress12 = False    # Suppress warnings about markdown syntax in 1-line notes
-suppress13 = True    # Suppress warnings about multiple lines in non-intro notes
-if language_code in {'hr','id','nag','pmy','sw','en'}:    # Expect ASCII content with these languages
+suppress13 = False    # Suppress warnings about multiple lines in non-intro notes
+if language_code in {'hr','id','nag','pmy','sw','en','es-419'}:    # Expect ASCII content with these languages
     suppress9 = True
 
 nChecked = 0
@@ -283,19 +282,19 @@ def take(line):
                     reportError("heading level incremented by more than one level")
     if state.currlinetype == LIST_ITEM and not suppress3:
         if state.prevlinetype in { TEXT, HEADING }:
-            reportError("invalid list syntax")
+            reportError("invalid list syntax; missing blank line before first list item: " + line[0:3] + "...")
         i = state.md_lineno - 1
         if i > 1 and state.linetype[i-1] == BLANKLINE and state.linetype[i-2] == LIST_ITEM:
-            reportError("invalid list style")
+            reportError("invalid list style: blank line between list items")
     if state.currlinetype == ORDEREDLIST_ITEM and not suppress3:
         if badolistitem_re.match(line):
             reportError("item number not followed by period")
         if olistitem_re.match(line):
             if state.prevlinetype in { TEXT, HEADING }:
-                reportError("missing blank line before ordered list")
+                reportError("missing blank line before ordered list: " + line[0:4] + "...")
             i = state.md_lineno - 1
             if i > 1 and state.linetype[i-1] == BLANKLINE and state.linetype[i-2] == ORDEREDLIST_ITEM:
-                reportError("invalid ordered list style")
+                reportError("blank line between ordered list items")
     if line.find('# #') != -1:
         reportError('Heading syntax error: # #')
     if headjam_re.search(line):
@@ -431,14 +430,15 @@ def verifyNote(note, verse):
     state = State()
 
     lines = note.split("<br>")
-    if len(lines) > 1:
+    if verse == "intro" or (len(lines) > 1 and "#" in note):
         if verse != "intro" and not suppress13:
             reportError("Multiple lines in non-intro note")
         for line in lines:
             line = line.rstrip()
             take(line)
             checkLinks(line)
-    if len(lines) <= 1 and verse != "intro":       # 1-line  note
+#    if len(lines) <= 1 and verse != "intro":       # 1-line  note
+    if verse != "intro":       # should be a simple note
         checkSimpleNote(note)
         checkLinks(note)
     state.closeNote()
@@ -471,10 +471,8 @@ def verifyGLQuote(quote, verse):
     if verse == "intro":
         if len(quote) != 0:
             reportError("Unexpected (non-empty) value in GLQuote column of intro note")
-    else:
-        if len(quote) > 0 and source_language not in {'en'}:
-            if quote.isascii():
-                reportError("ASCII GLQuote (column 8)")
+    elif not source_language in {'en'} and len(quote) > 0 and quote.isascii():
+        reportError("ASCII GLQuote (column 8)")
 
 idcheck_re = re.compile(r'[^0-9a-z]')
 
@@ -553,6 +551,8 @@ def verifyFile(path):
                     chapter = 0
 #                    verse = 0
                 else:
+                    if state.locator and state.locator[3] == row[3]:
+                        reportError("duplicate ID: " + row[3])
                     state.addRow(row[0:4])
                     checkRow(row)
             else:
