@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-03-05 by RJH
+#   Last modified: 2021-06-02 by RJH
 #
 """
 Quick script to copy OBS-SN from markdown files
@@ -68,13 +68,15 @@ def get_source_notes() -> Tuple[str,str,str,str,str,str,str]:
                             state = 1
                             continue
                         else: halt
-                    if state == 1:
+                    elif state == 1:
                         assert quote
                         assert not note
                         note = line
                         state = 0
                         yield line_number, story_number,frame_number, quote,note
                         quote = note = None
+                    else:
+                        logging.error(f"Losing {state} {filepath} line {line_number}: '{line}'");
 # end of get_source_notes function
 
 

@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-03-05 by RJH
+#   Last modified: 2021-06-02 by RJH
 #
 """
 Quick script to copy OBS-SQ from markdown files
@@ -68,12 +68,12 @@ def get_source_questions() -> Tuple[str,str,str,str,str,str,str]:
                     if not line: continue # Ignore blank lines
                     if line.startswith('# '): # Ignore the story title
                         if state != 0: halt
-                    if line.startswith('## '):
+                    elif line.startswith('## '):
                         assert not question
                         assert not response
                         tag = line[3:].strip()
                         state = 1
-                    if line.startswith('1. '):
+                    elif line.startswith('1. '):
                         assert state == 1
                         assert tag
                         assert not question
@@ -81,7 +81,7 @@ def get_source_questions() -> Tuple[str,str,str,str,str,str,str]:
                         question, response = line[3:].strip(), None
                         state = 2
                         continue
-                    if state == 2:
+                    elif state == 2:
                         assert tag
                         assert question
                         assert not response
@@ -89,6 +89,8 @@ def get_source_questions() -> Tuple[str,str,str,str,str,str,str]:
                         state = 1
                         yield line_number, story_number, tag,question,response
                         question = response = None
+                    else:
+                        logging.error(f"Losing {state} {filepath} line {line_number}: '{line}'");
 # end of get_source_questions function
 
 

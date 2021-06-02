@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-05-28 by RJH
+#   Last modified: 2021-06-02 by RJH
 #
 """
 Quick script to copy TQ from markdown files
@@ -147,7 +147,7 @@ def get_source_questions(BBB:str, nn:str) -> Tuple[str,str,str,str,str]:
             state = 0
             question = response = None
             with open(filepath, 'rt') as mdFile:
-                for line in mdFile:
+                for line_number,line in enumerate(mdFile, start=1):
                     line = line.rstrip() # Remove trailing whitespace including nl char
                     # print(f"  line={line}")
                     if not line: continue # Ignore blank lines
@@ -159,13 +159,15 @@ def get_source_questions(BBB:str, nn:str) -> Tuple[str,str,str,str,str]:
                             state = 1
                             continue
                         else: programmer_error
-                    if state == 1:
+                    elif state == 1:
                         assert question
                         assert not response
                         response = line
                         state = 0
                         yield BBB,C,V, question,response
                         question = response = None
+                    else:
+                        logging.error(f"Losing {state} {filepath} line {line_number}: '{line}'");
 # end of get_source_questions function
 
 
