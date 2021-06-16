@@ -196,7 +196,8 @@ def main():
     total_GLQuote_failures = 0
     failed_book_list = []
     for BBB,nn in BBB_NUMBER_DICT.items():
-        # if BBB != 'EST': continue # Just process this one book
+        # if BBB != 'TIT': continue # Just process this one book
+        if BBB not in ('MAT','MRK','JHN','ROM','1CO','2CO','GAL','EPH','PHP','COL','1TH','2TH','1TI','2TI','TIT','PHM','HEB','1PE','2PE','1JN','2JN','3JN','JUD','REV'): continue # Just process most NT books
         try:
             lines_read, this_note_count, fail_count = convert_TN_TSV(LOCAL_SOURCE_FOLDERPATH, LOCAL_OUTPUT_FOLDERPATH, BBB, nn)
         except Exception as e:

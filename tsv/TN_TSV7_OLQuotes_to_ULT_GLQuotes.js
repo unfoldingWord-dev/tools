@@ -63,7 +63,7 @@ const getDocuments = async (pk, testament, book, verbose, serialize) => {
             if (verbose) console.log(`      Book ${book} not found`);
             continue;
         }
-        if (verbose) console.log(`      Downloaded`)
+        if (verbose) console.log(`      Downloaded ${book} ${content.length.toLocaleString()} bytes`)
 
         const startTime = Date.now();
         if (abbr === 'ult') { // Preprocess x-occurrence,x-occurrences,x-content into x-align="content:occurrence:occurrences" for easier handling later
@@ -74,16 +74,20 @@ const getDocuments = async (pk, testament, book, verbose, serialize) => {
         pk.importDocuments(selectors, "usfm", content, {});
         if (verbose) console.log(`      Imported in ${Date.now() - startTime} msec`);
         if (serialize) {
+            // console.log(`Serializing ${abbr} ${book}…`);
             const path = require("path");
             const fse = require('fs-extra');
             const outDir = path.resolve(__dirname, '..', '..', 'serialized');
+            // console.log(`  outDir=${outDir}`);
             fse.mkdirs(outDir);
+            const outPath = path.join(
+                outDir,
+                Object.values(selectors).join('_') + `_pkserialized.${book}.json`, // RJH added the USFM book code
+            );
+            // console.log(`  outPath=${outPath}`);
             fse.writeFileSync(
-                path.join(
-                    outDir,
-                    Object.values(selectors).join('_') + "_pkserialized.json",
-                ),
-                JSON.stringify(pk.serializeSuccinct(`${org}/${lang}_${abbr}`))
+                outPath,
+                JSON.stringify(pk.serializeSuccinct(`${org}/${lang}_${abbr}`), null, 2) // RJH added indenting just for interest
             );
         }
     }

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# TW_HebGrk_to_TSV6_TWL.py
+# TWL_HebGrk_to_TSV6.py
 #
 # Copyright (c) 2020-2021 unfoldingWord
 # http://creativecommons.org/licenses/MIT/
@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Apr 2020 by RJH
-#   Last modified: 2021-04-30 by RJH
+#   Last modified: 2021-06-16 by RJH
 #
 """
 Quick script to copy TW links out of UHB and UGNT
@@ -340,7 +340,7 @@ def make_TSV_file(BBB:str, nn:str) -> Tuple[int,int]:
 def main():
     """
     """
-    print("TW_HebGrk_to_TSV6_TWL.py")
+    print("TWL_HebGrk_to_TSV6.py")
     print(f"  Source folderpath is {LOCAL_SOURCE_BASE_FOLDERPATH}/")
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
     total_simple_links = total_multiword_links = 0
@@ -363,4 +363,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-# end of TW_HebGrk_to_TSV6_TWL.py
+# end of TWL_HebGrk_to_TSV6.py
