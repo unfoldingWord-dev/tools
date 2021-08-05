@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Apr 2021 by RJH
-#   Last modified: 2021-06-25 by RJH
+#   Last modified: 2021-08-04 by RJH
 #
 """
 Quick script to:
@@ -205,7 +205,7 @@ def handle_book(BBB:str, nn:str) -> Tuple[int,int]:
                 if debugMode: print(f"Got USFM {source_filepath} {usfm_line_number} {usfm_C}:{usfm_V} {current_usfm_V=} '{usfm_line}' with {len(outstanding_orig_words_list)} {outstanding_orig_words_list} and {len(origLang_words_in_this_USFM_verse)} {origLang_words_in_this_USFM_verse}")
                 assert usfm_line != 'SKIP'
                 handled_USFM_line = False
-                if '\\w ' in usfm_line: added_origL_words = False # We will need to do this
+                if '\\w ' in usfm_line or '\\+w ' in usfm_line: added_origL_words = False # We will need to do this further down
             except StopIteration:
                 # print("      Finished USFM")
                 finished_USFM = True
@@ -244,23 +244,24 @@ def handle_book(BBB:str, nn:str) -> Tuple[int,int]:
                 current_usfm_V = usfm_V
                 origLang_words_in_this_USFM_verse = [] # definition of a word here is "inside a \w ...\w*" field in the Heb/Grk
 
-            if '\\w ' in usfm_line: # we're interested in it
+            if '\\w ' in usfm_line or '\\+w ' in usfm_line: # we're interested in it
                 # Add origL words that we've found in this verse
-                num_words_in_this_line = usfm_line.count('\\w ')
+                num_words_in_this_line = usfm_line.count('\\w ') + usfm_line.count('\\+w ')
                 if debugMode: print(f"For {BBB} line {usfm_line_number} {usfm_C}:{usfm_V} with marker '{usfm_marker}' found {num_words_in_this_line=}")
                 if num_words_in_this_line and not added_origL_words:
                     num_words_added_just_now = 0
                     bar_index = -1
                     for x in range(0, num_words_in_this_line):
-                        w_index = usfm_line.index('\\w ', bar_index+1)
+                        try: w_index = usfm_line.index('\\w ', bar_index+1)
+                        except ValueError: w_index = usfm_line.index('\\+w ', bar_index+1) + 1 # for plus sign
                         bar_index = usfm_line.index('|', w_index+3)
                         origLang_USFM_word = usfm_line[w_index+3:bar_index]
-                        if debugMode: print(f"  About to add '{origLang_USFM_word}' space={' ' in origLang_USFM_word} bar={'|' in origLang_USFM_word} maqaf={'־' in origLang_USFM_word}")
+                        if debugMode: print(f"  About to add USFM '{origLang_USFM_word}' space={' ' in origLang_USFM_word} bar={'|' in origLang_USFM_word} maqaf={'־' in origLang_USFM_word}")
                         assert ' ' not in origLang_USFM_word and '|' not in origLang_USFM_word and '־' not in origLang_USFM_word # maqaf
                         origLang_words_in_this_USFM_verse.append(origLang_USFM_word) # definition of a word here is "inside a \w ...\w*" field in the Heb/Grk
                         num_words_added_just_now += 1
                     if debugMode:
-                        if origLang_words_in_this_USFM_verse: print(f"Just added {num_words_added_just_now}/{num_words_in_this_line} words to have ({len(origLang_words_in_this_USFM_verse)}) {origLang_words_in_this_USFM_verse} for {BBB} line {usfm_line_number} {usfm_C}:{usfm_V}")
+                        if origLang_words_in_this_USFM_verse: print(f"Just added USFM {num_words_added_just_now}/{num_words_in_this_line} words to have ({len(origLang_words_in_this_USFM_verse)}) {origLang_words_in_this_USFM_verse} for {BBB} line {usfm_line_number} {usfm_C}:{usfm_V}")
                     assert num_words_added_just_now == num_words_in_this_line
                     added_origL_words = True
 
@@ -277,42 +278,50 @@ def handle_book(BBB:str, nn:str) -> Tuple[int,int]:
 
         if orig_TWL_words and ' ' not in orig_TWL_words and '־' not in orig_TWL_words \
         and twl_C==usfm_C and twl_V==usfm_V: # in the right verse with a single word TWL
-            if debugMode: print(f"In right verse at {BBB} {usfm_C}:{usfm_V} with single word: '{orig_TWL_words}'")
-            if debugMode: print(f"Only one origL word: {orig_TWL_words}")
-            orig_word = orig_TWL_words # There's only one!
-            if f'w {orig_word}|' not in usfm_line:
-                if debugMode: print(f"No, {BBB} {twl_C}:{twl_V} '{orig_word}' doesn't go in this line: {usfm_C}:{usfm_V} '{usfm_line}' having {origLang_words_in_this_USFM_verse}")
+            if debugMode: print(f"In right verse at {BBB} {usfm_C}:{usfm_V} with single TWL word: '{orig_TWL_words}'{'' if occurrence==1 else ' occurrence='+str(occurrence)}")
+            orig_TWL_word = orig_TWL_words # There's only one!
+            if f'w {orig_TWL_word}|' not in usfm_line:
+                if debugMode: print(f"No, {BBB} {twl_C}:{twl_V} '{orig_TWL_word}' doesn't go in this line: {usfm_C}:{usfm_V} '{usfm_line}' having {origLang_words_in_this_USFM_verse}")
                 new_USFM_lines.append(usfm_line)
                 handled_USFM_line = True
                 continue
-            if occurrence > origLang_words_in_this_USFM_verse.count(orig_word): # not there yet
-                # print(f"No, '{orig_word}' not at occurrence {occurrence} yet")
+            if occurrence > origLang_words_in_this_USFM_verse.count(orig_TWL_word): # not there yet
+                if debugMode: print(f"No, '{orig_TWL_word}' not at occurrence {occurrence} yet")
                 new_USFM_lines.append(usfm_line)
                 handled_USFM_line = True
                 continue
             else:
-                if debugMode: print(f"Yes, seems that '{orig_word}' is at occurrence {occurrence} already with {len(origLang_words_in_this_USFM_verse)} {origLang_words_in_this_USFM_verse}")
+                if debugMode: print(f"Yes, seems that '{orig_TWL_word}' is at occurrence {occurrence} already with {len(origLang_words_in_this_USFM_verse)} {origLang_words_in_this_USFM_verse}")
             if usfm_line.count('\\w ') == 1: # simple case -- only one word on the line
-                if debugMode: print(f"Doing single simple action {BBB} {twl_C}:{twl_V} {orig_word}, {occurrence}, {tw_category}, {tw_word} with {usfm_line_number} {usfm_marker} {usfm_rest}")
+                if debugMode: print(f"Doing single simple action {BBB} {twl_C}:{twl_V} {orig_TWL_word}, {occurrence}, {tw_category}, {tw_word} with {usfm_line_number} {usfm_marker} {usfm_rest}")
                 usfm_line = usfm_line.replace('\\w*', f' x-tw="rc://*/tw/dict/bible/{tw_category}/{tw_word}"\\w*', 1) # Add TWL to end of \w field
                 simple_TWL_count += 1
                 handled_TWL_line = True
                 new_USFM_lines.append(usfm_line)
                 handled_USFM_line = True
                 continue
+            elif usfm_line.count('\\+w ') == 1: # simple case -- only one word on the line (probably in a footnote)
+                if debugMode: print(f"Doing single simple action {BBB} {twl_C}:{twl_V} {orig_TWL_word}, {occurrence}, {tw_category}, {tw_word} with {usfm_line_number} {usfm_marker} {usfm_rest}")
+                usfm_line = usfm_line.replace('\\+w*', f' x-tw="rc://*/tw/dict/bible/{tw_category}/{tw_word}"\\+w*', 1) # Add TWL to end of \w field
+                simple_TWL_count += 1
+                handled_TWL_line = True
+                new_USFM_lines.append(usfm_line)
+                handled_USFM_line = True
+                continue
             else: # two words or more on one USFM line -- we need to insert our link in the right place
-                line_word_count = usfm_line.count('\\w ')
+                line_word_count = usfm_line.count('\\w ') + usfm_line.count('\\+w ')
+                if usfm_line.count('\\+w '): print("Haven't written this code yet!!!"); dieWithWPlus
                 assert line_word_count > 1
                 if debugMode: print(f"Got {line_word_count} words on USFM line: {usfm_line}")
-                if debugMode: print(f"  We want to replace {orig_word}")
+                if debugMode: print(f"  We want to replace {orig_TWL_word}")
                 line_words = re.findall(r'\\w ([^|]+?)\|', usfm_line)
                 if debugMode: print(f"{line_words=}")
                 assert len(line_words) == line_word_count, f"These two word counts should match: {len(line_words)} and {line_word_count}"
                 assert len(set(line_words)) == line_word_count, f"There should be no duplicates: {len(set(line_words))} and {line_word_count}"
-                assert orig_word in line_words
-                word_index_in_words = line_words.index(orig_word)
+                assert orig_TWL_word in line_words
+                word_index_in_words = line_words.index(orig_TWL_word)
                 if debugMode: print(f"{word_index_in_words=}")
-                word_index_in_line = usfm_line.index(f'\\w {orig_word}|')
+                word_index_in_line = usfm_line.index(f'\\w {orig_TWL_word}|')
                 word_end_index = usfm_line.index(f'\\w*', word_index_in_line)
                 if debugMode: print(f"  Was {usfm_line=}")
                 usfm_line = f'{usfm_line[:word_end_index]} x-tw="rc://*/tw/dict/bible/{tw_category}/{tw_word}"{usfm_line[word_end_index:]}'
@@ -456,7 +465,7 @@ def main():
         #         'ZEP','HAG','ZEC','MAL'): continue # Skip OT
         # if BBB in ('MAT','MRK','LUK','JHN','ACT','ROM','1CO','2CO','GAL','EPH','PHP','COL','1TH','2TH','1TI','2TI','TIT','PHM','HEB','JAS','1PE','2PE','1JN','2JN','3JN','JUD','REV'):
         #     continue # Skip NT
-        # if BBB != 'LUK': continue # only process this one book
+        # if BBB != 'NEH': continue # only process this one book
         try:
             simple_count, complex_count = handle_book(BBB, nn)
             total_simple_links += simple_count
