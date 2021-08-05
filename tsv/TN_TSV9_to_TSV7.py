@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-05-28 by RJH
+#   Last modified: 2021-06-28 by RJH
 #
 """
 Quick script to copy TN from 9-column TSV files
@@ -155,7 +155,8 @@ def make_TSV_file(BBB:str, nn:str) -> int:
                 occurrence_note = occurrence_note.replace('  ', ' ') # Might mess up markdown indents ???
                 occurrence_note = occurrence_note.replace('\\n@@@', '\\n   ').replace('\\n@@', '\\n  ')
                 occurrence_note = occurrence_note.strip()
-                if '  ' in occurrence_note: print(f"NOTE: {BBB} {reference} {line_number} OccurrenceNote has double-spaces: '{occurrence_note}'")
+                if '  ' in occurrence_note and '  *' not in occurrence_note: # used in markdown for indenting
+                    print(f"NOTE: {BBB} {reference} {line_number} OccurrenceNote has unexpected double-spaces: '{occurrence_note}'")
 
                 # Normally GL Quote is a Bible quote
                 gl_quote = gl_quote.strip()
