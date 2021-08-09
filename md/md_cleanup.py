@@ -34,19 +34,20 @@ import sys
 from filecmp import cmp
 
 # Globals
-source_dir = r'C:\DCS\English-WACS\en_tq.RPP'
-language_code = 'en'
-resource_type = 'tq'
+source_dir = r'C:\DCS\Assamese\as_ta'
+language_code = 'as'
+resource_type = 'ta'
 
 nChanged = 0
-max_files = 111111
+max_files = 1111
 
 placeholder_heading = ""
 import substitutions    # change substitutions modules as necessary; generic one is just "substitutions"
 
 suppress1 = False       # Suppress hash mark cleanup
 suppress2 = True       # Suppress stdout informational messages 
-suppress3 = False       # Suppress addition of blank lines before and after lists.
+suppress3 = False       # Suppress addition of blank lines after lists and removal of blank lines between list items
+suppress4 = False       # Suppress addition of blank lines before lists. (should suppress for newer DCS resources)
 if resource_type == 'ta':
     suppress1 = True
 
@@ -56,38 +57,56 @@ if resource_type == 'obs':
     filename_re = re.compile(r'\d+\.md$')
 hash_re = re.compile(r' *(#+) +', flags=re.UNICODE)
 
-
 def shortname(longpath):
     shortname = longpath
     if source_dir in longpath:
         shortname = longpath[len(source_dir)+1:]
     return shortname
 
-asterisk_re = re.compile('(\n *\* .*)\n(\n *\* )', flags=re.UNICODE)    # two list items with blank line between
-# listOffset_re = re.compile(r'^[^\*] .*\n[\*1] ', flags=re.UNICODE+re.MULTILINE)
-listOffset2_re = re.compile(r'^[\*] .*\n *[^\n\*1 ]', flags=re.UNICODE+re.MULTILINE)
+olistitem_re = re.compile(r'(\n[^#\n]*)\n+[ ]*?([1-6][\.\)] )', re.UNICODE)
+
+# Applies to tN and tQ
+# Folds ordered lists onto a single line
+# Returns the fixed string.
+def foldLists(alltext):
+    found = olistitem_re.search(alltext)
+    while found:
+        alltext = alltext[:found.start()] + found.group(1) + " " + found.group(2) + alltext[found.end():]
+        found = olistitem_re.search(alltext)
+    return alltext
+
+listinterrupt_re = re.compile('(\n *\* .*)\n(\n *\* )', flags=re.UNICODE)    # two list items with blank line between
+listinterrupt2_re = re.compile('(\n *1\. .*)\n(\n *1\. )', flags=re.UNICODE)    # two ordered list items with blank line between
+listOffset_re = re.compile(r'^ *[^\*1\n ][^\n]*\n *[\*1][\. ]', flags=re.UNICODE+re.MULTILINE)  # text line followed by list item
+listOffset2_re = re.compile(r'^[\*] .*\n *[^\n\*1 ]', flags=re.UNICODE+re.MULTILINE)  # last list item not followed by blank line
 ordered_re = re.compile(r'\n1\.[^ \n]')
 
-# Converts the text a whole file at a time.
+# Applies to resource types other than tN and tQ
 # Removes blank lines between list items.
 # Supplies missing space after ordered list item (1.)
 # Multiple replacements per file
 def fixLists(alltext):
     # The markdown dialect that DCS supports allows blank lines between list items.
     if not suppress3:
-        found = asterisk_re.search(alltext)
+        found = listinterrupt_re.search(alltext)
         while found:        # remove blank lines between list items
             alltext = alltext[0:found.start()] + found.group(1) + found.group(2) + alltext[found.end():]
-            found = asterisk_re.search(alltext)
+            found = listinterrupt_re.search(alltext)
+        found = listinterrupt2_re.search(alltext)
+        while found:        # remove blank lines between ordered list items
+            alltext = alltext[0:found.start()] + found.group(1) + found.group(2) + alltext[found.end():]
+            found = listinterrupt2_re.search(alltext)
 
-        # found = listOffset_re.search(alltext)
-        # while found:
-        #     alltext = alltext[0:found.end()-2] + '\n' + alltext[found.end()-2:]
-        #     found = listOffset_re.search(alltext)
         found = listOffset2_re.search(alltext)
         while found:        # add blank line after end of list
             alltext = alltext[0:found.end()-1] + '\n' + alltext[found.end()-1:]
-            found = listOffset_re.search(alltext)
+            found = listOffset2_re.search(alltext)
+
+    if not suppress4:
+         found = listOffset_re.search(alltext)
+         while found:
+             alltext = alltext[0:found.end()-2] + '\n' + alltext[found.end()-2:]
+             found = listOffset_re.search(alltext)
 
     # Change "1.foo" to "1. foo"
     found = ordered_re.search(alltext)
@@ -100,6 +119,8 @@ def fixLists(alltext):
 # Updates the truelevel list.
 def shuffle(truelevel, nmarks, currlevel):
     newlevel = currlevel
+    if nmarks > len(truelevel) - 1:     # happens on lines with a lot of gratuitous ##### ## ## ## ##
+        nmarks = len(truelevel) - 1
     if nmarks > currlevel and truelevel[nmarks] > currlevel:
         newlevel = currlevel + 1
     elif truelevel[nmarks] < currlevel:
@@ -222,12 +243,13 @@ def fixTaLinks(str):
     lines = str.splitlines()
     for line in lines:
         count += 1
-        for i in range(len(inlinekey)):
-            good_ref = ' [[rc://*/ta/man/translate/' + newstring[i]
-            sub = inlinekey[i].search(line)
-            while sub:
-                line = line[0:sub.start()] + good_ref + sub.group(1) + ']]' + line[sub.end():]
+        if not "://ufw.io/" in line:
+            for i in range(len(inlinekey)):
+                good_ref = ' [[rc://*/ta/man/translate/' + newstring[i]
                 sub = inlinekey[i].search(line)
+                while sub:
+                    line = line[0:sub.start()] + good_ref + sub.group(1) + ']]' + line[sub.end():]
+                    sub = inlinekey[i].search(line)
         text += line + '\n'
     return text
     
@@ -249,11 +271,45 @@ def fixTnLinks(str):
     newstr += str
     return newstr
 
+def getChapterNumber(str):
+    try:
+        chapno = int(str)
+    except ValueError as e:
+        chapno = 0
+    return chapno     
+    
+reflink_re = re.compile(r'\[+rc://[\*\w]+/bible/notes/(\w\w\w)/(\d+)/(\d+)\]+', flags=re.UNICODE)     # very old style bible/notes links
+
+def fixRefLinks(path, str):
+    chappath = os.path.dirname(path)
+    mychap = getChapterNumber(os.path.basename(chappath))
+    bookpath = os.path.dirname(chappath)
+    mybook = os.path.basename(bookpath)
+    newstr = ""
+    reflink = reflink_re.search(str)   # rc://*/bible/notes/...
+    while reflink:
+        chunk = reflink.group(3)
+        chap = reflink.group(2)
+        book = reflink.group(1)
+        newstr += str[0:reflink.start()] + "[" + book.upper() + " " + chap.lstrip('0') + ":" + chunk.lstrip('0') + "]"
+        if book.lower() == mybook.lower():
+            if getChapterNumber(chap) == mychap:
+                newstr += "(./"
+            else:
+                newstr += "(../" + chap + "/"
+        else:
+            newstr += "../../" + book + "/" + chap + "/"
+        newstr += chunk + ".md)"
+        str = str[reflink.end():]
+        reflink = reflink_re.search(str)
+    newstr += str
+    return newstr
+
 blanks_re = re.compile('[\n \t]+')     # multiple newlines/ white space at beginning of string
 hashblanks_re = re.compile('#  +')      # multiple spaces after hash mark
 endblank_re = re.compile('[\n \t][\n \t]+\Z')     # multiple newlines/ white space at end of string
 jams_re = re.compile(r'^#+[^ \t#]', re.UNICODE+re.MULTILINE)    # hash(es) at beginning of line not followed by space
-multihash_re = re.compile(r'[^\n#]#+')  # hash group starting in the middle of a line
+multihash_re = re.compile(r'^[^\>\n#][^\n\\#]* #', re.UNICODE+re.MULTILINE)  # hash mark in the middle of a line that is not in a blockquote and IS preceded by a space
 percenthash_re = re.compile(r'\n% ', re.UNICODE+re.MULTILINE)   # % symbol was once used to mark a H2 heading at beginning of a line but not at the beginning of a file (verify each time)
 office_re = re.compile(r'<o\:p[^>\n]*?>', re.UNICODE)     # nasty MS Office codes
 bibleq_re = re.compile(r'\[+rc:.*?bible[ /\:]+quest.*?\]+', flags=re.UNICODE)     # obsolete bible/questions links
@@ -267,16 +323,15 @@ def preliminary_cleanup(text):
             text = text[found.end():] + '\n'    # remove blanks at beginning of string
     if found := endblank_re.search(text):
         text = text[0:found.start()] + '\n'     # remove blank lines at end of string
-    if not text.endswith("\n"):
-        text += "\n"
     text = text.replace("# #", "##")
     found = jams_re.search(text)
     while found:
-        text = text[:found.end()-1] + ' ' + text[found.end()-1:]    # add space after mark at beginning of lines
+        text = text[:found.end()-1] + ' ' + text[found.end()-1:]    # add space after hash mark(s) at beginning of lines
         found = jams_re.search(text)
     found = multihash_re.search(text)      # Hash group starting in the middle of a line
     while found:
-        text = text[:found.start()+1] + "\n\n" + text[found.start()+1:]
+        pos = found.start()
+        text = text[:found.end()-1] + "\n\n" + text[found.end()-1:]
         found = multihash_re.search(text)
 
     text = re.sub(percenthash_re, "\n## ", text)
@@ -326,6 +381,8 @@ def convertWholeFile(source, target):
     origtext = text
     text = substitution(text)   # Need to substitute HTML strings containing hash marks before doing header cleanup
     text = preliminary_cleanup(text)
+    if not source.endswith("title.md") and not text.endswith("\n"):
+        text += "\n"
     if not text.startswith("# "):
         if not suppress2:
             sys.stdout.write(shortname(source) + " does not begin with level 1 heading, so no headings will be touched.\n")
@@ -335,7 +392,10 @@ def convertWholeFile(source, target):
     if fixHeadings and "## " in text:
         text = fixHeadingLevels(text)
 
-    text = fixLists(text)
+    if resource_type in {'tn','tq'} and "intro.md" not in source:
+        text = foldLists(text)
+    else:
+        text = fixLists(text)
 
     # Expand the TA links
     convertme = False
@@ -347,7 +407,8 @@ def convertWholeFile(source, target):
         text = fixTaLinks(text)
     text = fixTnLinks(text)
     text = fixMdLinks(text)
-    
+    text = fixRefLinks(source, text)
+
     if ebh := extraBlankHeading_re.search(text):
         text = text[:ebh.start()] + ebh.group(1) + text[ebh.end():]
     
@@ -369,13 +430,25 @@ paren_re = re.compile(r'[^)]\)$', re.UNICODE)   # ends with single but not doubl
 def cleanupLine(line):
     line = line.rstrip("\n\t \[\(\{")
     line = line.lstrip("\]\)\}")
-    if line.count("**") == 1:   # mismatched '**' is a common error
+    nBoldmarks = line.count("**")
+    if nBoldmarks == 1:   # mismatched '**' is a common error
         line = line.replace("**", "")
+    elif nBoldmarks > 1 and nBoldmarks % 2 == 0:
+        boldpos = line.find("**")      # finds the first ** in the line
+        while boldpos >= 0:
+            if line.find("** ", boldpos) == boldpos:      # the first ** is followed by a space
+                line = line[:boldpos+2] + line[boldpos+3:]
+            boldpos = line.find("**", boldpos+2)    # find the next ** in the line
+            if boldpos > 0 and line[boldpos-1] == ' ':
+                line = line[:boldpos-1] + line[boldpos:]
+            boldpos = line.find("**", boldpos+2)    # finds the start of the next ** pair
     if line.count('(') > line.count(')') and paren_re.search(line):
         line += ')'
     return line
 
 blankheading_re = re.compile(r'#+$')
+listjam_re = re.compile(r'( *\*)([^\* ][^\*]+)$', re.UNICODE)     # asterisk not followed by space or another asterisk
+tripleasterisk_re = re.compile(r'( *)\*\*\*([^\*]+\*\*.*)', re.UNICODE)     # line starts with triple asterisk and there is a double asterisk later in line
 
 # Adds blank lines where needed before and after heading lines
 # Supply placeholder heading if needed.
@@ -390,7 +463,7 @@ def convertByLine(source, target):
     linetype = BLANK
     output = io.open(target, "tw", buffering=1, encoding='utf-8', newline='\n')
     for line in lines:
-        line = cleanupLine(line)
+        line = cleanupLine(line)    # strips some whitespace, bad brackets, orphan **, and doubles right paren when needed
         prevlinetype = linetype
         if len(line) == 0:
             linetype = BLANK
@@ -400,6 +473,10 @@ def convertByLine(source, target):
                 line += " " + placeholder_heading
         else:
             linetype = TEXT
+            if found := listjam_re.match(line):
+                line = found.group(1) + " " + found.group(2)
+            if found := tripleasterisk_re.match(line):
+                line = found.group(1) + "* **" + found.group(2)
         if (linetype == HEADER and prevlinetype != BLANK) or (linetype == TEXT and prevlinetype == HEADER):
             output.write('\n')
         if not (linetype == BLANK and prevlinetype == BLANK):
@@ -411,8 +488,11 @@ def convertFile(path):
     convertWholeFile(path, tmppath)
     if not os.path.isfile(tmppath):
         tmppath = path
-    tmppath2 = path + ".tmp2"
-    convertByLine(tmppath, tmppath2)
+    if not path.endswith("title.md"):       # No further conversion is wanted for these one-line files
+        tmppath2 = path + ".tmp2"
+        convertByLine(tmppath, tmppath2)
+    else:
+        tmppath2 = tmppath
     changed = not cmp(tmppath2, path, shallow=False)
     if changed:
         global nChanged
@@ -424,9 +504,9 @@ def convertFile(path):
         else:
             os.remove(path)
         os.rename(tmppath2, path)
-    if not changed:
+    if not changed and tmppath2 != path:
         os.remove(tmppath2)
-    if tmppath != path:
+    if tmppath != path and os.path.isfile(tmppath):
         os.remove(tmppath)
 
 # Recursive routine to convert all files under the specified folder
