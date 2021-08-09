@@ -21,16 +21,16 @@
 #          Check that tW files begin with H1 heading immediately followed by H2 heading.
 
 # Globals
-source_dir = r'C:\DCS\English-WACS\en_tq.RPP'
-language_code = 'en'
-resource_type = 'tq'
-ta_dir = r'C:\DCS\English-WACS\en_tm'    # Target language tA
-obstn_dir = r'C:\DCS\Spanish\es-419_obs-tn\content'    # should end in 'content'
+source_dir = r'C:\DCS\Assamese\as_ta'
+language_code = 'as'
+resource_type = 'ta'
+ta_dir = r'C:\DCS\Assamese\as_ta'    # Target language tA
+obstn_dir = r'C:\DCS\Nepali\ne_obs-tn\content'    # should end in 'content'
 en_tn_dir = r'C:\DCS\English-WACS\en_tn'
 en_tq_dir = r'C:\DCS\English-WACS\en_tq.RPP'
-tn_dir = r'C:\DCS\English-WACS\en_tn'    # Markdown-style tN folder in target language, for note link validation
+tn_dir = r'C:\DCS\Urdu-Deva\ur-deva_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
 #tn_dir = r'C:\DCS\English\en_tn.md-orig'
-tw_dir = r'C:\DCS\English-WACS\en_tw.RPP'
+tw_dir = r'C:\DCS\Telugu\te_tw.STR'
 
 nChecked = 0
 nChanged = 0
@@ -41,8 +41,8 @@ suppress1 = False    # Suppress warnings about text before first heading
 suppress2 = False    # Suppress warnings about blank headings
 suppress3 = False    # Suppress warnings about item number not followed by period
 suppress4 = False    # Suppress warnings about closed headings
-suppress5 = False    # Suppress warnings about invalid passage links
-suppress6 = True    # Suppress warnings about invalid OBS links
+suppress5 = True    # Suppress warnings about invalid passage links
+suppress6 = False    # Suppress warnings about invalid OBS links
 suppress7 = False    # Suppress warnings about file starting with blank line
 suppress8 = False    # Suppress warnings about blank lines before, after, and within lists
 suppress9 = False    # Suppress warnings about ASCII content
@@ -50,10 +50,11 @@ suppress10 = False   # Suppress warnings about heading levels
 suppress11 = True    # Suppress warnings about unbalanced parentheses
 suppress12 = False     # Suppress warnings about newlines at end of file
 suppress13 = False     # Suppress warnings about mistmatched **
-suppress14 = True     # Suppress "invalid note link" warnings
+suppress14 = False     # Suppress "invalid note link" warnings
 suppress15 = True     # Suppress punctuation warnings.
 suppress16 = False     # Suppress warnings about empty files
-suppress17 = True     # Suppress the missing intro.md file warning
+suppress17 = False     # Suppress the missing intro.md file warning, which applies only to tN resources
+suppress18 = True     # Suppress warnings about newline in title.md files
 
 if resource_type == "ta":
     suppress1 = True
@@ -133,7 +134,6 @@ class State:
         State.linetype.append(State.currlinetype)
         if State.ascii and not line.isascii() and not suppress9:
             State.ascii = False
-        # sys.stdout.write(str(State.linecount) + ": line length: " + str(len(line)) + ". headingcount is " + str(State.headingcount) + "\n")
 
     def countParens(self, line):
         if not re.search(r'[0-9]\)', line):   # right parens used in list items voids the paren matching logic for that line
@@ -201,13 +201,13 @@ def reportError(msg, report_lineno=True):
         issues.write(shortname(state.path) + ": " + msg)
     state.reportedError()
 
-def verifyLineEndings(path):
-    input = io.open(path, "rb")
-    content = input.read()
-    input.close()
-    if b'\r\n' in content:
-        reportError("Windows line ending(s) found in file", False)
-
+def verifyTitleFileLineEndings(path):
+    if not suppress18:
+        input = io.open(path, "rb")
+        content = input.read()
+        input.close()
+        if b'\n' in content:
+            reportError("TA title and subtitle files should not have any line endings", False)
  
 # Reports empty file and returns True if file is empty.
 def verifyNotEmpty(mdPath):
@@ -270,10 +270,16 @@ def take(line):
                     reportError("excessive heading level: " + "#" * state.currheadinglevel)
             elif resource_type not in {"ta","tw"} and state.currheadinglevel > 2:
                 reportError("excessive heading level")
+            elif resource_type == 'tw' and state.linecount > 1 and state.currheadinglevel == 1 and state.headingcount > 1:
+                reportError("level 1 heading after line 1")
             elif state.currheadinglevel > state.prevheadinglevel + 1:
                 if resource_type != "ta" or state.prevheadinglevel > 0:
                     reportError("heading level incremented by more than one level")
 
+    # In a tW file, the third line must be an H2 heading
+    if resource_type == 'tw' and state.linecount == 3 and (state.currlinetype != HEADING or state.currheadinglevel != 2):
+        reportError("Incorrect tW file, missing '## Definition' or '## Facts' on line 3")
+    
     # 11/16/20 - Blank lines are optional around lists on DCS
     if not suppress8:
         if state.currlinetype in {LIST_ITEM, ORDEREDLIST_ITEM}:
@@ -308,18 +314,21 @@ unexpected4_re = re.compile(r'\[[^\]]*$', re.UNICODE)            # '[' without f
 def checkLineContents(line):    
     if line.find('# #') != -1:
         reportError('heading syntax error')
-    if len(line) > 2 and line[0:2] == '% ':
-        reportError("% used to mark a heading")
+    if line.startswith("% ") or line.startswith("%​ "):  # invisible character in second comparison
+        reportError("% used to mark text")
     pos = line.find('&')
     if "<!--" in line or "o:p" in line or (pos >= 0 and line.find(';') > pos):
         reportError("html code")
     if toobold_re.match(line):
         if resource_type != "tn" or current_file != "intro.md":
             reportError("extra formatting in heading")
-    if not suppress13 and line.count("**") % 2 == 1:
-        reportError("Line seems to have mismatched '**'")
-    if not suppress13 and line.count("***") % 2 == 1:
-        reportError("Line seems to have mismatched '***'")
+    if '**' in line:
+        if not suppress13 and line.count("**") % 2 == 1:
+            reportError("Line seems to have mismatched '**'")
+        if line.find("** ") == line.find("**"):      # the first ** is followed by a space
+            reportError("Incorrect markdown syntax, space after double asterisk '**'")
+        if '***' in line:
+            reportError("Line contains triple asterisks, ***")
     if not suppress13 and line.count("__") % 2 == 1:
         reportError("Line seems to have mismatched '__'")
     if "___" in line:
@@ -334,6 +343,15 @@ def checkLineContents(line):
         reportError("found '[' without following ']'")
     if '[[[' in line or '[[[' in line or '(((' in line or ')))' in line:
         reportError("Extra parens or brackets")
+
+unbracketed_re = re.compile(r'[^\[][^\[][^\[]rc\://')
+
+# Returns True if the text contains an RC link that is not bracketed
+def checkUnbracketedLinks(text):
+    found = unbracketed_re.search(text)
+    if found:
+        reportError("Unbracketed RC link")
+    return found
 
 # Looks for underscores in TA links.
 # Looks for :en: and rc://en in the line
@@ -389,6 +407,7 @@ rcgoodlink_re = re.compile(r'rc://[\w\-\*]+/t', re.UNICODE)
 # Parse tA links, note links, OBS links and passage links to verify existence of referenced .md file.
 def checkMdLinks(line, fullpath):
     checkUnconvertedLinks(line)
+    checkUnbracketedLinks(line)
     text = line
     rclink = rclink_re.search(text)
     while rclink:
@@ -612,21 +631,21 @@ def verifyChapter(path, chapter, book):
             reportError("Not enough files in: " + shortname(path))
         elif len(files) > nverses + 1:
             reportError("Too many files in: " + shortname(path))
-        else:
-            topverse = 0
-            for fname in files:
-                fpath = os.path.join(path, fname)
-                if verifiable(fpath, fname):
-                    pair = os.path.splitext(fname)
-                    if pair[0].isdigit():
-                        verseno = int(pair[0])
-                        if verseno > topverse:          # find the highest numbered verse
-                            topverse = verseno
-                    verifyFile(fpath)
-                verifyFilename(path, fname)
-            if topverse + 5 < nverses and len(files) * 3 < len(en_files):
-                state.setPath(path)
-                reportError("Likely missing some files in: " + shortname(path))
+#        else:
+        topverse = 0
+        for fname in files:
+            fpath = os.path.join(path, fname)
+            if verifiable(fpath, fname):
+                pair = os.path.splitext(fname)
+                if pair[0].isdigit():
+                    verseno = int(pair[0])
+                    if verseno > topverse:          # find the highest numbered verse
+                        topverse = verseno
+                verifyFile(fpath)
+            verifyFilename(path, fname)
+        if topverse + 5 < nverses and len(files) * 3 < len(en_files):
+            state.setPath(path)
+            reportError("Likely missing some files in: " + shortname(path))
 
 def verifyChapterName(book, path, chapter):
     ok = True
@@ -701,7 +720,7 @@ def verify_ta_article(dirpath):
         if not os.path.isfile(path):
             reportError("Missing file", False)
         else:
-            verifyLineEndings(path)
+            verifyTitleFileLineEndings(path)
     if len(os.listdir(dirpath)) > 3:
         reportError("Extraneous file(s) in: " + shortname(dirpath), False)
 
