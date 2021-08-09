@@ -1,16 +1,24 @@
 # -*- coding: utf-8 -*-
 # This program removes files from one location that have identical counterparts in another location.
-# I developed this script to eliminate the unchanged files from the source.
+# The occasion for it is that BCS frequently requests publishing of a resource that has been
+# only partially updated. I don't want to have to redo the cleanup of files that have already
+# been cleaned up and not updated from the field. So I developed this script to eliminate the
+# unchanged files from the source.
 #
+# AFTER RUNNING THIS SCRIPT
+# Remove the older folder and replace it with a complete clone of the updated repo
 
-updated_dir = r'C:\DCS\Russian\OBS-TN'    # new source folder, from which files will be removed
-older_dir = r'C:\DCS\Russian\OBS-TN.Mar21'  # make both of these paths as low level as possible to avoid removing too many files
+updated_dir = r'C:\DCS\Russian\TW.Jun-21'    # new source folder, from which files will be removed
+older_dir = r'C:\DCS\Russian\TW.May-21'  # make both of these paths as low level as possible to avoid removing too many files
 maxRemoved = 11111
 nRemoved = 0
 nLeft = 0
 
+#import re       # regular expression module
+#import io
 import os
 from filecmp import cmp
+#import string
 import sys
 
 # Compares the files and deletes the new file if they are identical
