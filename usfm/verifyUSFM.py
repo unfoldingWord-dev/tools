@@ -5,17 +5,20 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r'C:\DCS\English-WACS\en_udb.RPP'
-language_code = 'en'
+source_dir = r'C:\DCS\Assamese\ULB\Leviticus.usfm'
+language_code = 'as'
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
 suppress3 = True     # Suppress bad punctuation warnings
-suppress4 = True     # Suppress warnings about useless markers before section markers
+suppress4 = False     # Suppress warnings about useless markers before section markers
+suppress5 = False     # Suppress checks for verse counts
 suppress9 = False     # Suppress warnings about ASCII content
 
-if language_code in {'en','ha','hr','id','nag','pmy','sw'}:    # ASCII content
+if language_code in {'en','ha','hr','id','nag','pmy','sw','tpi'}:    # ASCII content
     suppress9 = True
+if language_code == 'ru':
+    suppress5 = True
 
 lastToken = None
 nextToken = None
@@ -492,7 +495,8 @@ def take(token):
     if token.isID():
         takeID(token.value)
     elif token.isC():
-        verifyVerseCount()  # for the preceding chapter
+        if not suppress5:
+            verifyVerseCount()  # for the preceding chapter
         if not state.ID:
             reportError("Missing book ID: " + state.reference)
             sys.exit(-1)
@@ -518,6 +522,8 @@ def take(token):
         state.addTitle(token.value)
         if token.isMT() and token.value.isascii() and not suppress9:
             reportError("mt token has ASCII value in " + state.reference)
+        if token.value.isupper():
+            reportError("Upper case book title in " + state.reference)
     elif token.isTOC3() and (len(token.value) != 3 or not token.value.isascii()):
         reportError("Invalid toc3 value in " + state.reference)
     elif token.isUnknown():
@@ -615,7 +621,8 @@ def verifyFile(path):
         n += 1
     emptyVerseCheck()       # checks last verse in the file
     verifyNotEmpty(path)
-    verifyVerseCount()      # for the last chapter
+    if not suppress5:
+        verifyVerseCount()      # for the last chapter
     verifyChapterCount()
     verifyFootnotes()
     state = State()
