@@ -8,15 +8,22 @@ subs = [
 	("http://ufw.io/[[rc://", "[[rc://"),
 	
 	# HTML / V-MAST section
+	("</ ", "</"),      #malformed html
+	("< ", "<"),      #malformed html
 	("&nbsp;", " "),
 	("&#34;", "\""),
 	("&#39;", "'"),
 	("<o:p>", ""),
 	("</o:p>", ""),
+	("<p>", "\n\n"),
+	("</p>", "\n"),
+	("<h1>", "\n# "),
+	("</h1>", "\n"),
 	
 #	("rc://en/", "rc://*/"),    now incorporated in md_cleanup.py
 	
 	("rc://*/obe/", "rc://*/tw/bible/"),
+	("rc: // en / ta / man / translate / ", "rc://*/ta/man/translate/"),
 #  these next few lines apply to a few languages
 #	(" figs-metaphor)", " [[rc://*/ta/man/translate/figs-metaphor]])"),
 #	(" figs-metaphor )", " [[rc://*/ta/man/translate/figs-metaphor]])"),
@@ -25,6 +32,9 @@ subs = [
 #	(" figs-synecdoche)", " [[rc://*/ta/man/translate/figs-synecdoche]])"),
 #	(" figs-synecdoche )", " [[rc://*/ta/man/translate/figs-synecdoche]])"),
 
+    ("# # # ", "# "),
+    ("# # ", "# "),
+    ("\\*", "*"),
  	("\\ [", "["),
  	("\\ ]", "]"),
  	("\\[", "["),
@@ -35,8 +45,8 @@ subs = [
 	(") [", "), ["),
 	(" \( ", " ("),
 	("/ )", "/)"),
-	("____", "__"),
-	("___", "__"),
+#	("____", "__"),
+#	("___", "__"),
 	("..md", ".md"),
 	(".jpg?direct&", ".jpg")    # OBS image links
 ]
