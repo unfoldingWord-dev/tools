@@ -2,19 +2,20 @@
 # This script produces one or more .usfm files in resource container format from valid USFM source text.
 # Chunk division and paragraph locations are based on an English resource container of the same Bible book.
 # Uses parseUsfm module.
-# This script was originally written for converting Kannada translated text in USFM format to the
-# official RC format.
 
 # The English RC folder is hard-coded in en_rc_dir.
 # The output folder is also hard-coded.
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
-source_dir = r'C:\DCS\English-WACS\ULB'
-target_dir = r'C:\DCS\English-WACS\en_ulb'
-en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
+source_dir = r'C:\DCS\Assamese\ULB'
+target_dir = r'C:\DCS\Assamese\as_ulb.work'
+#en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
+en_rc_dir = None    # Set to None if no chunk markers should be added
 
 projects = []
+translators = []
+source_versions = []
 lastToken = None
 issuesFile = None
 
@@ -31,6 +32,7 @@ import parseUsfm
 import io
 import codecs
 import re
+import yaml
 
 class State:
     ID = ""
@@ -48,6 +50,7 @@ class State:
     needVerseText = False
     needPp = None
     s5marked = False
+    s5sInFile = False   # True when the file already has s5 markers
     reference = ""
     usfmFile = 0
     chunks = []
@@ -123,12 +126,11 @@ class State:
         State.verse = 0
         State.needVerseText = False
         State.reference = State.ID + " " + c
-        State.chunks = loadChunks(State.ID, State.chapterPad)
+        if en_rc_dir:
+            State.chunks = loadChunks(State.ID, State.chapterPad)
         State.chunkIndex = 0
         State.needPp = "p"     # need \p marker after each \c marker
 
-        # State.s5marked = False
-        
     def addP(self):
         State.needPp = None
     
@@ -137,7 +139,7 @@ class State:
         State.needPp = tag
 
     def addS5(self):
-        State.s5marked = True
+        State.s5sInFile = True
 
     def addVerse(self, v):
         State.verse = int(v)
@@ -156,7 +158,7 @@ class State:
         State.s5marked = False
 
     def hasS5(self):
-        return State.s5marked
+        return (State.s5marked or State.s5sInFile)
 
     def needText(self):
         return State.needVerseText
@@ -178,6 +180,7 @@ class State:
         State.needVerseText = False
         State.needPp = "p"     # need at least one \p marker after \c 1 in each book
         State.s5marked = False
+        State.s5sInFile = False
         State.reference = ""
 
 chunk_re = re.compile(r'([0-9]{2,3}).usx')
@@ -483,9 +486,39 @@ def convertFolder(folder):
         elif fname[-3:].lower() == 'sfm':
             if convertFile(path, fname):
                 appendToProjects()
+                getContributors(folder)
             else:
                 reportError("File cannot be converted: " + fname)
-                
+
+# Reads list of contributors (translators) from manifest.yaml file if it exists.
+# Also gets source version.
+def getContributors(folder):
+    manifestpath = os.path.join(folder, 'manifest.yaml')
+    if os.path.isfile(manifestpath):
+        global translators
+        global source_versions
+        manifestFile = io.open(manifestpath, "tr", encoding='utf-8-sig')
+        manifest = yaml.safe_load(manifestFile)
+        manifestFile.close()
+        source_versions += manifest['dublin_core']['source'][0]['version']
+        translators += manifest['dublin_core']['contributor']
+      
+def dumpContributors():
+    global translators
+    contribs = list(set(translators))
+    contribs.sort()
+    path = os.path.join(target_dir, "translators.txt")
+    f = io.open(path, 'tw', encoding='utf-8', newline='\n')
+    for name in contribs:
+        f.write('    - "' + name + '"\n')
+    
+    # Also dump the list of source versions used
+    f.write('\n\nSource versions used:\n')
+    for version in source_versions:
+        f.write(version + ' ')
+    f.write('\n')
+    f.close()
+
 # Appends information about the current book to the global projects list.
 def appendToProjects():
     global projects
@@ -551,6 +584,7 @@ if __name__ == "__main__":
         source_dir = sys.argv[1]
     convertFolder(source_dir)
     dumpProjects()
+    dumpContributors()
     if issuesFile:
         issuesFile.close()
     print("\nDone.")
