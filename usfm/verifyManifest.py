@@ -49,7 +49,7 @@
 #
 
 # Globals
-manifestDir = r'C:\DCS\English-WACS\en_udb.RPP'
+manifestDir = r'C:\DCS\Assamese\as_ulb'
 nIssues = 0
 projtype = ''
 issuesFile = None
@@ -112,7 +112,12 @@ def countUsfmFiles():
 
 # Returns True if the specified string is a recognized Bible type of project type
 def isBibleType(id):
-    return (id in {'ulb', 'udb', 'ust', 'ult', 'iev','irv','isv','reg','glt','gst', \
+    return (isAlignedBibleType(id) or id in {'ulb','udb','reg'})
+
+# Returns True if the specified string is a recognized Aligned Bible type of project type
+# Preliminary implementation - list needs refinement (6/21/21)
+def isAlignedBibleType(id):
+    return (id in {'ust', 'ult', 'iev','irv','isv','glt','gst', \
                    'rlb','rob','rlob','rsb','rsob','stv','trs','rlv','ocb','gnt'})
 
 # This function validates the project entries for a tA project.
@@ -315,9 +320,9 @@ def verifyFormat(core):
         elif isBibleType(projtype):
             if format not in {'text/usfm', 'text/usfm3'}:
                 reportError("Invalid format: " + format)
-        elif projtype in {'ust','irv','glt','glt','gst'}:
-            if format != 'text/usfm3':
-                reportError("Invalid format: " + format)
+            if projtype in {'ust','irv','glt','glt','gst','rob','rlob','rsob'}:
+                if format != 'text/usfm3':
+                    reportError("Invalid format: " + format + ". Expected 'text/usfm3'.")
         else:
             reportError("Unable to validate format because script does not yet support project type: " + projtype)
             
@@ -342,10 +347,10 @@ def verifyIdentifier(core):
 # Verify that the specified fields exist and no others.
 def verifyKeys(group, dict, keys):
     for key in keys:
-        if key not in list(dict.keys()):      # would this work: key not in dict
+        if key not in dict:
             reportError('Missing field: ' + group + ':' + key)
     for field in dict:
-        if field not in keys:
+        if field not in keys and (field != "comment" or group != "dublin_core"):    # dublin_core:comment is optional
             reportError("Extra field: " + group + ":" + field)
 
 # Validate the language field and its subfields.
@@ -567,8 +572,11 @@ def verifyStringField(dict, key, minlength):
 
 # Validates the subject field
 def verifySubject(subject):
-    if isBibleType(projtype) and subject not in {'Bible', 'Aligned Bible'}:
-        reportError("Invalid subject: " + subject + " (expected 'Bible' or 'Aligned Bible')")
+    if isBibleType(projtype):
+        if subject not in {'Bible', 'Aligned Bible'}:
+            reportError("Invalid subject: " + subject + " (expected 'Bible' or 'Aligned Bible')")
+        elif isAlignedBibleType(projtype) and subject != "Aligned Bible":
+            reportError("Invalid subject: " + subject + " (expected 'Aligned Bible')")
         expected_subject = subject  # to avoid redundant error msgs
     elif projtype == 'ta':
         expected_subject = 'Translation Academy'
