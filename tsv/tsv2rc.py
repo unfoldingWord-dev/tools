@@ -17,9 +17,9 @@
 
 # Global variables
 source_dir = r'C:\DCS\Russian\TN'
-target_dir = r'C:\DCS\Russian\ru_tn.STR'
+target_dir = r'C:\DCS\Russian\ru_tn.work'
 language_code = 'ru'
-english_dir = r'C:\DCS\English\en_tn.v46'    # latest English tN from https://git.door43.org/Door43-Catalog/en_tn
+english_dir = r'C:\DCS\English\en_tn.v49'    # latest English tN from https://git.door43.org/Door43-Catalog/en_tn
 
 book = ''
 chapter = 0
@@ -231,7 +231,7 @@ def dumpProjects():
     for p in projects:
         manifest.write("  -\n")
         manifest.write("    title: '" + p['title'] + "'\n")
-        manifest.write("    versification: ''\n")
+        manifest.write("    versification: 'ufw'\n")
         manifest.write("    identifier: '" + p['id'] + "'\n")
         manifest.write("    sort: " + str(p['sort']) + "\n")
         manifest.write("    path: '" + p['path'] + "'\n")
