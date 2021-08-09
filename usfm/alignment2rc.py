@@ -11,7 +11,7 @@ import os
 
 # Global variables
 source_dir = r'C:\DCS\Russian\RSOB'   # folder containing usfm files to be converted
-target_dir = r'C:\DCS\Russian\ru_rsob.temp'
+target_dir = r'C:\DCS\Russian\ru_rsob.STR'
 projects = []
 contributors = []
 checkers = []
@@ -319,7 +319,7 @@ def appendToProjects():
     testament = 'nt'
     if sort < 40:
         testament = 'ot'
-    project = { "title": state.title, "id": state.ID.lower(), "sort": sort, \
+    project = { "title": state.toc2, "id": state.ID.lower(), "sort": sort, \
                 "path": "./" + makeUsfmFilename(state.ID), \
                 "categories": "[ 'bible-" + testament + "' ]" }
     projects.append(project)
