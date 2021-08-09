@@ -5,10 +5,10 @@
 #    Uses convert2md.md2md() to convert links and things.
 
 # Global variables
-source_dir = r'C:\DCS\English-WACS\TW/bible'      # Source and target directories must be at the same level
-target_dir = r'C:\DCS\English-WACS\en_tw.work/bible'
-language_code = 'en'
-resource_type = 'tw'    # should be ta or tw
+source_dir = r'C:\DCS\Assamese\TA\Stage 2'      # Source and target directories must be at the same level
+target_dir = r'C:\DCS\Assamese\as_ta'
+language_code = 'as'
+resource_type = 'ta'    # should be ta or tw
 
 import re
 import io
@@ -57,7 +57,7 @@ def copyFile(fname, fullpath):
             os.rename(targetPath, bakpath)
     copy(fullpath, targetDir)       # copy() is from shutil
 
-# Copy file with minimal change: ensure only one trailing newline
+# Copy file with minimal change: ensure no trailing newline
 def stripcopy(fname, fullpath):
     input = io.open(fullpath, "tr", 1, encoding="utf-8-sig")
     text = input.read().rstrip()
@@ -65,7 +65,7 @@ def stripcopy(fname, fullpath):
     targetDir = makeTargetDir(fullpath)
     mdPath = os.path.join(targetDir, fname)
     output = io.open(mdPath, "tw", encoding="utf-8")
-    output.write(text + '\n')
+    output.write(text)
     output.close    
 
 # Converts .md file in fullpath location to .md file in target dir.
