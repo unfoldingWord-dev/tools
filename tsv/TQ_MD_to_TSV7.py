@@ -10,11 +10,13 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-06-02 by RJH
+#   Last modified: 2021-09-03 by RJH
 #
 """
 Quick script to copy TQ from markdown files
     and put into a TSV file with the new format (7 columns).
+
+The script assumes local clones of DCS repos -- it doesn't use internet.
 
 Note that each run of this script tries to read any existing TSV files
     so that it can reuse the same ID fields where possible.
@@ -27,11 +29,15 @@ import re
 import logging
 
 
-LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
-LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_tq/')
+# LANGUAGE_CODE = 'en'
+# LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
+LANGUAGE_CODE = 'ru'
+LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/Door43-Catalog_repos/')
+
+LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath(f'{LANGUAGE_CODE}_tq/')
 
 # The output folder below must also already exist!
-LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_tq2/')
+LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath(f'{LANGUAGE_CODE}_tq2/')
 
 BBB_NUMBER_DICT = {'GEN':'01','EXO':'02','LEV':'03','NUM':'04','DEU':'05',
                 'JOS':'06','JDG':'07','RUT':'08','1SA':'09','2SA':'10','1KI':'11',
@@ -129,7 +135,7 @@ def get_source_questions(BBB:str, nn:str) -> Tuple[str,str,str,str,str]:
     """
     bbb = BBB.lower()
     source_folderpath = LOCAL_SOURCE_FOLDERPATH.joinpath(f'{bbb}/')
-    print(f"      Getting source lines from {source_folderpath}")
+    print(f"      Getting source lines from {source_folderpath}…")
 
     book_info_line = BOOK_INFO_DICT[bbb]
     verses_per_chapter = book_info_line['chapters']
@@ -144,30 +150,42 @@ def get_source_questions(BBB:str, nn:str) -> Tuple[str,str,str,str,str]:
                 # print(f"Not found {filepath}")
                 continue
 
-            state = 0
+            state = 'Waiting for question'
             question = response = None
             with open(filepath, 'rt') as mdFile:
                 for line_number,line in enumerate(mdFile, start=1):
                     line = line.rstrip() # Remove trailing whitespace including nl char
                     # print(f"  line={line}")
-                    if not line: continue # Ignore blank lines
+                    if not line:
+                        if state == 'Got answer':
+                            state = 'Waiting for question'
+                        else:
+                            assert state == 'Waiting for answer', f"Didn't expect blank line in {filepath} at state '{state}'"
+                        continue # Ignore blank lines
                     if line.startswith('# '):
-                        if state == 0:
+                        if state == 'Waiting for question':
+                            if question and response: # We already have a question
+                                yield BBB,C,V, question,response
+                                question = response = None
                             assert not question
                             assert not response
                             question, response = line[2:], None
-                            state = 1
+                            state = 'Waiting for answer'
                             continue
                         else: programmer_error
-                    elif state == 1:
+                    elif state == 'Waiting for answer':
                         assert question
                         assert not response
                         response = line
-                        state = 0
-                        yield BBB,C,V, question,response
-                        question = response = None
+                        state = 'Got answer'
                     else:
-                        logging.error(f"Losing {state} {filepath} line {line_number}: '{line}'");
+                        if state == 'Got answer':
+                            response = f'{response} {line}' # Append continuer line
+                        else:
+                            logging.error(f"Losing {filepath} line {line_number}: '{line}' at state '{state}'");
+            if response:
+                assert question
+                yield BBB,C,V, question,response
 # end of get_source_questions function
 
 
@@ -196,7 +214,11 @@ def make_TSV_file(BBB:str, nn:str) -> int:
         print(f"      Loaded {len(original_TSV_TQ_lines):,} lines from previous version of {output_filepath}")
         # print(original_TSV_TQ_lines[:10])
     except Exception as e:
-        print(f"      Failed to load {output_filepath}: {e}")
+        if 'No such file' in str(e):
+            print(f"      No existing file to preload row IDs: {output_filepath}")
+        else:
+            print(f"      Failed to load {output_filepath}: {e}")
+        print(f"        Will generate all new row IDs!")
         original_TSV_TQ_lines = []
 
     def get_rowID(reference:str, tags:str, quote:str, occurrence:str, qr:str) -> str:
@@ -231,7 +253,8 @@ def make_TSV_file(BBB:str, nn:str) -> int:
             while generated_id in previously_generated_ids:
                 generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
             previously_generated_ids.append(generated_id)
-            print(f"        Returning generated id for {BBB} {reference}: {generated_id} '{question}'")
+            if len(original_TSV_TQ_lines) > 0: # we don't print this message if we're generating ALL of the  new row IDs
+                print(f"        Returning generated id for {BBB} {reference}: {generated_id} '{question}'")
             return generated_id
     #end of make_TSV_file.get_rowID function
 
@@ -371,7 +394,7 @@ def make_TSV_file(BBB:str, nn:str) -> int:
                 num_written_questions += 1
 
     aux_string = f" (including {num_with_ranges} with verse ranges)" if num_with_ranges else ''
-    print(f"      {num_written_questions:,} seven-column questions and response lines written{aux_string}")
+    print(f"      {num_written_questions:,} TSV7 questions and response lines written{aux_string}")
     return num_written_questions
 # end of make_TSV_file function
 
@@ -384,6 +407,7 @@ def main():
     print(f"  Output folderpath is {LOCAL_OUTPUT_FOLDERPATH}/")
     total_questions = 0
     for BBB,nn in BBB_NUMBER_DICT.items():
+        # if BBB != '1TH': continue # Only process this one book
         question_count = make_TSV_file(BBB,nn)
         total_questions += question_count
     print(f"    {total_questions:,} total questions and responses written to {LOCAL_OUTPUT_FOLDERPATH}/")
