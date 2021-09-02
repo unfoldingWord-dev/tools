@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Nov 2020 by RJH
-#   Last modified: 2021-05-25 by RJH
+#   Last modified: 2021-09-01 by RJH
 #
 """
 Quick script to copy TN from 7-column TSV files
@@ -174,6 +174,7 @@ def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:st
                     except KeyError:
                         logging.error(f"Unable to find GLQuote for {BBB} {C}:{V} {rowID} '{orig_quote}'")
                         fail_count += 1
+                    gl_quote = gl_quote.replace('…',' … ').replace('  ',' ') # Put space around ellipsis in field intended for human readers
                     output_TSV_file.write(f'{B}\t{C}\t{V}\t{rowID}\t{support_reference}\t{orig_quote}\t{occurrence}\t{gl_quote}\t{occurrence_note}')
 
     os.remove(temp_output_filepath)
@@ -196,8 +197,12 @@ def main():
     total_GLQuote_failures = 0
     failed_book_list = []
     for BBB,nn in BBB_NUMBER_DICT.items():
-        # if BBB != 'TIT': continue # Just process this one book
-        if BBB not in ('MAT','MRK','JHN','ROM','1CO','2CO','GAL','EPH','PHP','COL','1TH','2TH','1TI','2TI','TIT','PHM','HEB','1PE','2PE','1JN','2JN','3JN','JUD','REV'): continue # Just process most NT books
+        if BBB != 'EZR': continue # Just process this one book
+        # if BBB not in ('MAT','MRK','LUK','JHN', 'ACT',
+        #                 'ROM','1CO','2CO','GAL','EPH','PHP','COL',
+        #                 '1TH','2TH','1TI','2TI','TIT','PHM',
+        #                 'HEB','JAS','1PE','2PE','1JN','2JN','3JN','JUD','REV'):
+        #     continue # Just process NT books
         try:
             lines_read, this_note_count, fail_count = convert_TN_TSV(LOCAL_SOURCE_FOLDERPATH, LOCAL_OUTPUT_FOLDERPATH, BBB, nn)
         except Exception as e:
