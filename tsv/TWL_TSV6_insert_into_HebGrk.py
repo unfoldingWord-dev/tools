@@ -10,7 +10,9 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Apr 2021 by RJH
-#   Last modified: 2021-08-17 by RJH
+#   Last modified: 2021-09-14 by RJH
+#
+#   Modified 2021-09-14 by RJH to presort TWLs before applying
 #
 """
 Quick script to:
@@ -52,13 +54,11 @@ debugMode = False # Enables lots more debugging output
 debugMode2 = False # Enables lots more debugging output again
 
 
-def get_USFM_source_lines(BBB:str, nn:str) -> Tuple[Path,int,int,int,str]:
+verse_words_list_dict = {}
+def read_USFM_file(BBB:str, nn:str) -> Tuple[Path,List[str]]:
     """
-    Generator to read the original language (Heb/Grk) book
-        and return all lines but with x-tw links removed.
-
-    Yields a 4-tuple with:
-        source_filepath line_number C V line
+    Function to read the original language (Heb/Grk) book
+        and return all lines
     """
     source_folderpath = LOCAL_OT_FOLDERPATH if int(nn)<40 \
                     else LOCAL_NT_FOLDERPATH # Select HEB or GRK repo
@@ -66,48 +66,91 @@ def get_USFM_source_lines(BBB:str, nn:str) -> Tuple[Path,int,int,int,str]:
     source_filepath = source_folderpath.joinpath(source_filename)
     # print(f"    Getting USFM source lines from {source_filepath}…")
 
-    C = V = 0
+    C = V = '0'
+    source_lines = []
+    verse_words_list = []
+    verse_words_list_dict.clear()
     with open(source_filepath, 'rt') as source_usfm_file:
-        for line_number,line in enumerate(source_usfm_file, start=1):
-            line = line.rstrip() # Remove trailing whitespace including nl char
+        for usfm_line in source_usfm_file:
+            usfm_line = usfm_line.rstrip() # Remove trailing whitespace including nl char
             # if not line: continue # Ignore blank lines
             # print(f"Read USFM {BBB} line {line_number:3}: '{line}'")
+            source_lines.append(usfm_line)
 
             # Keep track of where we are at
-            if line.startswith('\\c '):
-                C, V = int(line[3:]), 0
-            elif line.startswith('\\v '):
-                V = int(line[3:])
-            elif C == 0:
-                V += 1
+            # Note: we use strings for C & V so should handle verse ranges ok
+            if usfm_line.startswith('\\c '):
+                if verse_words_list:
+                    verse_words_list_dict[f'{C}:{V}'] = verse_words_list
+                    verse_words_list = []
+                C, V = usfm_line[3:], '0'
+            elif usfm_line.startswith('\\v '):
+                if verse_words_list:
+                    verse_words_list_dict[f'{C}:{V}'] = verse_words_list
+                    verse_words_list = []
+                V = usfm_line[3:]
+            elif C == '0':
+                if verse_words_list:
+                    verse_words_list_dict[f'{C}:{V}'] = verse_words_list
+                    verse_words_list = []
+                V = str(int(V)+1)
 
-            # if line and not line.startswith('\\'): print(f"Found {source_filepath}, {line_number}, {C}:{V}, '{line}'"); halt
+            # Collect a list of words for each verse
+            line_words = re.findall(r'\\w ([^|]+?)\|', usfm_line)
+            # if debugMode: print(f"{line_words=}")
+            verse_words_list.extend(line_words)
+    if verse_words_list:
+        verse_words_list_dict[f'{C}:{V}'] = verse_words_list
 
-            # print(f"        get_USFM_source_lines returning {source_filepath} {line_number}, {C}, {V}, '{line}'")
-            yield source_filepath, line_number, C, V, line
-# end of get_USFM_source_lines function
+    return source_filepath, source_lines
+# end of read_USFM_file function
 
 
-def adjust_USFM_line(raw_fields:Tuple[Path,int,int,int,str]) -> Tuple[Path,int,int,str,int,str,str,str]:
+def generate_USFM_source_lines(source_lines: List[str]) -> Tuple[int,int,int,str]:
+    """
+    Generator to read the original language (Heb/Grk) book
+        and return all lines
+
+    Yields a 3-tuple with:
+        line_number C V line
+    """
+    C = V = 0
+    for line_number,line in enumerate(source_lines, start=1):
+        # Keep track of where we are at
+        if line.startswith('\\c '):
+            C, V = int(line[3:]), 0
+        elif line.startswith('\\v '):
+            V = int(line[3:])
+        elif C == 0:
+            V += 1
+
+        # if line and not line.startswith('\\'): print(f"Found {source_filepath}, {line_number}, {C}:{V}, '{line}'"); halt
+
+        # print(f"        generate_USFM_source_lines returning {source_filepath} {line_number}, {C}, {V}, '{line}'")
+        yield line_number, C, V, line
+# end of generate_USFM_source_lines function
+
+
+def adjust_USFM_line(raw_fields:Tuple[int,int,int,str]) -> Tuple[int,int,int,str,str,str]:
     """
     Takes the raw USFM line, then
         1/ Splits the line into marker (including leading backslash) and rest
         2/ Removes existing x-tw="..." links
-        3/ Removes \k milestones (possibly leaving blank lines)
+        3/ Removes k-s/k-e milestones (possibly leaving blank lines)
     """
     # print(f"      adjust_USFM_line({raw_fields})…")
-    source_filepath, line_number, C, V, line = raw_fields
+    line_number, C, V, line = raw_fields
 
     # Handle special case
     if line == '\\k-e\\*': # only
         # we want to delete the entire line (rather than leaving in a superfluous blank line)
-        return source_filepath, line_number, C, V, 'SKIP', 'SKIP', 'SKIP'
+        return line_number, C, V, 'SKIP', 'SKIP', 'SKIP'
 
     # Remove existing TW links from USFM line
     if 'x-tw' in line:
         line = re.sub(' ?x-tw=".+?"', '', line)
         if 'x-tw' in line: # likely a missing closing quote or something
-            raise Exception(f"Seems bad USFM line -- please fix first -- in: {source_filepath} line{line_number}, {C}:{V}, '{raw_fields[4]}'")
+            raise Exception(f"Seems bad USFM line -- please fix first -- in line {line_number}, {C}:{V}, '{raw_fields[3]}'")
 
     # Remove \k start and end milestones from line
     line = line.replace('\\k-s |\\*', '')
@@ -122,11 +165,102 @@ def adjust_USFM_line(raw_fields:Tuple[Path,int,int,int,str]) -> Tuple[Path,int,i
     else: marker, rest = '', line
     # print(f"        adjust_USFM_line returning {source_filepath}, {line_number}, {C}, {V} '{marker}', '{rest}'")
 
-    return source_filepath, line_number, C, V, line, marker, rest
+    return line_number, C, V, line, marker, rest
 # end of adjust_USFM_line function
 
 
-def get_TWL_TSV_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str,str,int,str]:
+def read_TWL_file(input_folderpath:Path, BBB:str) -> List[List[str]]:
+    """
+    Function to read the TWL 6-column TSV file for a given book (BBB)
+    """
+    input_filepath = input_folderpath.joinpath(f'twl_{BBB}.tsv')
+    # print(f"    Loading TWL {BBB} links from 6-column TSV at {input_filepath}…")
+    source_fields_list = []
+    with open(input_filepath, 'rt') as input_TSV_file:
+        for line in input_TSV_file:
+            line = line.rstrip('\n\r')
+            source_fields_list.append(line.split('\t'))
+
+    def make_TWL_line_key(line_data: List[str]) -> str:
+        """
+        The sort function for TWL lines
+
+        We put headings first,
+            then sort by C:V and word order from original UHB/UGNT text
+        """
+        if ':' not in line_data[0]: return '000' # Usually only the header line
+
+        def clean_word(word: str) -> str:
+            """
+            Remove trailing punctuation, e.g., trailing comma
+            """
+            assert word, f"clean_word expected a non-blank word from {BBB} {reference} '{orig_TWL_words}'"
+            while word[-1] in ',.!?”': word = word[:-1] # NOTE: We don't remove final single apostrophe
+            return word
+        # end of clean_word function
+
+        reference, _rowID, _tags, orig_TWL_words, occurrence, _TWLink = line_data
+        assert orig_TWL_words, f"make_TWL_line_key expected a non-blank word from {line_data}"
+        C, V = reference.split(':')
+        verse_words_list = verse_words_list_dict[reference]
+        # print(f"{C}:{V} '{orig_TWL_words}' ('{occurrence}') {verse_words_list}")
+        suffix = '1'
+        try:
+            if occurrence=='1' and ' ' not in orig_TWL_words and '־' not in orig_TWL_words: # most of the time
+                orig_TWL_word = clean_word(orig_TWL_words)
+                word_order = verse_words_list.index(orig_TWL_word)
+                # print(f"\nGot word order {word_order} for {line_data} in {verse_words_list}\n")
+            elif ' ' not in orig_TWL_words and '־' not in orig_TWL_words: # must be a higher occurrence number
+                orig_TWL_word = clean_word(orig_TWL_words)
+                occurrence = int(occurrence)
+                word_order = -1
+                while (occurrence > 0): # find the correct occurrence of the word
+                    word_order = verse_words_list.index(orig_TWL_word, word_order+1)
+                    # print(f"Got temp word order {word_order} for '{orig_TWL_words}' ({occurrence}) in {verse_words_list}\n")
+                    occurrence -= 1
+                # print(f"\nGot word order {word_order} for {line_data} in {verse_words_list}\n")
+            else: # must have a space in the words
+                # print(f"{C}:{V} multiword '{orig_TWL_words}' ('{occurrence}') in {verse_words_list}")
+                orig_TWL_words_list = orig_TWL_words.replace('־',' ').split(' ')
+                if occurrence == '1':
+                    clean_first_TWL_word = clean_word(orig_TWL_words_list[0])
+                    word_order = verse_words_list.index(clean_first_TWL_word)
+                else:
+                    occurrence = int(occurrence)
+                    word_order = -1
+                    clean_first_TWL_word = clean_word(orig_TWL_words_list[0])
+                    while (occurrence > 0): # find the correct occurrence of the first word
+                        word_order = verse_words_list.index(clean_first_TWL_word, word_order+1)
+                        # print(f"Got temp word order {word_order} for '{orig_TWL_words}' ({occurrence}) in {verse_words_list}\n")
+                        occurrence -= 1
+                # print(f"Got temp word order {word_order} for '{orig_TWL_words}' ({occurrence}) in {verse_words_list}\n")
+                while True: # Check that the remaining words also follow
+                    for offset, orig_TWL_word in enumerate(orig_TWL_words_list[1:], start=1):
+                        clean_TWL_word = clean_word(orig_TWL_word)
+                        if verse_words_list[word_order+offset] != clean_TWL_word: # must have been the wrong occurrence
+                            word_order = verse_words_list.index(clean_first_TWL_word, word_order+1)
+                            break # from for
+                    else: # did not break above, so must be all ok
+                        break # from while
+                word_order = word_order + len(orig_TWL_words_list) -1 # We use the index of the LAST word here
+                suffix = str(len(orig_TWL_words_list))
+        except ValueError as e:
+            # One of the .index() functions above probably failed
+            print(f"sort_TWL_lines: FAILED to find {BBB} {reference} '{orig_TWL_words}' ({occurrence}) in {verse_words_list}")
+            return '999'
+        return f'{C.zfill(3)}{V.zfill(3)}{str(word_order).zfill(2)}{suffix.zfill(2)}'
+    # end of sort_TWL_lines function
+
+    sorted_source_fields_list = sorted(source_fields_list, key=make_TWL_line_key)
+    # test_reference = '3:34'
+    # print(verse_words_list_dict[test_reference])
+    # for fields_list in sorted_source_fields_list:
+    #     if fields_list[0] == test_reference: print(fields_list)
+    return sorted_source_fields_list
+# end of read_TWL_file function
+
+
+def get_TWL_TSV_fields(source_TSV_lines: List[str]) -> Tuple[str,str,str,str,int,str]:
     """
     Generator to read the TWL 6-column TSV file for a given book (BBB)
         and return the needed fields.
@@ -137,24 +271,20 @@ def get_TWL_TSV_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str,str,
     Returns a 6-tuple with:
         reference, rowID, tags, orig_TWL_words, occurrence, TWLink
     """
-    input_filepath = input_folderpath.joinpath(f'twl_{BBB}.tsv')
-    # print(f"    Loading TWL {BBB} links from 6-column TSV at {input_filepath}…")
-    with open(input_filepath, 'rt') as input_TSV_file:
-        for line_number, line in enumerate(input_TSV_file, start=1):
-            line = line.rstrip('\n\r')
-            # print(f"Read TWL {BBB} line {line_number:3}: '{line}'")
-            if line_number == 1:
-                assert line == 'Reference\tID\tTags\tOrigWords\tOccurrence\tTWLink', f"Not the expected header: Got '{line}'"
-            else:
-                reference, rowID, tags, orig_TWL_words, occurrence, TWLink = line.split('\t')
-                assert reference; assert rowID; assert orig_TWL_words; assert occurrence; assert TWLink # tags is optional
-                assert ':' in reference, f"reference should have a colon: '{reference}'"
-                assert len(rowID) == 4, f"rowID should be four characters: '{rowID}'"
-                assert occurrence.isdigit(), f"occirrence should be digits: '{occurrence}'"
-                assert TWLink.startswith('rc://*/tw/dict/bible/')
-                assert TWLink.count('/') == 7, f"Expected 7 slashes, not {TWLink.count('/')} in '{TWLink}'"
-                # print(f"get_TWL_TSV_fields returning {reference}, {rowID}, {tags}, {orig_TWL_words}, {occurrence}, {TWLink}")
-                yield reference, rowID, tags, orig_TWL_words, int(occurrence), TWLink
+    for line_number, line in enumerate(source_TSV_lines, start=1):
+        # print(f"Read TWL {BBB} line {line_number:3}: '{line}'")
+        if line_number == 1:
+            assert line == ['Reference','ID','Tags','OrigWords','Occurrence','TWLink'], f"Not the expected header: Got '{line}'"
+        else:
+            reference, rowID, tags, orig_TWL_words, occurrence, TWLink = line
+            assert reference; assert rowID; assert orig_TWL_words; assert occurrence; assert TWLink # tags is optional
+            assert ':' in reference, f"reference should have a colon: '{reference}'"
+            assert len(rowID) == 4, f"rowID should be four characters: '{rowID}'"
+            assert occurrence.isdigit(), f"occirrence should be digits: '{occurrence}'"
+            assert TWLink.startswith('rc://*/tw/dict/bible/'), f"TWLink is wrong: '{TWLink}'"
+            assert TWLink.count('/') == 7, f"Expected 7 slashes, not {TWLink.count('/')} in '{TWLink}'"
+            # print(f"get_TWL_TSV_fields returning {reference}, {rowID}, {tags}, {orig_TWL_words}, {occurrence}, {TWLink}")
+            yield reference, rowID, tags, orig_TWL_words, int(occurrence), TWLink
 # end of get_TWL_TSV_fields function
 
 
@@ -179,10 +309,16 @@ def handle_book(BBB:str, nn:str) -> Tuple[int,int]:
     The function that handles all of the hard work for the given book
     """
     print(f"  Processing ({nn}) {BBB}…")
-    simple_TWL_count = complex_TWL_count = 0
 
-    USFM_source_generator = get_USFM_source_lines(BBB, nn) # It finds its own Heb or Grk folderpath
-    TWL_source_generator = get_TWL_TSV_fields(LOCAL_TWL_SOURCE_FOLDERPATH, BBB)
+    # Firstly we need to read the original language text and then sort our TWL links into the correct order by B/C/V and by word/occurrence in each verse
+    source_filepath, all_USFM_source_lines = read_USFM_file(BBB, nn) # It finds its own Heb or Grk folderpath
+    all_TWL_source_lines = read_TWL_file(LOCAL_TWL_SOURCE_FOLDERPATH, BBB)
+
+    # The remainder of this function inserts x-tw attributes (and some k-s milestones for multi-word links)
+    #   into the UHB or UGNT source files
+    simple_TWL_count = complex_TWL_count = 0
+    USFM_source_line_generator = generate_USFM_source_lines(all_USFM_source_lines)
+    TWL_source_line_generator = get_TWL_TSV_fields(all_TWL_source_lines)
 
     new_USFM_lines = []
     current_usfm_V = -1
@@ -197,9 +333,9 @@ def handle_book(BBB:str, nn:str) -> Tuple[int,int]:
         if handled_USFM_line and not finished_USFM:
             if not finished_TWL: assert added_origL_words
             try:
-                source_filepath, usfm_line_number, usfm_C, usfm_V, usfm_line, usfm_marker, usfm_rest = adjust_USFM_line(next(USFM_source_generator))
+                usfm_line_number, usfm_C, usfm_V, usfm_line, usfm_marker, usfm_rest = adjust_USFM_line(next(USFM_source_line_generator))
                 if usfm_line == 'SKIP': # This means that it was an end milestone and we want to delete the entire (now blank) line
-                    source_filepath, usfm_line_number, usfm_C, usfm_V, usfm_line, usfm_marker, usfm_rest = adjust_USFM_line(next(USFM_source_generator))
+                    usfm_line_number, usfm_C, usfm_V, usfm_line, usfm_marker, usfm_rest = adjust_USFM_line(next(USFM_source_line_generator))
                 if debugMode: print(f"Got USFM {source_filepath} {usfm_line_number} {usfm_C}:{usfm_V} {current_usfm_V=} '{usfm_line}' with {len(outstanding_TWL_orig_words_list)} {outstanding_TWL_orig_words_list} and {len(origLang_words_in_this_USFM_verse)} {origLang_words_in_this_USFM_verse}")
                 assert usfm_line != 'SKIP'
                 handled_USFM_line = False
@@ -213,7 +349,7 @@ def handle_book(BBB:str, nn:str) -> Tuple[int,int]:
         # Get a new TWL line if necessary
         if handled_TWL_line and not finished_TWL:
             try:
-                twl_C, twl_V, orig_TWL_words, occurrence, tw_category, tw_word = adjust_TWL_TSV_fields(next(TWL_source_generator))
+                twl_C, twl_V, orig_TWL_words, occurrence, tw_category, tw_word = adjust_TWL_TSV_fields(next(TWL_source_line_generator))
                 if debugMode: print(f"Got TWL {BBB} {twl_C}:{twl_V}, '{orig_TWL_words}', {occurrence}, '{tw_category}/{tw_word}' with {len(outstanding_TWL_orig_words_list)} {outstanding_TWL_orig_words_list} and {len(origLang_words_in_this_USFM_verse)} {origLang_words_in_this_USFM_verse}")
                 handled_TWL_line = False
             except StopIteration:
@@ -414,7 +550,7 @@ def handle_book(BBB:str, nn:str) -> Tuple[int,int]:
                                         if debugMode and debugMode2: print(f"Got {len(old_line_word_indexes)} re matches: {old_line_word_indexes=}")
                                         assert len(old_line_word_indexes) == 1, f"Didn't expect the same word twice in one line: {len(old_line_word_indexes)}"
                                         char_index = old_line_word_indexes[0]
-                                        if debugMode and debugMode2: print(f"Got {char_index=}")
+                                        if debugMode and debugMode2: print(f"Got {char_index=} from {old_line_word_indexes}")
                                         new_USFM_lines[start_at_line_offset-next_line_offset] = f'{old_line_contents[:char_index]}\\k-s |x-tw="rc://*/tw/dict/bible/{tw_category}/{tw_word}"\\*{old_line_contents[char_index:]}'
                                     break
                                 next_line_offset += 1
@@ -433,7 +569,7 @@ def handle_book(BBB:str, nn:str) -> Tuple[int,int]:
                 handled_USFM_line = True
                 continue
 
-        raise Exception(f"Why are we looping in {BBB} USFM {usfm_C}:{usfm_V} with TWL {twl_C}:{twl_V} '{orig_TWL_words}'")
+        raise Exception(f"Why are we looping in {BBB} USFM {usfm_C}:{usfm_V} with TWL {twl_C}:{twl_V} '{orig_TWL_words}': {tw_word}")
 
     # if new_USFM_lines: print(f"Created USFM ({len(new_USFM_lines)}): {new_USFM_lines}")
     # assert finished_USFM and finished_TWL
@@ -473,7 +609,7 @@ def main():
         #         'ZEP','HAG','ZEC','MAL'): continue # Skip OT
         # if BBB in ('MAT','MRK','LUK','JHN','ACT','ROM','1CO','2CO','GAL','EPH','PHP','COL','1TH','2TH','1TI','2TI','TIT','PHM','HEB','JAS','1PE','2PE','1JN','2JN','3JN','JUD','REV'):
         #     continue # Skip NT
-        # if BBB != '1PE': continue # only process this one book
+        # if BBB != 'LUK': continue # only process this one book
         try:
             simple_count, complex_count = handle_book(BBB, nn)
             total_simple_links += simple_count
