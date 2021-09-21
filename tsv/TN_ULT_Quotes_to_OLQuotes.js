@@ -9,6 +9,10 @@ const { rejigAlignment } = require('uw-proskomma/src/utils/rejig_alignment');
 const { pruneTokens, slimSourceTokens } = require('uw-proskomma/src/utils/tokens');
 const { UWProskomma } = require('uw-proskomma/src/index');
 
+// Adapted from TN_TSV7_OLQuotes_to_ULT_GLQuotes.js by RJH Sept 2021
+//  and using some of that code
+// const { getDocuments } = require('./TN_TSV7_OLQuotes_to_ULT_GLQuotes');
+
 
 // Adapted from https://github.com/unfoldingWord-box3/uw-proskomma/blob/main/src/utils/download.js May 2021
 // Changed to accept testament as a parameter, and to only load the correct repo -- UHB or UGNT
@@ -144,18 +148,19 @@ const doAlignmentQuery = async pk => {
 // Adapted from https://github.com/unfoldingWord-box3/uw-proskomma/blob/main/src/utils/search.js May 2021
 /**
  *
- * @param {string} origString -- the string of original language words being searched for (may include ellipsis)
- * @returns a list of 2-tuples with (origWord, flag if origWord follows an ellipsis)
+ * @param {string} ULTString -- the string of ULT words being searched for (may include ellipsis)
+ * @param {Array} ULTTokens -- ULT token objects with many fields
+ * @returns a list of 3-tuples with (ULTWord, flag if ULTWord follows an ellipsis, scopes array)
  */
-const searchOrigLWordRecords = origString => {
-    // console.log(`searchOrigLWordRecords = ('${origString}')…`);
+const searchULTWordRecords = (ULTString, ULTTokens) => {
+    // console.log(`searchULTWordRecords = ('${ULTString}', (${ULTTokens.length}), ${JSON.stringify(ULTTokens)})…`);
 
     const ret = [];
-    for (let searchExpr of xre.split(origString, /[\s־]/)) {
-        // The UHB/UGNT "sourceTokens" have all punctuation (incl. word punctuation) as separate tokens!
+    for (let searchExpr of xre.split(ULTString, /[\s־]/)) {
+        // The ULT "sourceTokens" have all punctuation (incl. word punctuation) as separate tokens!
         // So remove sentence punctuation (incl. all apostrophes!) from our individual search words
         // Added 'all' scope flag below to handle words with multiple punctuation marks to be removed, e.g. "(word),"
-        searchExpr = xre.replace(searchExpr, /[(),’?:;.!׃]/, '', 'all'); // Added colon and parentheses -- last char is Hebrew sof pasuq
+        searchExpr = xre.replace(searchExpr, /[(),’?:;.!]/, '', 'all'); // Added colon and parentheses
         if (searchExpr.includes("…")) {
             const searchExprParts = searchExpr.split("…");
             ret.push([searchExprParts[0], false]);
@@ -164,7 +169,28 @@ const searchOrigLWordRecords = origString => {
             ret.push([searchExpr, false]);
         }
     }
-    return ret.filter(t => t[0] !== "׀"); // why is this needed -- ah for \w fields maybe -- still not really sure ???
+    const intermediateResult = ret.filter(t => t[0] !== "׀"); // why is this needed -- ah for \w fields maybe -- still not really sure ???
+    console.log(`intermediateResult=${intermediateResult}`);
+    let lastIndex = -1;
+    for (const intermediateResultEntry of intermediateResult) {
+        console.log(`  Got intermediateResultEntry=${JSON.stringify(intermediateResultEntry)}`);
+        if (lastIndex == -1) {
+            let index = 0;
+            for (const ULTToken of ULTTokens) {
+                console.log(`    Got ULTToken=${JSON.stringify(ULTToken)}`);
+                if (ULTToken.subType === 'wordLike' && ULTToken.payload === intermediateResultEntry[0]) {
+                    console.log(`      Found initial match at ${index}`);
+                    lastIndex = index;
+                    break;
+                }
+                ++index;
+            }
+
+        }
+        console.assert(ULTTokens[lastIndex].payload === intermediateResultEntry[0]);
+        intermediateResultEntry.push(ULTTokens[lastIndex++].scopes);
+    }
+    return intermediateResult;
 }
 
 
@@ -250,7 +276,7 @@ const slimGLTokens = (glTokens) => {
  * @returns a list of 2-tuples with (origWord, occurrenceNumber) -- the occurrenceNumbers are the valuable added info here
  */
 const contentForSearchWords = (searchTuples, searchOccurrence, origLTokens) => {
-    // console.log(`contentForSearchWords = ((${searchTuples.length}) '${searchTuples}', ${searchOccurrence}, (${origLTokens.length}) ${JSON.stringify(origLTokens)})…`);
+    console.log(`\ncontentForSearchWords = ((${searchTuples.length}) '${searchTuples}', ${searchOccurrence}, (${origLTokens.length}) ${JSON.stringify(origLTokens)})…`);
     let adjustedOrigLTokens = origLTokens; // Make a copy for debugging
 
     // Helpful function
@@ -358,8 +384,8 @@ const contentForSearchWords = (searchTuples, searchOccurrence, origLTokens) => {
 // Fixed the matching of the correct occurrence
 /**
  *
- * @param {Array} slimmedGlTokens -- these token objects have scopes list already replaced by bl and occurrence lists
- * @param {Array} contentTuplesWithOccurrences -- a list of 2-tuples containing (OrigL word, occurrence number)
+ * @param {Array} slimmedOrigLTokens -- these token objects have scopes list already replaced by bl and occurrence lists
+ * @param {Array} ULTContentTuplesWithOccurrences -- a list of 2-tuples containing (ULT word, occurrence number)
  * @returns {Array} -- a list (the same length as the first parameter) of 2-tuples (GLWord, flag if part of match)
  */
 // Some slimmedGlTokens are:
@@ -371,24 +397,24 @@ const contentForSearchWords = (searchTuples, searchOccurrence, origLTokens) => {
 //  {"subType":"wordLike","payload":"agrees","position":27,"blContent":["κατ’"],"occurrence":[1]} NOTE: the word here DOES HAVE the apostrophe
 // Typical contentTuplesWithOccurrences (from ULT Titus 1:3):
 //  [(ἐφανέρωσεν,1),(τὸν,1),(λόγον,1),(αὐτοῦ,1)]
-const highlightedAlignedGlText = (slimmedGlTokens, contentTuplesWithOccurrences) => {
-    // console.log(`highlightedAlignedGlText = ((${slimmedGlTokens.length}) ${JSON.stringify(slimmedGlTokens)}, (${content.length}) ${content})…`);
+const highlightedAlignedGlText = (slimmedOrigLTokens, ULTContentTuplesWithOccurrences) => {
+    console.log(`\nhighlightedAlignedGlText = ((${slimmedOrigLTokens.length}) ${JSON.stringify(slimmedOrigLTokens)}, (${ULTContentTuplesWithOccurrences.length}) ${ULTContentTuplesWithOccurrences})…`);
 
-    return slimmedGlTokens.map(glToken => {
-        // console.log(`    Processing GL token: ${JSON.stringify(glToken)}`);
+    return slimmedOrigLTokens.map(origLToken => {
+        console.log(`    Processing OrigL token: ${JSON.stringify(origLToken)}`);
 
-        const matchingContent = contentTuplesWithOccurrences.filter(contentWordOccurrenceTuple =>
-            (glToken.occurrence.length > 0) // it's a real word with an occurrence
-            && ((glToken.blContent[0] === contentWordOccurrenceTuple[0] && glToken.occurrence[0] === contentWordOccurrenceTuple[1])
-                || (glToken.blContent.length > 1 && glToken.blContent[1] === contentWordOccurrenceTuple[0] && glToken.occurrence[1] === contentWordOccurrenceTuple[1])
-                || (glToken.blContent.length > 2 && glToken.blContent[2] === contentWordOccurrenceTuple[0] && glToken.occurrence[2] === contentWordOccurrenceTuple[1])
-                || (glToken.blContent.length > 3 && glToken.blContent[3] === contentWordOccurrenceTuple[0] && glToken.occurrence[3] === contentWordOccurrenceTuple[1])
-                || (glToken.blContent.length > 4 && glToken.blContent[4] === contentWordOccurrenceTuple[0] && glToken.occurrence[4] === contentWordOccurrenceTuple[1])
-                || (glToken.blContent.length > 5 && glToken.blContent[5] === contentWordOccurrenceTuple[0] && glToken.occurrence[5] === contentWordOccurrenceTuple[1])
+        const matchingContent = ULTContentTuplesWithOccurrences.filter(contentWordOccurrenceTuple =>
+            (origLToken.occurrence.length > 0) // it's a real word with an occurrence
+            && ((origLToken.blContent[0] === contentWordOccurrenceTuple[0] && origLToken.occurrence[0] === contentWordOccurrenceTuple[1])
+                || (origLToken.blContent.length > 1 && origLToken.blContent[1] === contentWordOccurrenceTuple[0] && origLToken.occurrence[1] === contentWordOccurrenceTuple[1])
+                || (origLToken.blContent.length > 2 && origLToken.blContent[2] === contentWordOccurrenceTuple[0] && origLToken.occurrence[2] === contentWordOccurrenceTuple[1])
+                || (origLToken.blContent.length > 3 && origLToken.blContent[3] === contentWordOccurrenceTuple[0] && origLToken.occurrence[3] === contentWordOccurrenceTuple[1])
+                || (origLToken.blContent.length > 4 && origLToken.blContent[4] === contentWordOccurrenceTuple[0] && origLToken.occurrence[4] === contentWordOccurrenceTuple[1])
+                || (origLToken.blContent.length > 5 && origLToken.blContent[5] === contentWordOccurrenceTuple[0] && origLToken.occurrence[5] === contentWordOccurrenceTuple[1])
             )
         );
-        // if (matchingContent.length > 0) { console.log(`      matchingContent = ${matchingContent} so getting glToken '${token.payload}'`); }
-        return [glToken.payload, (matchingContent.length > 0)]; // Returns all slimmedGlTokens payloads, but with added bool for match
+        if (matchingContent.length > 0) { console.log(`      matchingContent = ${matchingContent} so getting OrigL '${token.payload}'`); }
+        return [origLToken.payload, (matchingContent.length > 0)]; // Returns all slimmedOrigLTokens payloads, but with added bool for match
     }
     )
 };
@@ -400,52 +426,54 @@ const highlightedAlignedGlText = (slimmedGlTokens, contentTuplesWithOccurrences)
  * @param {string} book
  * @param {string} cv
  * @param {Array} sourceTokens
- * @param {Array} glTokens
- * @param {string} origLSearchString
+ * @param {Array} ULTTokens
+ * @param {string} ULTSearchString
  * @param {bool} prune
  * @returns
  */
-const gl4Source = (book, cv, sourceTokens, glTokens, origLSearchString, searchOccurrence, prune) => {
-    // console.log(`gl4Source = (${book}, ${cv}, (${sourceTokens.length}), (${glTokens.length}), '${origLSearchString}', ${searchOccurrence}, ${prune})…`);
-    const origLSearchTwoTuples = searchOrigLWordRecords(origLSearchString);
-    // console.log(`  origLSearchTwoTuples = (${origLSearchTwoTuples.length}) ${origLSearchTwoTuples}`);
+const origLFromGLQuote = (book, cv, sourceTokens, ULTTokens, ULTSearchString, searchOccurrence, prune) => {
+    // console.log(`origLFromGLQuote = (${book}, ${cv}, (${sourceTokens.length}), (${ULTTokens.length}), '${ULTSearchString}', searchOccurrence=${searchOccurrence}, prune=${prune})…`);
+    const ULTSearchThreeTuples = searchULTWordRecords(ULTSearchString, ULTTokens);
+    console.log(`  ULTSearchThreeTuples = (${ULTSearchThreeTuples.length}) ${JSON.stringify(ULTSearchThreeTuples)}`);
     // NOTE: We lose the Greek apostrophes (e.g., from κατ’) in the next line
     const wordLikeOrigLTokens = slimSourceTokens(sourceTokens.filter(t => t.subType === "wordLike")); // drop out punctuation, space, eol, etc., tokens
-    console.log(`  wordLikeOrigLTokens = (${wordLikeOrigLTokens.length}) ${JSON.stringify(wordLikeOrigLTokens)}`); // The length of this list is now the number of Greek words in the verse
-    const contentTuplesWithOccurrences = contentForSearchWords(origLSearchTwoTuples, searchOccurrence, wordLikeOrigLTokens); // We needed to pass the searchOccurrence parameter thru here
+    console.log(`\n  wordLikeOrigLTokens = (${wordLikeOrigLTokens.length}) ${JSON.stringify(wordLikeOrigLTokens)}`); // The length of this list is now the number of Greek words in the verse
+    const contentTuplesWithOccurrences = contentForSearchWords(ULTSearchThreeTuples, searchOccurrence, wordLikeOrigLTokens); // We needed to pass the searchOccurrence parameter thru here
     if (!contentTuplesWithOccurrences) {
         return {
             "error":
                 // `NO MATCH IN SOURCE\nSearch Tuples: ${JSON.stringify(searchTuples)}\nCodepoints: ${searchTuples.map(s => "|" + Array.from(s[0]).map(c => c.charCodeAt(0).toString(16)))}`
-                // `NO MATCH IN BIBLICAL LANGUAGE SOURCE\n    Search String: ${book} ${cv} '${origLSearchString}' occurrence=${searchOccurrence}\n      from origLTokens (${origLTokens.length}) ${JSON.stringify(origLTokens)}`
-                `NO MATCH IN BIBLICAL LANGUAGE SOURCE\n    Search String: ${book} ${cv} '${origLSearchString}' occurrence=${searchOccurrence}`
+                // `NO MATCH IN BIBLICAL LANGUAGE SOURCE\n    Search String: ${book} ${cv} '${searchString}' occurrence=${searchOccurrence}\n      from origLTokens (${origLTokens.length}) ${JSON.stringify(origLTokens)}`
+                `NO MATCH IN ULT SOURCE\n    Search String: ${book} ${cv} '${ULTSearchString}' occurrence=${searchOccurrence}`
         }
     }
-    // console.log(`  After contentForSearchWords(…): contentTuplesWithOccurrences = (${contentTuplesWithOccurrences.length}) ${contentTuplesWithOccurrences}`);
-    const slimmedGlTokens = slimGLTokens(glTokens);
-    const highlightedGlTokens = highlightedAlignedGlText(slimmedGlTokens, contentTuplesWithOccurrences);
-    // console.log(`  After highlightedAlignedGlText(…): highlightedTokens = (${highlightedGlTokens.length}) ${highlightedGlTokens}`);
-    if (!highlightedGlTokens.length) {
+    console.log(`\n  After contentForSearchWords(…): ULTMatchedTuplesWithOccurrences = (${contentTuplesWithOccurrences.length}) ${contentTuplesWithOccurrences}`);
+    const slimmedGlTokens = slimGLTokens(ULTTokens);
+    console.log(`\n  After slimGLTokens(…): slimmedGlTokens = (${slimmedGlTokens.length}) ${slimmedGlTokens}`);
+    const highlightedOrigLTokens = highlightedAlignedGlText(slimmedGlTokens, contentTuplesWithOccurrences);
+    console.log(`\n  After highlightedAlignedGlText(…): highlightedTokens = (${highlightedOrigLTokens.length}) ${highlightedOrigLTokens}`);
+    if (!highlightedOrigLTokens.length) {
         return {
             "error":
                 // `EMPTY MATCH IN SOURCE\nSearch Tuples: ${JSON.stringify(searchTuples)}\nCodepoints: ${searchTuples.map(s => "|" + Array.from(s[0]).map(c => c.charCodeAt(0).toString(16)))}`
-                `EMPTY MATCH IN GL SOURCE\n    Search String: ${book} ${cv} '${origLSearchString}' occurrence=${searchOccurrence}\n      from origLTokens (${wordLikeOrigLTokens.length}) ${JSON.stringify(wordLikeOrigLTokens)}\n       then contentTuplesWithOccurrences (${contentTuplesWithOccurrences.length}) ${contentTuplesWithOccurrences}\n       then slimmedGlTokens (${slimmedGlTokens.length}) ${JSON.stringify(slimmedGlTokens)}`
+                `EMPTY MATCH IN OrigL SOURCE\n    Search String: ${book} ${cv} '${ULTSearchString}' occurrence=${searchOccurrence}\n      from ULTTokens (${wordLikeOrigLTokens.length}) ${JSON.stringify(wordLikeOrigLTokens)}\n       then contentTuplesWithOccurrences (${contentTuplesWithOccurrences.length}) ${contentTuplesWithOccurrences}\n       then slimmedOrigLTokens (${slimmedGlTokens.length}) ${JSON.stringify(slimmedGlTokens)}`
         }
     }
     if (prune) {
-        const prunedTokens = pruneTokens(highlightedGlTokens);
+        const prunedTokens = pruneTokens(highlightedOrigLTokens);
         if (!prunedTokens.length) {
+            // console.error("origLFromGLQuote got NO prunedTokens!");
             return {
                 "error":
                     // I think this is saying that the OrigL source quote was found,
                     //  but no GL words were aligned to it!
                     // `PRUNING LEFT NOTHING—NOTHING ALIGNED TO Quote?\n    Search String: ${book} ${cv} '${searchString}' occurrence=${searchOccurrence}\n      from origLTokens (${origLTokens.length}) ${JSON.stringify(origLTokens)}\n       then contentTuplesWithOccurrences (${contentTuplesWithOccurrences.length}) ${contentTuplesWithOccurrences}\n       then slimmedGlTokens (${slimmedGlTokens.length}) ${JSON.stringify(slimmedGlTokens)}\n       then highlightedGlTokens (${highlightedGlTokens.length}) ${highlightedGlTokens}`
-                    `NOTHING ALIGNED TO Quote?\n    Search String: ${book} ${cv} '${origLSearchString}' occurrence=${searchOccurrence}`
+                    `NOTHING ALIGNED WITH GL Quote?\n    Search String: ${book} ${cv} '${ULTSearchString}' occurrence=${searchOccurrence}`
             }
         }
         return { "data": prunedTokens };
     } else { // all good
-        return { "data": highlightedGlTokens };
+        return { "data": highlightedOrigLTokens };
     }
 }
 
@@ -540,7 +568,6 @@ getDocuments(pk, testament, book, true, false) // last parameters are "verbose" 
         // Iterate over TSV records
         let nRecords = 0;
         let counts = { pass: 0, fail: 0 };
-        const gl = 'ult';
         for (const tsvRecord of readTsv(tsvPath)) {
             // console.log(`tsvRecord = ${JSON.stringify(tsvRecord)}`);
             // if (tsvRecord.chapter === '3') break;
@@ -550,33 +577,34 @@ getDocuments(pk, testament, book, true, false) // last parameters are "verbose" 
             const source = testament === 'OT' ? tokenLookup.uhb : tokenLookup.ugnt;
             // Get the tokens for this BCV
             const sourceTokens = source[book][cv];
-            // console.log(`  All OrigL source tokens = (${sourceTokens.length}) ${JSON.stringify(sourceTokens)}`);
+            console.log(`\n  All OrigL source tokens = (${sourceTokens.length}) ${JSON.stringify(sourceTokens)}`);
 
-            const glTokens = tokenLookup[gl][book][cv];
-            // console.log(`  All GL tokens = (${glTokens.length}) ${JSON.stringify(glTokens)}`);
+            const ULTTokens = tokenLookup['ult'][book][cv];
+            console.log(`\n  All ULT tokens = (${ULTTokens.length}) ${JSON.stringify(ULTTokens)}`);
             // Do the alignment
-            const highlighted = gl4Source(
+            const highlighted = origLFromGLQuote(
                 book,
                 cv,
                 sourceTokens,
-                glTokens,
-                tsvRecord.origQuote,
-                tsvRecord.occurrence, // added by RJH -- it can't work correctly without this info
+                ULTTokens,
+                tsvRecord.glQuote,
+                tsvRecord.occurrence,
                 prune
             );
             // Returned object has either "data" or "error"
             if ("data" in highlighted) {
                 console.assert(!highlighted.error);
                 counts.pass++;
-                // console.log(`  After gl4Source(): data = (${highlighted.data.length}) ${highlighted.data}`);
-                // console.log(`    ${gl}: “${highlightedAsString(highlighted.data)}”`);
-                console.log(`${tsvRecord.book}_${cv} ►${tsvRecord.origQuote}◄ “${getTidiedData(highlighted.data)}”`);
+                console.log(`  After origLFromGLQuote(): data = (${highlighted.data.length}) ${highlighted.data}`);
+                console.log(`    ${gl}: “${highlightedAsString(highlighted.data)}”`);
+                console.log(`${tsvRecord.book}_${cv} ►${tsvRecord.glQuote}◄ “${getTidiedData(highlighted.data)}”`);
             } else {
                 console.assert(!highlighted.data);
                 counts.fail++;
                 console.error(`  Error: ${book} ${cv} ${tsvRecord.id} ${highlighted.error}`);
                 console.error(`    Verse words: ${JSON.stringify(sourceTokens.filter(t => t.subType === "wordLike").map(t => t.payload))}\n`);
-                // console.error(`    Verse codepoints: ${sourceTokens.filter(t => t.subType === "wordLike").map(t => t.payload).map(s => "|" + Array.from(s).map(c => c.charCodeAt(0).toString(16)))}`);
+                console.error(`    Verse codepoints: ${sourceTokens.filter(t => t.subType === "wordLike").map(t => t.payload).map(s => "|" + Array.from(s).map(c => c.charCodeAt(0).toString(16)))}`);
+                break;
             }
             // }
         }

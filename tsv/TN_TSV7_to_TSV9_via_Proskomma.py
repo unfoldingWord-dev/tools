@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Nov 2020 by RJH
-#   Last modified: 2021-09-01 by RJH
+#   Last modified: 2021-09-21 by RJH
 #
 """
 Quick script to copy TN from 7-column TSV files
@@ -63,7 +63,7 @@ def get_TSV7_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str,str,str
     Returns a 6-tuple with:
         reference, rowID, support_reference, quote, occurrence, note
     """
-    print(f"    Loading {BBB} TQ links from 7-column TSV…")
+    print(f"    Loading {BBB} TN links from 7-column TSV…")
     input_filepath = input_folderpath.joinpath(f'tn_{BBB}.tsv')
     with open(input_filepath, 'rt') as input_TSV_file:
         for line_number, line in enumerate(input_TSV_file, start=1):
@@ -88,9 +88,6 @@ QL_QUOTE_PLACEHOLDER = "NO GLQuote AVAILABLE!!!"
 def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:str) -> int:
     """
     Function to read and write the TN markdown files.
-
-    Needs to be called one extra time with fields = None
-        to write the last entry.
 
     Returns the number of unique GLQuotes that were written in the call.
     """
@@ -124,7 +121,7 @@ def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:st
             temp_output_TSV_file.write(f'{BBB}\t{C}\t{V}\t{rowID}\t{support_reference}\t{orig_quote}\t{occurrence}\t{gl_quote}\t{occurrence_note}\n')
 
     # Now use Proskomma to find the ULT GLQuote fields for the OrigQuotes in the temporary outputted file
-    print(f"      Running Proskomma for {testament} {BBB}… (might take a few minutes)")
+    print(f"      Running Proskomma to find GL quotes for {testament} {BBB}… (might take a few minutes)")
     completed_process_result = subprocess.run(['node', HELPER_PROGRAM_NAME, temp_output_filepath, testament], capture_output=True)
     # print(f"Proskomma {BBB} result was: {completed_process_result}")
     if completed_process_result.returncode:
@@ -197,7 +194,7 @@ def main():
     total_GLQuote_failures = 0
     failed_book_list = []
     for BBB,nn in BBB_NUMBER_DICT.items():
-        if BBB != 'EZR': continue # Just process this one book
+        # if BBB != 'EZR': continue # Just process this one book
         # if BBB not in ('MAT','MRK','LUK','JHN', 'ACT',
         #                 'ROM','1CO','2CO','GAL','EPH','PHP','COL',
         #                 '1TH','2TH','1TI','2TI','TIT','PHM',
