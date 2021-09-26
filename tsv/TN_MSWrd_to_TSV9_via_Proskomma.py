@@ -81,8 +81,8 @@ def get_input_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str,str,st
                 if intC != lastIntC+1:
                     print(f"WARNING at line {line_number}: Chapter number is not increasing as expected: moving from {lastIntC} to {C}")
             elif status == 'Idle' and line.startswith(f'{C}:'):
-                if DEBUG_LEVEL > 0:
-                    print(f"     Ignoring section heading: '{line}' at line {line_number}")
+                if DEBUG_LEVEL > 1:
+                    print(f"     Ignoring {BBB} {C}:{V} section heading: '{line}' at line {line_number}")
             elif (status == 'Idle' or status == 'Expecting glQuote or next verse') \
             and line.startswith(f'{Bbb} {C}:'):
                 ix = 5 + len(C)
@@ -96,23 +96,23 @@ def get_input_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str,str,st
             elif not line:
                 if status == 'Getting note':
                     if not glQuote or not note:
-                        print(f"ERROR at line {line_number} {C}:{V}: Why do we have glQuote='{glQuote}' and note='{note}'")
+                        print(f"ERROR at line {line_number} {BBB} {C}:{V}: Why do we have glQuote='{glQuote}' and note='{note}'")
                     # print(f"  About to yield {C}:{V} '{glQuote}' '{note}' at line {line_number}")
                     yield C,V, verseText, glQuote, note
                     glQuote = note = ''
                     status = 'Expecting glQuote or next verse'
                 # else ignoring blank line here
             elif 'Paragraph Break' in line:
-                if DEBUG_LEVEL > 0:
-                    print(f"     Ignoring paragraph break at line {line_number}")
+                if DEBUG_LEVEL > 1:
+                    print(f"     Ignoring {BBB} {C}:{V} paragraph break at line {line_number}")
             elif status == 'Expecting glQuote' or status == 'Expecting glQuote or next verse':
                 glQuote = line
                 # print(f"     Got {C}:{V} GL Quote: '{glQuote}' at line {line_number}")
                 quote_count = verseText.count(glQuote)
                 if quote_count == 0:
-                    print(f"WARNING at line {line_number} {C}:{V}: glQuote='{glQuote}' seems not to be in verse text: '{verseText}'")
+                    print(f"WARNING at line {line_number} {BBB} {C}:{V}: glQuote='{glQuote}' seems not to be in verse text: '{verseText}'")
                 elif quote_count > 1:
-                    print(f"WARNING at line {line_number} {C}:{V}: glQuote='{glQuote}' seems to occur {quote_count} times in verse text: '{verseText}'")
+                    print(f"WARNING at line {line_number} {BBB} {C}:{V}: glQuote='{glQuote}' seems to occur {quote_count} times in verse text: '{verseText}'")
                     write_more_code # Need to write more code here if this happens
                 status = 'Getting note'
             elif status == 'Getting note':
@@ -154,12 +154,30 @@ def convert_MSWrd_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str,
             for match in re.finditer(r'\(See: ([-A-Za-z0-9]+?)\)', note):
                 # print(f"match={match}")
                 # print(f"match.group(1)={match.group(1)}")
-                assert not support_reference, f"Should only be one TA ref: {note}"
+                assert not support_reference, f"WARNING at {BBB} {C}:{V}: Should only be one TA ref: {note}"
                 support_reference = match.group(1)
                 # print(f"HAD '{note}'")
                 note = f"{note[:match.start()]}(See: [[rc://en/ta/man/translate/{support_reference}]]){note[match.end():]}"
                 # print(f"NOW '{note}'")
 
+            gl_quote = gl_quote.strip()
+            if (gl_quote.startswith('"')): gl_quote = f'“{gl_quote[1:]}'
+            if (gl_quote.endswith('"')): gl_quote = f'{gl_quote[:-1]}”'
+            if (gl_quote.startswith("'")): gl_quote = f'‘{gl_quote[1:]}'
+            if (gl_quote.endswith("'")): gl_quote = f'{gl_quote[:-1]}’'
+            gl_quote = gl_quote.replace('" ', '” ').replace(' "', ' “').replace("' ", '’ ').replace(" '", ' ‘').replace("'s", '’s')
+            if '"' in gl_quote or "'" in gl_quote:
+                print(f"WARNING at {BBB} {C}:{V}: glQuote still has straight quote marks: '{gl_quote}'")
+
+            note = note.strip()
+            if (note.startswith('"')): note = f'“{note[1:]}'
+            if (note.endswith('"')): note = f'{note[:-1]}”'
+            note = note.replace('" ', '” ').replace(' "', ' “') \
+                .replace('".', '”.').replace('",', '”,') \
+                .replace('("', '(“').replace('")', '”)') \
+                .replace("' ", '’ ').replace(" '", ' ‘').replace("'s", '’s')
+            if '"' in note or "'" in note:
+                print(f"WARNING at {BBB} {C}:{V}: note still has straight quote marks: '{note}'")
 
             temp_output_TSV_file.write(f'{BBB}\t{C}\t{V}\t{generated_id}\t{support_reference}\t{orig_quote}\t{occurrence}\t{gl_quote}\t{note}\n')
 
@@ -191,14 +209,15 @@ def convert_MSWrd_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str,
     match_dict = {}
     for match in re.finditer(r'(\w{3})_(\d{1,3}):(\d{1,3}) ►(.+?)◄ “(.+?)”', proskomma_output_string):
         # print(match)
-        B, C, V, orig_quote, gl_quote = match.groups()
+        B, C, V, gl_quote, orig_quote = match.groups()
         assert B == BBB, f"{B} {C}:{V} '{orig_quote}' Should be equal '{B}' '{BBB}'"
         if orig_quote:
             match_dict[(C,V,gl_quote)] = orig_quote
         else:
             logging.error(f"{B} {C}:{V} '{gl_quote}' Should have gotten an OrigLQuote")
     print(f"        Got {len(match_dict):,} unique OrigL Quotes back from Proskomma for {BBB}")
-
+    stop
+    
     match_count = fail_count = 0
     if match_dict: # (if not, the ULT book probably isn't aligned yet)
         # Now put the OrigL Quotes into the file
