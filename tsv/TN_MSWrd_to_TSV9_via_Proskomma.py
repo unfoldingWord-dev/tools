@@ -190,7 +190,7 @@ def convert_MSWrd_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str,
     if completed_process_result.stderr:
         print(f"      Proskomma {BBB} error output was:\n{completed_process_result.stderr.decode()}")
     proskomma_output_string = completed_process_result.stdout.decode()
-    print(f"Proskomma {BBB} output was: {proskomma_output_string}") # For debugging JS helper program only
+    # print(f"Proskomma {BBB} output was: {proskomma_output_string}") # For debugging JS helper program only
     output_lines = proskomma_output_string.split('\n')
     if output_lines:
         # Log any errors that occurred -- not really needed now coz they go to stderr
@@ -216,8 +216,7 @@ def convert_MSWrd_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str,
         else:
             logging.error(f"{B} {C}:{V} '{gl_quote}' Should have gotten an OrigLQuote")
     print(f"        Got {len(match_dict):,} unique OrigL Quotes back from Proskomma for {BBB}")
-    stop
-    
+
     match_count = fail_count = 0
     if match_dict: # (if not, the ULT book probably isn't aligned yet)
         # Now put the OrigL Quotes into the file
