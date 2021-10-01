@@ -28,10 +28,10 @@ import random
 import logging
 
 
-# LANGUAGE_CODE = 'en'
-# LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
-LANGUAGE_CODE = 'ru'
-LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/Door43-Catalog_repos/')
+LANGUAGE_CODE = 'en'
+LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
+# LANGUAGE_CODE = 'ru'
+# LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/Door43-Catalog_repos/')
 
 LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath(f'{LANGUAGE_CODE}_tq/')
 
