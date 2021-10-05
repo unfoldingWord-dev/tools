@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-06-02 by RJH
+#   Last modified: 2021-10-05 by RJH
 #
 """
 Quick script to copy OBS-SN from markdown files
@@ -20,15 +20,15 @@ from typing import List, Tuple
 import os
 from pathlib import Path
 import random
-import re
 import logging
 
 
+LANGUAGE_CODE = 'en'
 LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
-LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_obs-sn/')
+LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath(f'{LANGUAGE_CODE}_obs-sn/')
 
 # The output folder below must also already exist!
-LOCAL_OUTPUT_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/en_study-annotations/')
+LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath(f'{LANGUAGE_CODE}_obs-sn2/')
 
 
 def get_source_notes() -> Tuple[str,str,str,str,str,str,str]:
@@ -84,7 +84,7 @@ def make_TSV_file() -> Tuple[int,int]:
     """
     """
     print(f"    Converting OBS-SN links to TSV…")
-    output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath('OBS')
+    output_folderpath = LOCAL_OUTPUT_FOLDERPATH
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
     output_filepath = output_folderpath.joinpath(f'sn_OBS.tsv')
     num_quotes = 0

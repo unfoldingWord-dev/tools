@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-06-02 by RJH
+#   Last modified: 2021-10-05 by RJH
 #
 """
 Quick script to copy OBS-TN from markdown files
@@ -20,15 +20,15 @@ from typing import List, Tuple
 import os
 from pathlib import Path
 import random
-import re
 import logging
 
 
+LANGUAGE_CODE = 'en'
 LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
-LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_obs-tn/')
+LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath(f'{LANGUAGE_CODE}_obs-tn/')
 
 # The output folder below must also already exist!
-LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_obs-tn2/')
+LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath(f'{LANGUAGE_CODE}_obs-tn2/')
 
 
 def get_source_notes() -> Tuple[str,str,str,str,str,str,str]:

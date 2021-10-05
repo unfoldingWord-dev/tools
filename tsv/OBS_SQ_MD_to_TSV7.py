@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-06-02 by RJH
+#   Last modified: 2021-10-05 by RJH
 #
 """
 Quick script to copy OBS-SQ from markdown files
@@ -20,15 +20,15 @@ from typing import List, Tuple
 import os
 from pathlib import Path
 import random
-import re
 import logging
 
 
+LANGUAGE_CODE = 'en'
 LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
-LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_obs-sq/')
+LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath(f'{LANGUAGE_CODE}_obs-sq/')
 
 # The output folder below must also already exist!
-LOCAL_OUTPUT_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/en_study-annotations/')
+LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath(f'{LANGUAGE_CODE}_obs-sq2/')
 
 
 def get_source_questions() -> Tuple[str,str,str,str,str,str,str]:
@@ -52,7 +52,7 @@ def get_source_questions() -> Tuple[str,str,str,str,str,str,str]:
             print(f"Not found {filepath}")
             continue
 
-        state = 0
+        state = 'idle'
         tag = question = response = None
         with open(filepath, 'rt') as mdFile:
             if story_number == 0:
@@ -64,33 +64,43 @@ def get_source_questions() -> Tuple[str,str,str,str,str,str,str]:
             else: # stories 1..50
                 for line_number,line in enumerate(mdFile, start=1):
                     line = line.rstrip() # Remove trailing whitespace including nl char
-                    # print(f"  line={line}")
+                    # print(f"  state={state} tag={tag} line={line}")
                     if not line: continue # Ignore blank lines
                     if line.startswith('# '): # Ignore the story title
-                        if state != 0: halt
+                        if state != 'idle': halt
                     elif line.startswith('## '):
                         assert not question
                         assert not response
                         tag = line[3:].strip()
-                        state = 1
+                        if tag == 'Summary':
+                            state = 'gettingSummary'
+                            response = ''
+                        else:
+                            state = 'gotTag'
                     elif line.startswith('1. '):
-                        assert state == 1
+                        assert state == 'gotTag'
                         assert tag
                         assert not question
                         assert not response
                         question, response = line[3:].strip(), None
-                        state = 2
+                        state = 'gotQuestion'
                         continue
-                    elif state == 2:
+                    elif state == 'gotQuestion':
                         assert tag
                         assert question
                         assert not response
                         response = line.strip()
-                        state = 1
+                        state = 'gotTag'
                         yield line_number, story_number, tag,question,response
                         question = response = None
+                    elif state == 'gettingSummary':
+                        response += (' ' if response else '') + line.strip()
                     else:
-                        logging.error(f"Losing {state} {filepath} line {line_number}: '{line}'");
+                        logging.error(f"Losing {state} {filepath} line {line_number}: '{line}'")
+                if state == 'gettingSummary':
+                    yield line_number, story_number, tag,question,response
+                elif state != 'idle':
+                    logging.error(f"Why did we finish with state='{state}' tag='{tag}' q='{question}' r='{response}'")
 # end of get_source_questions function
 
 
@@ -98,7 +108,7 @@ def make_TSV_file() -> Tuple[int,int]:
     """
     """
     print(f"    Converting OBS-SQ links to TSV…")
-    output_folderpath = LOCAL_OUTPUT_FOLDERPATH.joinpath('OBS')
+    output_folderpath = LOCAL_OUTPUT_FOLDERPATH
     if not os.path.isdir(output_folderpath): os.mkdir(output_folderpath)
     output_filepath = output_folderpath.joinpath(f'sq_OBS.tsv')
     num_questions = 0
@@ -113,7 +123,7 @@ def make_TSV_file() -> Tuple[int,int]:
                 generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
             previous_ids.append(generated_id)
 
-            if (ix := response.find('See: [')) != -1:
+            if response and (ix := response.find('See: [')) != -1:
                 frame_number = int(response[ix+9:ix+11])
             reference = f'{"front" if story_number==0 else story_number}:{"intro" if frame_number==0 else frame_number}'
 
@@ -122,6 +132,7 @@ def make_TSV_file() -> Tuple[int,int]:
             if tag == "What the Story Says": tags = 'meaning'
             # elif tag == "What the Story Means": tags = 'means'
             elif tag == "What the Story Means to Us": tags = 'application'
+            elif tag == "Summary": tags = 'summary'
             elif tag:
                 print(f"Using tag: {tag}")
                 tags = tag
@@ -129,6 +140,7 @@ def make_TSV_file() -> Tuple[int,int]:
             quote = ''
             occurrence = ''
 
+            if question is None: question = ''
             question = question.strip()
             response = response.strip()
             # annotation = f'{question}\\n\\n> {response}' # This is the Markdown quoted block formatting
