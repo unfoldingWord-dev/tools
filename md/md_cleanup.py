@@ -34,12 +34,13 @@ import sys
 from filecmp import cmp
 
 # Globals
-source_dir = r'C:\DCS\Assamese\as_ta'
-language_code = 'as'
-resource_type = 'ta'
+source_dir = r'C:\DCS\Gujarati\gu_tw.STR\bible'
+language_code = 'gu'
+resource_type = 'tw'
+server = 'DCS'     # DCS or WACS
 
 nChanged = 0
-max_files = 1111
+max_files = 22222
 
 placeholder_heading = ""
 import substitutions    # change substitutions modules as necessary; generic one is just "substitutions"
@@ -83,6 +84,7 @@ ordered_re = re.compile(r'\n1\.[^ \n]')
 
 # Applies to resource types other than tN and tQ
 # Removes blank lines between list items.
+# Ensures blank line before list items.
 # Supplies missing space after ordered list item (1.)
 # Multiple replacements per file
 def fixLists(alltext):
@@ -392,9 +394,9 @@ def convertWholeFile(source, target):
     if fixHeadings and "## " in text:
         text = fixHeadingLevels(text)
 
-    if resource_type in {'tn','tq'} and "intro.md" not in source:
+    if resource_type in {'tn','tq'} and "intro.md" not in source and server == 'DCS':
         text = foldLists(text)
-    else:
+    if resource_type not in {'tn','tq'} or server == 'WACS':
         text = fixLists(text)
 
     # Expand the TA links
@@ -545,5 +547,6 @@ if __name__ == "__main__":
         source_dir = os.path.dirname(path)
         current_dir = source_dir
         convertFile(path)
+        sys.stdout.write("Done. Changed " + str(nChanged) + " files.\n")
     else:
         sys.stderr.write("Usage: python md_cleanup.py <folder>\n  Use . for current folder or hard code the path.\n")
