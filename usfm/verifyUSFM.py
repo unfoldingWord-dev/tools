@@ -5,8 +5,8 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Assamese\ULB\Leviticus.usfm'
-language_code = 'as'
+source_dir = r'C:\DCS\Marv\ss_reg\42-MRK.usfm'
+language_code = 'nya'
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
@@ -15,7 +15,7 @@ suppress4 = False     # Suppress warnings about useless markers before section m
 suppress5 = False     # Suppress checks for verse counts
 suppress9 = False     # Suppress warnings about ASCII content
 
-if language_code in {'en','ha','hr','id','nag','pmy','sw','tpi'}:    # ASCII content
+if language_code in {'en','es-419','ha','hr','id','nag','pmy','sw','tpi'}:    # ASCII content
     suppress9 = True
 if language_code == 'ru':
     suppress5 = True
@@ -34,8 +34,6 @@ import footnoted_verses
 import usfm_verses
 import re
 import usfm_utils
-
-vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
 # Marker types
 PP = 1      # paragraph or quote
@@ -328,6 +326,9 @@ def takeSection():
         elif state.currMarker == QQ:
             reportError("Warning: \"useless \q before section marker\" at: " + state.reference)
 
+vv_re = re.compile(r'([0-9]+)-([0-9]+)')
+vinvalid_re = re.compile(r'[^\d\-]')
+
 # Receives a string containing a verse number or range of verse numbers.
 # Reports missing text in previous verse.
 # Reports errors related to the verse number(s), such as missing or duplicated verses.
@@ -335,42 +336,45 @@ def takeV(vstr):
     state = State()
     if vstr != "1":
         emptyVerseCheck()   # Checks previous verse
-    vlist = []
-    if vstr.find('-') > 0:
-        vv_range = vv_re.search(vstr)
-        if vv_range:
-            vn = int(vv_range.group(1))
-            vnEnd = int(vv_range.group(2))
-            while vn <= vnEnd:
-                vlist.append(vn)
-                vn += 1
-        else:
-            reportError("Problem in verse range near " + State.reference)
+    if vinvalid_re.search(vstr):
+        reportError("Non-numeric verse number near " + State.reference)
     else:
-        vlist.append(int(vstr))
-
-    for vn in vlist:
-        v = str(vn)
-        state.addVerse(str(vn))
-        if len(state.IDs) == 0 and state.chapter == 0:
-            reportError("Missing ID before verse: " + v)
-        if state.chapter == 0:
-            reportError("Missing chapter tag: " + state.reference)
-        if state.verse == 1 and state.needPP and not suppress2:
-            reportError("Need paragraph marker before: " + state.reference)
-        if state.needQQ:
-            reportError("Need \\q or \\p after poetry heading before: " + state.reference)
-            state.resetPoetry()
-        if state.verse < state.lastVerse and state.addError(state.lastRef):
-            reportError("Verse out of order: " + state.reference + " after " + state.lastRef)
-            state.addError(state.reference)
-        elif state.verse == state.lastVerse:
-            reportError("Duplicated verse number: " + state.reference)
-        elif state.verse == state.lastVerse + 2 and not isOptional(state.reference, True):
-            if state.addError(state.lastRef):
-                reportError("Missing verse between: " + state.lastRef + " and " + state.reference)
-        elif state.verse > state.lastVerse + 2 and state.addError(state.lastRef):
-            reportError("Missing verses between: " + state.lastRef + " and " + state.reference)
+        vlist = []
+        if vstr.find('-') > 0:
+            vv_range = vv_re.search(vstr)
+            if vv_range:
+                vn = int(vv_range.group(1))
+                vnEnd = int(vv_range.group(2))
+                while vn <= vnEnd:
+                    vlist.append(vn)
+                    vn += 1
+            else:
+                reportError("Problem in verse range near " + State.reference)
+        else:
+            vlist.append(int(vstr))
+    
+        for vn in vlist:
+            v = str(vn)
+            state.addVerse(str(vn))
+            if len(state.IDs) == 0 and state.chapter == 0:
+                reportError("Missing ID before verse: " + v)
+            if state.chapter == 0:
+                reportError("Missing chapter tag: " + state.reference)
+            if state.verse == 1 and state.needPP and not suppress2:
+                reportError("Need paragraph marker before: " + state.reference)
+            if state.needQQ:
+                reportError("Need \\q or \\p after poetry heading before: " + state.reference)
+                state.resetPoetry()
+            if state.verse < state.lastVerse and state.addError(state.lastRef):
+                reportError("Verse out of order: " + state.reference + " after " + state.lastRef)
+                state.addError(state.reference)
+            elif state.verse == state.lastVerse:
+                reportError("Duplicated verse number: " + state.reference)
+            elif state.verse == state.lastVerse + 2 and not isOptional(state.reference, True):
+                if state.addError(state.lastRef):
+                    reportError("Missing verse between: " + state.lastRef + " and " + state.reference)
+            elif state.verse > state.lastVerse + 2 and state.addError(state.lastRef):
+                reportError("Missing verses between: " + state.lastRef + " and " + state.reference)
  
 reference_re = re.compile(r'[0-9]\: *[0-9]', re.UNICODE)
 
@@ -383,6 +387,10 @@ def reportFootnotes(text):
             reportFootnote(':')
         elif "[" in text:
             reportFootnote('[')
+        else:
+            state = State()
+            if '(' in text and isOptional(state.reference):
+                reportFootnote('(')
 
 def reportFootnote(trigger):
     state = State()
@@ -468,7 +476,7 @@ def isOptional(ref, previous=False):
 
 def isPoetry(token):
     return token.isQ() or token.isQ1() or token.isQ2() or token.isQ3() or token.isQA() or \
-           token.isSP() or token.isQR() or token.isQC()
+           token.isQR() or token.isQC()
 
 def isIntro(token):
     return token.is_is() or token.is_ip() or token.is_iot() or token.is_io() or token.is_im()
@@ -477,7 +485,7 @@ def isSpecialText(token):
     return token.isWJS() or token.isADDS() or token.isNDS() or token.isPNS() or token.isQTS() or token.is_k_s()
     
 def isTextCarryingToken(token):
-    return token.isB() or token.isM() or isSpecialText(token) or token.isD() or \
+    return token.isB() or token.isM() or isSpecialText(token) or token.isD() or token.isSP() or \
            isFootnote(token) or isCrossRef(token) or isPoetry(token) or isIntro(token)
     
 def take(token):
