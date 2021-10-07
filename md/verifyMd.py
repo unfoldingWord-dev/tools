@@ -15,22 +15,24 @@
 # No html code: <!-- -->, &nbsp;
 # Counts open and closed parentheses, open and closed brackets. (not markdown-specific)
 # Reports files that have purely ASCII content.
+# Reports files that have a UTF-8 Byye Order Mark (BOM)
+
 
 # To-do -- check for other kinds of links in headings, not just TA links.
 #          Check for ASCII titles in toc.yaml files (tA projects only)
 #          Check that tW files begin with H1 heading immediately followed by H2 heading.
 
 # Globals
-source_dir = r'C:\DCS\Assamese\as_ta'
-language_code = 'as'
-resource_type = 'ta'
-ta_dir = r'C:\DCS\Assamese\as_ta'    # Target language tA
-obstn_dir = r'C:\DCS\Nepali\ne_obs-tn\content'    # should end in 'content'
-en_tn_dir = r'C:\DCS\English-WACS\en_tn'
-en_tq_dir = r'C:\DCS\English-WACS\en_tq.RPP'
-tn_dir = r'C:\DCS\Urdu-Deva\ur-deva_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
+source_dir = r'C:\DCS\Gujarati\gu_tw.STR'
+language_code = 'gu'
+resource_type = 'tw'
+ta_dir = r'C:\DCS\Gujarati\gu_ta.STR'    # Target language tA, or English tM for WA
+obstn_dir = r'C:\DCS\Russian\ru_obs-tn.STR'
+en_tn_dir = r'C:\DCS\English\en_tn.md-orig'
+en_tq_dir = r'C:\DCS\English\en_tq.v18'
+tn_dir = r'C:\DCS\Gujarati\gu_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
 #tn_dir = r'C:\DCS\English\en_tn.md-orig'
-tw_dir = r'C:\DCS\Telugu\te_tw.STR'
+tw_dir = r'C:\DCS\Gujarati\gu_tw.STR'
 
 nChecked = 0
 nChanged = 0
@@ -41,8 +43,8 @@ suppress1 = False    # Suppress warnings about text before first heading
 suppress2 = False    # Suppress warnings about blank headings
 suppress3 = False    # Suppress warnings about item number not followed by period
 suppress4 = False    # Suppress warnings about closed headings
-suppress5 = True    # Suppress warnings about invalid passage links
-suppress6 = False    # Suppress warnings about invalid OBS links
+suppress5 = False    # Suppress warnings about invalid passage links
+suppress6 = True    # Suppress warnings about invalid OBS notes links
 suppress7 = False    # Suppress warnings about file starting with blank line
 suppress8 = False    # Suppress warnings about blank lines before, after, and within lists
 suppress9 = False    # Suppress warnings about ASCII content
@@ -50,18 +52,20 @@ suppress10 = False   # Suppress warnings about heading levels
 suppress11 = True    # Suppress warnings about unbalanced parentheses
 suppress12 = False     # Suppress warnings about newlines at end of file
 suppress13 = False     # Suppress warnings about mistmatched **
-suppress14 = False     # Suppress "invalid note link" warnings
+suppress14 = True     # Suppress "invalid note link" warnings
 suppress15 = True     # Suppress punctuation warnings.
 suppress16 = False     # Suppress warnings about empty files
-suppress17 = False     # Suppress the missing intro.md file warning, which applies only to tN resources
-suppress18 = True     # Suppress warnings about newline in title.md files
+suppress17 = (resource_type != 'tn')  # Suppress the missing intro.md file warning, which applies only to tN resources
+suppress18 = False     # Suppress warnings about newline in title.md files
+suppress19 = False     # Suppress "should be a header here" warnings
+suppress20 = False      # Suppress "invalid TA page reference" warnings 
 
 if resource_type == "ta":
     suppress1 = True
     suppress7 = True
 #    suppress8 = True
 #    suppress10 = True
-if language_code in {'en','es-419','ha','hr','id','nag','pmy','pt-br','sw'}:    # ASCII content
+if language_code in {'en','es-419','ha','hr','id','nag','plt','pmy','pt-br','sw'}:    # ASCII content
     suppress9 = True
 
 # Markdown line types
@@ -123,7 +127,7 @@ class State:
             State.currlinetype = LIST_ITEM
             if State.prevlinetype in {HEADING,BLANKLINE}:
                 State.textcount += 1
-        elif olistitem_re.match(line) or badolistitem_re.match(line):
+        elif olistitem_re.match(line): #  or badolistitem_re.match(line):
             State.currlinetype = ORDEREDLIST_ITEM
             if State.prevlinetype in {HEADING,BLANKLINE}:
                 State.textcount += 1
@@ -201,6 +205,14 @@ def reportError(msg, report_lineno=True):
         issues.write(shortname(state.path) + ": " + msg)
     state.reportedError()
 
+def checkForBOM(path):
+    with open(path, "rb") as file:
+        beginning = file.read(4)
+        # The order of these if-statements is important
+        # otherwise UTF32 LE may be detected as UTF16 LE as well
+        if beginning[0:3] == b'\xef\xbb\xbf':
+            reportError("File has a BOM", False)
+
 def verifyTitleFileLineEndings(path):
     if not suppress18:
         input = io.open(path, "rb")
@@ -241,7 +253,7 @@ def take(line):
         if state.headingcount == 0 and not suppress1 and not state.reported1:
             reportError("has text before first heading")
             state.report1()
-    if state.currlinetype == TEXT and not state.reported2:
+    if state.currlinetype == TEXT and not state.reported2 and not suppress19:
         if state.linecount >= 5 and state.prevlinetype == BLANKLINE and state.linetype[state.linecount-3] in {TEXT,LIST_ITEM,ORDEREDLIST_ITEM}:
             if resource_type in {"tn", "tq", "obs-tn", "obs-tq"}:
                 if current_file != "intro.md" or resource_type != "tn":
@@ -280,7 +292,7 @@ def take(line):
     if resource_type == 'tw' and state.linecount == 3 and (state.currlinetype != HEADING or state.currheadinglevel != 2):
         reportError("Incorrect tW file, missing '## Definition' or '## Facts' on line 3")
     
-    # 11/16/20 - Blank lines are optional around lists on DCS
+    # 8/19/21 - Blank lines are optional around lists on DCS, but WACS needs them
     if not suppress8:
         if state.currlinetype in {LIST_ITEM, ORDEREDLIST_ITEM}:
             if state.prevlinetype in { TEXT, HEADING }:
@@ -293,8 +305,8 @@ def take(line):
                 reportError("need blank line after last list item")
 
     if state.currlinetype == ORDEREDLIST_ITEM:
-        if badolistitem_re.match(line) and not suppress3:
-            reportError("item number not followed by period")
+#        if badolistitem_re.match(line) and not suppress3:
+#            reportError("item number not followed by period")
         if olistitem_re.match(line):
             if state.prevlinetype in { TEXT, HEADING }:
                 reportError("missing blank line before ordered list")
@@ -345,13 +357,18 @@ def checkLineContents(line):
         reportError("Extra parens or brackets")
 
 unbracketed_re = re.compile(r'[^\[][^\[][^\[]rc\://')
+altbracketed_re = re.compile(r'.\] *\( *rc\://.*\)')
 
-# Returns True if the text contains an RC link that is not bracketed
+# Returns True if the text (one line from a file) contains an RC link that is not bracketed
 def checkUnbracketedLinks(text):
+    unbracketed = False
     found = unbracketed_re.search(text)
     if found:
-        reportError("Unbracketed RC link")
-    return found
+        altfound = altbracketed_re.match(text[found.start():])
+        if not altfound:
+            unbracketed = True
+            reportError("Unbracketed RC link")
+    return unbracketed
 
 # Looks for underscores in TA links.
 # Looks for :en: and rc://en in the line
@@ -381,7 +398,7 @@ def checkTALinks(line):
             reportError("tA page reference in heading")
         manpage = page.group(1)
         path = os.path.join(ta_dir, manpage)
-        if not os.path.isdir(path):
+        if not os.path.isdir(path) and not suppress20:
             reportError("invalid tA page reference: " + manpage)
         page = tapage_re.search(page.group(2))
 
@@ -447,12 +464,12 @@ def checkOBSLinks(line):
     while link:
         found = True
         if link.group(2) != "*" and link.group(2) != language_code:
-            reportError("invalid language code in OBS link")
+            reportError("invalid language code in OBS notes link")
         elif not suppress6:
             obsPath = os.path.join(obstn_dir, link.group(4))
             obsPath = os.path.join(obsPath, link.group(5) + ".md")
             if not os.path.isfile(obsPath):
-                reportError("invalid OBS link: " + link.group(1) + link.group(2) + link.group(3) + link.group(4) + '/' + link.group(5))
+                reportError("invalid OBS notes link: " + link.group(1) + link.group(2) + link.group(3) + link.group(4) + '/' + link.group(5))
         link = obslink_re.search(link.group(6))
     return found
 
@@ -551,6 +568,7 @@ def verifyFile(path):
         input.seek(0, io.SEEK_SET)      # rewind to beginning of file
         gulp = input.read()
     input.close()
+    checkForBOM(path)
 
     state = State()
     state.setPath(path)
@@ -626,9 +644,17 @@ def verifyChapter(path, chapter, book):
         enpath = os.path.join(enpath, chapter)
         if book == 'psa' and len(chapter) == 3 and chapter[0] == '0' and not os.path.isdir(enpath):
             enpath = os.path.join( os.path.join(en_tq_dir, book), chapter[1:])
+
+        path01 = os.path.join(path, "01.md")
+        path01en = os.path.join(enpath, "01.md")
+        if book == "psa":
+            path01 = os.path.join(path, "001.md")
+            path01en = os.path.join(path, "001.md")
         en_files = os.listdir(enpath)
-        if len(files) * 4 < len(en_files):
-            reportError("Not enough files in: " + shortname(path))
+        if not os.path.isfile(path01) and os.path.isfile(path01en) and os.stat(path01en).st_size > 4:
+            reportError("Missing file(s) in: " + shortname(path))
+        elif len(files) * 4 < len(en_files):
+            reportError("Missing some files in: " + shortname(path))
         elif len(files) > nverses + 1:
             reportError("Too many files in: " + shortname(path))
 #        else:
@@ -720,6 +746,7 @@ def verify_ta_article(dirpath):
         if not os.path.isfile(path):
             reportError("Missing file", False)
         else:
+            checkForBOM(path)
             verifyTitleFileLineEndings(path)
     if len(os.listdir(dirpath)) > 3:
         reportError("Extraneous file(s) in: " + shortname(dirpath), False)
@@ -749,6 +776,8 @@ if __name__ == "__main__":
 
     if not tw_dir.endswith("bible"):
         tw_dir = os.path.join(tw_dir, "bible")
+    if not obstn_dir.endswith("content"):
+        obstn_dir = os.path.join(obstn_dir, "content")
 
     if os.path.isdir(source_dir):
         verifyDir(source_dir)
