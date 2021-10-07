@@ -23,7 +23,7 @@ def usfmTokenValue(key, value):
 
 # Chapter or verse token
 def usfmTokenNumber(key):
-    return Group(Suppress(backslash) + Literal(key) + Suppress(White()) + Word(nums + '-()') + Suppress(White()))
+    return Group(Suppress(backslash) + Literal(key) + Suppress(White()) + Word(nums + '-') + Suppress(White()))
 
 
 # Define grammar
