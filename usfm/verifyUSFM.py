@@ -336,45 +336,45 @@ def takeV(vstr):
     state = State()
     if vstr != "1":
         emptyVerseCheck()   # Checks previous verse
-    if vinvalid_re.search(vstr):
-        reportError("Non-numeric verse number near " + State.reference)
-    else:
-        vlist = []
-        if vstr.find('-') > 0:
-            vv_range = vv_re.search(vstr)
-            if vv_range:
-                vn = int(vv_range.group(1))
-                vnEnd = int(vv_range.group(2))
-                while vn <= vnEnd:
-                    vlist.append(vn)
-                    vn += 1
-            else:
-                reportError("Problem in verse range near " + State.reference)
+#    if vinvalid_re.search(vstr):
+#        reportError("Non-numeric verse number near " + State.reference)
+#    else:
+    vlist = []
+    if vstr.find('-') > 0:
+        vv_range = vv_re.search(vstr)
+        if vv_range:
+            vn = int(vv_range.group(1))
+            vnEnd = int(vv_range.group(2))
+            while vn <= vnEnd:
+                vlist.append(vn)
+                vn += 1
         else:
-            vlist.append(int(vstr))
-    
-        for vn in vlist:
-            v = str(vn)
-            state.addVerse(str(vn))
-            if len(state.IDs) == 0 and state.chapter == 0:
-                reportError("Missing ID before verse: " + v)
-            if state.chapter == 0:
-                reportError("Missing chapter tag: " + state.reference)
-            if state.verse == 1 and state.needPP and not suppress2:
-                reportError("Need paragraph marker before: " + state.reference)
-            if state.needQQ:
-                reportError("Need \\q or \\p after poetry heading before: " + state.reference)
-                state.resetPoetry()
-            if state.verse < state.lastVerse and state.addError(state.lastRef):
-                reportError("Verse out of order: " + state.reference + " after " + state.lastRef)
-                state.addError(state.reference)
-            elif state.verse == state.lastVerse:
-                reportError("Duplicated verse number: " + state.reference)
-            elif state.verse == state.lastVerse + 2 and not isOptional(state.reference, True):
-                if state.addError(state.lastRef):
-                    reportError("Missing verse between: " + state.lastRef + " and " + state.reference)
-            elif state.verse > state.lastVerse + 2 and state.addError(state.lastRef):
-                reportError("Missing verses between: " + state.lastRef + " and " + state.reference)
+            reportError("Problem in verse range near " + State.reference)
+    else:
+        vlist.append(int(vstr))
+
+    for vn in vlist:
+        v = str(vn)
+        state.addVerse(str(vn))
+        if len(state.IDs) == 0 and state.chapter == 0:
+            reportError("Missing ID before verse: " + v)
+        if state.chapter == 0:
+            reportError("Missing chapter tag: " + state.reference)
+        if state.verse == 1 and state.needPP and not suppress2:
+            reportError("Need paragraph marker before: " + state.reference)
+        if state.needQQ:
+            reportError("Need \\q or \\p after poetry heading before: " + state.reference)
+            state.resetPoetry()
+        if state.verse < state.lastVerse and state.addError(state.lastRef):
+            reportError("Verse out of order: " + state.reference + " after " + state.lastRef)
+            state.addError(state.reference)
+        elif state.verse == state.lastVerse:
+            reportError("Duplicated verse number: " + state.reference)
+        elif state.verse == state.lastVerse + 2 and not isOptional(state.reference, True):
+            if state.addError(state.lastRef):
+                reportError("Missing verse between: " + state.lastRef + " and " + state.reference)
+        elif state.verse > state.lastVerse + 2 and state.addError(state.lastRef):
+            reportError("Missing verses between: " + state.lastRef + " and " + state.reference)
  
 reference_re = re.compile(r'[0-9]\: *[0-9]', re.UNICODE)
 
