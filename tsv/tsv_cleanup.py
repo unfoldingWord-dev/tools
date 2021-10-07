@@ -32,9 +32,9 @@ import tsv
 import substitutions    # this module specifies the string substitutions to apply
 
 # Globals
-source_dir = r'C:\DCS\Russian\TN'  # Where are the files located
-language_code = 'ru'
-max_files = 2     # How many files do you want to process
+source_dir = r'C:\DCS\Hindi\TN.new'  # Where are the files located
+language_code = 'hi'
+max_files = 22     # How many files do you want to process
 nProcessed = 0
 filename_re = re.compile(r'.*\.tsv$')
 
@@ -170,7 +170,8 @@ def cleanRow(row):
         row[8] = cleanNote(row[8])
     return row
 
-def cleanFile(path):
+def cleanFile(folder, fname):
+    path = os.path.join(folder, fname)
     sys.stdout.write(shortname(path) + '\n')
     sys.stdout.flush()
     data = tsv.tsvRead(path)  # The entire file is returned as a list of lists of strings (rows); each row is a list of strings.
@@ -184,6 +185,8 @@ def cleanFile(path):
     bakpath = path.replace(".tsv", ".tsvorig")
     if not os.path.isfile(bakpath):
         os.rename(path, bakpath)
+    if fname.startswith("en_"):
+        path = os.path.join(folder, language_code + fname[2:])
     tsv.tsvWrite(data, path)
 
 # Recursive routine to convert all files under the specified folder
@@ -197,7 +200,7 @@ def cleanFolder(folder):
         if os.path.isdir(path) and entry[0] != '.':
             cleanFolder(path)
         elif filename_re.match(entry):
-            cleanFile(path)
+            cleanFile(folder, entry)
             nProcessed += 1
         if nProcessed >= max_files:
             break
