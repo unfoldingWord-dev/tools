@@ -49,7 +49,7 @@
 #
 
 # Globals
-manifestDir = r'C:\DCS\Assamese\as_ulb'
+manifestDir = r'C:\DCS\Russian\ru_ust.STR'
 nIssues = 0
 projtype = ''
 issuesFile = None
@@ -63,6 +63,7 @@ import os
 import yaml
 import io
 import codecs
+import numbers
 import re
 import usfm_verses
 
@@ -112,7 +113,7 @@ def countUsfmFiles():
 
 # Returns True if the specified string is a recognized Bible type of project type
 def isBibleType(id):
-    return (isAlignedBibleType(id) or id in {'ulb','udb','reg'})
+    return (isAlignedBibleType(id) or id in {'ulb','udb','reg','blv'})
 
 # Returns True if the specified string is a recognized Aligned Bible type of project type
 # Preliminary implementation - list needs refinement (6/21/21)
@@ -278,14 +279,12 @@ def verifyDir(dirpath):
     else:
         reportError("No manifest.yaml file in: " + dirpath)
     verifyCleanDir(dirpath)
-    if projtype == 'obs':
-        mediapath = os.path.join(dirpath, "media.yaml")
-        if not os.path.isfile(mediapath):
-            reportError("Missing media.yaml file in: " + dirpath)
     if projtype == 'ta':
         for folder in ['checking', 'intro', 'process', 'translate']:
             verifyYamls(dirpath, folder)
         sys.stdout.write("Remember to check contents of 4 toc.yaml files. (Title fields must be translated.)\n")
+    if projtype == 'obs':
+        verifyMediaYaml(dirpath)
     if projtype in {'tn','tq'}:
         verifyBooks(dirpath)
     verifyReadme(dirpath)
@@ -320,7 +319,7 @@ def verifyFormat(core):
         elif isBibleType(projtype):
             if format not in {'text/usfm', 'text/usfm3'}:
                 reportError("Invalid format: " + format)
-            if projtype in {'ust','irv','glt','glt','gst','rob','rlob','rsob'}:
+            if projtype in {'ust','irv','glt','gst','rob','rlob','rsob'}:
                 if format != 'text/usfm3':
                     reportError("Invalid format: " + format + ". Expected 'text/usfm3'.")
         else:
@@ -367,6 +366,30 @@ def verifyLanguage(language):
         if language['title'].isascii():
             sys.stdout.write("Remember to localize language title: " + language['title'] + '\n')
 
+# For OBS projects, verify that media.yaml is valid.
+def verifyMediaYaml(dirpath):
+    yamlpath = os.path.join(dirpath, "media.yaml")
+    if os.path.isfile(yamlpath):
+        yamlFile = io.open(yamlpath, "tr", encoding='utf-8-sig')
+        contents = yaml.safe_load(yamlFile)
+        yamlFile.close()
+        verifyKeys("", contents, ['projects'])
+        verifyProjectsOBS(contents['projects'])
+    else:
+        reportError("Missing file: " + shortname(yamlpath))
+
+# Verify media entry from  OBS media.yaml file
+def verifyMedium(medium):
+    verifyKeys("media", medium, ['identifier', 'version', 'contributor', 'url'])
+    if 'en' in medium['url']:
+        reportError("Replace 'en' with the correct langauge code in media.yaml url's")
+    version = "v" + medium['version']
+    if medium['url'].count(version) != 2:
+        reportError("Correct the version numbers in media.yaml url's")
+    if medium['identifier'] != 'pdf':
+        sys.stdout.write("Verify manually the " + medium['identifier'] + " media entry in media.yaml.\n")
+
+
 # Confirms the existence of a LICENSE file
 def verifyOtherFiles():
     licensepath1 = os.path.join(manifestDir, "LICENSE.md")
@@ -374,10 +397,10 @@ def verifyOtherFiles():
     if not os.path.isfile(licensepath1) and not os.path.isfile(licensepath2):
         reportError("LICENSE file is missing")
 
-
 # Verifies that the project contains the six required fields and no others.
 # Verifies that the path exists.
 # Verifies that the title corresponds to the project type.
+# Verifies that the sort field is not octal.
 # Validate some other field values, depending on the type of project
 def verifyProject(project):
     verifyKeys("projects", project, ['title', 'versification', 'identifier', 'sort', 'path', 'categories'])
@@ -386,6 +409,8 @@ def verifyProject(project):
     fullpath = os.path.join(manifestDir, project['path'])
     if len(project['path']) < 5 or not os.path.exists(fullpath):
         reportError("Invalid path: " + project['path'])
+    if not isinstance(project['sort'], numbers.Integral):
+        reportError("project:sort is the wrong type: " + str(project['sort']))
     if projtype == 'ta':
         verifyAcademyProject(project)
     elif projtype in {'tn', 'tq'}:
@@ -472,6 +497,27 @@ def verifyProjects(projects):
         for p in projects:
             verifyProject(p)
 
+# Verify one project of an OBS media.yaml file
+def verifyProjectOBS(project):
+    if project['identifier'] == 'obs':
+        nmedia = len(project['media'])
+        if nmedia < 1:
+            reportError('No media are defined in media.yaml')
+        else:
+            for medium in project['media']:
+                verifyMedium(medium)
+    else:
+        reportError("Unknowns identifier in media.yaml: " + project['identifier'])
+
+
+# Verify the projects section of an OBS media.yaml file, which is the only section
+def verifyProjectsOBS(projects):
+    if not projects:
+        reportError('media.yaml is empty')
+    else:
+        for p in projects:
+            verifyProjectOBS(p)
+
 def verifyReadme(dirpath):
     readmepath = os.path.join(dirpath, "README.md")
     if not os.path.isfile(readmepath):
@@ -530,7 +576,7 @@ def verifyRelations(relations):
                 uhg = True
     if projtype == 'tn-tsv' and not uhg:
         reportError("Must reference 'el-x-koine/ugnt?v=...' in relation")
-    if projtype in {'tn-tsv','tw'} and '/glt' not in relations[0]:
+    if projtype in {'tn-tsv','tw'} and '/glt' not in relations[0] and '/ult' not in relations[0]:
         reportError("'glt' should be first relation listed for tn and tw projects, if there is a glt")
 
 # Validates the source field, which is an array of dictionaries.
