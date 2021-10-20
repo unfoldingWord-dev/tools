@@ -23,16 +23,16 @@
 #          Check that tW files begin with H1 heading immediately followed by H2 heading.
 
 # Globals
-source_dir = r'C:\DCS\Gujarati\gu_tw.STR'
-language_code = 'gu'
+source_dir = r'C:\DCS\Hindi\hi_tw.STR'
+language_code = 'hi'
 resource_type = 'tw'
-ta_dir = r'C:\DCS\Gujarati\gu_ta.STR'    # Target language tA, or English tM for WA
+ta_dir = r'C:\DCS\Hindi\hi_ta.STR'    # Target language tA, or English tM for WA
 obstn_dir = r'C:\DCS\Russian\ru_obs-tn.STR'
 en_tn_dir = r'C:\DCS\English\en_tn.md-orig'
 en_tq_dir = r'C:\DCS\English\en_tq.v18'
-tn_dir = r'C:\DCS\Gujarati\gu_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
+tn_dir = r'C:\DCS\Hindi\hi_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
 #tn_dir = r'C:\DCS\English\en_tn.md-orig'
-tw_dir = r'C:\DCS\Gujarati\gu_tw.STR'
+tw_dir = r'C:\DCS\Hindi\hi_tw.STR'
 
 nChecked = 0
 nChanged = 0
@@ -568,10 +568,10 @@ def verifyFile(path):
         input.seek(0, io.SEEK_SET)      # rewind to beginning of file
         gulp = input.read()
     input.close()
-    checkForBOM(path)
 
     state = State()
     state.setPath(path)
+    checkForBOM(path)
     empty = verifyNotEmpty(path)
     if not empty:
         for line in lines:
