@@ -21,21 +21,22 @@ from urllib.request import urlopen
 from urllib.error import HTTPError
 import unicodedata
 
-# Local importsre
+# Local imports
 from general_tools.file_utils import write_file, read_file, make_dir, unzip, remove_tree
 from general_tools.url_utils import get_url, download_file
 from .ResourceContainer import RC
+
 
 def do_preprocess(source_dir:str, output_dir:str):
     rc = RC(directory=source_dir)
     preprocessor = ObsPreprocessor(rc=rc, source_dir=source_dir, output_dir=output_dir)
     preprocessor.run()
 
+
 class Preprocessor:
     # NOTE: Both of these lists are used for CASE-SENSITIVE comparisons
     ignoreDirectories = ['.apps', '.git', '.github', '00']
     ignoreFiles = ['.DS_Store', 'reference.txt', 'title.txt', 'LICENSE.md', 'README.md', 'README.rst']
-
 
     def __init__(self, rc:RC, source_dir:str, output_dir:str) -> None:
         """
@@ -62,7 +63,6 @@ class Preprocessor:
 
         # Write out the new manifest file based on the resource container
         write_file(os.path.join(self.output_dir, 'manifest.yaml'), self.rc.as_dict())
-
 
     def run(self) -> Tuple[int, List[str]]:
         """
@@ -107,18 +107,14 @@ class Preprocessor:
         return self.num_files_written, self.errors + self.warnings + (self.messages if self.errors or self.warnings else [])
     # end of Preprocessor.run()
 
-
     def mark_chapter(self, ident:int, chapter:str, text:str) -> str:
         return text  # default does nothing to text
-
 
     def mark_chunk(self, ident:int, chapter:str, chunk:str, text:str) -> str:
         return text  # default does nothing to text
 
-
     def get_book_list(self):
         return None
-
 
     def check_and_clean_title(self, title_text:str, ref:str) -> str:
         """
@@ -143,7 +139,6 @@ class Preprocessor:
         self.check_punctuation_pairs(title_text, ref)
         return title_text
     # end of Preprocessor.check_and_clean_title function
-
 
     def check_punctuation_pairs(self, some_text:str, ref:str, allow_close_parenthesis_points=False) -> None:
         """
@@ -230,7 +225,6 @@ class Preprocessor:
                     break # Only want one warning per text
     # end of Preprocessor.check_punctuation_pairs function
 # end of Preprocessor class
-
 
 
 class ObsPreprocessor(Preprocessor):

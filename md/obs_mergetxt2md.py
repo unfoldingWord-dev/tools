@@ -1,4 +1,4 @@
-# coding: latin-1
+# -*- coding: utf-8 -*-
 # This program converts a folder of OBS text files in the newer tStudio
 # format (one .txt file per OBS chunk, multiple chunks per story)
 # to a set of corresponding OBS story files in Markdown format.
@@ -13,9 +13,10 @@ import string
 import sys
 import shutil
 
+
 # Globals
-target_dir = r'E:\DCS\Arli\rmy-x-vwa_obs'
-en_contentdir = r'E:\DCS\English\en_obs\content'
+target_dir = r'/Users/richmahn/repos/git.door43.org/apd_obs'
+en_contentdir = r'/Users/richmahn/repos/git.door43.org/en_obs/content'
 
 # Merges the contents of each file in the folder, into output mdfile.
 # Intersperses image links between text from each file if it can.
@@ -36,8 +37,8 @@ def merge(image_list, folder, mdfile):
         if chunk:
             if images_inline and chunksOut < len(image_list):
                 mdfile.write("\n" + image_list[chunksOut])
-            mdfile.write("\n")
-            mdfile.write(chunk + "\n")
+            mdfile.write(u"\n")
+            mdfile.write(chunk + u"\n")
         chunksOut += 1
         input.close()
 
@@ -49,7 +50,7 @@ def merge(image_list, folder, mdfile):
 
 # Returns the list of chunk file names
 def listChunks(folder):
-    filenames = os.listdir(folder)
+    filenames = sorted(os.listdir(folder))
     chunks = []
     chunkname = re.compile(r'[0-1][0-9]\.txt')
     for filename in filenames:
@@ -76,9 +77,9 @@ def detect_by_bom(path, default):
         raw = f.read(4)
         f.close
     for enc,boms in \
-            ('utf-8-sig',(codecs.BOM_UTF8)),\
-            ('utf-16',(codecs.BOM_UTF16_LE,codecs.BOM_UTF16_BE)),\
-            ('utf-32',(codecs.BOM_UTF32_LE,codecs.BOM_UTF32_BE)):
+            ('utf-8-sig',[codecs.BOM_UTF8]),\
+            ('utf-16',[codecs.BOM_UTF16_LE,codecs.BOM_UTF16_BE]),\
+            ('utf-32',[codecs.BOM_UTF32_LE,codecs.BOM_UTF32_BE]):
         if any(raw.startswith(bom) for bom in boms):
             return enc
     return default
@@ -131,7 +132,7 @@ def renameTitle(contentdir, subdir):
     
 # Merge title, chunks, and reference the files from folder into one equivalent .md file
 def convertStory(folder, storynumber, contentpath):
-    sys.stdout.write("Converting " + folder + "\\\n")
+    sys.stdout.write("Converting " + folder + "\n")
     sys.stdout.flush()
     mdpath = os.path.join(contentpath, storynumber + ".md")
     english_md_path = os.path.join(en_contentdir, storynumber + '.md')
@@ -164,7 +165,7 @@ def convertStories(masterfolder):
     if not os.path.isdir(contentpath):
         os.mkdir(contentpath)
 
-    for subdir in os.listdir(masterfolder):
+    for subdir in sorted(os.listdir(masterfolder)):
         if subdir[0] == '.':
             continue
         folder = os.path.join(masterfolder, subdir)

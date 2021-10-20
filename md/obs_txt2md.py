@@ -12,8 +12,8 @@ import string
 import sys
 
 # Globals
-en_contentdir = r'C:\DCS\English\en_obs\content'
-target_dir = r'C:\DCS\Hausa\ha_obs_L1'
+en_contentdir = r'/Users/richmahn/repos/git.door43.org/en_obs/content'
+target_dir = r'/Users/richmahn/repos/git.door43.org/apt_obs'
 
 def merge(image_list, txtfile, mdfile):
     titleLinesOut = 0
@@ -91,7 +91,8 @@ obsfilename = re.compile(r'([0-5][0-9])\.txt')
 
 # Convert each .txt file in the specified folder to equivalent .md format
 def convertStories(folder):
-    for filename in os.listdir(folder):
+    for filename in sorted(os.listdir(folder)):
+        print(filename + "\n")
         obsmatch = obsfilename.match(filename)
         if obsmatch:
             sys.stdout.write(filename + "\n")   # to show progress on stdout
