@@ -10,9 +10,10 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Apr 2021 by RJH
-#   Last modified: 2021-09-14 by RJH
+#   Last modified: 2021-11-25 by RJH
 #
 #   Modified 2021-09-14 by RJH to presort TWLs before applying
+#   Modified 2021-11-25 by RJH to reduce input and output folder paths to just one
 #
 """
 Quick script to:
@@ -25,14 +26,21 @@ from pathlib import Path
 import re
 
 
-LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
-LOCAL_TWL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_twl/')
+# You have to change this single line to be correct for your own filesystem
+# It should point to a folder, under which are the cloned and up-to-date en_twl, hbo_uhb, and el-x-koine_ugnt repos
+LOCAL_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
 
-# The output folders below must also already exist!
-LOCAL_OUTPUT_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
-# LOCAL_OUTPUT_BASE_FOLDERPATH = Path('/mnt/Data/Door43-Catalog_repos/')
-LOCAL_OT_FOLDERPATH = LOCAL_OUTPUT_BASE_FOLDERPATH.joinpath('hbo_uhb/')
-LOCAL_NT_FOLDERPATH = LOCAL_OUTPUT_BASE_FOLDERPATH.joinpath('el-x-koine_ugnt/')
+
+# These are the derived repo paths -- input is TWL and UHB/UGNT (without TW links), output is UHB/UGNT with TW links.
+LOCAL_TWL_SOURCE_FOLDERPATH = LOCAL_BASE_FOLDERPATH.joinpath('en_twl/')
+# The two output folders below must also already exist and be up-to-date (because they're also used as input)!
+LOCAL_OT_FOLDERPATH = LOCAL_BASE_FOLDERPATH.joinpath('hbo_uhb/')
+LOCAL_NT_FOLDERPATH = LOCAL_BASE_FOLDERPATH.joinpath('el-x-koine_ugnt/')
+# So this script will add TWLs to the above two folders
+#  and you will probably later copy them to a Door43-Catalog repo
+#   and then restore the files here changed by the script
+#    (as we don't want the TW links added back into our uW repos -- only in Door43-Catalog repos)
+
 
 BBB_NUMBER_DICT = {'GEN':'01','EXO':'02','LEV':'03','NUM':'04','DEU':'05',
                 'JOS':'06','JDG':'07','RUT':'08','1SA':'09','2SA':'10','1KI':'11',
