@@ -11,10 +11,11 @@
 #    Fixes links of this form [[:en:...]]
 
 # Global variables
-source_dir = r'C:\DCS\Russian\TN.May-21'
-target_dir = r'C:\DCS\Russian\ru_tn.temp'
-language_code = 'ru'
+source_dir = r'C:\DCS\TokPisin\TN'
+target_dir = r'C:\DCS\TokPisin\tpi_tn'
+language_code = 'tpi'
 resource_type = 'tn'
+Contributors_only = False    # set to True if all you want is the list of contributors (for Marv)
 
 projects = []
 translators = []
@@ -92,8 +93,13 @@ def appendToProjects(bookId, bookTitle):
     title = bookTitle + " translationNotes"
     if resource_type == 'tq':
         title = bookTitle
-    project = { "title": title, "id": bookId.lower(), "sort": usfm_verses.verseCounts[bookId]["sort"], \
-                "path": "./" + bookId.lower() }
+    sort = usfm_verses.verseCounts[bookId]["sort"]
+    testament = 'nt'
+    if sort < 40:
+        testament = 'ot'
+    project = { "title": title, "id": bookId.lower(), "sort": sort, \
+                "path": "./" + bookId.lower(), \
+                 "categories": "[ 'bible-" + testament + "' ]" }
     projects.append(project)
 
 # Sort the list of projects and write to projects.yaml
@@ -106,11 +112,18 @@ def dumpProjects():
     for p in projects:
         manifest.write("  -\n")
         manifest.write("    title: '" + p['title'] + "'\n")
-        manifest.write("    versification: ''\n")
-        manifest.write("    identifier: '" + p['id'] + "'\n")
-        manifest.write("    sort: " + str(p['sort']) + "\n")
-        manifest.write("    path: '" + p['path'] + "'\n")
-        manifest.write("    categories: []\n")
+        if resource_type == 'tn':
+            manifest.write("    versification: ''\n")
+            manifest.write("    identifier: '" + p['id'] + "'\n")
+            manifest.write("    sort: " + str(p['sort']) + "\n")
+            manifest.write("    path: '" + p['path'] + "'\n")
+            manifest.write("    categories: []\n")
+        else:       # tQ
+            manifest.write("    identifier: '" + p['id'] + "'\n")
+            manifest.write("    sort: " + str(p['sort']) + "\n")
+            manifest.write("    path: '" + p['path'] + "'\n")
+            manifest.write("    categories: " + p['categories'] + "\n")
+            manifest.write("    versification: ''\n")
     manifest.close()
 
 def dumpTranslators():
@@ -183,32 +196,33 @@ def convertBook(path):
     bookId = getBookId(path)
     getContributors(path)
     bookTitle = getBookTitle(bookId)
-    relativepath = shortname(path)
-    if bookId and bookTitle:
-        chap01path = os.path.join(path, "01")
-        if bookId.lower() == "psa":
-            chap01path = os.path.join(path, "001")
-        chap01pathAlt = os.path.join( os.path.join(path, bookId.lower(), "01"))
-        if bookId.lower() == "psa" and not os.path.isdir(chap01pathAlt):
-            chap01pathAlt = os.path.join( os.path.join(path, "psa", "001"))
-
-        if os.path.isdir(chap01pathAlt) and not os.path.isdir(chap01path):
-            path = os.path.join(path, bookId.lower())
-            relativepath = shortname(path)
-        nchapters = 0
-        for dir in os.listdir(path):
-            if isChapter(dir):
-                nchapters += 1
-                if nchapters == 1:
-                    sys.stdout.write("Converting: " + relativepath + "\n")
-                    sys.stdout.flush()
-                convertChapter(bookId, dir, os.path.join(path, dir))
-        if nchapters > 0:
-            appendToProjects(bookId, bookTitle)
-        else:
-            sys.stderr.write("Book folder has manifest but no chapters: " + relativepath + '\n')
-    elif relativepath != "" and relativepath.lower() != "content":
-        sys.stderr.write("Not identified as a book folder: " + relativepath + '\n')
+    if not Contributors_only:
+        relativepath = shortname(path)
+        if bookId and bookTitle:
+            chap01path = os.path.join(path, "01")
+            if bookId.lower() == "psa":
+                chap01path = os.path.join(path, "001")
+            chap01pathAlt = os.path.join( os.path.join(path, bookId.lower(), "01"))
+            if bookId.lower() == "psa" and not os.path.isdir(chap01pathAlt):
+                chap01pathAlt = os.path.join( os.path.join(path, "psa", "001"))
+    
+            if os.path.isdir(chap01pathAlt) and not os.path.isdir(chap01path):
+                path = os.path.join(path, bookId.lower())
+                relativepath = shortname(path)
+            nchapters = 0
+            for dir in os.listdir(path):
+                if isChapter(dir):
+                    nchapters += 1
+                    if nchapters == 1:
+                        sys.stdout.write("Converting: " + relativepath + "\n")
+                        sys.stdout.flush()
+                    convertChapter(bookId, dir, os.path.join(path, dir))
+            if nchapters > 0:
+                appendToProjects(bookId, bookTitle)
+            else:
+                sys.stderr.write("Book folder has manifest but no chapters: " + relativepath + '\n')
+        elif relativepath != "" and relativepath.lower() != "content":
+            sys.stderr.write("Not identified as a book folder: " + relativepath + '\n')
     return bookTitle
  
 # Converts the book or books contained in the specified folder
@@ -223,7 +237,9 @@ def convert(dir):
             if os.path.isdir(folder) and directory[0] != ".":
                 convert(folder)
     dumpProjects()
-    dumpTranslators()
+    global translators
+    if len(translators) > 0:
+        dumpTranslators()
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
