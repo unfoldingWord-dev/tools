@@ -23,11 +23,11 @@
 #          Check that tW files begin with H1 heading immediately followed by H2 heading.
 
 # Globals
-source_dir = r'C:\DCS\Hindi\hi_tw.STR'
+source_dir = r'C:\DCS\Hindi\hi_ta.STR'
 language_code = 'hi'
-resource_type = 'tw'
+resource_type = 'ta'
 ta_dir = r'C:\DCS\Hindi\hi_ta.STR'    # Target language tA, or English tM for WA
-obstn_dir = r'C:\DCS\Russian\ru_obs-tn.STR'
+obstn_dir = r'C:\DCS\Kannada\kn_obs-tn'
 en_tn_dir = r'C:\DCS\English\en_tn.md-orig'
 en_tq_dir = r'C:\DCS\English\en_tq.v18'
 tn_dir = r'C:\DCS\Hindi\hi_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
@@ -43,13 +43,13 @@ suppress1 = False    # Suppress warnings about text before first heading
 suppress2 = False    # Suppress warnings about blank headings
 suppress3 = False    # Suppress warnings about item number not followed by period
 suppress4 = False    # Suppress warnings about closed headings
-suppress5 = False    # Suppress warnings about invalid passage links
+suppress5 = False    # Suppress warnings about invalid passage links and relative links
 suppress6 = True    # Suppress warnings about invalid OBS notes links
 suppress7 = False    # Suppress warnings about file starting with blank line
 suppress8 = False    # Suppress warnings about blank lines before, after, and within lists
 suppress9 = False    # Suppress warnings about ASCII content
 suppress10 = False   # Suppress warnings about heading levels
-suppress11 = True    # Suppress warnings about unbalanced parentheses
+suppress11 = False    # Suppress warnings about unbalanced parentheses
 suppress12 = False     # Suppress warnings about newlines at end of file
 suppress13 = False     # Suppress warnings about mistmatched **
 suppress14 = True     # Suppress "invalid note link" warnings
@@ -339,8 +339,14 @@ def checkLineContents(line):
             reportError("Line seems to have mismatched '**'")
         if line.find("** ") == line.find("**"):      # the first ** is followed by a space
             reportError("Incorrect markdown syntax, space after double asterisk '**'")
-        if '***' in line:
+        if '****' in line:
+            reportError("Line contains quadruple asterisks, ****")
+        elif '***' in line:
             reportError("Line contains triple asterisks, ***")
+        if "**_" in line:
+            reportError("Line contains **_")
+        if "_**" in line:
+            reportError("Line contains _**")
     if not suppress13 and line.count("__") % 2 == 1:
         reportError("Line seems to have mismatched '__'")
     if "___" in line:
@@ -355,6 +361,10 @@ def checkLineContents(line):
         reportError("found '[' without following ']'")
     if '[[[' in line or '[[[' in line or '(((' in line or ')))' in line:
         reportError("Extra parens or brackets")
+    if line.count("[") != line.count("]"):
+        reportError("Unbalanced brackets within this line")
+    if not suppress11 and line.count("(") != line.count(")"):
+        reportError("Unbalanced parens within this line")
 
 unbracketed_re = re.compile(r'[^\[][^\[][^\[]rc\://')
 altbracketed_re = re.compile(r'.\] *\( *rc\://.*\)')
@@ -519,7 +529,9 @@ def checkPassageLinks(line, fullpath):
         if resource_type in {'obs-tn','obs-tq','obs-sn','obs-sq'}:
             checkOBSTNLink(link)
         elif not "/ta/" in link and not '/tn/' in link and not '/tw/' in link and not (resource_type == 'obs' and obsJpg_re.match(link)):
-            if link.isascii() and not link.startswith("http") :
+            if not link.isascii():
+                reportError("Non-ascii link")
+            elif not link.startswith("http") :
                 referencedPath = os.path.join( os.path.dirname(fullpath), link )
                 if not suppress5 and not os.path.isfile(referencedPath):
                     reportError("invalid link: " + link)
@@ -651,10 +663,13 @@ def verifyChapter(path, chapter, book):
             path01 = os.path.join(path, "001.md")
             path01en = os.path.join(path, "001.md")
         en_files = os.listdir(enpath)
+        reportedMissing = False
         if not os.path.isfile(path01) and os.path.isfile(path01en) and os.stat(path01en).st_size > 4:
             reportError("Missing file(s) in: " + shortname(path))
+            reportedMissing = True
         elif len(files) * 4 < len(en_files):
             reportError("Missing some files in: " + shortname(path))
+            reportedMissing = True
         elif len(files) > nverses + 1:
             reportError("Too many files in: " + shortname(path))
 #        else:
@@ -669,7 +684,7 @@ def verifyChapter(path, chapter, book):
                         topverse = verseno
                 verifyFile(fpath)
             verifyFilename(path, fname)
-        if topverse + 5 < nverses and len(files) * 3 < len(en_files):
+        if not reportedMissing and topverse + 5 < nverses and len(files) * 3 < len(en_files):
             state.setPath(path)
             reportError("Likely missing some files in: " + shortname(path))
 
