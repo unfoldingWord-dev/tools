@@ -49,7 +49,7 @@
 #
 
 # Globals
-manifestDir = r'C:\DCS\Russian\ru_ust.STR'
+manifestDir = r'C:\DCS\Hindi\hi_ta.STR'
 nIssues = 0
 projtype = ''
 issuesFile = None
@@ -252,7 +252,7 @@ def verifyCore(core):
     pub = core['publisher']
     if pub.lower().find('unfolding') >= 0 and core['language']['identifier'] != 'en':
         reportError("Invalid publisher: " + pub)
-    if len(pub) > 3 and pub != "Wycliffe Associates":
+    elif len(pub) > 3 and pub != "Wycliffe Associates":
             reportError("This may be the wrong publisher name: " + pub + ". Use 'BCS' as the publisher for BCS resources.")
     verifyRelations(core['relation'])
     if 'rights' in list(core.keys()) and core['rights'] != 'CC BY-SA 4.0':  # would this work: 'rights' in core
@@ -384,7 +384,7 @@ def verifyMedium(medium):
     if 'en' in medium['url']:
         reportError("Replace 'en' with the correct langauge code in media.yaml url's")
     version = "v" + medium['version']
-    if medium['url'].count(version) != 2:
+    if medium['identifier'] != 'door43' and medium['url'].count(version) != 2:
         reportError("Correct the version numbers in media.yaml url's")
     if medium['identifier'] != 'pdf':
         sys.stdout.write("Verify manually the " + medium['identifier'] + " media entry in media.yaml.\n")
@@ -429,8 +429,8 @@ def verifyProject(project):
         if len(project['categories']) != 1 or cat not in {'bible-ot', 'bible-nt'}:
             reportError("Invalid project:categories: " + cat)
     elif projtype == 'tw':
-        if project['title'] != 'translationWords':
-            reportError("Invalid project:title: " + project['title'] + ". Should be translationWords")
+        if project['title'] not in {'translationWords','Translation Words'}:
+            reportError("Invalid project:title: " + project['title'] + ". Should be translationWords or Translation Words")
     elif isBibleType(projtype):
         bookinfo = usfm_verses.verseCounts[project['identifier'].upper()]
         if int(project['sort']) != bookinfo['sort']:
@@ -454,7 +454,7 @@ def verifyProject(project):
     elif projtype in {'obs-tn','obs-tq','obs-sn','obs-sq'}:
         if project['categories'] and len(project['categories']) != 0:
             reportError("Categories list should be empty: project:categories")
-        if project['identifier'] != projtype:
+        if project['identifier'] != "obs":      #  New as of November 2021
             reportError("Invalid project:identifier: " + project['identifier'])
         if projtype == 'obs-tn':
             if not project['title'].endswith('Open Bible Stories Translation Notes') and project['title'] != 'OBS translationNotes':
