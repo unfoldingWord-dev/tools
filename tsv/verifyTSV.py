@@ -8,8 +8,10 @@
 #   Non-sequential chapter numbers (non-sequential verse numbers are permitted).
 #   Invalid verse number (0).
 #   ASCII, non-ASCII in each column.
+#   SupportReference value does not match any TA articles referenced in note.
 #   OccurrenceNote (column 9) values. Some of these conditions are correctable with tsv_cleanup.py.
-#      ASCII content only.
+#      is blank.
+#      ASCII content only (likely untranslated).
 #      Unmatched parentheses and brackets.
 #      Missing space after hash mark(s).
 #      Double quotes enclosing the OccurrenceNote field.
@@ -17,12 +19,12 @@
 # A lot of these checks are done by tsv2rc.py as well.
 
 # Globals
-source_dir = r'C:\DCS\Russian\TN'
-language_code = 'ru'
+source_dir = r'C:\DCS\Telugu\te_tn.STR'
+language_code = 'te'
 source_language = 'en'         # The language that the notes are translated from, usually en
 #ta_dir = r'C:\DCS\English\en_tA.v13'    # English tA
-ta_dir = r'C:\DCS\Russian\ru_ta.STR'    # Use Target language tA if available
-obs_dir = r'C:\DCS\Russian\ru_obs.STR\content'
+ta_dir = r'C:\DCS\Telugu\te_ta.STR'    # Use Target language tA if available
+obs_dir = r'C:\DCS\Kannada\kn_obs\content'
 
 suppress1 = False    # Suppress warnings about text before first heading and TA page references in headings
 suppress2 = False    # Suppress warnings about blank headings
@@ -31,11 +33,13 @@ suppress4 = False    # Suppress warnings about closed headings
 suppress5 = True     # Suppress warnings about invalid passage links (don't know how to validate these with TSV)
 suppress6 = False    # Suppress warnings about invalid OBS links
 suppress7 = False    # Suppress warnings about file starting with blank line
-suppress9 = False    # Suppress warnings about ASCII content in column 9
+suppress9 = False    # Suppress warnings about ASCII content in note.
 suppress10 = False   # Suppress warnings about heading levels
-suppress11 = True    # Suppress warnings about unbalanced parentheses
+suppress11 = False    # Suppress warnings about unbalanced parentheses
 suppress12 = False    # Suppress warnings about markdown syntax in 1-line notes
 suppress13 = False    # Suppress warnings about multiple lines in non-intro notes
+suppress14 = False    # Suppress warnings about mismatched SupportReference and TA page references
+
 if language_code in {'hr','id','nag','pmy','sw','en','es-419'}:    # Expect ASCII content with these languages
     suppress9 = True
 
@@ -443,7 +447,7 @@ def verifyNote(note, verse):
         checkLinks(note)
     state.closeNote()
     reportParens()
-    if state.ascii and not suppress9:
+    if len(note) > 0 and state.ascii and not suppress9:
         reportError("No non-ASCII content in note")
     if unexpected_re.search(note):
         reportError("found ']' after left paren")
@@ -515,6 +519,12 @@ def checkRow(row):
 
     if not row[4].isascii():
         reportError("Non-ascii SupportReference value (column 5)")
+    elif row[4]:
+        path = os.path.join(ta_dir, "translate/" + row[4])
+        if not os.path.isdir(path):
+            reportError("Invalid SupportReference value: " + row[4])
+        elif not suppress14 and row[4] not in row[8]:
+            reportError("SupportReference value does not match any tA articles mentioned in note")
     if len(row[5].strip()) > 0 and row[5].isascii():
         reportError("Invalid (ASCII) OrigQuote (column 6)")
     if row[6] not in {'0', '1', '2'}:
