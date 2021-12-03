@@ -8,10 +8,10 @@
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Assamese\ULB'
-target_dir = r'C:\DCS\Assamese\as_ulb.work'
-#en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
-en_rc_dir = None    # Set to None if no chunk markers should be added
+source_dir = r'C:\DCS\Urdu\Bible\READY'
+target_dir = r'C:\DCS\Urdu\ur_ulb'
+en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
+#en_rc_dir = None    # Set to None if no chunk markers should be added
 
 projects = []
 translators = []
@@ -227,6 +227,7 @@ def printToken(token):
     else:
         print(token)
 
+# Write to the file with or without a newline as appropriate
 def takeAsIs(key, value):
     state = State()
     if state.chapter < 1:       # header has not been written, chapter 1 has not started
@@ -269,7 +270,7 @@ def takeQ(tag):
 
 # Called each time a verse marker is encountered, before the verse marker is written to the output stream.
 # Writes an \s5 section marker if it is the first verse in the chunk.
-# Writer a \p marker before verse 1 or when a \p marker from input is on hold.
+# Writes a \p marker before verse 1 or when a \p marker from input is on hold.
 def addSection(v):
     state = State()
     vn = int(v)
@@ -315,7 +316,13 @@ def takeText(t):
             state.addP()
         state.usfmFile.write(" " + t)
     state.addText()
-        
+
+def takeVPS(pubv):
+    State().usfmFile.write(" \\vp" + pubv)
+
+def takeVPE():
+    State().usfmFile.write("\\vp*")
+
 # Insert an s5 marker before writing any chapter marker.
 # Before writing chapter 1, we output the USFM header.
 def takeC(c):
@@ -379,6 +386,10 @@ def take(token):
         x = 0       # do nothing
     elif token.isREM() and state.chapter < 1:   # remarks before first chapter go in the header
         state.addREM(token.value)
+    elif token.isVPS():
+        takeVPS(token.value)
+    elif token.isVPE():
+        takeVPE()
     else:
         # sys.stdout.write("Taking other token: ")
         # print token
