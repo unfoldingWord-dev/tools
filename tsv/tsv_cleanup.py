@@ -14,6 +14,7 @@
 # Adds space after markdown header hash marks, if missing.
 # Also removes double quotes that surround fields that should begin with just a markdown header.
 # Fixes links of the form rc://en/...
+# Untranslates SupportReference values that were mistakenly translated.
 #
 # This script was written for TSV notes files.
 # Backs up the files being modified.
@@ -32,9 +33,9 @@ import tsv
 import substitutions    # this module specifies the string substitutions to apply
 
 # Globals
-source_dir = r'C:\DCS\Hindi\TN.new'  # Where are the files located
-language_code = 'hi'
-max_files = 22     # How many files do you want to process
+source_dir = r'C:\DCS\Telugu\TN'  # Where are the files located
+language_code = 'te'
+max_files = 66     # How many files do you want to process
 nProcessed = 0
 filename_re = re.compile(r'.*\.tsv$')
 
@@ -150,25 +151,50 @@ def mergeRows(data):
         newdata.append(data[i])
     return newdata
 
+# Strips leading/trailing quotes and spaces from each column value in the row.
+# Detects and repairs a few common ways in which one column is missing from the row.
+# Makes a few fixes to the note column using cleanNote().
 def cleanRow(row):
     i = 0
     while i < len(row):
-        if row[i].startswith('"') or row[i].count('"') == 1:
-            chars = '" '
-        else:
-            chars = ' '
-        row[i] = row[i].strip(chars)     # remove leading and trailing spaces and quotes  
+        str = row[i].strip(' ')     # remove leading and trailing spaces  
+        if len(str) > 0 and str[0] == '"' and str[-1] == '"':
+            str = str[1:-1]
+        row[i] = str
         i += 1
     if len(row) == 8:
         if len(row[3]) > 4: # A common problem, where the ID column is merged with the next column.
             row = fixID(row)
-        elif not row[4].isascii():   # another common problem where the SupportReference is omitted
+        elif not row[4].isascii():   # another common problem where the SupportReference column is omitted
             row.insert(4, "")
         elif len(row[4]) == 0 and row[5] in {'0','1'}:
             row.insert(4, "")
     if len(row) == 9:
         row[8] = cleanNote(row[8])
+        row[4] = cleanSupportRef(row[4], row[8])
     return row
+
+tapage_re = re.compile(r'\[\[.*?/ta/man/[\w]+/(.*?)]]', flags=re.UNICODE)
+
+# Translates the value to the last tA article name in the note, if the value is non-ascii to begin with
+def cleanSupportRef(value, note):
+    if not value.isascii():
+        if talink := tapage_re.search(note):
+            value = talink.group(1)
+    return value        
+
+# Returns a value to be used in sorting the row
+def rowValue(row):
+    if row[0] == "Book":
+        value = -1
+    else:
+        if row[1] == "front":
+            value = 0
+        else:
+            value = 1000 * int(row[1])
+        if row[2] != "intro":
+            value += int(row[2])
+    return value
 
 def cleanFile(folder, fname):
     path = os.path.join(folder, fname)
@@ -181,6 +207,7 @@ def cleanFile(folder, fname):
     for row in data:
         if len(row) > 1:
             row = cleanRow(row)
+    data.sort(key=rowValue)
 
     bakpath = path.replace(".tsv", ".tsvorig")
     if not os.path.isfile(bakpath):
@@ -216,7 +243,7 @@ if __name__ == "__main__":
     elif filename_re.match(source_dir) and os.path.isfile(source_dir):
         path = source_dir
         source_dir = os.path.dirname(path)
-        cleanFile(path)
+        cleanFile(source_dir, os.path.basename(path))
         sys.stdout.write("Done. Processed 1 file.\n")
     else:
         sys.stderr.write("Usage: python tsv_cleanup.py <folder>\n  Use . for current folder.\n")
