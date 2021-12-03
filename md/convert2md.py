@@ -170,8 +170,10 @@ def fixHeadings(line):
     line = re.sub(r'\*[\s][\s]+', '* ', line, count=1, flags=re.UNICODE)    # remove extra spaces/tabs after asterisk
     
     # ensure space after hash(es) or asterisk(s) at beginning of line
-    if jam := jams_re.match(line):
-        line = line[0:jam.end()-1] + " " + line[jam.end()-1:]
+    if line.count("*") % 2 == 1:    # odd number of asterisks
+        jam = jams_re.match(line)
+        if jam:
+            line = line[0:jam.end()-1] + " " + line[jam.end()-1:]
     line = uncloseHeading(line)
     return line
 
@@ -246,14 +248,15 @@ bad0_re = re.compile(r'(.*\[\[:en:[^\n\]]*)]? *$', flags=re.UNICODE+re.DOTALL)  
 bad1_re = re.compile(r'(.*\[\[:en:[^\n\]]*)]([^\]].*)', flags=re.UNICODE+re.DOTALL)  # single right bracket
 bad2_re = re.compile(r'(.*\[\[:en:[^\n\]]*)([\n\)].*)', flags=re.UNICODE+re.DOTALL)  # no right bracket before right paren or newline
 bad4_re = re.compile(r'(.*)]](\w.*)', flags=re.UNICODE)         # no space after right brackets
-link_re = re.compile(r'(.*)(\[\[:en:[^\n\]]*\]\])(.*)', flags=re.UNICODE+re.DOTALL)     # matches a full link
 # list0_re = re.compile(r'(.*\n)\*([^ ].*)', flags=re.UNICODE+re.DOTALL)      # no space after asterisk
+# list3_re = re.compile(r'^\*([^ \*].*)', flags=re.UNICODE+re.DOTALL)      # no space after single asterisk at beginning of string
 list1_re = re.compile(r'^([^\*]*[^\n])\n\* (.*)', flags=re.UNICODE+re.DOTALL)        # no blank line before ordered list
 list2_re = re.compile(r'(.*\* [^\n]*)\n([^\n\*].*)', flags=re.UNICODE+re.DOTALL)      # no blank line after ordered list
-list3_re = re.compile(r'^\*([^ \*].*)', flags=re.UNICODE+re.DOTALL)      # no space after single asterisk at beginning of string
+
 
 # This function is used by both md2md() and json2md().
-# Cleans up the string destined for markdown file.
+# Cleans up the specified string destined for markdown file.
+# The string may be coming from the title or the body. It may be a single line or multiple lines.
 # Converts improper links ( [[:en:ta...]] and others) to the current format.
 # Converts &nbsp; to space character
 # Returns fixed string.
@@ -268,21 +271,20 @@ def normalize(ustr):
     str = str.replace("[[[[", "[[")
     str = str.replace("[[[", "[[")
     str = str.replace("\t", " ")
-#    str = re.sub(r'\] *\(', '](', str)     I took this out because sometimes the ] ( is not a link.
     str = re.sub(r'\n *-', '\n*', str)
+#    str = re.sub(r'\] *\(', '](', str)     I took this out because sometimes the ] ( is not a link.
     str = re.sub(r'&nbsp;', ' ', str, count=0)
+    str = re.sub(r'#  +', '# ', str)     # removes extra spaces following hash mark
+    str = re.sub(r'^\[?:?en:', '[[:en:', str)   # fix missing bracket at beginning of string
     
     if not g_multilist:
         str = re.sub(r'    *', '  ', str)   # reduce runs of 3 or more spaces
         str = re.sub(r'\n +\*', '\n*', str)     # removes spaces before asterisk, although they are required in multi-level lists (uncommon)
-    
-    str = re.sub(r'\n +\#', '\n#', str)       # removes spaces before hash marks (new 5/30/19)
+    str = re.sub(r'\n +\#', '\n#', str)       # removes spaces before hash marks
     str = re.sub(r'\n\*  +', '\n* ', str)     # removes excess spaces after asterisk
     str = re.sub(r':\n\* ', ':\n\n* ', str)   # adds blank line at start of list
-    str = re.sub(r'#  +', '# ', str)     # removes extra spaces following hash mark
 
     # Left brackets
-    str = re.sub(r'^\[?:?en:', '[[:en:', str)   # fix missing bracket at beginning of string
     bad = bad8_re.match(str)
     while bad:
         str = bad.group(1) + "[[:en:" + bad.group(2)
@@ -322,9 +324,9 @@ def normalize(ustr):
     while bad:
         str = bad.group(1) + '\n\n' + bad.group(2)
         bad = list2_re.match(str)
-    bad = list3_re.match(str)   # no space after asterisk at beginning of string
-    if bad:
-        str = '* ' + bad.group(1)
+#    bad = list3_re.match(str)    Comment out because *italics) is valid
+#    if bad:
+#        str = '* ' + bad.group(1)
 
     if g_langcode != "en":
         url = enurl_re.match(str)   # This function only changes links from rc://en/...  to rc://*/...
@@ -338,6 +340,13 @@ def normalize(ustr):
     str = fixBadRelativePath(str)
     return str
 
+# Cleans up a line or more of markdown.
+# None of the substitutions respect line breaks, so it is useful for a single line or multiple lines of markdown.
+# Returns modified string.
+def normalizeLine(ustr):
+    return str
+
+
 httplink_re = re.compile(r'(.*)https://git.door43.org/Door43/en-tw/src/master/content/(\w+/\w+)\.md(.*)', re.UNICODE)   # r'(.*)(\[\[:en:[^\n\]]*\]\])(.*)'
 # Fixes old style https:// links to English tWords
 def fixHttpLinks(str):
@@ -345,6 +354,7 @@ def fixHttpLinks(str):
         str = link.group(1) + "[[rc://*/tw/dict/bible/" + link.group(2) + "]]" + link.group(3)
     return str
 
+link_re = re.compile(r'(.*)(\[\[:en:[^\n\]]*\]\])(.*)', flags=re.UNICODE+re.DOTALL)     # matches a full link
 
 # Fixes links containing [[:en:
 def fixFullLinks(str):
