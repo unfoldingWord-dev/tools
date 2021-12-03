@@ -10,8 +10,8 @@ import sys
 import os
 
 # Global variables
-source_dir = r'C:\DCS\Russian\RSOB'   # folder containing usfm files to be converted
-target_dir = r'C:\DCS\Russian\ru_rsob.STR'
+source_dir = r'C:\DCS\Hindi\GST'   # folder containing usfm files to be converted
+target_dir = r'C:\DCS\Hindi\hi_gst'
 projects = []
 contributors = []
 checkers = []
@@ -350,21 +350,22 @@ def convertFolder(folder):
 def dumpContributors():
     global contributors
     contribs = list(set(contributors))
-    contribs.sort()
-    path = os.path.join(target_dir, "contributors.txt")
-    f = io.open(path, 'tw', encoding='utf-8', newline='\n')
-    f.write("Translators:\n")
-    for name in contribs:
-        if name:
-            f.write('    - "' + name + '"\n')
-
-    contribs = list(set(checkers))
-    contribs.sort()            
-    f.write("\nCheckers:\n")
-    for name in contribs:
-        if name:
-            f.write('    - "' + name + '"\n')
-    f.close()
+    if len(contribs) > 0:
+        contribs.sort()
+        path = os.path.join(target_dir, "contributors.txt")
+        f = io.open(path, 'tw', encoding='utf-8', newline='\n')
+        f.write("Translators:\n")
+        for name in contribs:
+            if name:
+                f.write('    - "' + name + '"\n')
+    
+        checkrs = list(set(checkers))
+        checkrs.sort()            
+        f.write("\nCheckers:\n")
+        for name in checkrs:
+            if name:
+                f.write('    - "' + name + '"\n')
+        f.close()
 
 # Sort the list of projects and write to projects.yaml
 def dumpProjects():
