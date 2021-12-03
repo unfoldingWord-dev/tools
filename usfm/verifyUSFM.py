@@ -5,8 +5,8 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Marv\ss_reg\42-MRK.usfm'
-language_code = 'nya'
+source_dir = r'C:\DCS\PapuanMalay\pmy_ulb.DCS'
+language_code = 'pmy'
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
@@ -75,7 +75,7 @@ class State:
         State.textLength = 0
         State.textOkayHere = False
         State.lastRef = State.reference
-        State.reference = id
+        State.reference = id + " header/intro"
         State.currMarker = OTHER
         
     def getIDs(self):
@@ -146,13 +146,16 @@ class State:
 #    def footnotes_ended(self):
 #        return State.footnote_ends
         
-    # Increments \f or \f* counter if either parameter is True.
-    def addFootnote(self, startf, endf):
-        if startf:
-            State.footnote_starts += 1
-        elif endf:
-            State.footnote_ends += 1
+    # Increments \f counter
+    def addFootnoteStart(self):
+        State.footnote_starts += 1
         State.currMarker = OTHER
+        State.needVerseText = False
+        State.textOkayHere = True
+
+    # Increments \f* counter
+    def addFootnoteEnd(self):
+        State.footnote_ends += 1
         State.needVerseText = False
         State.textOkayHere = True
     
@@ -306,16 +309,17 @@ def takeC(c):
     elif state.chapter > state.lastChapter + 1:
         reportError("Missing chapter(s) between: " + state.lastRef + " and " + state.reference)
 
-def takeFootnote(start, end):
-    if start:
-        token.isF_S() or token.isF_E() 
-    state = State()
-    state.addFootnote()
+# Handles all the footnote token types
+def takeFootnote(token):
+    if token.isF_S():
+        State().addFootnoteStart()
+    elif token.isF_E():
+        State().addFootnoteEnd()
 
 def takeP():
     state = State()
-    if state.currMarker == QQ and not suppress4:
-        reportError("Warning: \"useless \q before paragraph marker\" at: " + state.reference)
+    if state.currMarker in {QQ,PP} and not suppress4:
+        reportError("Warning: \"useless \p or \q before paragraph marker\" at: " + state.reference)
     state.addParagraph()
 
 def takeSection():
@@ -487,14 +491,18 @@ def isSpecialText(token):
 def isTextCarryingToken(token):
     return token.isB() or token.isM() or isSpecialText(token) or token.isD() or token.isSP() or \
            isFootnote(token) or isCrossRef(token) or isPoetry(token) or isIntro(token)
+
+def isTitleToken(token):
+    return token.isH() or token.isTOC1() or token.isTOC2() or token.isMT() or token.is_imt()
+
+# Returns True if the token value should be checked for Arabic numerals
+def isNumericCandidate(token):
+    return token.isTEXT() or isTitleToken(token) or token.isCL() or token.isCP() or token.isFT()
     
 def take(token):
     global lastToken
-#    global aligned_usfm
 
     state = State()
-    if isFootnote(token):
-        state.addFootnote(token.isF_S(), token.isF_E())
     # if state.needText() and not isTextCarryingToken(token) and not suppress1 and not isOptional(state.reference):
     #     if not token.isTEXT():
     #         reportError("Empty verse: " + state.reference)
@@ -520,13 +528,15 @@ def take(token):
         takeV(token.value)
     elif token.isTEXT():
         takeText(token.value)
+    elif isFootnote(token):
+        takeFootnote(token)
     elif token.isS5() or token.isS():
         takeSection()
     elif token.isQA():
         state.addPoetryHeading()
     elif isPoetry(token):
         state.addPoetry()
-    elif token.isH() or token.isTOC1() or token.isTOC2() or token.isMT() or token.is_imt():
+    elif isTitleToken(token):
         state.addTitle(token.value)
         if token.isMT() and token.value.isascii() and not suppress9:
             reportError("mt token has ASCII value in " + state.reference)
@@ -541,6 +551,9 @@ def take(token):
             reportError("Unnumbered verse after " + state.reference)
         elif not aligned_usfm:
             reportError("Invalid USFM token (\\" + token.value + ") near " + state.reference)
+    
+    if language_code in {"ur"} and isNumericCandidate(token) and re.search(r'[0-9]', token.value, re.UNICODE):
+        reportError("Arabic numerals in footnote at " + State().reference)
         
     lastToken = token
 
@@ -602,6 +615,8 @@ def reportOrphans(lines, path):
         prevline = line
 
 wjwj_re = re.compile(r' \\wj +\\wj\*', flags=re.UNICODE)
+backslasheol_re = re.compile(r'\\ *\n')
+
 
 # Corresponding entry point in tx-manager code is verify_contents_quiet()
 def verifyFile(path):
@@ -612,6 +627,8 @@ def verifyFile(path):
     
     if wjwj_re.search(str):
         reportError(shortname(path) + " - contains empty \\wj \\wj* pair(s)")
+    if backslasheol_re.search(str):
+        reportError(shortname(path) + " - contains stranded backslash(es) at end of line(s)")
     aligned_usfm = ("lemma=" in str)
     if aligned_usfm:
         str = usfm_utils.unalign_usfm(str)
