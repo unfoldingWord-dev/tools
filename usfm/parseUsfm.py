@@ -78,9 +78,12 @@ c       = usfmTokenNumber("c")
 ca_s     = usfmToken("ca")
 ca_e     = usfmEndToken("ca")
 cl      = usfmTokenValue("cl", phrase)
+cp      = usfmTokenValue("cp", phrase)
 v       = usfmTokenNumber('v')
 va_s     = usfmToken('va')
 va_e     = usfmEndToken('va')
+vp_s     = usfmToken('vp')
+vp_e     = usfmEndToken('vp')
 
 k_s     = usfmToken("k")
 k_e     = usfmEndToken("k")
@@ -273,8 +276,8 @@ element =  MatchFirst([ide, id,
                        b,
                        ca_s, ca_e,
                        c,
-                       cl,
-                       va_s, va_e,
+                       cl, cp,
+                       va_s, va_e, vp_s, vp_e,
                        v,
                        wj_s, wj_e,
                        nd_s, nd_e,
@@ -428,8 +431,10 @@ def createToken(t):
         'c':    CToken,
         'ca':   CAStartToken, 'ca*':  CAEndToken,
         'cl':   CLToken,
+        'cp':   CPToken,
         'v':    VToken,
         'va':   VAStartToken, 'va*':  VAEndToken,
+        'vp':   VPStartToken, 'vp*':  VPEndToken,
         'q':    QToken,
         'q1':   Q1Token,
         'q2':   Q2Token,
@@ -589,11 +594,14 @@ class UsfmToken:
     def isCAS(self):    return False
     def isCAE(self):    return False
     def isCL(self):     return False
+    def isCP(self):     return False
     def isKS(self):     return False
     def isKE(self):     return False
     def isV(self):      return False
     def isVAS(self):    return False
     def isVAE(self):    return False
+    def isVPS(self):    return False
+    def isVPE(self):    return False
     def isWJS(self):    return False
     def isWJE(self):    return False
     def isTEXT(self):   return False
@@ -852,6 +860,11 @@ class CLToken(UsfmToken):
         return printer.renderCL(self)
     def isCL(self):     return True
 
+class CPToken(UsfmToken):
+    def renderOn(self, printer):
+        return printer.renderCP(self)
+    def isCP(self):     return True
+
 class VToken(UsfmToken):
     def renderOn(self, printer):
         return printer.renderV(self)
@@ -863,6 +876,12 @@ class VAStartToken(UsfmToken):
 class VAEndToken(UsfmToken):
     def renderOn(self, printer): return printer.renderVA_E(self)
     def isVAE(self):    return True
+class VPStartToken(UsfmToken):
+    def renderOn(self, printer): return printer.renderVP_S(self)
+    def isVPS(self):    return True
+class VPEndToken(UsfmToken):
+    def renderOn(self, printer): return printer.renderVP_E(self)
+    def isVPE(self):    return True
 
 class TEXTToken(UsfmToken):
     def renderOn(self, printer):
