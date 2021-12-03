@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 # This script merges the footnotes marked with \footnote into the appropriate location in the USFM text.
-# This script is written for Assamese books done in MS Word.
+# This script was originally written for Assamese books done in MS Word.
+# I enhanced it to handle Urdu books, which do not have the a,b,c footnote markers.
 # I do some modifications to the text in MS Word first, and export to a UTF-8 text file before using this script.
 # The input text has been converted to USFM format except for the footnotes, which are still at the end of the file.
 
-source_dir = r'C:\DCS\Assamese\ULB'
+source_dir = r'C:\DCS\Urdu\Bible\Genesis.usfm'
+language_code = 'ur'
 
 import io
 import os
@@ -14,34 +16,54 @@ from filecmp import cmp
 
 footnotes = []
 footnote_re = re.compile(r'\\footnote ([a-z]+)([\d]+)\:([\d]+) +[\d]+\:[\d]+ +(.+)', re.UNICODE)
+footnote2_re = re.compile(r'\\footnote Z([\d]+)\:([\d]+) +(.+)', re.UNICODE)
+urdu_numbers = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
+
 
 # Returns a Dictionary object with all information about the footnote in the specified line
 # Returns an empty Dictionary if parsing fails.
-def parseFootnote(line):
+def parseFootnote(line, n):
     footnote = {}
-    parsed = footnote_re.match(line)
-    if parsed:
+    if parsed := footnote_re.match(line):
+        footnote["spot"] = parsed.group(1)
         footnote["chapter"] = int(parsed.group(2))
         footnote["verse"] = int(parsed.group(3))
-        footnote["spot"] = parsed.group(1)
         footnote["text"] = parsed.group(4)
         footnote["found"] = False
+    elif parsed := footnote2_re.match(line):
+        footnote["spot"] = "Z"
+        footnote["chapter"] = int(parsed.group(2))
+        footnote["verse"] = int(parsed.group(1))
+        footnote["text"] = parsed.group(3)
+        if language_code == "ur":
+            footnote["text"] = footnote["text"].translate(urdu_numbers)
+        footnote["found"] = False
+    else:
+        sys.stderr.write("Unable to parse footnote in line " + str(n) + '\n')
+        footnote = None
     return footnote    
 
 # Populates the global footnotes list from the list of lines.
 def parseFootnotes(lines):
     global footnotes
     footnotes.clear()
+    n = 0
     for line in lines:
+        n += 1
         if line.startswith("\\footnote "):
-            footnotes.append(parseFootnote(line))
+            footnote = parseFootnote(line, n)
+            if footnote:
+                footnotes.append(footnote)
 
 # Returns the first position in the line where the specified string is found not preceded by a backslash
 # Returns -1 if not found.
 def findspot(spot, line):
-    pos = line.find(spot, 3)
-    while pos > 0 and line[pos-1] == '\\':
-        pos = line.find(spot, pos+2)
+    if spot == "Z":
+        pos = len(line) - 2     # keep the newline
+    else:
+        pos = line.find(spot, 3)
+        while pos > 0 and line[pos-1] == '\\':
+            pos = line.find(spot, pos+2)
     return pos
 
 # Determines whether there is a footnote or footnotes for the specified line and
@@ -70,7 +92,7 @@ def reportChanges():
     sys.stdout.write("    Inserted " + str(nInserts) + " footnotes. Missed " + str(nMissed) + ".\n")
     for footnote in footnotes:
         if not footnote["found"]:
-            print("      Missed " + str(footnote))
+            print("      Missed " + str(footnote)[0:10])
 
 # Returns False if the line should not be written to output file.
 # This is the case when it is a footnote line that has been successfully inserted.
@@ -78,10 +100,11 @@ def okayToWrite(line):
     global footnotes
     okay = True
     if line.startswith("\\footnote "):
-        footnote = parseFootnote(line)
+        footnote = parseFootnote(line, "unknown")
         okay = (footnote in footnotes)
     return okay
 
+# number_re = re.compile(r'([0-9]+)', re.UNICODE)
 chapter_re = re.compile(r'\\c +([\d]+)')
 verse_re = re.compile(r'\\v ([\d\-]+)')
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
@@ -153,5 +176,6 @@ if __name__ == "__main__":
         path = source_dir
         source_dir = os.path.dirname(path)
         convertFile(source_dir, os.path.basename(path))
+        print("\nDone.")
     else:
         print("Not a valid folder: " + source_dir + '\n')
