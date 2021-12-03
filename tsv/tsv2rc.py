@@ -16,10 +16,10 @@
 ######################################################
 
 # Global variables
-source_dir = r'C:\DCS\Russian\TN'
-target_dir = r'C:\DCS\Russian\ru_tn.work'
-language_code = 'ru'
-english_dir = r'C:\DCS\English\en_tn.v49'    # latest English tN from https://git.door43.org/Door43-Catalog/en_tn
+source_dir = r'C:\DCS\Telugu\TN'
+target_dir = r'C:\DCS\Telugu\te_tn.STR'
+language_code = 'te'
+english_dir = r'C:\DCS\English\en_tn.v53'    # latest English tN from https://git.door43.org/Door43-Catalog/en_tn
 
 book = ''
 chapter = 0
@@ -142,7 +142,8 @@ def convertFile(path, fname):
                     else:
                         row[4] = english[key][4]    # SupportReference
                         row[5] = origquote
-                        row[6] = english[key][6]    # Occurrence
+                        if english[key][6]  in {'0', '1', '2'}:
+                            row[6] = english[key][6]    # Occurrence
                 if heading:
                     checkHeader(row, key, path)
                     heading = False
