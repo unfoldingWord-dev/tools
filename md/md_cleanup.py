@@ -22,6 +22,7 @@
 #   Assures blank links before and after header lines.
 #   Leading spaces before the asterisk are also removed.
 #   Assures newline at the end of the file.
+#   Removes gratutious formatting asterisks from header lines.
 #
 # Also expands incomplete references to tA articles.
 # For example, expands Vidi: figs_metaphor to Vidi: [[rc://*/ta/man/translate/figs-metaphor]]
@@ -32,15 +33,16 @@ import os
 import string
 import sys
 from filecmp import cmp
+import codecs
 
 # Globals
-source_dir = r'C:\DCS\Gujarati\gu_tw.STR\bible'
-language_code = 'gu'
-resource_type = 'tw'
+source_dir = r'C:\DCS\Hindi\TA'
+language_code = 'hi'
+resource_type = 'ta'
 server = 'DCS'     # DCS or WACS
 
 nChanged = 0
-max_files = 22222
+max_files = 44444
 
 placeholder_heading = ""
 import substitutions    # change substitutions modules as necessary; generic one is just "substitutions"
@@ -56,7 +58,6 @@ filename_re = re.compile(r'.*\.md$')
 current_dir = ""
 if resource_type == 'obs':
     filename_re = re.compile(r'\d+\.md$')
-hash_re = re.compile(r' *(#+) +', flags=re.UNICODE)
 
 def shortname(longpath):
     shortname = longpath
@@ -134,7 +135,21 @@ def shuffle(truelevel, nmarks, currlevel):
         nmarks -= 1
     return newlevel    
 
-# Normalizes markdown heading levels.
+hash_re = re.compile(r' *(#+) +', flags=re.UNICODE)
+
+# Removes asterisks from heading lines
+def fixHeadingFormats(str):
+    nChanges = 0
+    text = ""
+    lines = str.splitlines()
+    for line in lines:
+        header = hash_re.match(line, 0)
+        if header:
+            line = line.replace("*", "")
+        text += line + '\n'
+    return text
+
+    # Normalizes markdown heading levels.
 # Removes training blanks from header lines.
 def fixHeadingLevels(str):
     nChanges = 0
@@ -358,6 +373,7 @@ def substitution(text):
 #        text = text.replace(fromstr, "rc://*/")
         substitutions.subs.append(	("rc://" + language_code + "/", "rc://*/") )
         substitutions.subs.append(	("rc://" + language_code + " /", "rc://*/") )
+        substitutions.subs.append(	("rc:// " + language_code + "/", "rc://*/") )
         substitutions.subs.append(	("rc://en/", "rc://*/") )
 
     for pair in substitutions.subs:
@@ -372,27 +388,35 @@ keystring.append( re.compile(r'guidelines_', flags=re.UNICODE) )
 keystring.append( re.compile(r'bita_', flags=re.UNICODE) )
 extraBlankHeading_re = re.compile(r'^#+ *\n+(#+ +[\w\d])', flags=re.UNICODE+re.MULTILINE)
 
-# Reads the entire file as a string and converts it.
+# Reads the entire source file as a string and converts it.
+# If any change, writes target file.
 def convertWholeFile(source, target):
     global suppress1
     fixHeadings = not suppress1
     input = io.open(source, "tr", encoding="utf-8-sig")
     text = input.read()
     input.close()
+    nLeftParens = text.count("(")
+    nRightParens = text.count(")")
 
     origtext = text
     text = substitution(text)   # Need to substitute HTML strings containing hash marks before doing header cleanup
     text = preliminary_cleanup(text)
-    if not source.endswith("title.md") and not text.endswith("\n"):
-        text += "\n"
+    if source.endswith("title.md"):
+        text = text.rstrip(" \n")   # lose trailing newline from title.md and sub-title.md files
+    elif not text.endswith("\n"):
+        text += "\n"            # ensure trailing newline in all other files
+    
     if not text.startswith("# "):
         if not suppress2:
             sys.stdout.write(shortname(source) + " does not begin with level 1 heading, so no headings will be touched.\n")
         fixHeadings = False
 
     # Do the hash level fixes and TA references
-    if fixHeadings and "## " in text:
-        text = fixHeadingLevels(text)
+    if not source.endswith("title.md"):
+        if fixHeadings and "## " in text:
+            text = fixHeadingLevels(text)
+        text = fixHeadingFormats(text)
 
     if resource_type in {'tn','tq'} and "intro.md" not in source and server == 'DCS':
         text = foldLists(text)
@@ -433,7 +457,7 @@ def cleanupLine(line):
     line = line.rstrip("\n\t \[\(\{")
     line = line.lstrip("\]\)\}")
     nBoldmarks = line.count("**")
-    if nBoldmarks == 1:   # mismatched '**' is a common error
+    if nBoldmarks == 1 and line.count("*") % 2 == 0:   # orphaned '**' is a common error
         line = line.replace("**", "")
     elif nBoldmarks > 1 and nBoldmarks % 2 == 0:
         boldpos = line.find("**")      # finds the first ** in the line
@@ -454,6 +478,7 @@ tripleasterisk_re = re.compile(r'( *)\*\*\*([^\*]+\*\*.*)', re.UNICODE)     # li
 
 # Adds blank lines where needed before and after heading lines
 # Supply placeholder heading if needed.
+# Always writes target file, even if no changes.
 def convertByLine(source, target):
     input = io.open(source, "tr", 1, encoding="utf-8-sig")
     lines = input.readlines()
@@ -485,6 +510,25 @@ def convertByLine(source, target):
             output.write(line + '\n')
     output.close
 
+# Rewrites path without BOM if file has a UTF-8 Byte Order Mark.
+# Backs up path to path.orig if any change and if path.orig does not already exist.
+def removeBOM(path):
+    bytes_to_remove = 0
+    MAX = 60
+    with open(path, 'rb') as f:
+        raw = f.read(MAX + 3)
+        while raw[bytes_to_remove:bytes_to_remove+3] == codecs.BOM_UTF8 and bytes_to_remove < MAX:
+            bytes_to_remove += 3
+        if bytes_to_remove > 0:
+            f.seek(bytes_to_remove)
+            raw = f.read()
+    if bytes_to_remove > 0:
+        bakpath = path + ".orig"
+        if not os.path.isfile(bakpath):
+            os.rename(path, bakpath)
+        with open(path, 'wb') as f:
+            f.write(raw)       
+
 def convertFile(path):
     tmppath = path + ".tmp"
     convertWholeFile(path, tmppath)
@@ -510,6 +554,7 @@ def convertFile(path):
         os.remove(tmppath2)
     if tmppath != path and os.path.isfile(tmppath):
         os.remove(tmppath)
+    removeBOM(path)
 
 # Recursive routine to convert all files under the specified folder
 def convertFolder(folder):
