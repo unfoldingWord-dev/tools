@@ -2,7 +2,6 @@
 # This program localizes the titles of tA articles in toc.yaml files.
 # Used when the translators did not translate the titles found in toc.yaml files,
 #   but did translate the titles of each article, found in title.md files.
-# Does not localize titles that are already non-ASCII.
 
 import re       # regular expression module
 import io
@@ -12,9 +11,8 @@ import string
 import sys
 
 # Globals
-source_dir = r'C:\DCS\Russian\ru_ta.STR'
-en_ta_dir = r'C:\DCS\English\en_ta.v22'
-max_changes = 4     # There should only be 4 altogether
+source_dir = r'C:\DCS\Hindi\hi_ta.STR\translate'
+max_changes = 1     # There should only be 4 altogether
 nChanged = 0
 
 # Reads the translated title from the specified title.md file.
@@ -33,7 +31,6 @@ title_re = re.compile(r'(  +- title: +)"(.*)"', flags=re.UNICODE)
 link_re =  re.compile(r'    +link: +([\w\-]+)')
 
 # Rewrites the toc.yaml files in the specified folder, changing the title of each entry.
-# Does not change non-ASCII titles because they may already be translated.
 def rewriteToc(folder):
     global nChanged
     tocpath = os.path.join(folder, "toc.yaml")
@@ -55,13 +52,18 @@ def rewriteToc(folder):
             title_text = titlematch.group(2)
         else:
             if title_line:      # previous line was a title
-                if title_text.isascii():    # title is not already translated
-                    newtitle = ""
-                    linkmatch = link_re.match(line)
-                    if linkmatch:
-                        newtitle = fetchTitle(folder, linkmatch.group(1))
+#                if title_text.isascii():    # not a valid test because English titles include non-ascii like '®'
+                newtitle = ""
+                linkmatch = link_re.match(line)
+                if linkmatch:
+                    newtitle = fetchTitle(folder, linkmatch.group(1))
                     if newtitle:
-                        title_line = title_prefix + '"' + newtitle + '"\n'
+                        if '"' in newtitle:
+                            title_line = title_prefix + "'" + newtitle + "'\n"
+                        else:
+                            title_line = title_prefix + '"' + newtitle + '"\n'
+                    else:
+                        sys.stderr.write("No title found for " + linkmatch.group(1) + "\n")
                 output.write(title_line)
                 title_line = ""
             output.write(line)
@@ -69,7 +71,6 @@ def rewriteToc(folder):
     nChanged += 1
     
 # Rewrites the toc.yaml files in the specified folder, changing the title of each entry.
-# Does not change non-ASCII titles because they may already be translated.
 # def rewriteToc(folder):
 #     tocpath = os.path.join(folder, "toc.yaml")
 #     with io.open(tocpath, "tr", encoding='utf-8-sig') as file:
