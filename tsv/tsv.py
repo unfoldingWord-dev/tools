@@ -18,7 +18,7 @@ def tsvRead(inputPath):
     data = []
     lines = f.readlines()
     for line in lines:
-        line = line.strip()
+        line = line.strip(' \n')
         fields = line.split('\t')
         fields = [field.strip() for field in fields]
         data.append(fields)
