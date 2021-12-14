@@ -130,12 +130,12 @@ def make_TSV_file() -> Tuple[int,int]:
             # print(f"  Returning {found_id=}")
             return found_id
         else:
-            print(f"Need to make a new ID for: ({len(reference)}) '{reference}' ({len(tags)}) '{tags}' ({len(support_reference)}) '{support_reference}' ({len(quote)}) '{quote}' {occurrence} ({len(note)}) '{note}'")
+            # print(f"Need to make a new ID for: ({len(reference)}) '{reference}' ({len(tags)}) '{tags}' ({len(support_reference)}) '{support_reference}' ({len(quote)}) '{quote}' {occurrence} ({len(note)}) '{note}'")
             generated_id = ''
             while generated_id in previously_generated_ids:
                 generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
             previously_generated_ids.append(generated_id)
-            print(f"        Returning generated id for OBS {reference}: {generated_id} '{note}'")
+            # print(f"        Returning generated id for OBS {reference}: {generated_id} '{note}'")
             return generated_id
     #end of make_TSV_file.get_rowID function
 
