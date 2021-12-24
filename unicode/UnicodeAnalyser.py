@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Dec 2021 by RJH
-#   Last modified: 2021-12-15 by RJH
+#   Last modified: 2021-12-17 by RJH
 #
 """
 Quick script to analyse the Unicode status of a local repo clone
@@ -23,7 +23,10 @@ import unicodedata
 import bisect
 
 
-REPO_NAME = 'en_ult'
+REPO_NAME = 'hbo_uhb'
+# REPO_NAME = 'el-x-koine_ugnt'
+# REPO_NAME = 'en_ult'
+# REPO_NAME = 'en_ust'
 LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
 LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath(REPO_NAME)
 
@@ -1958,11 +1961,11 @@ def analyse(folderpath, filename):
     print(f"      Analysing {filepath}…")
     with open( filepath, 'rt') as source_file:
         file_contents = source_file.read()
-        print(f"        Loaded {len(file_contents):,} bytes")
+        print(f"        Loaded {len(file_contents):,} characters")
 
     is_NFC_normalised = unicodedata.is_normalized('NFC', file_contents)
     is_NFD_normalised = unicodedata.is_normalized('NFD', file_contents)
-    print(f"          NFC normalised={is_NFC_normalised} NFD_normalised={is_NFD_normalised}")
+    print(f"          NFC_normalised={is_NFC_normalised} NFD_normalised={is_NFD_normalised}")
     if is_NFC_normalised and is_NFD_normalised: # no accented/combined characters
         print(f"            No accented or combined characters")
         return # No need to analyse further
@@ -2029,6 +2032,17 @@ def analyse(folderpath, filename):
             decomposition_string = f"   decomposition={name_entry['decomposition']}" if name_entry['decomposition'] else ''
             print(f"              ({count:,}) {name_entry['char']} {name} {name_entry['category']} blocks={name_entry['blocks']}  {name_entry['bidi']}{combining_string}   EastAsianWidth={name_entry['east_asian_width']}{mirrored_string}{decomposition_string}")
 
+    if not is_NFC_normalised:
+        filenameBits = filename.split('.')
+        filenameBits.insert(len(filenameBits)-1,'NFC_normalised')
+        new_filename = '.'.join(filenameBits)
+        new_filepath = os.path.join(folderpath, new_filename)
+        new_file_contents = unicodedata.normalize('NFC', file_contents)
+        print(f"      Writing {new_filepath}…")
+        with open( new_filepath, 'wt') as nfc_file:
+            nfc_file.write(new_file_contents)
+            print(f"        Wrote {len(new_file_contents):,} characters")
+
 
 def main():
     """
@@ -2048,6 +2062,7 @@ def main():
         if fileList: print(f"  Found fileList: ({len(fileList)}) {fileList}")
         for filename in sorted(fileList):
             print(f"    Processing {filename}…")
+            if not 'RUT' in filename: continue # Skip all other books
             analyse(folderpath, filename)
             total_files_read += 1
     print(f"{total_files_read:,} total files read from {LOCAL_SOURCE_FOLDERPATH}/")

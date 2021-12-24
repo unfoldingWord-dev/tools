@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-06-02 by RJH
+#   Last modified: 2021-12-22 by RJH
 #
 """
 Quick script to copy OBS-TQ from markdown files
@@ -27,11 +27,13 @@ import re
 import logging
 
 
-LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
-LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_obs-tq/')
+LANGUAGE_CODE = 'en'
+# LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
+LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/DCS_dataRepos/RepoConversions')
+LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath(f'{LANGUAGE_CODE}_obs-tq/')
 
 # The output folder below must also already exist!
-LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_obs-tq2/')
+LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath(f'{LANGUAGE_CODE}_obs-tq2/')
 
 
 def get_source_questions() -> Tuple[str,str,str,str,str,str,str]:
@@ -49,6 +51,7 @@ def get_source_questions() -> Tuple[str,str,str,str,str,str,str]:
     for story_number in range(1, 50+1):
         for frame_number in range(1, 99+1):
             filepath = source_folderpath.joinpath(str(story_number).zfill(2), f'{str(frame_number).zfill(2)}.md')
+            # print(f"        Looking for filepath: {filepath}")
             if os.path.exists(filepath):
                 # print(f"Found {filepath}")
                 pass
@@ -103,7 +106,10 @@ def make_TSV_file() -> Tuple[int,int]:
         print(f"      Loaded {len(original_TSV_TQ_lines):,} lines from previous version of {output_filepath}")
         # print(original_TSV_TQ_lines[:10])
     except Exception as e:
-        print(f"      Failed to load {output_filepath}: {e}")
+        if 'No such file' in str(e):
+            print(f"      No existing file to preload row IDs: {output_filepath}")
+        else:
+            print(f"      Failed to load {output_filepath}: {e}")
         original_TSV_TQ_lines = []
 
     def get_rowID(reference:str, tags:str, quote:str, occurrence:str, qr:str) -> str:
@@ -138,7 +144,7 @@ def make_TSV_file() -> Tuple[int,int]:
             while generated_id in previously_generated_ids:
                 generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
             previously_generated_ids.append(generated_id)
-            print(f"        Returning generated id for OBS {reference}: {generated_id} '{question}'")
+            # print(f"        Returning generated id for OBS {reference}: {generated_id} '{question}'")
             return generated_id
     #end of make_TSV_file.get_rowID function
 
