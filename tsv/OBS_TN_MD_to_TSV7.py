@@ -10,7 +10,7 @@
 #   Robert Hunt <Robert.Hunt@unfoldingword.org>
 #
 # Written Aug 2020 by RJH
-#   Last modified: 2021-10-05 by RJH
+#   Last modified: 2021-12-21 by RJH
 #
 """
 Quick script to copy OBS-TN from markdown files
@@ -24,7 +24,8 @@ import logging
 
 
 LANGUAGE_CODE = 'en'
-LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
+# LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
+LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/DCS_dataRepos/RepoConversions/')
 LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath(f'{LANGUAGE_CODE}_obs-tn/')
 
 # The output folder below must also already exist!
@@ -69,7 +70,7 @@ def get_source_notes() -> Tuple[str,str,str,str,str,str,str]:
                             continue
                         else: halt
                     elif state == 0:
-                        print(f"Have continuation part {filepath} line {line_number}: '{line}'");
+                        # print(f"Have continuation part {filepath} line {line_number}: '{line}'");
                         assert not quote
                         note = line
                         yield line_number, story_number,frame_number, quote,note
@@ -106,7 +107,10 @@ def make_TSV_file() -> Tuple[int,int]:
         print(f"      Loaded {len(original_TSV_TQ_lines):,} lines from previous version of {output_filepath}")
         # print(original_TSV_TQ_lines[:10])
     except Exception as e:
-        print(f"      Failed to load {output_filepath}: {e}")
+        if 'No such file' in str(e):
+            print(f"      No existing file to preload row IDs: {output_filepath}")
+        else:
+            print(f"      Failed to load {output_filepath}: {e}")
         original_TSV_TQ_lines = []
 
     def get_rowID(reference:str, tags:str, support_reference:str, quote:str, occurrence:str, note:str) -> str:
@@ -130,12 +134,12 @@ def make_TSV_file() -> Tuple[int,int]:
             # print(f"  Returning {found_id=}")
             return found_id
         else:
-            print(f"Need to make a new ID for: ({len(reference)}) '{reference}' ({len(tags)}) '{tags}' ({len(support_reference)}) '{support_reference}' ({len(quote)}) '{quote}' {occurrence} ({len(note)}) '{note}'")
+            # print(f"Need to make a new ID for: ({len(reference)}) '{reference}' ({len(tags)}) '{tags}' ({len(support_reference)}) '{support_reference}' ({len(quote)}) '{quote}' {occurrence} ({len(note)}) '{note}'")
             generated_id = ''
             while generated_id in previously_generated_ids:
                 generated_id = random.choice('abcdefghijklmnopqrstuvwxyz') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789') + random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
             previously_generated_ids.append(generated_id)
-            print(f"        Returning generated id for OBS {reference}: {generated_id} '{note}'")
+            # print(f"        Returning generated id for OBS {reference}: {generated_id} '{note}'")
             return generated_id
     #end of make_TSV_file.get_rowID function
 

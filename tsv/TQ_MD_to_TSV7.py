@@ -29,7 +29,8 @@ import logging
 
 
 LANGUAGE_CODE = 'en'
-LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
+# LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
+LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/DCS_dataRepos/RepoConversions/')
 # LANGUAGE_CODE = 'ru'
 # LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/Door43-Catalog_repos/')
 
