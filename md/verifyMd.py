@@ -23,16 +23,16 @@
 #          Check that tW files begin with H1 heading immediately followed by H2 heading.
 
 # Globals
-source_dir = r'C:\DCS\Hindi\hi_ta.STR'
-language_code = 'hi'
+source_dir = r'C:\DCS\Telugu\te_ta.STR'
+language_code = 'te'
 resource_type = 'ta'
-ta_dir = r'C:\DCS\Hindi\hi_ta.STR'    # Target language tA, or English tM for WA
+ta_dir = r'C:\DCS\Kannada\kn_ta.STR'    # Target language tA, or English tM for WA
 obstn_dir = r'C:\DCS\Kannada\kn_obs-tn'
 en_tn_dir = r'C:\DCS\English\en_tn.md-orig'
 en_tq_dir = r'C:\DCS\English\en_tq.v18'
-tn_dir = r'C:\DCS\Hindi\hi_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
+tn_dir = r'C:\DCS\Kannada\kn_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
 #tn_dir = r'C:\DCS\English\en_tn.md-orig'
-tw_dir = r'C:\DCS\Hindi\hi_tw.STR'
+tw_dir = r'C:\DCS\Kannada\kn_tw.STR'
 
 nChecked = 0
 nChanged = 0
@@ -43,8 +43,8 @@ suppress1 = False    # Suppress warnings about text before first heading
 suppress2 = False    # Suppress warnings about blank headings
 suppress3 = False    # Suppress warnings about item number not followed by period
 suppress4 = False    # Suppress warnings about closed headings
-suppress5 = False    # Suppress warnings about invalid passage links and relative links
-suppress6 = True    # Suppress warnings about invalid OBS notes links
+suppress5 = True    # Suppress warnings about invalid relative links
+suppress6 = False    # Suppress warnings about invalid OBS notes links
 suppress7 = False    # Suppress warnings about file starting with blank line
 suppress8 = False    # Suppress warnings about blank lines before, after, and within lists
 suppress9 = False    # Suppress warnings about ASCII content
@@ -63,8 +63,6 @@ suppress20 = False      # Suppress "invalid TA page reference" warnings
 if resource_type == "ta":
     suppress1 = True
     suppress7 = True
-#    suppress8 = True
-#    suppress10 = True
 if language_code in {'en','es-419','ha','hr','id','nag','plt','pmy','pt-br','sw'}:    # ASCII content
     suppress9 = True
 
@@ -94,6 +92,8 @@ class State:
         State.linecount = 0
         State.headingcount = 0
         State.textcount = 0
+        State.prevQ = ""
+        State.currQ = ""
         State.prevheadinglevel = 0
         State.currheadinglevel = 0
         State.prevlinetype = None
@@ -121,6 +121,9 @@ class State:
             State.prevheadinglevel = State.currheadinglevel
             State.currheadinglevel = line.count('#', 0, 5)
             State.reported2 = False
+            if resource_type == 'tq':
+                State.prevQ = State.currQ
+                State.currQ = line
         elif not line or len(line.strip()) == 0:
             State.currlinetype = BLANKLINE
         elif listitem_re.match(line):
@@ -253,6 +256,8 @@ def take(line):
         if state.headingcount == 0 and not suppress1 and not state.reported1:
             reportError("has text before first heading")
             state.report1()
+        if resource_type == 'tq' and state.currQ == state.prevQ:
+            reportError("Duplicate questions")            
     if state.currlinetype == TEXT and not state.reported2 and not suppress19:
         if state.linecount >= 5 and state.prevlinetype == BLANKLINE and state.linetype[state.linecount-3] in {TEXT,LIST_ITEM,ORDEREDLIST_ITEM}:
             if resource_type in {"tn", "tq", "obs-tn", "obs-tq"}:
