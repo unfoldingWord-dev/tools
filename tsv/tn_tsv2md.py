@@ -15,8 +15,8 @@ from shutil import copy
 
 
 # Globals
-source_dir = r'C:\DCS\Oriya\or_tn.tsv'  # Where are the files located
-target_dir = r'C:\DCS\Oriya\temp'  # Where are the files located
+source_dir = r'C:\DCS\Kannada\TN.Dec-21\new'  # Where are the TSV files located
+target_dir = r'C:\DCS\Kannada\TN'
 max_files = 27      # max number of TSV files to be processed
 nProcessed = 0
 filename_re = re.compile(r'.*\.tsv$')
@@ -53,18 +53,17 @@ def dumpProjects():
         manifest.write("    categories: []\n")
     manifest.close()
 
-# Copies LICENSE and README files
+# Copies LICENSE, README, and manifest.yaml files
 def copyOtherFiles():
     path = os.path.join(source_dir, "LICENSE.md")
     if os.path.isfile(path):
         copy(path, target_dir)       # copy() is from shutil
-    else:
-        sys.stderr.write("Unable to copy LICENSE.md (doesn't exist)\n")
     path = os.path.join(source_dir, "README.md")
     if os.path.isfile(path):
         copy(path, target_dir)
-    else:
-        sys.stderr.write("Unable to copy README.md (doesn't exist)\n")
+    path = os.path.join(source_dir, "manifest.yaml")
+    if os.path.isfile(path):
+        copy(path, target_dir)
 
 # Returns path of temporary manifest file block listing projects converted
 def makeManifestPath():
@@ -146,7 +145,7 @@ def convertFile(path):
     writeMdfile(bookId, chapter, verse, notes)
     # row = convertRow(row)
 
-# Converts all TSV files in the specified folder
+# Converts all TSV files in the specified folder. Not recursive.
 def convertFolder(folder):
     global nProcessed
     global max_files
