@@ -33,9 +33,9 @@ import tsv
 import substitutions    # this module specifies the string substitutions to apply
 
 # Globals
-source_dir = r'C:\DCS\Telugu\TN'  # Where are the files located
-language_code = 'te'
-max_files = 66     # How many files do you want to process
+source_dir = r'C:\DCS\Kannada\TN.Dec-21\new'  # Where are the files located
+language_code = 'kn'
+max_files = 1     # How many files do you want to process
 nProcessed = 0
 filename_re = re.compile(r'.*\.tsv$')
 
@@ -169,6 +169,8 @@ def cleanRow(row):
             row.insert(4, "")
         elif len(row[4]) == 0 and row[5] in {'0','1'}:
             row.insert(4, "")
+    if len(row) == 10 and row[9].strip() == "":
+        row = row[0:9]
     if len(row) == 9:
         row[8] = cleanNote(row[8])
         row[4] = cleanSupportRef(row[4], row[8])
@@ -203,10 +205,12 @@ def cleanFile(folder, fname):
     data = tsv.tsvRead(path)  # The entire file is returned as a list of lists of strings (rows); each row is a list of strings.
 
     if len(data) > 2 and data[0][0] == "Book" and len(data[1][0]) == 3:
-        data = mergeRows(data)
-    for row in data:
+        origdata = mergeRows(data)
+    data = []
+    for row in origdata:
         if len(row) > 1:
             row = cleanRow(row)
+        data.append(row)
     data.sort(key=rowValue)
 
     bakpath = path.replace(".tsv", ".tsvorig")
