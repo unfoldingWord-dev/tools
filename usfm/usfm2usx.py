@@ -1,39 +1,46 @@
-# coding: latin-1
+# -*- coding: utf-8 -*-
+# This script produces a set of .usx files in tStudio-compatible resource container format from
+# USFM source text.
+# The resulting containers are importable to BTT-Writer or tStudio to use as source text.
+# Chunk division and paragraph locations are based on \s5 markers in the usfm files.
+# Uses parseUsfm module to parse the usfm files.
+# This script was originally written for converting Gallego RV 1909 Bible
+# so that Bible could be used as a source text in BTT-Writer.
+# The input file(s) should be verified, correct USFM.
+# Before running the script, set the global variables below.
 
-# This script produces a set of .usx files in resource container format from
-# a USFM source text.
-# Chunk division and paragraph locations are based on an English resource container of the same Bible book.
-# Uses parseUsfm module.
-# This script was originally written for converting Guarani translated text in USFM format to RC format
-# so that the existing Guarani translation could be used as a source text in tStudio.
+# Global variables
+source_dir = r'C:\DCS\Spanish (es)\gl_spaRV1909'    # folder containing usfm files
+target_dir = r'C:\DCS\Spanish (es)\rc'
+en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
 
-# The location of the English RC is hard-coded in the script and must be changed for each book processed.
-# The input file should be verified, correct USFM.
-# The output, target language RC is also hard-coded and may need to be changed for each run of this script.
-# Both content folders must exist before the script will run.
+# Values to be copied into each of the package.json files
+language_code = 'es'
+language_name = 'Español'
+bible_id = 'sparv'      # lowercase 'ulb' or other bible identifier
+bible_name = 'Reina-Valera 1909 Bible'
+pub_date = "1909-12-31"
+license = "Public Domain"
+version = "1"
 
 import sys
 import os
-
-# Set Path for files in support/
-rootdiroftools = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(rootdiroftools,'support'))
-
 import parseUsfm
+import usfm_verses
 import io
 import codecs
 import re
+import json
+import yaml
+from shutil import copy
+from datetime import date
 
-# Global variables
-en_content_dir = r'C:\Users\Larry\AppData\Local\translationstudio\library\resource_containers\en_mrk_ulb\content'
-target_content_dir = r'C:\Users\Larry\Documents\GitHub\Spanish\es-419_mrk_ulb\content'
-target_book_name = 'Marcos'
-package_json_template_dir = r'C:\Users\Larry\Documents\GitHub\Spanish\es-419_mat_ulb'   # Can be from a different book
 lastToken = parseUsfm.UsfmToken(None)
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
 class State:
     ID = ""
+    title = ""
     chapter = 0
     chapterPad = "00"
     verse = 0
@@ -42,14 +49,13 @@ class State:
     needingVerseText = False
     pendingVerse = 0
     sectionPending = ""
-    pendingEndpp = False
     reference = ""
     lastRef = ""
+    en_content_dir = ""
     en_chapter_dir = ""
-    usxTemplate = ""
-    usxTemplatePtr = 0
-    # usxOutput = io.open(os.path.join(target_content_dir, "temp.txt"), "tw")
-    usxOutput = 0
+    target_content_dir = ""
+    target_chapter_dir = ""
+    usxOutput = None
     
     def addID(self, id):
         State.ID = id
@@ -59,11 +65,20 @@ class State:
         State.needingVerseText = False
         State.lastRef = State.reference
         State.reference = id
+        State.en_content_dir = os.path.join( os.path.join(en_rc_dir, "en_" + id.lower() + "_ulb"), "content")
+        State.target_content_dir = os.path.join( os.path.join(target_dir, language_code + "_" + id.lower() + "_" + bible_id), "content")
+    
+    def addTitle(self, bookTitle, mt):
+        if not State.title:
+            State.title = bookTitle
+        if State.title.isascii() and not bookTitle.isascii():
+            State.title = bookTitle
+        if mt and State.title.isascii() == bookTitle.isascii(): # \mt is highest priority title, everything else being equal
+            State.title = bookTitle
         
     def addChapter(self, c):
         State.lastChapter = State.chapter
         State.chapter = int(c)
-        # Will need a different padding algorithm for Psalms
         if len(c) == 1:
             State.chapterPad = "0" + c
         else:
@@ -74,21 +89,27 @@ class State:
         State.needingVerseText = False
         State.lastRef = State.reference
         State.reference = State.ID + " " + c
-    
+        State.en_chapter_dir = os.path.join(State.en_content_dir, State.chapterPad)
+        State.target_chapter_dir = os.path.join(State.target_content_dir, State.chapterPad)
+
+    def addText(self):
+        State.needingVerseText = False
+
     # Reports if vv is a range of verses, e.g. 3-4. Passes the verse(s) on to addVerse()
     def addVerses(self, vv):
         if vv.find('-') > 0:
-            sys.stderr.write("Range of verses encountered at " + State.reference + "\n")
+            reportError("Range of verses encountered at " + State.reference)
             vv_range = vv_re.search(vv)
             self.addVerse(vv_range.group(1))
             self.addVerse(vv_range.group(2))
         else:
             self.addVerse(vv)
 
+    # Sets State.versePad for file naming purposes.
+    # Updates State.reference
     def addVerse(self, v):
         State.lastVerse = State.verse
         State.verse = int(v)
-        # Will need a different padding algorithm for Psalms
         if len(v) == 1:
             State.versePad = "0" + v
         else:
@@ -97,287 +118,278 @@ class State:
         State.lastRef = State.reference
         State.reference = State.ID + " " + str(State.chapter) + ":" + v
         
-    def setPendingVerse(self, v):
-        if v:
-            State.pendingVerse = int(v)
-        else:
-            State.pendingVerse = 0
-            
-    def setPendingEndpp(self, endpp):
-        State.pendingEndpp = endpp
+    def setUsxOutput(self, file):
+        State.usxOutput = file
 
     def needVerseText(self):
         return State.needingVerseText
         
-    def addText(self):
-        State.needingVerseText = False
-
     def saveSection(self, s):
         State.sectionPending = s
     
-    def setUsxTemplate(self, s):
-        State.usxTemplate = s
-        State.usxTemplatePtr = 0
-        
-#     def getTemplatePtr(self):
-#         return State.usxTemplatePtr
-
-    def advanceTemplate(self, n):
-        State.usxTemplatePtr += n
-        
-    def clearSource(self):
-        State.usxTemplate = ""
-        State.usxTemplatePtr = 0
-            
-    def openUsxOutput(self, filename):
-        if State.usxOutput:
-            State.usxOutput.close()
-        target_chapter_dir = os.path.join(target_content_dir, State.chapterPad)
-        target_usx_path = os.path.join(target_chapter_dir, filename)
-        State.usxOutput = io.open(target_usx_path, "tw", encoding="utf-8", newline='\n')
-        
-    def closeUsxOutput(self):
-        if State.usxOutput:
-            State.usxOutput.close()
-            State.usxOutput = 0
-
-    def writeUsx(self, t):
-        if State.usxOutput:
-            State.usxOutput.write(t)
-    
-    
 def printToken(token):
-        if token.isV():
-            print("Verse number " + token.value)
-        elif token.isC():
-            print("Chapter " + token.value)
-        elif token.isS():
-            sys.stdout.write("Section heading: " + token.value)
-        elif token.isTEXT():
-            print("Text: <" + token.value + ">")
-        else:
-            print(token)
-
-# Closes the previous output USX file.
-# Opens the new ones, based on current state.
-# Creates the new target chapter dir if needed.
-def changeFiles():
-    state = State()
-#    if state.getUsxFile():
-#        state.usxOutput.close
-
-    en_chapter_dir = os.path.join(en_content_dir, state.chapterPad)
-    if state.verse:
-        filename = state.versePad + ".usx"
-        en_usx_path = os.path.join(en_chapter_dir, filename)
-        try:
-            usxInput = io.open(en_usx_path, "tr", encoding="utf-8")
-            src = usxInput.read()
-            usxInput.close()
-            state.setUsxTemplate(src)
-        except IOError as e:
-            sys.stderr.write("Invalid input file: " + en_usx_path + "\n")
-        except WindowsError as e:
-            sys.stderr.write("Invalid input file: " + en_usx_path + "\n")
+    if token.isV():
+        print("Verse number " + token.value)
+    elif token.isC():
+        print("Chapter " + token.value)
+    elif token.isS():
+        sys.stdout.write("Section heading: " + token.value)
+    elif token.isTEXT():
+        print("Text: <" + token.value + ">")
     else:
-        filename = "title.usx"
-        state.setUsxTemplate("")
-
-    state.openUsxOutput(filename)
-
-    
-endpp_re = re.compile('([^\n]*</para> *\n)')
-# startpp_re = re.compile(r'(<para style="p">)')
-# anotherverse_re = re.compile(r'(\n *<verse number=")')
-
-# Copies everything from the template .usx to the target language .usx, up thru the current verse tag.
-# Writes the verse.  Resets state.usxTemplate for the next verse.
-# Handles ranges of verses in the template .usx by splitting them into separate verses in the target.
-def writeVerse(t):
-    written = False
-    state = State()
-    srcTemplate = state.usxTemplate[state.usxTemplatePtr:]
-    pattern = '(<verse number="' + str(state.verse) + ')(-\d*)" *style="v" */>'
-    pattern2 = '(<verse number="' + str(state.verse) + ')" *style="v" */>'
-    match = re.search(pattern, srcTemplate)
-    if match:
-        pendingVerse = match.group(2)[1:]
-        # print("DX: " + srcTemplate[0:match.end(1)] + ". pendingVerse: " + pendingVerse)
-    else:
-        pendingVerse = ""
-        match = re.search(pattern2, srcTemplate)
-
-    if match:
-        # First, take care of pending section heading
-        if state.sectionPending:
-            state.writeUsx('<para style="p">' + state.sectionPending + '</para>\n\n')
-            state.saveSection("")
-        state.writeUsx(srcTemplate[0:match.end(1)] + '" style="v" />' + t)
-        written = True
-        state.advanceTemplate(match.end())
-        srcTemplate = srcTemplate[match.end():]
-        state.setPendingVerse( pendingVerse )   # last verse of range; sets to 0 if no range
-        endpp = endpp_re.match( srcTemplate )
-#        startpp = startpp_re.search(srcTemplate)
-#        next = anotherverse_re.search(srcTemplate)
+        print(token)
         
-        # End verse
-        if endpp:
-            if state.verse >= state.pendingVerse:
-                state.writeUsx("</para>\n")
-                state.setPendingEndpp(False)
-            else:
-                state.setPendingEndpp(True)
-            state.advanceTemplate(endpp.end())
-        else:
-            match = re.search("(\n)", srcTemplate)
-            if match:
-                state.advanceTemplate(match.end())
-            state.writeUsx("\n")
-    elif state.pendingVerse >= state.verse:
-        state.writeUsx('\n<verse number="' + str(state.verse) + '" style="v" />' + t)
-        written = True
-        if state.pendingEndpp:
-            state.writeUsx("</para>\n")
-            state.setPendingEndpp(False)
-        
-    return written
-
+# Removes UTF-8 Byte Order Marks (BOM) from specified file if it has one or more.
+def removeBOM(path):
+    bytes_to_remove = 0
+    MAX = 60
+    with open(path, 'rb') as f:
+        raw = f.read(MAX + 3)
+        while raw[bytes_to_remove:bytes_to_remove+3] == codecs.BOM_UTF8 and bytes_to_remove < MAX:
+            bytes_to_remove += 3
+        if bytes_to_remove > 0:
+            f.seek(bytes_to_remove)
+            raw = f.read()
+    if bytes_to_remove > 0:
+        with open(path, 'wb') as f:
+            f.write(raw)       
 
 def takeID(id):
     state = State()
     state.addID(id[0:3])
 
 # When a chapter marker is encountered in the USFM file, we close the current .usx files
-# and change en_chapter_dir to the corresponding chapter directory under the English RC content folder.
+# and change the target chapter folder.
 # We also write a default title.usx for the chapter.
 def takeC(c):
     state = State()
+    closeUsx()
     state.addChapter(c)
-    print("Starting chapter " + c)
-    target_chapter_dir = os.path.join(target_content_dir, state.chapterPad)
-    if not os.path.isdir(target_chapter_dir):
-        os.mkdir(target_chapter_dir)
-    changeFiles()
-    state.writeUsx( str(state.chapter) + " - " )
+    makeChapterDir(state.chapterPad)
+    path = os.path.join(state.target_chapter_dir, "title.usx")
+    usxOutput = io.open(path, "tw", encoding="utf-8", newline='\n')
+    usxOutput.write( str(state.chapter) )
+    usxOutput.close()
+    path = os.path.join(state.target_chapter_dir, "01.usx")
+    state.setUsxOutput( io.open(path, "tw", encoding="utf-8", newline='\n') )
 
-# Append chapter title to the output .usx file
+# Currently this function does nothing, as paragraphs are not relevant to tStudio/BTTW.
+def takeP(type):
+    state = State()
+    # state.usxOutput.write('<para style="' + type + '">\n\n')
+
+# Writes the section heading immediately if at the beginning of a chapter.
+# Saves the section heading if it occurs after the first verse in a chapter. 
 def takeS(s):
     state = State()
-#    print("takeS length " + str(len(s)) + " while state.verse == " + str(state.verse))
     if state.verse == 0:    # section heading is at the start of the chapter
-        state.writeUsx(s)
+        state.usxOutput.write(s)
     else:
         state.saveSection(s)
 
-# When a verse marker is encountered in the USFM file, we close the current .usx files and open new ones.
-# We then copy any desirable tags in the new .usx file, up to the specified verse.
+# When a verse marker is encountered in the USFM file, we open a new usx file if needed.
+# We write the <verse> element into the usx file.
 def takeV(v):
     state = State()
     state.addVerses(v)
-#   changeFiles()
- 
+    if not state.usxOutput:
+        path = os.path.join(state.target_chapter_dir, state.versePad + ".usx")
+        state.setUsxOutput( io.open(path, "tw", encoding="utf-8", newline='\n') )
+    state.usxOutput.write('<verse number="' + v + '" style="v" />')
+
+# Writes the specified text to the current usx file.
 def takeText(t):
     state = State()
-#    print("takeText length " + str(len(t)) + " while state.verse == " + str(state.verse))
     if state.verse > 0:
-        if not writeVerse(t):
-            changeFiles()
-            writeVerse(t)
+        state.usxOutput.write(t + "\n\n")
+    else:
+        reportError("Unhandled text before verse 1. See ", state.reference)
     state.addText()
- 
+
+# Handles each usfm token as the usfm files is parsed. 
 def take(token):
     state = State()
     if state.needVerseText() and not token.isTEXT():
-        print("Empty verse: " + state.reference)
-    if token.isC():
+        reportError("Empty verse: " + state.reference)
+    if token.isID():
+        takeID(token.value)
+    elif token.isH() or token.isTOC1() or token.isTOC2() or token.isMT():
+        state.addTitle(token.value, token.isMT())
+    elif token.isC():
         takeC(token.value)
-    elif token.isS():
-        # printToken(token)   # temp
-        takeS(token.value)
+    # elif token.isS():     # section headings are ignored currently
+        # printToken(token)
+        # takeS(token.value)
+    elif token.isS5():
+        closeUsx()
     elif token.isV():
         takeV(token.value)
     elif token.isTEXT():
         takeText(token.value)
+    elif token.isP() or token.isPI() or token.isPC() or token.isNB() or token.isQ() \
+        or token.isQ1() or token.isQA() or token.isSP() or token.isQR() or token.isQC():
+        takeP(token.type)
+    else:
+        if not token.type in {'ide','toc3'}:
+            reportError("Unhandled token: " + token.type)
     global lastToken
     lastToken = token
-     
-def convertFile(filename):
-    input = io.open(filename, "tr", 1, encoding="utf-8-sig")
-    str = input.read(-1)
-    input.close
-
-    print("CONVERTING " + filename + ":")
-    for token in parseUsfm.parseString(str):
-        take(token)
+    
+# Called when a \s5 chunk marker occurs, and at the end of every chapter.
+# Closes the current usx file.
+def closeUsx():
     state = State()
-    state.closeUsxOutput()
-    print("FINISHED.\nAfter running this script, check the following:")
-    print("  Investigate any errors reported by the script.")
-    print("  Edit content/front/title.usx.")
-    print("  Edit package.json, LICENSE.md in parent folder. Verify that package.json is encoded as UTF-8.")
-    print("  No <note> or <char> nodes from the English .usx files crept in to the target files. (grep '<note' ...)")
-    print("  No English carried over to the target .usx files. (grep -i 'the ' ...)")
-    print("  <para> and </para> nodes should be balanced in target .usx files.")
+    if state.usxOutput:
+        state.usxOutput.close()
+        state.setUsxOutput(None)
 
-# Verifies the global content directory variables.
-# Prints error message if either directory does not exist or has other problems.
-# Returns True or False
-def content_dirs_ok():
-    content_dirs_ok = True      # various error conditions will make it False
-    en_book = en_content_dir[-15:-12]
-    target_book = target_content_dir[-15:-12]
-    if en_book != target_book:
-        print("English book (" + en_book + ") and target language book (" + target_book + ") do not match.")
-        content_dirs_ok = False
-    if not os.path.isdir(en_content_dir):
-        print("English content folder does not exist: " + en_content_dir)
-        content_dirs_ok = False
+def reportError(msg):
+    sys.stderr.write(msg + "\n")
+
+# Creates the specified folder and a "content" folder under it
+def makeTargetDirs(target_book_dir):
+    if not os.path.isdir(target_book_dir):
+        os.mkdir(target_book_dir)
+    target_content_dir = os.path.join(target_book_dir, "content")
     if not os.path.isdir(target_content_dir):
-        basedir = os.path.dirname(target_content_dir)
-        if not os.path.isdir(basedir):
-            os.mkdir(basedir)
         os.mkdir(target_content_dir)
 
-    if not os.path.isdir(target_content_dir):
-        print("Can't create target language content folder: " + target_content_dir)
-       
-    return content_dirs_ok
+# Creates a chapter folder under the target content directory.
+def makeChapterDir(chap):
+    dir = os.path.join(State().target_content_dir, chap)
+    if not os.path.isdir(dir):
+        os.mkdir(dir)
 
-def cp(srcdir, filename, destdir):
-    input = open(os.path.join(srcdir, filename), 'r')
-    output = open(os.path.join(destdir, filename), 'w')
-    output.write( input.read() )
-    output.close()
-    input.close()    
+idcode_re = re.compile(r'\\id +([\w][\w][\w])')
 
-# Adds front folder with title.usx
-# Copies config.yml and toc.yml from English template    
-def buildOutContentFolder():
-    frontFolder = os.path.join(target_content_dir, 'front')
+# Parses the book identifier from the \id tag, which should be on the first line of the usfm file
+def getBookId(usfmpath):
+    input = io.open(usfmpath, "tr", encoding="utf-8-sig")
+    str = input.readline()
+    input.close
+    if idcode := idcode_re.match(str):
+        bookId = idcode.group(1)
+    else:
+        reportError("USFM file does not start with standard \\id marker.")
+        bookId = ""
+    return bookId
+
+# Makes a custom package.json file in the specified target folder.
+# Modifies a copy of an English manifest.
+def createManifest(en_book_dir, target_book_dir):
+    path = os.path.join(en_book_dir, "package.json")
+    jsonFile = io.open(path, "tr", encoding='utf-8-sig')
+    package = json.load(jsonFile)
+    today = date.today()
+    s = '%(year)d%(month)02d%(day)02d' % {'year':today.year, 'month':today.month, 'day':today.day}
+    package['modified_at'] = int(s)
+    package['language']['slug'] = language_code
+    package['language']['name'] = language_name
+    state = State()
+    package['project']['slug'] = state.ID.lower()
+    package['project']['name'] = state.title
+    package['project']['sort'] = usfm_verses.verseCounts[state.ID.upper()]['sort']
+    package['project']['chunks_url'] = "https://api.unfoldingword.org/bible/txt/1/" + state.ID.lower() + "/chunks.json"
+    category = "bible-nt"
+    if usfm_verses.verseCounts[state.ID.upper()]['sort'] < 40:
+        category = "bible-ot"
+    package['project']['category_slug'] = category
+    package['project']['categories'] = [category]
+    package['resource']['slug'] = bible_id
+    package['resource']['name'] = bible_name
+    package['resource']['status']['pub_date'] = pub_date
+    package['resource']['status']['license'] = license
+    package['resource']['status']['version'] = version
+
+    path = os.path.join(target_book_dir, "package.json")
+    jsonFile = io.open(path, "tw", encoding='utf-8-sig')
+    json.dump(package, jsonFile, ensure_ascii=False, indent=2)
+    jsonFile.close()
+    removeBOM(path)     # because tStudio/BTTW chokes on BOM
+
+# Adds front folder with title.usx, if the book title is known.
+def createTitleFile():
+    state = State()
+    frontFolder = os.path.join(state.target_content_dir, 'front')
     if not os.path.isdir(frontFolder):
         os.mkdir(frontFolder) 
     output = io.open(os.path.join(frontFolder, 'title.usx'), 'tw', encoding="utf-8")
-    output.write( target_book_name )
+    output.write( state.title )
     output.close()
-    
-    cp(en_content_dir, 'config.yml', target_content_dir)
-    cp(en_content_dir, 'toc.yml', target_content_dir)
-    cp(package_json_template_dir, 'LICENSE.md', os.path.dirname(target_content_dir))
-    cp(package_json_template_dir, 'package.json', os.path.dirname(target_content_dir))
 
+# Writes the toc.yaml file into the specified folder
+def createToc(en_content_dir, content_dir):
+    # Temporary implemention -- just copies the English toc.yaml
+    copy(os.path.join(en_content_dir, 'toc.yml'), content_dir)    # copy() is from shutil
     
+    # TODO: implement a better solution
+    path = os.path.join(content_dir, "toc.yaml")
+
+# Converts a single usfm file to a usx resource container.
+def convertFile(usfmpath, bookId):
+    en_book_dir = os.path.join(en_rc_dir, "en_" + bookId.lower() + "_ulb")
+    target_book_dir = os.path.join(target_dir, language_code + "_" + bookId.lower() + "_" + bible_id)
+    if not os.path.isdir(en_book_dir):
+        reportError("English book folder not found: " + en_book_dir)
+    else:
+        makeTargetDirs(target_book_dir)
+        en_content_dir = os.path.join(en_book_dir, "content")
+
+        sys.stdout.write("CONVERTING " + usfmpath + "\n")
+        sys.stdout.flush()
+        input = io.open(usfmpath, "tr", encoding="utf-8-sig")
+        str = input.read()
+        input.close
+        for token in parseUsfm.parseString(str):
+            take(token)
+        closeUsx()
+        state = State()
+        copy(os.path.join(en_book_dir, 'LICENSE.md'), target_book_dir)
+        createManifest(en_book_dir, target_book_dir)
+        copy(os.path.join(en_content_dir, 'config.yml'), state.target_content_dir)    # copy() is from shutil
+        createToc(en_content_dir, state.target_content_dir)
+        createTitleFile()
+
+# Parses entire usfm file and writes to .usx files by chunk.
+def processFile(usfmpath):
+    bookId = getBookId(usfmpath)
+    if not bookId:
+        reportError("Invalid USFM file: " + usfmpath)
+    else:
+        convertFile(usfmpath, bookId)
+
+# Processes a whole folder of usfm files, recursively.
+def convertDir(dir):
+    for entry in os.listdir(dir):
+        path = os.path.join(dir, entry)
+        if entry[0] != '.' and os.path.isdir(path):
+            convertDir(path)
+        elif entry.endswith("sfm") and os.path.isfile(path):
+            processFile(path)
+
+# Creates the target_dir folder if necessary.
+# Returns False if not possible.
+def ensure_target_dir():
+    global target_dir
+    if not os.path.isdir(target_dir):
+        dir = os.path.dirname(target_dir)
+        if os.path.isdir(dir):
+            os.mkdir(target_dir)
+    return os.path.isdir(target_dir)
+
 if __name__ == "__main__":
-    if content_dirs_ok():
-        if len(sys.argv) < 2:
-            source = raw_input("Enter path to .usfm file: ")
-        elif sys.argv[1] == 'hard-coded-path':
-            source = r'C:\Users\Larry\Documents\GitHub\Spanish\es-419_mrk_level2wc_text_ulb\es-419_mrk_level2wc_text_ulb.usfm'
-        else:
-            source = sys.argv[1]
-
-        if os.path.isfile(source):
-            buildOutContentFolder()
-            convertFile(source)
-        else:
-            print("USFM input file not found: " + source)
+    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
+        source_dir = sys.argv[1]
+    if not ensure_target_dir():
+        reportError("Invalid target_dir: " + target_dir)
+    elif source_dir and os.path.isdir(source_dir):
+        convertDir(source_dir)
+        sys.stdout.write("Done.\n")
+    elif os.path.isfile(source_dir):
+        path = source_dir
+        source_dir = os.path.dirname(path)
+        processFile(path)
+        sys.stdout.write("Done.\n")
+    else:
+        reportError("Invalid folder: " + source_dir)
+        reportError("Usage: python usfm2usx.py <folder>\n  Use . for current folder.")
