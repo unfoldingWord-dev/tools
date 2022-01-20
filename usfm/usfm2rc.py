@@ -8,10 +8,10 @@
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Urdu\Bible\READY'
-target_dir = r'C:\DCS\Urdu\ur_ulb'
+source_dir = r'C:\DCS\Russian\RLOB'
+target_dir = r'C:\DCS\Russian\ru_rlob.STR'
 en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
-#en_rc_dir = None    # Set to None if no chunk markers should be added
+mark_chunks = False
 
 projects = []
 translators = []
@@ -24,8 +24,8 @@ import os
 import operator
 
 # Set Path for files in support/
-rootdiroftools = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(rootdiroftools,'support'))
+#rootdiroftools = os.path.dirname(os.path.abspath(__file__))
+#sys.path.append(os.path.join(rootdiroftools,'support'))
 
 import usfm_verses
 import parseUsfm
@@ -126,7 +126,7 @@ class State:
         State.verse = 0
         State.needVerseText = False
         State.reference = State.ID + " " + c
-        if en_rc_dir:
+        if mark_chunks:
             State.chunks = loadChunks(State.ID, State.chapterPad)
         State.chunkIndex = 0
         State.needPp = "p"     # need \p marker after each \c marker
@@ -273,10 +273,11 @@ def takeQ(tag):
 # Writes a \p marker before verse 1 or when a \p marker from input is on hold.
 def addSection(v):
     state = State()
-    vn = int(v)
-    if state.getChunkVerse() == vn:
-        if vn > 1 and not state.hasS5():
-            state.usfmFile.write("\n\\s5")
+    if mark_chunks:
+        vn = int(v)
+        if state.getChunkVerse() == vn:
+            if vn > 1 and not state.hasS5():
+                state.usfmFile.write("\n\\s5")
         state.advanceChunk()
     if state.needPp:
         state.usfmFile.write("\n\\" + state.needPp)
@@ -333,7 +334,7 @@ def takeC(c):
     state.addChapter(c)
     if state.chapter == 1:
         writeHeader()
-    if not state.hasS5():
+    if mark_chunks and not state.hasS5():
         state.usfmFile.write("\n\n\\s5")
     state.usfmFile.write("\n\\c " + c)
  
@@ -461,10 +462,9 @@ def isParseable(str, fname):
         parseable = True   # let it convert because the bad spots are easier to locate in the converted USFM
     if usfmcode_re.search(str):
         reportError("File contains foreign usfm code(s): " + fname)
-#        parseable = False
+        parseable = False
     return parseable
         
-
 def convertFile(usfmpath, fname):
     state = State()
     state.reset()
@@ -473,10 +473,10 @@ def convertFile(usfmpath, fname):
     str = input.read(-1)
     input.close
 
-    print("CONVERTING " + fname + ":")
     sys.stdout.flush()
     success = isParseable(str, fname)
     if success:
+        print("CONVERTING " + fname + ":")
         for token in parseUsfm.parseString(str):
             take(token)
         state.usfmFile.write("\n")    
@@ -492,9 +492,9 @@ def convertFolder(folder):
         os.mkdir(target_dir)
     for fname in os.listdir(folder):
         path = os.path.join(folder, fname)
-        if os.path.isdir(path):
+        if fname[0] != '.' and os.path.isdir(path):
             convertFolder(path)
-        elif fname[-3:].lower() == 'sfm':
+        elif fname.endswith('sfm'):
             if convertFile(path, fname):
                 appendToProjects()
                 getContributors(folder)
@@ -516,19 +516,21 @@ def getContributors(folder):
       
 def dumpContributors():
     global translators
-    contribs = list(set(translators))
-    contribs.sort()
-    path = os.path.join(target_dir, "translators.txt")
-    f = io.open(path, 'tw', encoding='utf-8', newline='\n')
-    for name in contribs:
-        f.write('    - "' + name + '"\n')
-    
-    # Also dump the list of source versions used
-    f.write('\n\nSource versions used:\n')
-    for version in source_versions:
-        f.write(version + ' ')
-    f.write('\n')
-    f.close()
+    global source_versions
+    if len(translators) > 0 or len(source_versions) > 0:
+        contribs = list(set(translators))
+        contribs.sort()
+        path = os.path.join(target_dir, "translators.txt")
+        f = io.open(path, 'tw', encoding='utf-8', newline='\n')
+        for name in contribs:
+            f.write('    - "' + name + '"\n')
+        
+        # Also dump the list of source versions used
+        f.write('\n\nSource versions used:\n')
+        for version in source_versions:
+            f.write(version + ' ')
+        f.write('\n')
+        f.close()
 
 # Appends information about the current book to the global projects list.
 def appendToProjects():
@@ -551,6 +553,7 @@ def dumpProjects():
     projects.sort(key=operator.itemgetter('sort'))
     path = makeManifestPath()
     manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
+    manifest.write("projects:\n")
     for p in projects:
         manifest.write("  -\n")
         manifest.write("    title: '" + p['title'] + "'\n")
