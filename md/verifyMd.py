@@ -23,9 +23,9 @@
 #          Check that tW files begin with H1 heading immediately followed by H2 heading.
 
 # Globals
-source_dir = r'C:\DCS\Telugu\te_ta.STR'
-language_code = 'te'
-resource_type = 'ta'
+source_dir = r'C:\DCS\Kannada\kn_tw.work\bible'
+language_code = 'kn'
+resource_type = 'tw'
 ta_dir = r'C:\DCS\Kannada\kn_ta.STR'    # Target language tA, or English tM for WA
 obstn_dir = r'C:\DCS\Kannada\kn_obs-tn'
 en_tn_dir = r'C:\DCS\English\en_tn.md-orig'
@@ -43,7 +43,7 @@ suppress1 = False    # Suppress warnings about text before first heading
 suppress2 = False    # Suppress warnings about blank headings
 suppress3 = False    # Suppress warnings about item number not followed by period
 suppress4 = False    # Suppress warnings about closed headings
-suppress5 = True    # Suppress warnings about invalid relative links
+suppress5 = False    # Suppress warnings about invalid relative links
 suppress6 = False    # Suppress warnings about invalid OBS notes links
 suppress7 = False    # Suppress warnings about file starting with blank line
 suppress8 = False    # Suppress warnings about blank lines before, after, and within lists
@@ -58,7 +58,7 @@ suppress16 = False     # Suppress warnings about empty files
 suppress17 = (resource_type != 'tn')  # Suppress the missing intro.md file warning, which applies only to tN resources
 suppress18 = False     # Suppress warnings about newline in title.md files
 suppress19 = False     # Suppress "should be a header here" warnings
-suppress20 = False      # Suppress "invalid TA page reference" warnings 
+suppress20 = False      # Suppress "invalid TA page reference" warnings
 
 if resource_type == "ta":
     suppress1 = True
@@ -73,6 +73,7 @@ TEXT = 3
 LIST_ITEM = 4
 ORDEREDLIST_ITEM = 5
 
+import xml
 import sys
 import os
 import io
@@ -151,7 +152,7 @@ class State:
         State.leftcurly += line.count("{")
         State.rightcurly += line.count("}")
         State.underscores += line.count('_')
-        
+
     def reportedError(self):
         State.nerrors += 1
 
@@ -170,7 +171,7 @@ def reportParens():
         reportError("Left and right curly braces are unbalanced (" + str(state.leftcurly) + ":" + str(state.rightcurly) + ")", False)
 #    if state.underscores % 2 != 0:
 #        reportError("Unmatched underscores", False)
-    
+
 
 # If issues.txt file is not already open, opens it for writing.
 # First renames existing issues.txt file to issues-oldest.txt unless
@@ -188,13 +189,13 @@ def openIssuesFile():
             else:
                 os.remove(path)
         issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
-        
+
     return issuesFile
 
 # Writes error message to stderr and to issues.txt.
 def reportError(msg, report_lineno=True):
     state = State()
-    issues = openIssuesFile()       
+    issues = openIssuesFile()
     if msg[-1] != '\n':
         msg += '\n'
     if report_lineno and state.linecount > 0:
@@ -223,14 +224,14 @@ def verifyTitleFileLineEndings(path):
         input.close()
         if b'\n' in content:
             reportError("TA title and subtitle files should not have any line endings", False)
- 
+
 # Reports empty file and returns True if file is empty.
 def verifyNotEmpty(mdPath):
     empty = False
     if os.path.isfile(mdPath):
        statinfo = os.stat(mdPath)
        if statinfo.st_size < 7:
-           empty = True 
+           empty = True
            if not suppress16:
                reportError("No content in file", False)
     return empty
@@ -257,7 +258,7 @@ def take(line):
             reportError("has text before first heading")
             state.report1()
         if resource_type == 'tq' and state.currQ == state.prevQ:
-            reportError("Duplicate questions")            
+            reportError("Duplicate questions")
     if state.currlinetype == TEXT and not state.reported2 and not suppress19:
         if state.linecount >= 5 and state.prevlinetype == BLANKLINE and state.linetype[state.linecount-3] in {TEXT,LIST_ITEM,ORDEREDLIST_ITEM}:
             if resource_type in {"tn", "tq", "obs-tn", "obs-tq"}:
@@ -296,7 +297,7 @@ def take(line):
     # In a tW file, the third line must be an H2 heading
     if resource_type == 'tw' and state.linecount == 3 and (state.currlinetype != HEADING or state.currheadinglevel != 2):
         reportError("Incorrect tW file, missing '## Definition' or '## Facts' on line 3")
-    
+
     # 8/19/21 - Blank lines are optional around lists on DCS, but WACS needs them
     if not suppress8:
         if state.currlinetype in {LIST_ITEM, ORDEREDLIST_ITEM}:
@@ -328,7 +329,7 @@ unexpected2_re = re.compile(r'\[[^\]\(]*\)', re.UNICODE)         # ')' after lef
 unexpected3_re = re.compile(r'^[^\[]*\]', re.UNICODE)            # ']' before '['
 unexpected4_re = re.compile(r'\[[^\]]*$', re.UNICODE)            # '[' without following ']'
 
-def checkLineContents(line):    
+def checkLineContents(line):
     if line.find('# #') != -1:
         reportError('heading syntax error')
     if line.startswith("% ") or line.startswith("%​ "):  # invisible character in second comparison
@@ -354,8 +355,8 @@ def checkLineContents(line):
             reportError("Line contains _**")
     if not suppress13 and line.count("__") % 2 == 1:
         reportError("Line seems to have mismatched '__'")
-    if "___" in line:
-        reportError("Triple underscore")
+    #if "___" in line:
+        #reportError("Triple underscore")
     if unexpected_re.search(line):
         reportError("found ']' after left paren")
     if unexpected2_re.search(line):
@@ -431,7 +432,7 @@ def checkTALinks(line):
             if not os.path.isdir(path):
                 reportError("invalid tA link: " + manpage)
             link = talink_re.search(link.group(3))
-    return found          
+    return found
 
 rclink_re = re.compile(r'[^s]rc:*[\\/]+([ \w\-\*]*?)[\\/]', re.UNICODE)
 rcgoodlink_re = re.compile(r'rc://[\w\-\*]+/t', re.UNICODE)
@@ -456,7 +457,7 @@ def checkMdLinks(line, fullpath):
         checkPassageLinks(line, fullpath)
     checkReversedLinks(line)
 
-twlink_re = re.compile(r'(\(rc://[\*\w\-]+/tw/dict/bible/)(.+?)/(.+?)(\).*)', flags=re.UNICODE)      # matches rc://en/tw/dict/bible/  or rc://*/tw/dict/bible/
+twlink_re = re.compile(r'(\(rc://[\*\w\-]+/tw/dict/bible/)(.+?)/(.+?)(\).*)', flags=re.UNICODE)      # matches rc://en/tw/dict/bible/.../...)  or rc://*/tw/dict/bible/.../...)
 
 def checkTWLinks(line):
     found = False
@@ -468,7 +469,7 @@ def checkTWLinks(line):
         if not os.path.isfile(path):
             reportError("invalid tW link: " + tw.group(2) + "/" + tw.group(3))
         tw = twlink_re.search(tw.group(4))
-    return found          
+    return found
 
 obslink_re = re.compile(r'(rc://)([\*\w\-]+)(/tn/help/obs/)(\d+)/(\d+)(.*)', flags=re.UNICODE)
 
@@ -512,7 +513,7 @@ def checkTNLinks(line):
         notelink = notelink_re.search(notelink.group(6))
 
     return found
-    
+
 def checkOBSTNLink(link):
     story = link[0: link.find("/")]
     paragraph = link[link.find("/")+1:]
@@ -534,13 +535,24 @@ def checkPassageLinks(line, fullpath):
         if resource_type in {'obs-tn','obs-tq','obs-sn','obs-sq'}:
             checkOBSTNLink(link)
         elif not "/ta/" in link and not '/tn/' in link and not '/tw/' in link and not (resource_type == 'obs' and obsJpg_re.match(link)):
+            # i.e. we are dealing with a relative path to a resource of the same type
             if not link.isascii():
                 reportError("Non-ascii link")
-            elif not link.startswith("http") :
-                referencedPath = os.path.join( os.path.dirname(fullpath), link )
-                if not suppress5 and not os.path.isfile(referencedPath):
-                    reportError("invalid link: " + link)
+            elif not link.startswith("http") and not suppress5:
+                checkRelativeLink(link, fullpath)
         passage = passagelink_re.search(passage.group(2))
+
+def checkRelativeLink(link, currpath):
+    current_dir = os.path.dirname(currpath)
+    if resource_type == 'tw':
+        folder = os.path.join(tw_dir, os.path.basename(current_dir))
+    elif resource_type == 'ta':
+        folder = os.path.join(ta_dir, os.path.basename(current_dir))
+    else:
+        folder = current_dir
+    referencedPath = os.path.join(folder, link)
+    if not os.path.isfile(referencedPath):
+        reportError("invalid relative link: " + link)
 
 def checkReversedLinks(line):
     if reversedlink_re.search(line):
@@ -806,7 +818,7 @@ if __name__ == "__main__":
         source_dir = os.path.dirname(path)
         verifyFile(path)
     else:
-        sys.stderr.write("Path not found: " + source_dir + '\n') 
+        sys.stderr.write("Path not found: " + source_dir + '\n')
 
     if issuesFile:
         issuesFile.close()
