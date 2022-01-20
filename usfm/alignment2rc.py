@@ -10,8 +10,8 @@ import sys
 import os
 
 # Global variables
-source_dir = r'C:\DCS\Hindi\GST'   # folder containing usfm files to be converted
-target_dir = r'C:\DCS\Hindi\hi_gst'
+source_dir = r'C:\DCS\Russian\UST'   # folder containing usfm files to be converted
+target_dir = r'C:\DCS\Russian\ru_ust.STR'
 projects = []
 contributors = []
 checkers = []
@@ -181,7 +181,7 @@ def makeUsfmFilename(id):
     return str(num) + "-" + id + ".usfm"
     
 # Returns path of temporary manifest file block listing projects converted
-def makeManifestPath():
+def makeProjectsPath():
     return os.path.join(target_dir, "projects.yaml")
     
 # Looks up the English book name, for use when book name is not defined in the file
@@ -372,8 +372,9 @@ def dumpProjects():
     global projects
     
     projects.sort(key=operator.itemgetter('sort'))
-    path = makeManifestPath()
+    path = makeProjectsPath()
     manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
+    manifest.write("projects:\n")
     for p in projects:
         manifest.write("  -\n")
         manifest.write("    title: '" + p['title'] + "'\n")
@@ -389,8 +390,8 @@ def printError(text):
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
-    if os.path.isfile( makeManifestPath() ):
-        os.remove( makeManifestPath() )
+    if os.path.isfile( makeProjectsPath() ):
+        os.remove( makeProjectsPath() )
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         source_dir = sys.argv[1]
     convertFolder(source_dir)
