@@ -13,10 +13,10 @@
 # This script doesn't do anything if the files are .md files already.
 
 # Global variables
-source_dir = r'C:\DCS\Amharic\TQ'
-target_dir = r'C:\DCS\Amharic\am_tq.temp'
-language_code = 'am'
-resource_type = 'tq'
+source_dir = r'C:\DCS\Malagasy\TN'
+target_dir = r'C:\DCS\Malagasy\plt_tn.RPP'
+language_code = 'plt'
+resource_type = 'tn'
 placeholder_body = "x"      # Text to use in place of missing note. Leave blank if none desired.
 
 projects = []
@@ -44,6 +44,8 @@ def parseBookId(folder):
         bookId = folder
     return bookId.upper()
 
+# Parses the manifest.json file, if any.
+# Retrieves Book ID, list of translators, and source version
 def getBookId(path):
     bookId = ""
     manifestpath = os.path.join(path, 'manifest.json')
@@ -138,6 +140,7 @@ def dumpProjects():
     projects.sort(key=operator.itemgetter('sort'))
     path = makeManifestPath()
     manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
+    manifest.write("projects:\n")
     for p in projects:
         manifest.write("  -\n")
         manifest.write("    title: '" + p['title'] + "'\n")
