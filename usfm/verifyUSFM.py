@@ -5,8 +5,8 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r'C:\DCS\PapuanMalay\pmy_ulb.DCS'
-language_code = 'pmy'
+source_dir = r'C:\DCS\Tuvan\tyv_reg.work'
+language_code = 'tyv'
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
@@ -15,7 +15,7 @@ suppress4 = False     # Suppress warnings about useless markers before section m
 suppress5 = False     # Suppress checks for verse counts
 suppress9 = False     # Suppress warnings about ASCII content
 
-if language_code in {'en','es-419','ha','hr','id','nag','pmy','sw','tpi'}:    # ASCII content
+if language_code in {'en','es-419','gl','ha','hr','id','nag','pmy','sw','tpi'}:    # ASCII content
     suppress9 = True
 if language_code == 'ru':
     suppress5 = True
@@ -60,7 +60,7 @@ class State:
     lastRef = ""
     errorRefs = set()
     currMarker = OTHER
-    
+
     # Resets state data for a new book
     def addID(self, id):
         State.IDs.append(id)
@@ -77,14 +77,18 @@ class State:
         State.lastRef = State.reference
         State.reference = id + " header/intro"
         State.currMarker = OTHER
-        
+        State.toc3 = None
+
     def getIDs(self):
         return State.IDs
-        
+
     def addTitle(self, bookTitle):
         State.titles.append(bookTitle)
         State.currMarker = OTHER
-        
+
+    def addToc3(self, toc3):
+        State.toc3 = toc3
+
     def addChapter(self, c):
         State.lastChapter = State.chapter
         State.chapter = int(c)
@@ -96,7 +100,7 @@ class State:
         State.lastRef = State.reference
         State.reference = State.ID + " " + c
         State.currMarker = OTHER
-    
+
     def addParagraph(self):
         State.needPP = False
         State.textOkayHere = True
@@ -121,31 +125,31 @@ class State:
         State.needPP = False
         State.currMarker = QQ
         State.textOkayHere = True
-    
+
     # Resets needQQ flag so that errors are not repeated verse after verse
     def resetPoetry(self):
         State.needQQ = False
 
     def textOkay(self):
         return State.textOkayHere
-    
+
     def needText(self):
         return State.needVerseText
 
     def getTextLength(self):
         return State.textLength
-        
+
     def addText(self, text):
         State.currMarker = OTHER
         State.needVerseText = False
         State.textLength += len(text)
         State.textOkayHere = True
-    
+
 #    def footnotes_started(self):
 #        return State.footnote_starts
 #    def footnotes_ended(self):
 #        return State.footnote_ends
-        
+
     # Increments \f counter
     def addFootnoteStart(self):
         State.footnote_starts += 1
@@ -158,7 +162,7 @@ class State:
         State.footnote_ends += 1
         State.needVerseText = False
         State.textOkayHere = True
-    
+
     # Adds the specified reference to the set of error references
     # Returns True if reference can be added
     # Returns False if reference was previously added
@@ -168,17 +172,17 @@ class State:
             self.errorRefs.add(ref)
             success = True
         return success
-        
+
     # Returns the number of chapters that the specified book should contain
     def nChapters(self, id):
         return usfm_verses.verseCounts[id]['chapters']
-                 
+
     # Returns the number of verses that the specified chapter should contain
     def nVerses(self, id, chap):
         chaps = usfm_verses.verseCounts[id]['verses']
         n = chaps[chap-1]
-        return n  
-        
+        return n
+
     # Returns the English title for the specified book
     def bookTitleEnglish(self, id):
         return usfm_verses.verseCounts[id]['en_name']
@@ -192,7 +196,7 @@ def shortname(longpath):
 # If issues.txt file is not already open, opens it for writing.
 # First renames existing issues.txt file to issues-oldest.txt unless
 # issues-oldest.txt already exists.
-# Returns new file pointer.
+# Returns file pointer.
 def openIssuesFile():
     global issuesFile
     if not issuesFile:
@@ -203,7 +207,7 @@ def openIssuesFile():
             if not os.path.exists(bakpath):
                 os.rename(path, bakpath)
         issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
-        
+
     return issuesFile
 
 # Writes error message to stderr and to issues.txt.
@@ -213,8 +217,8 @@ def reportError(msg):
     except UnicodeEncodeError as e:
         state = State()
         sys.stderr.write(state.reference + ": (Unicode...)\n")
- 
-    issues = openIssuesFile()       
+
+    issues = openIssuesFile()
     issues.write(msg + "\n")
 
 # Report missing text in previous verse
@@ -289,7 +293,7 @@ def takeID(id):
     if id in state.getIDs():
         reportError("Duplicate ID: " + id)
     state.addID(id)
-    
+
 # Processes a chapter tag
 def takeC(c):
     state = State()
@@ -379,7 +383,7 @@ def takeV(vstr):
                 reportError("Missing verse between: " + state.lastRef + " and " + state.reference)
         elif state.verse > state.lastVerse + 2 and state.addError(state.lastRef):
             reportError("Missing verses between: " + state.lastRef + " and " + state.reference)
- 
+
 reference_re = re.compile(r'[0-9]\: *[0-9]', re.UNICODE)
 
 # Looks for possible verse references and square brackets in the text, not preceded by a footnote marker.
@@ -402,8 +406,8 @@ def reportFootnote(trigger):
     if trigger == ':' or isOptional(reference) or reference in footnoted_verses.footnotedVerses:
         reportError("Probable untagged footnote at " + reference)
     else:
-        reportError("Possible untagged footnote at square bracket at " + reference)        
-#    reportError("  preceding Token.type was " + lastToken.getType())   # 
+        reportError("Possible untagged footnote at square bracket at " + reference)
+#    reportError("  preceding Token.type was " + lastToken.getType())   #
 
 punctuation_re = re.compile(r'([\.\?!;\:,][^\s\u200b\)\]\'"’”»›])', re.UNICODE)  # note: \u200b is an invisible character, used like a space in Laotian
 spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’”»›])', re.UNICODE)
@@ -427,7 +431,7 @@ def reportPunctuation(text):
         reportError("Free floating mark at " + state.reference + ": " + bad.group(1))
     if "''" in text:
         reportError("Repeated quotes at " + state.reference)
-        
+
 def takeText(t):
     global lastToken
     state = State()
@@ -474,7 +478,7 @@ def isOptional(ref, previous=False):
         # May not handle the optional John 7:53-8:11 passage
         return ref in { 'MAT 17:21', 'MAT 18:11', 'MAT 23:14', 'MRK 7:16', 'MRK 9:44', 'MRK 9:46',\
 'MRK 16:9', 'MRK 16:10', 'MRK 16:11', 'MRK 16:12', 'MRK 16:13', 'MRK 16:14', 'MRK 16:15', 'MRK 16:16',\
-'MRK 16:17', 'MRK 16:18', 'MRK 16:19', 'MRK 16:20', 
+'MRK 16:17', 'MRK 16:18', 'MRK 16:19', 'MRK 16:20',
 'MRK 11:26', 'MRK 15:28', 'LUK 17:36', 'LUK 23:17', 'JHN 5:4', 'JHN 7:53', 'JHN 8:1', 'ACT 8:37', 'ACT 15:34',\
 'ACT 24:7', 'ACT 28:29', 'ROM 16:24', 'REV 12:18' }
 
@@ -487,7 +491,7 @@ def isIntro(token):
 
 def isSpecialText(token):
     return token.isWJS() or token.isADDS() or token.isNDS() or token.isPNS() or token.isQTS() or token.is_k_s()
-    
+
 def isTextCarryingToken(token):
     return token.isB() or token.isM() or isSpecialText(token) or token.isD() or token.isSP() or \
            isFootnote(token) or isCrossRef(token) or isPoetry(token) or isIntro(token)
@@ -498,7 +502,7 @@ def isTitleToken(token):
 # Returns True if the token value should be checked for Arabic numerals
 def isNumericCandidate(token):
     return token.isTEXT() or isTitleToken(token) or token.isCL() or token.isCP() or token.isFT()
-    
+
 def take(token):
     global lastToken
 
@@ -542,8 +546,10 @@ def take(token):
             reportError("mt token has ASCII value in " + state.reference)
         if token.value.isupper():
             reportError("Upper case book title in " + state.reference)
-    elif token.isTOC3() and (len(token.value) != 3 or not token.value.isascii()):
-        reportError("Invalid toc3 value in " + state.reference)
+    elif token.isTOC3():
+        state.addToc3(token.value)
+        if (len(token.value) != 3 or not token.value.isascii()):
+            reportError("Invalid toc3 value in " + state.reference)
     elif token.isUnknown():
         if token.value == "p":
             reportError("Orphaned paragraph marker after " + state.reference)
@@ -551,10 +557,10 @@ def take(token):
             reportError("Unnumbered verse after " + state.reference)
         elif not aligned_usfm:
             reportError("Invalid USFM token (\\" + token.value + ") near " + state.reference)
-    
+
     if language_code in {"ur"} and isNumericCandidate(token) and re.search(r'[0-9]', token.value, re.UNICODE):
         reportError("Arabic numerals in footnote at " + State().reference)
-        
+
     lastToken = token
 
 bad_chapter_re1 = re.compile(r'[^\n](\\c\s*\d+)', re.UNICODE)
@@ -592,13 +598,17 @@ orphantext_re = re.compile(r'\n\n[^\\]', re.UNICODE)
 # Receives the text of an entire book as input.
 # Verifies things that are better done as a whole file.
 # Can't report verse references because we haven't started to parse the book yet.
+# Returns False if the file is hopelessly invalid.
 def verifyWholeFile(str, path):
-    verifyChapterAndVerseMarkers(str, path)
+    if len(str) < 100:
+        reportError("Incomplete usfm file")
+    else:
+        verifyChapterAndVerseMarkers(str, path)
 
-    lines = str.split('\n')
-    orphans = orphantext_re.search(str)
-    if orphans:
-        reportOrphans(lines, path)
+        lines = str.split('\n')
+        orphans = orphantext_re.search(str)
+        if orphans:
+            reportOrphans(lines, path)
 
 conflict_re = re.compile(r'<+ HEAD', re.UNICODE)   # conflict resolution tag
 
@@ -624,7 +634,7 @@ def verifyFile(path):
     input = io.open(path, "r", buffering=1, encoding="utf-8-sig")
     str = input.read(-1)
     input.close()
-    
+
     if wjwj_re.search(str):
         reportError(shortname(path) + " - contains empty \\wj \\wj* pair(s)")
     if backslasheol_re.search(str):
@@ -635,24 +645,30 @@ def verifyFile(path):
 
     print("CHECKING " + shortname(path))
     sys.stdout.flush()
-    verifyWholeFile(str, shortname(path))
-    tokens = parseUsfm.parseString(str)
-    n = 0
-    global nextToken
-    for token in tokens:
-        if n + 1 < len(tokens):
-            nextToken = tokens[n+1]
-        take(token)
-        n += 1
-    emptyVerseCheck()       # checks last verse in the file
-    verifyNotEmpty(path)
-    if not suppress5:
-        verifyVerseCount()      # for the last chapter
-    verifyChapterCount()
-    verifyFootnotes()
-    state = State()
-    state.addID("")
-    sys.stderr.flush()
+    if len(str) < 100:
+        reportError(shortname(path) + " is incomplete.")
+
+    else:
+        verifyWholeFile(str, shortname(path))
+        tokens = parseUsfm.parseString(str)
+        n = 0
+        global nextToken
+        for token in tokens:
+            if n + 1 < len(tokens):
+                nextToken = tokens[n+1]
+            take(token)
+            n += 1
+        state = State()
+        if not state.toc3:
+            reportError("No \\toc3 tag")
+        emptyVerseCheck()       # checks last verse in the file
+        verifyNotEmpty(path)
+        if not suppress5:
+            verifyVerseCount()      # for the last chapter
+        verifyChapterCount()
+        verifyFootnotes()
+        state.addID("")
+        sys.stderr.flush()
 
 # Verifies all .usfm files under the specified folder.
 def verifyDir(dirpath):
@@ -668,7 +684,7 @@ def verifyDir(dirpath):
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         source_dir = sys.argv[1]
-    
+
     if os.path.isdir(source_dir):
         verifyDir(source_dir)
     elif os.path.isfile(source_dir):
@@ -678,7 +694,7 @@ if __name__ == "__main__":
     else:
         sys.stderr.write("No such folder: " + source_dir)
         exit(-1)
-    
+
     if issuesFile:
         issuesFile.close()
     else:
