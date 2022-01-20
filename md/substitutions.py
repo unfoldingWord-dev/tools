@@ -6,10 +6,12 @@
 
 subs = [
 	("http://ufw.io/[[rc://", "[[rc://"),
-	
+	("****", ""),
+	("*__", "* __"),
+
 	# HTML / V-MAST section
 	("</ ", "</"),      #malformed html
-	("< ", "<"),      #malformed html
+#	("< ", "<"),      # commented out because this is not always an issue of malformed html
 	("&nbsp;", " "),
 	("&#34;", "\""),
 	("&#39;", "'"),
@@ -19,9 +21,9 @@ subs = [
 	("</p>", "\n"),
 	("<h1>", "\n# "),
 	("</h1>", "\n"),
-	
+
 #	("rc://en/", "rc://*/"),    now incorporated in md_cleanup.py
-	
+
 	("rc://*/obe/", "rc://*/tw/bible/"),
 	("rc: // en / ta / man / translate / ", "rc://*/ta/man/translate/"),
 #  these next few lines apply to a few languages
