@@ -5,12 +5,12 @@
 #    Finds and parses title.txt to get the book title.
 #    Populates the USFM headers.
 #    Standardizes the names of .usfm files. For example 41-MAT.usfm and 42-MRK.usfm.
-#    Converts multiple books at once.
+#    Converts multiple books at once if there are multiple books.
 
 # Global variables
-source_dir = r'C:\DCS\Amharic\UDB'
-target_dir = r'C:\DCS\Amharic\am_udb.temp'
-language_code = "am"
+source_dir = r'C:\DCS\Spanish\UDB'
+target_dir = r'C:\DCS\Spanish\es-419_udb.RPP'
+language_code = "es-419"
 mark_chunks = True   # Should be true for GL source text
 
 import usfm_verses
@@ -453,6 +453,7 @@ def dumpProjects():
 
     path = makeManifestPath()
     manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
+    manifest.write("projects:\n")
     for p in projects:
         manifest.write("  -\n")
         manifest.write("    title: '" + p['title'] + "'\n")
