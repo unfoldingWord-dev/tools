@@ -19,12 +19,12 @@
 # A lot of these checks are done by tsv2rc.py as well.
 
 # Globals
-source_dir = r'C:\DCS\Telugu\te_tn.STR'
-language_code = 'te'
+source_dir = r'C:\DCS\Russian\ru_tn.STR'
+language_code = 'ru'
 source_language = 'en'         # The language that the notes are translated from, usually en
 #ta_dir = r'C:\DCS\English\en_tA.v13'    # English tA
-ta_dir = r'C:\DCS\Telugu\te_ta.STR'    # Use Target language tA if available
-obs_dir = r'C:\DCS\Kannada\kn_obs\content'
+ta_dir = r'C:\DCS\Russian\ru_ta.STR'    # Use Target language tA if available
+obs_dir = r'C:\DCS\Russian\ru_obs.STR\content'
 
 suppress1 = False    # Suppress warnings about text before first heading and TA page references in headings
 suppress2 = False    # Suppress warnings about blank headings
@@ -235,7 +235,7 @@ def checkSimpleNote(note):
     state.countParens(note)
     state.addSimpleNote(note)
     if state.currlinetype in {HEADING, LIST_ITEM, ORDEREDLIST_ITEM} and not suppress12:
-        reportError("Simple (1-line) note contains markdown syntax")
+        reportError("Simple (1-line) note starts with markdown heading or list item")
     elif state.currlinetype == BLANKLINE:
         reportError("Blank note")
     if note.find("<!--") != -1 or note.find("&nbsp;") != -1 or note.find("<b>") != -1:
@@ -523,7 +523,7 @@ def checkRow(row):
         path = os.path.join(ta_dir, "translate/" + row[4])
         if not os.path.isdir(path):
             reportError("Invalid SupportReference value: " + row[4])
-        elif not suppress14 and row[4] not in row[8]:
+        elif not suppress14 and "rc://" in row[8] and not row[4] in row[8]:
             reportError("SupportReference value does not match any tA articles mentioned in note")
     if len(row[5].strip()) > 0 and row[5].isascii():
         reportError("Invalid (ASCII) OrigQuote (column 6)")
