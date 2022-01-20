@@ -36,19 +36,19 @@ from filecmp import cmp
 import codecs
 
 # Globals
-source_dir = r'C:\DCS\Hindi\TA'
-language_code = 'hi'
-resource_type = 'ta'
+source_dir = r'C:\DCS\Kannada\kn_tw.work\bible\other\virgin.md'
+language_code = 'kn'
+resource_type = 'tw'
 server = 'DCS'     # DCS or WACS
 
 nChanged = 0
-max_files = 44444
+max_files = 1111
 
 placeholder_heading = ""
 import substitutions    # change substitutions modules as necessary; generic one is just "substitutions"
 
 suppress1 = False       # Suppress hash mark cleanup
-suppress2 = True       # Suppress stdout informational messages 
+suppress2 = True       # Suppress stdout informational messages
 suppress3 = False       # Suppress addition of blank lines after lists and removal of blank lines between list items
 suppress4 = False       # Suppress addition of blank lines before lists. (should suppress for newer DCS resources)
 if resource_type == 'ta':
@@ -128,12 +128,12 @@ def shuffle(truelevel, nmarks, currlevel):
         newlevel = currlevel + 1
     elif truelevel[nmarks] < currlevel:
         newlevel = truelevel[nmarks]
-    
+
     # Adjust the array
     while nmarks > 1 and truelevel[nmarks] > newlevel:
         truelevel[nmarks] = newlevel
         nmarks -= 1
-    return newlevel    
+    return newlevel
 
 hash_re = re.compile(r' *(#+) +', flags=re.UNICODE)
 
@@ -269,7 +269,7 @@ def fixTaLinks(str):
                     sub = inlinekey[i].search(line)
         text += line + '\n'
     return text
-    
+
 tnlink_re = re.compile(r'(rc://[ \*\w\-]+/tn/help/)(\w\w\w/\d+)/(\d+)', flags=re.UNICODE)
 
 # Note links currently are not rendered on live site as links.
@@ -293,8 +293,8 @@ def getChapterNumber(str):
         chapno = int(str)
     except ValueError as e:
         chapno = 0
-    return chapno     
-    
+    return chapno
+
 reflink_re = re.compile(r'\[+rc://[\*\w]+/bible/notes/(\w\w\w)/(\d+)/(\d+)\]+', flags=re.UNICODE)     # very old style bible/notes links
 
 def fixRefLinks(path, str):
@@ -356,7 +356,7 @@ def preliminary_cleanup(text):
     text = re.sub(office_re, "", text)
     text = re.sub(bibleq_re, "", text)
     text = re.sub(reversedlink_re, "), [", text)
-    
+
     found = brokebracket.search(text)
     while found:
         text = text[:found.start()] + found.group(1) + text[found.end()-1:]
@@ -406,7 +406,7 @@ def convertWholeFile(source, target):
         text = text.rstrip(" \n")   # lose trailing newline from title.md and sub-title.md files
     elif not text.endswith("\n"):
         text += "\n"            # ensure trailing newline in all other files
-    
+
     if not text.startswith("# "):
         if not suppress2:
             sys.stdout.write(shortname(source) + " does not begin with level 1 heading, so no headings will be touched.\n")
@@ -437,7 +437,7 @@ def convertWholeFile(source, target):
 
     if ebh := extraBlankHeading_re.search(text):
         text = text[:ebh.start()] + ebh.group(1) + text[ebh.end():]
-    
+
     changed = (text != origtext)
     if changed:
         if len(text) < 3:
@@ -449,6 +449,22 @@ def convertWholeFile(source, target):
         output = io.open(target, "tw", encoding='utf-8', newline='\n')
         output.write(text)
         output.close()
+
+underlink_re = re.compile(r'(_+)\[.*\] ?\(.*\)(_+)', re.UNICODE)
+# 1/20/22 - Note, this expression does not match all the ending underscores
+# in certain strings. Notably, when the next non-ASCII character is ಆ (E0 B2 86))
+# Likewise, a text editor also has display issues for characters preceding ಆ.
+
+# Returns line with some underscores balanced
+def balanceUnderscores(line):
+    ul = underlink_re.search(line)
+    if ul:
+        diff = len(ul.group(1)) - len(ul.group(2))
+        if diff < 0:
+            line = line[0:ul.end()+diff] + line[ul.end():]
+        elif diff > 0:
+            line = line[0:ul.start()] + line[ul.start()+diff:]
+    return line
 
 paren_re = re.compile(r'[^)]\)$', re.UNICODE)   # ends with single but not double right paren
 
@@ -470,6 +486,7 @@ def cleanupLine(line):
             boldpos = line.find("**", boldpos+2)    # finds the start of the next ** pair
     if line.count('(') > line.count(')') and paren_re.search(line):
         line += ')'
+    line = balanceUnderscores(line)
     return line
 
 blankheading_re = re.compile(r'#+$')
@@ -527,7 +544,7 @@ def removeBOM(path):
         if not os.path.isfile(bakpath):
             os.rename(path, bakpath)
         with open(path, 'wb') as f:
-            f.write(raw)       
+            f.write(raw)
 
 def convertFile(path):
     tmppath = path + ".tmp"
@@ -569,7 +586,7 @@ def convertFolder(folder):
         path = os.path.join(folder, entry)
         if os.path.isdir(path) and entry[0] != '.':
             convertFolder(path)
-        elif filename_re.match(entry) and not entry.startswith("LICENSE"):
+        elif filename_re.match(entry) and not entry.startswith("LICENSE") and not entry.startswith("manifest") and not entry.startswith("README"):
             convertFile(path)
         if nChanged >= max_files:
             break
