@@ -3,8 +3,9 @@
 # Script for removing empty files
 
 # Globals
-source_dir = r'C:\DCS\Marathi\mr_tq.STR'
+source_dir = r'C:\DCS\Gujarati\gu_tq.STR'
 min_size = 9
+remove_folders = True   # to remove empty folders
 nChecked = 0
 nRemoved = 0
 max_remove = 111
@@ -34,6 +35,10 @@ def removeFile(path):
     os.remove(path)
     sys.stdout.write("Removed: " + shortname(path) + "\n")
 
+def removeDir(dirpath):
+    os.rmdir(dirpath)
+    sys.stdout.write("Removed: " + shortname(dirpath) + "\n")
+
 filename_re = re.compile(r'.*\.md$')    # candidate for removal if empty')
 
 def processDir(dirpath):
@@ -53,6 +58,9 @@ def processDir(dirpath):
                 nRemoved += 1
         if nRemoved >= max_remove:
             break
+    if nRemoved < max_remove and len(os.listdir(dirpath)) == 0:
+        removeDir(dirpath)
+        nRemoved += 1
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
