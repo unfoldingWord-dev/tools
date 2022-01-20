@@ -109,6 +109,7 @@ def dumpProjects():
     projects.sort(key=operator.itemgetter('sort'))
     path = makeManifestPath()
     manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
+    manifest.write("projects:\n")
     for p in projects:
         manifest.write("  -\n")
         manifest.write("    title: '" + p['title'] + "'\n")
