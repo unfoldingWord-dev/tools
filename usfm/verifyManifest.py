@@ -24,7 +24,7 @@
 #     start with the language identifer and a slash
 #     identifier following the slash is valid and must not equal the current project identifer
 #     other valid relation strings may also be predefined in this script
-#   rights value is 'CC BY-SA 4.0' 
+#   rights value is 'CC BY-SA 4.0'
 #   source has no extraneous fields
 #   source.identifier matches project type identifier above
 #   source.language is 'en' (Warning if not)
@@ -38,8 +38,8 @@
 #   checking.checking_level is '3'
 #   projects is a non-empty list. The number of projects in the list is reasonable for the project type.
 #   each subfield of each project exists
-#   project identifiers correspond to type of project 
-#   project categories correspond to type of project 
+#   project identifiers correspond to type of project
+#   project categories correspond to type of project
 #   project paths exist
 #   checks for extraneous files in the folder and subfolders.
 #   verifies presence of LICENSE and README files.
@@ -49,7 +49,7 @@
 #
 
 # Globals
-manifestDir = r'C:\DCS\Hindi\hi_ta.STR'
+manifestDir = r'C:\DCS\Kannada\kn_tw.STR'
 nIssues = 0
 projtype = ''
 issuesFile = None
@@ -83,16 +83,19 @@ def openIssuesFile():
         issuesFile = io.open(path, "tw", encoding='utf-8', newline='\n')
     return issuesFile
 
-# Writes error message to stderr and to manifest-issues.txt.
+# Writes error message to stderr.
 def reportError(msg):
     global nIssues
     try:
         sys.stderr.write(msg + '\n')
     except UnicodeEncodeError as e:
-        sys.stderr.write("See error message in manifest-issues.txt. It contains Unicode.\n")
-
-#    issues = openIssuesFile().write(msg + u'\n')
+        sys.stderr.write("Error message not shown, contains Unicode.\n")
+        #    issues = openIssuesFile().write(msg + '\n')
     nIssues += 1
+
+# Writes warnings message to stderr.
+def reportWarning(msg):
+    reportError("Possible error (please check): " + msg)
 
 # Returns the number of .usfm files in the manifest directory.
 def countBookDirs():
@@ -118,8 +121,9 @@ def isBibleType(id):
 # Returns True if the specified string is a recognized Aligned Bible type of project type
 # Preliminary implementation - list needs refinement (6/21/21)
 def isAlignedBibleType(id):
-    return (id in {'ust', 'ult', 'iev','irv','isv','glt','gst', \
-                   'rlb','rob','rlob','rsb','rsob','stv','trs','rlv','ocb','gnt'})
+    return (id in {'ust', 'ult', 'iev','irv','isv','glt','gnt','gst','ocb', \
+                   'rhb','rlb','rlv','rob','rlob','rsb','rsob', \
+                   'stv','trs'})
 
 # This function validates the project entries for a tA project.
 # tA projects should have four projects entries, each with specific content
@@ -173,7 +177,7 @@ def verifyBooks(path):
     for book in os.listdir(path):
         if book not in {".git", "LICENSE", "LICENSE.md", "README.md", "manifest.yaml", "media.yaml"}:
             bookpath = os.path.join(path, book)
-            if len(book) == 3 and os.path.isdir(bookpath) and book.upper() in usfm_verses.verseCounts: 
+            if len(book) == 3 and os.path.isdir(bookpath) and book.upper() in usfm_verses.verseCounts:
                 verifyBook(book, bookpath)
             elif not book.startswith("issues"):
                 reportError("Invalid(?) file or folder: " + shortname(bookpath))
@@ -218,7 +222,7 @@ def verifyCleanDir(dirpath):
         if "temp" in fname or "tmp" in fname or "orig" in fname or "bak" in fname or \
            "Copy" in fname or "txt" in fname or "projects" in fname:
             if fname not in {"translate-original", "temple.md", "tempt.md", "contempt.md", "habakkuk.md"}:
-                reportError("Possible extraneous file: " + shortname(path))
+                reportError("Extraneous file: " + shortname(path))
         elif badname_re.match(fname):
             reportError("Likely misnamed file: " + shortname(path))
         if os.path.isdir(path) and fname != ".git":
@@ -248,12 +252,12 @@ def verifyCore(core):
     verifyDates(core['issued'], core['modified'])
     verifyFormat(core)
     verifyLanguage(core['language'])
-    
+
     pub = core['publisher']
     if pub.lower().find('unfolding') >= 0 and core['language']['identifier'] != 'en':
         reportError("Invalid publisher: " + pub)
-    elif len(pub) > 3 and pub != "Wycliffe Associates":
-            reportError("This may be the wrong publisher name: " + pub + ". Use 'BCS' as the publisher for BCS resources.")
+    elif core['language']['identifier'] in {'as','bn','gu','hi','kn','ml','mr','nag','or','pa','ta','te','ur-deva'} and pub != 'BCS':
+        reportError("Publisher name should be 'BCS' for BCS resources.")
     verifyRelations(core['relation'])
     if 'rights' in list(core.keys()) and core['rights'] != 'CC BY-SA 4.0':  # would this work: 'rights' in core
         reportError("Invalid value for rights: " + core['rights'])
@@ -324,7 +328,7 @@ def verifyFormat(core):
                     reportError("Invalid format: " + format + ". Expected 'text/usfm3'.")
         else:
             reportError("Unable to validate format because script does not yet support project type: " + projtype)
-            
+
 # Validates the dublin_core:identifier field in several ways.
 # Sets the global projtype variable which is used by subsequent checks.
 def verifyIdentifier(core):
@@ -339,7 +343,7 @@ def verifyIdentifier(core):
             print("projtype = " + projtype)
         parts = manifestDir.rsplit('_', 1)
         lastpart = parts[-1].lower()
-        if lastpart != id.lower() and lastpart != id.lower() + ".str" and lastpart != id.lower() + ".rpp":
+        if lastpart != id.lower() and lastpart != id.lower() + ".str" and lastpart != id.lower() + ".rpp" and lastpart != id.lower() + ".work":
             # last part of directory name should match the projtype string
             reportError("Project identifier (" + id + ") does not match last part of directory name: " + lastpart)
 
@@ -449,7 +453,7 @@ def verifyProject(project):
             reportError("Should be blank: project:versification")
         if project['identifier'] != 'obs':
             reportError("Invalid project:identifier: " + project['identifier'])
-        if project['title'] != 'Open Bible Stories':
+        if 'Open Bible Stories' not in project['title']:
             reportError("Invalid project:title: " + project['title'])
     elif projtype in {'obs-tn','obs-tq','obs-sn','obs-sq'}:
         if project['categories'] and len(project['categories']) != 0:
@@ -492,8 +496,8 @@ def verifyProjects(projects):
             reportError("There should be exactly 4 projects listed under projects.")
         elif projtype in {'tn','tn-tsv','tq'} or isBibleType(projtype):
             if nprojects not in (27,39,66):
-                reportError("Number of projects listed: " + str(nprojects))
-            
+                reportWarning("Number of projects listed: " + str(nprojects))
+
         for p in projects:
             verifyProject(p)
 
@@ -534,10 +538,10 @@ def verifyReadme(dirpath):
         else:
             delta = timedelta(hours=2)
         if modtime.date() != date.today():
-            reportError("Warning: README file was not updated today")
+            reportWarning("README file was not updated today")
         else:
             print("Remember to update README file.")
-    
+
 # NOT DONE - need to support UHG-type entries
 def verifyRelation(rel):
     if not isinstance(rel, str):
@@ -551,7 +555,7 @@ def verifyRelation(rel):
         else:
             global projtype
             if parts[0] != getLanguageId() and parts[0] != "el-x-koine" and parts[0] != "hbo":
-                reportError("Incorrect language code for relation element: " + rel)
+                reportWarning("Non-matching language code for relation element: " + rel)
             if parts[1] not in {'obs','obs-tn','obs-tq','obs-sn','obs-sq','tn','tq','tw','ta','tm'} and not isBibleType(parts[1]):
                 if parts[1][0:4] != 'ugnt' and parts[1][0:3] != 'uhb':
                     reportError("Invalid project code in relation element: " + rel)
@@ -564,8 +568,9 @@ def verifyRelations(relations):
     if len(uniq) < len(relations):
         reportError("There are duplicates in the relations list")
     if len(uniq) < 2 and not isBibleType(projtype):
-        reportError("The relations list seems incomplete")
-    uhg = False
+        reportWarning("The relations list seems incomplete")
+    ugnt = False
+    uhb = False
     if len(relations) < 1 and projtype != 'reg':
         reportError("No relations are listed")
     for r in relations:
@@ -573,9 +578,13 @@ def verifyRelations(relations):
         if projtype == 'tn-tsv':
             parts = r.split('/')
             if len(parts) == 2 and parts[0] == 'el-x-koine' and 'ugnt?v=' in parts[1]:
-                uhg = True
-    if projtype == 'tn-tsv' and not uhg:
-        reportError("Must reference 'el-x-koine/ugnt?v=...' in relation")
+                ugnt = True
+            if len(parts) == 2 and parts[0] == 'hbo' and 'uhb?v=' in parts[1]:
+                uhb = True
+    if projtype == 'tn-tsv' and not ugnt:
+        reportError("Must reference 'el-x-koine/ugnt?v=...' in relation if there are any NT notes")
+    if projtype == 'tn-tsv' and not uhb:
+        reportError("Must reference 'hbo/uhb?v=...' in relation if there are any OT notes")
     if projtype in {'tn-tsv','tw'} and '/glt' not in relations[0] and '/ult' not in relations[0]:
         reportError("'glt' should be first relation listed for tn and tw projects, if there is a glt")
 
@@ -600,9 +609,9 @@ def verifySource(source):
         elif dict['language'] == getLanguageId():
             reportError("Warning: source:language matches target language")
         elif dict['language'] not in {'en','hbo','el-x-koine'}:
-            reportError("Possible bad source:language: " + dict['language'])
+            reportWarning("Bad source:language?: " + dict['language'])
         verifyStringField(dict, 'version', 1)
-    
+
 # Validates that the specified key is a string of specified minimum length.
 # Returns False if there is a problem.
 def verifyStringField(dict, key, minlength):
@@ -735,7 +744,7 @@ if __name__ == "__main__":
     if os.path.isdir(manifestDir):
         verifyDir(manifestDir)
     else:
-        reportError("Invalid directory: " + manifestDir + '\n') 
+        reportError("Invalid directory: " + manifestDir + '\n')
 
     if issuesFile:
         issuesFile.close()
