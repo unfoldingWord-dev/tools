@@ -23,13 +23,13 @@ import random
 import logging
 
 
-LANGUAGE_CODE = 'en'
+LANGUAGE_CODE = 'es-419'
 # LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
 LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/DCS_dataRepos/RepoConversions/')
 LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath(f'{LANGUAGE_CODE}_obs-tn/')
 
 # The output folder below must also already exist!
-LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath(f'{LANGUAGE_CODE}_obs-tn2/')
+LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath(f'{LANGUAGE_CODE}_obs-tn/')
 
 
 def get_source_notes() -> Tuple[str,str,str,str,str,str,str]:
@@ -147,6 +147,7 @@ def make_TSV_file() -> Tuple[int,int]:
     with open(output_filepath, 'wt') as output_TSV_file:
         output_TSV_file.write('Reference\tID\tTags\tSupportReference\tQuote\tOccurrence\tNote\n')
         previously_generated_ids:List[str] = [''] # We make ours unique per file (spec only used to say unique per verse)
+        my_note = ""
         for j, (_line_number,story_number,frame_number,quote,note) in enumerate(get_source_notes(), start=1):
             # print(f"{_j:3}/ Line {line_number:<5} {BBB} {C:>3}:{V:<3} '{quote}' {note}")
 
@@ -158,22 +159,33 @@ def make_TSV_file() -> Tuple[int,int]:
             note = note.replace('<br>', '\\n')
 
             if quote: # Normally quote is an English OBS quote
+                if my_note:
+                    if '"' in my_note or '\t' in my_note:
+                        my_note = '"'+my_note+'"'
+                    output_TSV_file.write(my_note)
+                my_note = note.replace('"', '""')
                 quote = quote.strip()
                 quote = quote.replace('...', '…')
                 quote = quote.replace(' …', '…').replace('… ', '…')
                 quote = quote.replace('…', ' & ')
                 quote = quote.strip()
+                if '"' in quote or '\t' in quote:
+                    quote = '"'+quote.replace('"', '""')+'"'
 
                 occurrence = '1' # default assumption -- could be wrong???
 
                 row_id = get_rowID(reference, tags, support_reference, quote, occurrence, note)
 
-                output_line = f'{reference}\t{row_id}\t{tags}\t{support_reference}\t{quote}\t{occurrence}\t{note}'
+                output_line = f'{reference}\t{row_id}\t{tags}\t{support_reference}\t{quote}\t{occurrence}\t'
                 if j > 1: output_line = f'\n{output_line}'
                 output_TSV_file.write(output_line)
                 num_quotes += 1
             else: # We have a continuation line
-                output_TSV_file.write(f'\\n\\n{note}')
+                my_note += f"\\n\\n{note}"
+        if my_note:
+            if '"' in my_note or '\t' in my_note:
+                my_note = '"'+my_note+'"'
+            output_TSV_file.write(my_note)
         output_TSV_file.write('\n')
     print(f"      {num_quotes:,} quotes and notes written")
     return num_quotes
