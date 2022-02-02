@@ -13,8 +13,8 @@
 #    Reports failure when chapter 1 is not found, and other errors.
 
 # Global variables
-source_dir = r'C:\DCS\Tuvan\TEXT'
-target_dir = r'C:\DCS\Tuvan\tyv_reg.work'
+source_dir = r'C:\DCS\Spanish-es-419\temp'
+target_dir = r'C:\DCS\Spanish-es-419\es-419_ulb.TA'
 
 import usfm_verses
 import re
@@ -141,7 +141,7 @@ def takeChapter(cstr, nchap):
     if State.lastEntity == TITLE:
         writeHeader(state.usfm_file, state.ID, state.data)
     elif state.data:
-        state.usfm_file.write(state.data + "\n")
+        state.usfm_file.write(re.sub(" +", " ", state.data) + "\n")
     state.usfm_file.write("\\c " + str(nchap) + "\n")
     if len(cstr) > len(str(nchap)):
         state.usfm_file.write("\\cl " + cstr + "\n")
@@ -154,7 +154,7 @@ vrange_re = re.compile(r'([0-9])+-([0-9]+)')
 def takeVerse(vstr):
     state = State()
     if state.data:
-        state.usfm_file.write(state.data + "\n")
+        state.usfm_file.write(re.sub(" +", " ", state.data) + "\n")
     state.usfm_file.write("\\v " + vstr + " ")
     if range := vrange_re.search(vstr):
         state.addVerse(range.group(1))
@@ -368,7 +368,7 @@ def convertBook(path, bookId):
         if len(line) > 0:
             take(line, lineno)
     if state.data and state.chapter > 0:
-        state.usfm_file.write(state.data + '\n')
+        state.usfm_file.write(re.sub(" +", " ", state.data) + '\n')
     state.addEOF()
     if state.missing_chapters:
         reportError("Chapter number " + str(state.chapter+1) + " not found in " + shortname(path))
