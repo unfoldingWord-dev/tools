@@ -13,8 +13,8 @@
 #    Reports failure when chapter 1 is not found, and other errors.
 
 # Global variables
-source_dir = r'C:\DCS\Spanish-es-419\temp'
-target_dir = r'C:\DCS\Spanish-es-419\es-419_ulb.TA'
+source_dir = r'C:\DCS\Kalmyk\txt'
+target_dir = r'C:\DCS\Kalmyk\usfm'
 
 import usfm_verses
 import re
@@ -101,7 +101,8 @@ class State:
     def addText(self, text):
         if len(State.data) > 0:
             State.data += ' '
-        State.data += text.strip()
+        text = text.lstrip(". ")
+        State.data += text.rstrip()
         if State.lastEntity != TEXT:
             State.neednext = {VERSE, CHAPTER, TEXT}
             State.priority = whatsNext(State.ID, State.chapter, State.verse)
