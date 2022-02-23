@@ -44,12 +44,13 @@
 #   checks for extraneous files in the folder and subfolders.
 #   verifies presence of LICENSE and README files.
 #   verifies presence of valid toc.yaml files in tA projects.
+#   verifies presence of title.md and sub-title.md files for tA projects
 #   verifies today's date on README file.
 #   verifies presence of media.yaml file for OBS projects.
-#
+#   verifies presence of bible/config.yaml file for tW projects
 
 # Globals
-manifestDir = r'C:\DCS\Kannada\kn_tw.STR'
+manifestDir = r'C:\DCS\Spanish-es-419\es-419_ulb.lversaw'
 nIssues = 0
 projtype = ''
 issuesFile = None
@@ -116,7 +117,7 @@ def countUsfmFiles():
 
 # Returns True if the specified string is a recognized Bible type of project type
 def isBibleType(id):
-    return (isAlignedBibleType(id) or id in {'ulb','udb','reg','blv'})
+    return (isAlignedBibleType(id) or id in {'ulb','udb','reg','blv','nav'})
 
 # Returns True if the specified string is a recognized Aligned Bible type of project type
 # Preliminary implementation - list needs refinement (6/21/21)
@@ -220,7 +221,7 @@ def verifyCleanDir(dirpath):
         if projtype == 'ta' and fname == 'media.yaml':
             reportError("Unwanted media.yaml file: " + shortname(path))
         if "temp" in fname or "tmp" in fname or "orig" in fname or "bak" in fname or \
-           "Copy" in fname or "txt" in fname or "projects" in fname:
+           "Copy" in fname or "txt" in fname or "projects" in fname or fname.endswith(".field"):
             if fname not in {"translate-original", "temple.md", "tempt.md", "contempt.md", "habakkuk.md"}:
                 reportError("Extraneous file: " + shortname(path))
         elif badname_re.match(fname):
@@ -254,8 +255,11 @@ def verifyCore(core):
     verifyLanguage(core['language'])
 
     pub = core['publisher']
-    if pub.lower().find('unfolding') >= 0 and core['language']['identifier'] != 'en':
-        reportError("Invalid publisher: " + pub)
+    if core['language']['identifier'] != 'en':
+        if "unfolding" in pub.lower():
+            reportError("Invalid publisher: " + pub)
+        elif "43" in pub:
+            reportWarning("publisher: " + pub)
     elif core['language']['identifier'] in {'as','bn','gu','hi','kn','ml','mr','nag','or','pa','ta','te','ur-deva'} and pub != 'BCS':
         reportError("Publisher name should be 'BCS' for BCS resources.")
     verifyRelations(core['relation'])
@@ -265,7 +269,8 @@ def verifyCore(core):
     verifySubject(core['subject'])
     verifyTitle(core['title'])
     verifyType(core['type'])
-    verifyVersion(core['version'], core['source'][0]['version'])
+    if core['source']:
+        verifyVersion(core['version'], core['source'][0]['version'])
 
 def verifyDates(issued, modified):
     issuedate = datetime.strptime(issued, "%Y-%m-%d").date()
@@ -285,10 +290,14 @@ def verifyDir(dirpath):
     verifyCleanDir(dirpath)
     if projtype == 'ta':
         for folder in ['checking', 'intro', 'process', 'translate']:
-            verifyYamls(dirpath, folder)
+            path = os.path.join(dirpath, folder)
+            verifyYamls(path)
+            verifyTitleFiles(path)
         sys.stdout.write("Remember to check contents of 4 toc.yaml files. (Title fields must be translated.)\n")
     if projtype == 'obs':
         verifyMediaYaml(dirpath)
+    if projtype == 'tw':
+        verifyTWfiles(dirpath)
     if projtype in {'tn','tq'}:
         verifyBooks(dirpath)
     verifyReadme(dirpath)
@@ -345,7 +354,7 @@ def verifyIdentifier(core):
         lastpart = parts[-1].lower()
         if lastpart != id.lower() and lastpart != id.lower() + ".str" and lastpart != id.lower() + ".rpp" and lastpart != id.lower() + ".work":
             # last part of directory name should match the projtype string
-            reportError("Project identifier (" + id + ") does not match last part of directory name: " + lastpart)
+            reportWarning("Project identifier (" + id + ") does not match last part of directory name: " + lastpart)
 
 # Verify that the specified fields exist and no others.
 def verifyKeys(group, dict, keys):
@@ -368,7 +377,7 @@ def verifyLanguage(language):
             reportError("Language identifier (" + language['identifier'] + ") does not match first part of directory name: " + os.path.basename(manifestDir))
     if verifyStringField(language, 'title', 3):
         if language['title'].isascii():
-            sys.stdout.write("Remember to localize language title: " + language['title'] + '\n')
+            reportWarning("Remember to localize language title: " + language['title'])
 
 # For OBS projects, verify that media.yaml is valid.
 def verifyMediaYaml(dirpath):
@@ -382,7 +391,7 @@ def verifyMediaYaml(dirpath):
     else:
         reportError("Missing file: " + shortname(yamlpath))
 
-# Verify media entry from  OBS media.yaml file
+# Verify media entry from OBS media.yaml file
 def verifyMedium(medium):
     verifyKeys("media", medium, ['identifier', 'version', 'contributor', 'url'])
     if 'en' in medium['url']:
@@ -390,9 +399,10 @@ def verifyMedium(medium):
     version = "v" + medium['version']
     if medium['identifier'] != 'door43' and medium['url'].count(version) != 2:
         reportError("Correct the version numbers in media.yaml url's")
-    if medium['identifier'] != 'pdf':
-        sys.stdout.write("Verify manually the " + medium['identifier'] + " media entry in media.yaml.\n")
-
+    if medium['identifier'] == 'pdf':
+        sys.stdout.write("Verify all language codes and version numbers in media.yaml.\n")
+    else:
+        sys.stdout.write("Review the " + medium['identifier'] + " media entry in media.yaml.\n")
 
 # Confirms the existence of a LICENSE file
 def verifyOtherFiles():
@@ -567,12 +577,12 @@ def verifyRelations(relations):
     uniq = set(relations)
     if len(uniq) < len(relations):
         reportError("There are duplicates in the relations list")
-    if len(uniq) < 2 and not isBibleType(projtype):
+    if len(uniq) < 2 and not isBibleType(projtype) and projtype != 'obs':
         reportWarning("The relations list seems incomplete")
     ugnt = False
     uhb = False
     if len(relations) < 1 and projtype != 'reg':
-        reportError("No relations are listed")
+        reportWarning("No relations are listed")
     for r in relations:
         verifyRelation(r)
         if projtype == 'tn-tsv':
@@ -607,9 +617,9 @@ def verifySource(source):
         if dict['language'] == 'English':
             reportError("Use a language code in source:language, not \'" + dict['language'] + '\'')
         elif dict['language'] == getLanguageId():
-            reportError("Warning: source:language matches target language")
+            reportWarning("source:language matches target language")
         elif dict['language'] not in {'en','hbo','el-x-koine'}:
-            reportWarning("Bad source:language?: " + dict['language'])
+            reportWarning("source:language: " + dict['language'])
         verifyStringField(dict, 'version', 1)
 
 # Validates that the specified key is a string of specified minimum length.
@@ -661,7 +671,7 @@ def verifySubject(subject):
     if subject != expected_subject:
         reportError("Invalid subject: " + subject + " (expected '" + expected_subject + "')")
 
-# Verifies that the title
+# Verifies that the title in the manifest files is acceptable.
 def verifyTitle(title):
     if not isinstance(title, str):
         reportError("Incorrect type for title field: " + str(title))
@@ -673,6 +683,18 @@ def verifyTitle(title):
         elif projtype in {'irv', 'isv', 'ulb', 'ult','glt'} and ("Easy" in title or "Dynamic" in title):
             reportError("Title contradicts project type: " + title)
 
+# For tA projects, verify that each subfolder in the folder has the three necessary files.
+def verifyTitleFiles(folder):
+    if os.path.isdir(folder):
+        direntries = os.scandir(folder)
+        for direntry in direntries:
+            if direntry.is_dir():
+                articlePath = os.path.join(folder, direntry.name)
+                for fname in ["01.md", "title.md", "sub-title.md"]:
+                    path = os.path.join(articlePath, fname)
+                    if not os.path.isfile(path):
+                        reportError("Missing file: " + shortname(path))
+
 # Determines whether toc.yaml file exists.
 # Add checking for translated contents later.
 def verifyTocYaml(yamlpath):
@@ -683,9 +705,13 @@ def verifyTocYaml(yamlpath):
     else:
         reportError("file missing: " + shortname(yamlpath))
 
+def verifyTWfiles(path):
+    configpath = os.path.join( os.path.join(path, "bible"), "config.yaml")
+    if not os.path.isfile(configpath):
+        reportError("File missing: " + shortname(configpath))
+
 # For tA projects, verify that each folder has a valid toc.yaml and config.yaml file.
-def verifyYamls(dirpath, folder):
-    folderpath = os.path.join(dirpath, folder)
+def verifyYamls(folderpath):
     yamlpath = os.path.join(folderpath, "config.yaml")
     if os.path.isfile(yamlpath):
         yamlFile = io.open(yamlpath, "tr", encoding='utf-8-sig')
@@ -720,6 +746,8 @@ def verifyVersion(version, sourceversion):
 #        reportError("Invalid version: " + version + "; Source version is " + sourceversion)
 #    if int(sourceversion) >= 100 and (len(parts) > 1 or int(parts[0]) > 99):
 #        reportError("Invalid version: " + version + ". Source version is " + sourceversion)
+    if projtype == 'obs':
+        sys.stdout.write("Verify that the version number listed in front/intro.md is: " + version + "\n")
 
 # Returns True if the file has a BOM
 def has_bom(path):
