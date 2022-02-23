@@ -5,8 +5,8 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Tuvan\tyv_reg.work'
-language_code = 'tyv'
+source_dir = r'C:\DCS\Spanish-es-419\es-419_ulb.lversaw\41-MAT.usfm'
+language_code = 'as'
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
@@ -41,7 +41,6 @@ QQ = 2
 MM = 3
 OTHER = 9
 
-
 class State:
     IDs = []
     ID = ""
@@ -49,6 +48,7 @@ class State:
     chapter = 0
     verse = 0
     lastVerse = 0
+    startChunkVerse = 1
     needPP = False
     needQQ = False
     needVerseText = False
@@ -58,6 +58,7 @@ class State:
     footnote_ends = 0
     reference = ""
     lastRef = ""
+    startChunkRef = ""
     errorRefs = set()
     currMarker = OTHER
 
@@ -69,12 +70,14 @@ class State:
         State.chapter = 0
         State.lastVerse = 0
         State.verse = 0
+        State.startChunkVerse = 1
         State.footnote_starts = 0
         State.footnote_ends = 0
         State.needVerseText = False
         State.textLength = 0
         State.textOkayHere = False
         State.lastRef = State.reference
+        State.startChunkRef = ""
         State.reference = id + " header/intro"
         State.currMarker = OTHER
         State.toc3 = None
@@ -99,12 +102,19 @@ class State:
         State.textOkayHere = False
         State.lastRef = State.reference
         State.reference = State.ID + " " + c
+        State.startChunkRef = State.reference
         State.currMarker = OTHER
 
     def addParagraph(self):
         State.needPP = False
+        State.needQQ = False
         State.textOkayHere = True
         State.currMarker = PP
+
+    # Records the start of a new chunk
+    def addS5(self):
+        State.startChunkVerse = State.verse + 1
+        State.startChunkRef = State.ID + " " + str(State.chapter) + ":" + str(State.startChunkVerse)
 
     def addVerse(self, v):
         State.lastVerse = State.verse
@@ -116,7 +126,7 @@ class State:
         State.reference = State.ID + " " + str(State.chapter) + ":" + v
         State.currMarker = OTHER
 
-    def addPoetryHeading(self):
+    def addAcrosticHeading(self):
         State.textOkayHere = True
         State.needQQ = True
 
@@ -230,6 +240,12 @@ def emptyVerseCheck():
         else:
             reportError("Verse fragment: " + state.reference)
 
+def longChunkCheck():
+    state = State()
+    if state.verse - 3 > state.startChunkVerse:
+        reportError("Long chunk starting at: " + state.startChunkRef)
+
+
 # Verifies that at least one book title is specified, other than the English book title.
 # This method is called just before chapter 1 begins, so there has been every
 # opportunity for the book title to be specified.
@@ -300,7 +316,7 @@ def takeC(c):
     # Report missing text in previous verse
     if c != "1":
         emptyVerseCheck()
-
+        longChunkCheck()
     state.addChapter(c)
     if len(state.IDs) == 0:
         reportError("Missing ID before chapter: " + c)
@@ -325,6 +341,12 @@ def takeP():
     if state.currMarker in {QQ,PP} and not suppress4:
         reportError("Warning: \"useless \p or \q before paragraph marker\" at: " + state.reference)
     state.addParagraph()
+
+
+def takeS5():
+    longChunkCheck()
+    State().addS5()
+    takeSection()
 
 def takeSection():
     if not suppress4:
@@ -371,7 +393,7 @@ def takeV(vstr):
         if state.verse == 1 and state.needPP and not suppress2:
             reportError("Need paragraph marker before: " + state.reference)
         if state.needQQ:
-            reportError("Need \\q or \\p after poetry heading before: " + state.reference)
+            reportError("Need \\q or \\p after acrostic heading before: " + state.reference)
             state.resetPoetry()
         if state.verse < state.lastVerse and state.addError(state.lastRef):
             reportError("Verse out of order: " + state.reference + " after " + state.lastRef)
@@ -534,10 +556,12 @@ def take(token):
         takeText(token.value)
     elif isFootnote(token):
         takeFootnote(token)
-    elif token.isS5() or token.isS():
+    elif token.isS5():
+        takeS5()
+    elif token.isS():
         takeSection()
     elif token.isQA():
-        state.addPoetryHeading()
+        state.addAcrosticHeading()
     elif isPoetry(token):
         state.addPoetry()
     elif isTitleToken(token):
