@@ -13,8 +13,8 @@
 #    Reports failure when chapter 1 is not found, and other errors.
 
 # Global variables
-source_dir = r'C:\DCS\Kalmyk\txt'
-target_dir = r'C:\DCS\Kalmyk\usfm'
+source_dir = r'C:\DCS\Spanish-es-419\ULB.txt'   # must be a folder
+target_dir = r'C:\DCS\Spanish-es-419\es-419_ulb.lversaw'
 
 import usfm_verses
 import re
@@ -101,8 +101,8 @@ class State:
     def addText(self, text):
         if len(State.data) > 0:
             State.data += ' '
-        text = text.lstrip(". ")
-        State.data += text.rstrip()
+        text = text.lstrip(". ")   # lose period after verse number
+        State.data += text.strip()  # lose other leading and trailing white space
         if State.lastEntity != TEXT:
             State.neednext = {VERSE, CHAPTER, TEXT}
             State.priority = whatsNext(State.ID, State.chapter, State.verse)
@@ -111,9 +111,6 @@ class State:
     # Called when the end of file is reached
     def addEOF(self):
         State.usfm_file.close()
-        # State.data = ""
-        # State.chapter = 0
-        # State.verse = 0
         State.lastRef = State.reference
         State.lastEntity = EOF
         State.neednext = {ID}
@@ -233,8 +230,8 @@ def getvv(s, n):
             vv = s[pos:range.end()]
         else:
             vv = str(n)
-        if len(s) > pos + 1 + len(vv):
-            remainder = s[pos + 1 + len(vv):]
+        if len(s) > pos + len(vv):
+            remainder = s[pos + len(vv):]
         else:
             remainder = ""
     return (pretext, vv, remainder)
