@@ -3,15 +3,15 @@
 # Chunk division and paragraph locations are based on an English resource container of the same Bible book.
 # Uses parseUsfm module.
 
-# The English RC folder is hard-coded in en_rc_dir.
-# The output folder is also hard-coded.
+# The model to be used for marking chunks is in chunk_model_dir.
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Russian\RLOB'
-target_dir = r'C:\DCS\Russian\ru_rlob.STR'
+source_dir = r'C:\DCS\Spanish-es-419\work'
+target_dir = r'C:\DCS\Spanish-es-419\es-419_ulb.lversaw'
 en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
-mark_chunks = False
+chunk_model_dir = r'C:\DCS\Spanish-es-419\es-419_ulb.RPP'
+mark_chunks = True
 
 projects = []
 translators = []
@@ -47,6 +47,7 @@ class State:
     postHeader = ""
     chapter = 0
     verse = 0
+    chunkverse = 0
     needVerseText = False
     needPp = None
     s5marked = False
@@ -54,8 +55,8 @@ class State:
     reference = ""
     usfmFile = 0
     chunks = []
-    chunkIndex = 0  # reset at \c marker; 
-    
+    chunkIndex = 0  # reset at \c marker;
+
     def addREM(self, rem):
         State.rem = rem
 
@@ -79,14 +80,14 @@ class State:
 
     def addTOC3(self, toc):
         State.toc3 = toc
-    
+
     def addH(self, h):
         State.h = h
         if h and not State.title:
             State.title = h
         elif State.title.isascii() and not h.isascii():   # favor non-ASCII titles
             State.title = h
-        
+
     def addMT(self, mt):
         State.mt = mt
         if not mt.isascii():    # mt is the highest priority title if not ascii
@@ -98,7 +99,7 @@ class State:
         sts = sts.strip()
         if sts:
             State.sts = sts
-            
+
     def addPostHeader(self, key, value):
         if key:
             State.postHeader += "\n\\" + key + " "
@@ -109,13 +110,14 @@ class State:
         State.ID = id
         State.chapter = 0
         State.verse = 0
+        State.chunkverse = 0
         State.reference = id
         State.title = getDefaultName(id)
         State.needVerseText = False
         # Open output USFM file for writing.
         usfmPath = os.path.join(target_dir, makeUsfmFilename(id))
         State.usfmFile = io.open(usfmPath, "tw", buffering=1, encoding='utf-8', newline='\n')
-       
+
     def addChapter(self, c):
         State.lastChapter = State.chapter
         State.chapter = int(c)
@@ -124,6 +126,7 @@ class State:
         else:
             State.chapterPad = c
         State.verse = 0
+        State.chunkverse = 0
         State.needVerseText = False
         State.reference = State.ID + " " + c
         if mark_chunks:
@@ -133,26 +136,27 @@ class State:
 
     def addP(self):
         State.needPp = None
-    
+
     # Called when a \p is encountered in the source but needs to be held for later output.
     def holdP(self, tag):
         State.needPp = tag
 
     def addS5(self):
         State.s5sInFile = True
+        State.chunkverse = State.verse + 1
 
     def addVerse(self, v):
         State.verse = int(v)
         State.needVerseText = True
         State.reference = State.ID + " " + str(State.chapter) + ":" + v
-    
+
     # Returns the  number of the first verse in the current chunk
-    def getChunkVerse(self):
+    def getModelChunkVerse(self):
         v = 999
         if State.chunkIndex < len(State.chunks):
             v = State.chunks[State.chunkIndex]
         return v
-        
+
     def advanceChunk(self):
         State.chunkIndex += 1
         State.s5marked = False
@@ -185,8 +189,8 @@ class State:
 
 chunk_re = re.compile(r'([0-9]{2,3}).usx')
 
-# Makes an ordered list of the verse numbers that starts the chunks in the specified book and chapter
-def loadChunks(id, chap):
+# Makes an ordered list of the verse numbers that start the chunks in the specified book and chapter
+def loadChunksUsx(id, chap):
     dir = os.path.join(en_rc_dir, "en_" + id + "_ulb")
     dir = os.path.join(dir, "content")
     dir = os.path.join(dir, chap)
@@ -199,22 +203,62 @@ def loadChunks(id, chap):
     chunks.sort()
     return chunks
 
+usfmchapter_re = re.compile(r'\\c ([0-9]+)')
+usfmverse_re = re.compile(r'\\v ([0-9]+)')
+
+# Returns a list (chapters) of lists (verse numbers that start the chunks) for the specified book.
+# Based on the USFM files in chunk_model_dir.
+def loadChunksUsfm(id):
+    modelpath = os.path.join(chunk_model_dir, makeUsfmFilename(id))
+    chapters = []
+    chunks = [1]
+    nv = 1
+    with io.open(modelpath, "tr", encoding="utf-8-sig") as input:
+        lines = input.readlines()
+    for line in lines:
+        if line.startswith("\\s5") and nv > 1:
+            chunks.append(nv)
+        elif versematch := usfmverse_re.match(line):
+            nv = int(versematch.group(1)) + 1
+        elif chaptermatch := usfmchapter_re.match(line):
+            nc = int(chaptermatch.group(1))
+            if nc > 1 and len(chapters) != nc - 2:
+                reportError("Chapter (" + str(nc) + ") out of order in model usfm file: " + modelpath)
+            if nc > 1:
+                chapters.append(chunks)
+            chunks = [1]    # verse 1 is assumed to always start a chunk
+            nv = 1
+    chapters.append(chunks)
+    return chapters
+
+# Returns an ordered list of the verse numbers that start the chunks in the specified book and chapter
+def loadChunks(id, chap):
+    if chunk_model_dir and loadChunks.bookId != id:
+        loadChunks.bookchunks = loadChunksUsfm(id)
+    if chunk_model_dir:
+        chunks = loadChunks.bookchunks[int(chap)-1]
+    else:
+        chunks = loadChunksUsx(id, chap)    # deprecate!
+    loadChunks.bookId = id
+    return chunks
+
+loadChunks.bookId = ""
+loadChunks.bookchunks = []
+
 # Returns path name for usfm file
 def makeUsfmFilename(id):
-    # loadVerseCounts()
     num = usfm_verses.verseCounts[id]['usfm_number']
     return str(num) + "-" + id + ".usfm"
-    
+
 # Returns path of temporary manifest file block listing projects converted
-def makeManifestPath():
+def makeProjectsPath():
     return os.path.join(target_dir, "projects.yaml")
-    
+
 # Looks up the English book name, for use when book name is not defined in the file
 def getDefaultName(id):
-    # loadVerseCounts()
     en_name = usfm_verses.verseCounts[id]['en_name']
     return en_name
-           
+
 def printToken(token):
     if token.isV():
         print("Verse number " + token.value)
@@ -237,7 +281,7 @@ def takeAsIs(key, value):
         # sys.stdout.write(u"takeAsIs(" + key + u"," + str(len(value)) + u"), chapter is " + str(state.chapter) + u"\n")
         state.usfmFile.write("\n\\" + key)
         if value:
-            state.usfmFile.write(" " + value)    
+            state.usfmFile.write(" " + value)
 
 # Treats the token as the book title if no \mt has been encountered yet.
 # Calls takeAsIs() otherwise.
@@ -252,7 +296,7 @@ def takeMTX(key, value):
 # In that case, the paragraph marker will automatically be added after \s5.
 def takeP(tag):
     state = State()
-    if state.getChunkVerse() != state.verse + 1:
+    if state.getModelChunkVerse() != state.verse + 1:
         state.addP()
         state.usfmFile.write("\n\\" + tag)
     else:
@@ -262,7 +306,7 @@ def takeP(tag):
 # In that case, the paragraph marker will automatically be added after \s5.
 def takeQ(tag):
     state = State()
-    if state.getChunkVerse() != state.verse + 1:
+    if state.getModelChunkVerse() != state.verse + 1:
         state.addP()
         state.usfmFile.write("\n\\" + tag)
     else:
@@ -275,10 +319,10 @@ def addSection(v):
     state = State()
     if mark_chunks:
         vn = int(v)
-        if state.getChunkVerse() == vn:
+        if state.getModelChunkVerse() == vn:
             if vn > 1 and not state.hasS5():
                 state.usfmFile.write("\n\\s5")
-        state.advanceChunk()
+            state.advanceChunk()
     if state.needPp:
         state.usfmFile.write("\n\\" + state.needPp)
         state.addP()
@@ -305,7 +349,7 @@ def takeV(v):
         state.addVerse(v)
         addSection(v)
     state.usfmFile.write("\n\\v " + v)
-    
+
 def takeText(t):
     state = State()
     # sys.stdout.write(u"takeText(" + str(len(t)) + u")\n")
@@ -337,7 +381,7 @@ def takeC(c):
     if mark_chunks and not state.hasS5():
         state.usfmFile.write("\n\n\\s5")
     state.usfmFile.write("\n\\c " + c)
- 
+
 # Handle the unmarked chapter label
 def takeCL(cl):
     state = State()
@@ -397,7 +441,7 @@ def take(token):
         takeAsIs(token.type, token.value)
 
     lastToken = token
-     
+
 # Returns true if token is part of a cross reference
 def isCrossRef(token):
     return token.isX_S() or token.isX_E() or token.isXO() or token.isXT()
@@ -408,14 +452,14 @@ def isFootnote(token):
 
 def isIntro(token):
     return token.is_is() or token.is_ip() or token.is_iot() or token.is_io()
-    
+
 def isPoetry(token):
     return token.isQ() or token.isQ1() or token.isQA() or token.isSP() or token.isQR() or \
 token.isQC() or token.isD()
 
 def isTextCarryingToken(token):
     return token.isB() or token.isM() or token.isD() or isFootnote(token) or isCrossRef(token) or isPoetry(token) or isIntro(token)
-    
+
 def writeHeader():
     state = State()
     h = state.h
@@ -442,7 +486,7 @@ def writeHeader():
     state.usfmFile.write("\n\\toc2 " + toc2)
     state.usfmFile.write("\n\\toc3 " + state.ID.lower())
     state.usfmFile.write("\n\\mt1 " + mt)      # safest to use \mt1 always. When \mt2 exists, \mt1 us required.
-    
+
     # Write post-header if any
     if state.postHeader:
         state.usfmFile.write(state.postHeader)
@@ -464,11 +508,11 @@ def isParseable(str, fname):
         reportError("File contains foreign usfm code(s): " + fname)
         parseable = False
     return parseable
-        
+
 def convertFile(usfmpath, fname):
     state = State()
     state.reset()
-    
+
     input = io.open(usfmpath, "tr", 1, encoding="utf-8-sig")
     str = input.read(-1)
     input.close
@@ -479,7 +523,7 @@ def convertFile(usfmpath, fname):
         print("CONVERTING " + fname + ":")
         for token in parseUsfm.parseString(str):
             take(token)
-        state.usfmFile.write("\n")    
+        state.usfmFile.write("\n")
         state.usfmFile.close()
     return success
 
@@ -511,9 +555,10 @@ def getContributors(folder):
         manifestFile = io.open(manifestpath, "tr", encoding='utf-8-sig')
         manifest = yaml.safe_load(manifestFile)
         manifestFile.close()
-        source_versions += manifest['dublin_core']['source'][0]['version']
+        if manifest['dublin_core']['source']:
+            source_versions += manifest['dublin_core']['source'][0]['version']
         translators += manifest['dublin_core']['contributor']
-      
+
 def dumpContributors():
     global translators
     global source_versions
@@ -524,7 +569,7 @@ def dumpContributors():
         f = io.open(path, 'tw', encoding='utf-8', newline='\n')
         for name in contribs:
             f.write('    - "' + name + '"\n')
-        
+
         # Also dump the list of source versions used
         f.write('\n\nSource versions used:\n')
         for version in source_versions:
@@ -549,9 +594,9 @@ def appendToProjects():
 # Sort the list of projects and write to projects.yaml
 def dumpProjects():
     global projects
-    
+
     projects.sort(key=operator.itemgetter('sort'))
-    path = makeManifestPath()
+    path = makeProjectsPath()
     manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
     manifest.write("projects:\n")
     for p in projects:
@@ -580,6 +625,10 @@ def openIssuesFile():
         issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
     return issuesFile
 
+def closeIssuesFile():
+    if issuesFile:
+        issuesFile.close()
+
 # Writes error message to stderr and to issues.txt.
 def reportError(msg):
     try:
@@ -587,18 +636,24 @@ def reportError(msg):
     except UnicodeEncodeError as e:
         state = State()
         sys.stderr.write(state.reference + ": (Unicode...)\n")
-    issues = openIssuesFile()       
+    issues = openIssuesFile()
     issues.write(msg + "\n")
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
-    if os.path.isfile( makeManifestPath() ):
-        os.remove( makeManifestPath() )
+    if os.path.isfile( makeProjectsPath() ):
+        os.remove( makeProjectsPath() )
+
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         source_dir = sys.argv[1]
-    convertFolder(source_dir)
+    if os.path.isfile(source_dir):
+        path = source_dir
+        source_dir = os.path.dirname(path)
+        if convertFile(path, os.path.basename(path)):
+            appendToProjects()
+    else:
+        convertFolder(source_dir)
     dumpProjects()
     dumpContributors()
-    if issuesFile:
-        issuesFile.close()
+    closeIssuesFile()
     print("\nDone.")
