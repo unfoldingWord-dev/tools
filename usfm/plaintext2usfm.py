@@ -13,8 +13,8 @@
 #    Reports failure when chapter 1 is not found, and other errors.
 
 # Global variables
-source_dir = r'C:\DCS\Spanish-es-419\ULB.txt'   # must be a folder
-target_dir = r'C:\DCS\Spanish-es-419\es-419_ulb.lversaw'
+source_dir = r'C:\DCS\Kalmyk\txt'   # must be a folder
+target_dir = r'C:\DCS\Kalmyk\xal_reg.old'
 
 import usfm_verses
 import re
@@ -189,6 +189,11 @@ def take(s, lineno):
             state.missingChapter(state.chapter+1)
     elif state.priority == VERSE:
         (pretext, vv, remainder) = getvv(s, state.verse+1)
+        if not vv:
+            (pretext, vv, remainder) = getvv(s, state.verse+2)
+            missingVerse = f"{state.ID} {state.chapter}:{state.verse+1}"
+            if vv:
+                reportError(f"Skipping {missingVerse}.")
         if vv:
             if pretext:
                 take(pretext, lineno)
@@ -201,6 +206,8 @@ def take(s, lineno):
             state.addText(s)
         else:
             reportError("Expected verse not found. (" + state.reference + str(state.verse+1) + ", line " + str(lineno) + ")")
+            if state.chapter > 0 and state.verse == 0:
+                reportError(f"Is {state.ID} {state.chapter-1}:{state.chapter} missing?")
     elif state.priority == TEXT:
         (pretext, vv, remainder) = getvv(s, state.verse+1)
         if vv:
