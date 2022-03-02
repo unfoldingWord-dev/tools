@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 # This script produces one or more .usfm files in resource container format from valid USFM source text.
-# Chunk division and paragraph locations are based on an English resource container of the same Bible book.
-# Uses parseUsfm module.
-
+# Chunk division and paragraph locations are based on pre-existing usfm files in chunk_model_dir.
 # The model to be used for marking chunks is in chunk_model_dir.
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Spanish-es-419\work'
-target_dir = r'C:\DCS\Spanish-es-419\es-419_ulb.lversaw'
-en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
-chunk_model_dir = r'C:\DCS\Spanish-es-419\es-419_ulb.RPP'
+source_dir = r'C:\DCS\Assamese\ULB\convert\Matthew.usfm'
+target_dir = r'C:\DCS\Assamese\work'
+#en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
+chunk_model_dir = r'C:\DCS\Assamese\as_ulb.RPP'
 mark_chunks = True
+max_chunk_size = 4
 
 projects = []
 translators = []
@@ -22,11 +21,6 @@ issuesFile = None
 import sys
 import os
 import operator
-
-# Set Path for files in support/
-#rootdiroftools = os.path.dirname(os.path.abspath(__file__))
-#sys.path.append(os.path.join(rootdiroftools,'support'))
-
 import usfm_verses
 import parseUsfm
 import io
@@ -47,15 +41,14 @@ class State:
     postHeader = ""
     chapter = 0
     verse = 0
-    chunkverse = 0
     needVerseText = False
     needPp = None
-    s5marked = False
-    s5sInFile = False   # True when the file already has s5 markers
+    s5marked = 0
     reference = ""
     usfmFile = 0
-    chunks = []
-    chunkIndex = 0  # reset at \c marker;
+    bookchunks_input = []
+    bookchunks_model = []
+    chunks_output = []      # for current chapter
 
     def addREM(self, rem):
         State.rem = rem
@@ -110,7 +103,6 @@ class State:
         State.ID = id
         State.chapter = 0
         State.verse = 0
-        State.chunkverse = 0
         State.reference = id
         State.title = getDefaultName(id)
         State.needVerseText = False
@@ -126,12 +118,8 @@ class State:
         else:
             State.chapterPad = c
         State.verse = 0
-        State.chunkverse = 0
         State.needVerseText = False
         State.reference = State.ID + " " + c
-        if mark_chunks:
-            State.chunks = loadChunks(State.ID, State.chapterPad)
-        State.chunkIndex = 0
         State.needPp = "p"     # need \p marker after each \c marker
 
     def addP(self):
@@ -141,28 +129,29 @@ class State:
     def holdP(self, tag):
         State.needPp = tag
 
-    def addS5(self):
-        State.s5sInFile = True
-        State.chunkverse = State.verse + 1
+    def addS5(self, v):
+        State.s5marked = v
 
     def addVerse(self, v):
         State.verse = int(v)
         State.needVerseText = True
         State.reference = State.ID + " " + str(State.chapter) + ":" + v
 
-    # Returns the  number of the first verse in the current chunk
-    def getModelChunkVerse(self):
-        v = 999
-        if State.chunkIndex < len(State.chunks):
-            v = State.chunks[State.chunkIndex]
-        return v
+    def recordInputChunks(self, bookchunks):
+        State.bookchunks_input = bookchunks
 
-    def advanceChunk(self):
-        State.chunkIndex += 1
-        State.s5marked = False
+    def recordModelChunks(self, bookchunks):
+        State.bookchunks_model = bookchunks
 
-    def hasS5(self):
-        return (State.s5marked or State.s5sInFile)
+    def recordChapterChunks(self, chunks):
+        State.chunks_output = chunks
+
+    # Returns True if the specified verse number should start a new chunk.
+    def startsChunk(self, verse):
+        return (verse in State.chunks_output)
+
+    def hasS5(self, v):
+        return (State.s5marked == v)
 
     def needText(self):
         return State.needVerseText
@@ -183,37 +172,35 @@ class State:
         State.verse = 0
         State.needVerseText = False
         State.needPp = "p"     # need at least one \p marker after \c 1 in each book
-        State.s5marked = False
-        State.s5sInFile = False
+        State.s5marked = 0     # last verse for which chunk has been marked
         State.reference = ""
 
 chunk_re = re.compile(r'([0-9]{2,3}).usx')
 
 # Makes an ordered list of the verse numbers that start the chunks in the specified book and chapter
-def loadChunksUsx(id, chap):
-    dir = os.path.join(en_rc_dir, "en_" + id + "_ulb")
-    dir = os.path.join(dir, "content")
-    dir = os.path.join(dir, chap)
-    allnames = os.listdir(dir)
-    chunks = []
-    for name in allnames:
-        match = chunk_re.match(name)
-        if match:
-            chunks.append( int(match.group(1)) )
-    chunks.sort()
-    return chunks
+#def loadChunksUsx(id, chap):
+    #dir = os.path.join(en_rc_dir, "en_" + id + "_ulb")
+    #dir = os.path.join(dir, "content")
+    #dir = os.path.join(dir, chap)
+    #allnames = os.listdir(dir)
+    #chunks = []
+    #for name in allnames:
+        #match = chunk_re.match(name)
+        #if match:
+            #chunks.append( int(match.group(1)) )
+    #chunks.sort()
+    #return chunks
 
 usfmchapter_re = re.compile(r'\\c ([0-9]+)')
 usfmverse_re = re.compile(r'\\v ([0-9]+)')
 
 # Returns a list (chapters) of lists (verse numbers that start the chunks) for the specified book.
-# Based on the USFM files in chunk_model_dir.
-def loadChunksUsfm(id):
-    modelpath = os.path.join(chunk_model_dir, makeUsfmFilename(id))
+# Appends a generated verse number (last verse + 1) to the end of each verse number list
+def loadChunksUsfm(usfmpath):
     chapters = []
     chunks = [1]
     nv = 1
-    with io.open(modelpath, "tr", encoding="utf-8-sig") as input:
+    with io.open(usfmpath, "tr", encoding="utf-8-sig") as input:
         lines = input.readlines()
     for line in lines:
         if line.startswith("\\s5") and nv > 1:
@@ -221,6 +208,7 @@ def loadChunksUsfm(id):
         elif versematch := usfmverse_re.match(line):
             nv = int(versematch.group(1)) + 1
         elif chaptermatch := usfmchapter_re.match(line):
+            chunks.append(nv+1)
             nc = int(chaptermatch.group(1))
             if nc > 1 and len(chapters) != nc - 2:
                 reportError("Chapter (" + str(nc) + ") out of order in model usfm file: " + modelpath)
@@ -231,19 +219,46 @@ def loadChunksUsfm(id):
     chapters.append(chunks)
     return chapters
 
-# Returns an ordered list of the verse numbers that start the chunks in the specified book and chapter
-def loadChunks(id, chap):
-    if chunk_model_dir and loadChunks.bookId != id:
-        loadChunks.bookchunks = loadChunksUsfm(id)
-    if chunk_model_dir:
-        chunks = loadChunks.bookchunks[int(chap)-1]
-    else:
-        chunks = loadChunksUsx(id, chap)    # deprecate!
-    loadChunks.bookId = id
-    return chunks
+# Returns None if there are no long chunks in arr after the specified starting position.
+# Returns a (start, next, index) tuple specifying the next long chunk found.
+# (starting verse, starting verse of next chunk or 999, and index of next starting verse in arr)
+def longchunk(arr, pos=0):
+    rtnval = (None,None,None)
+    i = pos + 1
+    while i < len(arr) and arr[i] - arr[i-1] < max_chunk_size+1:
+        i += 1
+    if i < len(arr):
+        rtnval = (arr[i-1], arr[i], i)
+    return rtnval
 
-loadChunks.bookId = ""
-loadChunks.bookchunks = []
+# Returns the first verse number between start and next in model.
+# Returns (next) if there are none between.
+# Model is assumed to be a non-empty array of verse numbers in ascending order.
+def chunkAt(start, next, model):
+    chunkverse = next
+    for n in model:
+        if n > start and n < next:
+            chunkverse = n
+            break
+    return chunkverse
+
+# Compares the chunks from the input file and the model for the current chapter.
+# Determines where to break the chunks in the output usfm, and saves those verse numbers in state.chunks_output.
+def settleChapterChunks():
+    state = State()
+    model = []
+    input = []
+    if len(state.bookchunks_model) >= state.chapter:    # should always be true
+        model = state.bookchunks_model[state.chapter-1]
+    if len(state.bookchunks_input) >= state.chapter:    # should always be true
+        output = state.bookchunks_input[state.chapter-1]
+    (start, next, pos) = longchunk(output)
+    while pos:
+        chunkverse = chunkAt(start, next, model)
+        if chunkverse < next:
+            output.insert(pos, chunkverse)
+        (start, next, pos) = longchunk(output, pos)
+    state.recordChapterChunks(output)
 
 # Returns path name for usfm file
 def makeUsfmFilename(id):
@@ -294,23 +309,13 @@ def takeMTX(key, value):
 
 # Copies paragraph marker to output unless a section 5 break is just ahead.
 # In that case, the paragraph marker will automatically be added after \s5.
-def takeP(tag):
+def takePQ(tag):
     state = State()
-    if state.getModelChunkVerse() != state.verse + 1:
+    if state.startsChunk(state.verse + 1):
+        state.holdP(tag)
+    else:
         state.addP()
         state.usfmFile.write("\n\\" + tag)
-    else:
-        state.holdP(tag)
-
-# Copies paragraph marker to output unless a section 5 break is just ahead.
-# In that case, the paragraph marker will automatically be added after \s5.
-def takeQ(tag):
-    state = State()
-    if state.getModelChunkVerse() != state.verse + 1:
-        state.addP()
-        state.usfmFile.write("\n\\" + tag)
-    else:
-        state.holdP(tag)
 
 # Called each time a verse marker is encountered, before the verse marker is written to the output stream.
 # Writes an \s5 section marker if it is the first verse in the chunk.
@@ -319,10 +324,10 @@ def addSection(v):
     state = State()
     if mark_chunks:
         vn = int(v)
-        if state.getModelChunkVerse() == vn:
-            if vn > 1 and not state.hasS5():
+        if state.startsChunk(vn):
+            if vn > 1 and not state.hasS5(vn):
                 state.usfmFile.write("\n\\s5")
-            state.advanceChunk()
+            state.addS5(vn)
     if state.needPp:
         state.usfmFile.write("\n\\" + state.needPp)
         state.addP()
@@ -330,8 +335,9 @@ def addSection(v):
 def takeS5():
     state = State()
     if state.chapter > 0:   # avoid copying \s5 before chapter 1 to simplify writing of header and other chapter 1 handling
-        state.addS5()
-        state.usfmFile.write("\n\\s5")
+        if not state.hasS5(state.verse + 1):
+            state.addS5(state.verse + 1)
+            state.usfmFile.write("\n\\s5")
 
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 def takeV(v):
@@ -368,6 +374,7 @@ def takeVPS(pubv):
 def takeVPE():
     State().usfmFile.write("\\vp*")
 
+# Settle where the chunk boundaries are going to be.
 # Insert an s5 marker before writing any chapter marker.
 # Before writing chapter 1, we output the USFM header.
 def takeC(c):
@@ -375,11 +382,18 @@ def takeC(c):
     if not state.ID:
         sys.stderr.write("Error: no book ID\n")
         sys.exit(-1)
+
     state.addChapter(c)
     if state.chapter == 1:
         writeHeader()
-    if mark_chunks and not state.hasS5():
+        if mark_chunks:
+            modelpath = os.path.join(chunk_model_dir, makeUsfmFilename(state.ID))
+            state.recordModelChunks( loadChunksUsfm(modelpath) )
+    if mark_chunks:
+        settleChapterChunks()
+    if mark_chunks and not state.hasS5(1):
         state.usfmFile.write("\n\n\\s5")
+        state.addS5(1)
     state.usfmFile.write("\n\\c " + c)
 
 # Handle the unmarked chapter label
@@ -404,9 +418,9 @@ def take(token):
     elif token.isC():
         takeC(token.value)
     elif token.isP() or token.isPI() or token.isPC() or token.isNB():
-        takeP(token.type)
+        takePQ(token.type)
     elif token.isQ() or token.isQ1() or token.isQA() or token.isSP() or token.isQR() or token.isQC():
-        takeQ(token.type)
+        takePQ(token.type)
     elif token.isS():
         takeAsIs(token.type, token.value)
     elif token.isS5():
@@ -490,7 +504,7 @@ def writeHeader():
     # Write post-header if any
     if state.postHeader:
         state.usfmFile.write(state.postHeader)
-    state.usfmFile.write('\n')     # blank line between header and chapter 1
+        state.usfmFile.write('\n')     # blank line between header and chapter 1
 
 backslash_re = re.compile(r'\\\s')
 jammed_re = re.compile(r'(\\v [-0-9]+[^-\s0-9])', re.UNICODE)
@@ -512,7 +526,7 @@ def isParseable(str, fname):
 def convertFile(usfmpath, fname):
     state = State()
     state.reset()
-
+    state.recordInputChunks( loadChunksUsfm(usfmpath) )
     input = io.open(usfmpath, "tr", 1, encoding="utf-8-sig")
     str = input.read(-1)
     input.close
@@ -521,7 +535,8 @@ def convertFile(usfmpath, fname):
     success = isParseable(str, fname)
     if success:
         print("CONVERTING " + fname + ":")
-        for token in parseUsfm.parseString(str):
+        tokens = parseUsfm.parseString(str)
+        for token in tokens:
             take(token)
         state.usfmFile.write("\n")
         state.usfmFile.close()
