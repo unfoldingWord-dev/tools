@@ -5,10 +5,10 @@
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Assamese\ULB\convert\Matthew.usfm'
-target_dir = r'C:\DCS\Assamese\work'
+source_dir = r'C:\DCS\Urdu\Bible\39-Malachi (2)final.usfm'
+target_dir = r'C:\DCS\Urdu\ur_ulb'
 #en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
-chunk_model_dir = r'C:\DCS\Assamese\as_ulb.RPP'
+chunk_model_dir = r'C:\DCS\English-WACS\en_ulb'
 mark_chunks = True
 max_chunk_size = 4
 
@@ -216,6 +216,7 @@ def loadChunksUsfm(usfmpath):
                 chapters.append(chunks)
             chunks = [1]    # verse 1 is assumed to always start a chunk
             nv = 1
+    chunks.append(nv)
     chapters.append(chunks)
     return chapters
 
@@ -231,33 +232,33 @@ def longchunk(arr, pos=0):
         rtnval = (arr[i-1], arr[i], i)
     return rtnval
 
-# Returns the first verse number between start and next in model.
-# Returns (next) if there are none between.
+# Returns a list of verse numbers between start and next in model.
+# Returns empty list if there are none between.
 # Model is assumed to be a non-empty array of verse numbers in ascending order.
 def chunkAt(start, next, model):
-    chunkverse = next
+    chunkverses = []
     for n in model:
         if n > start and n < next:
-            chunkverse = n
-            break
-    return chunkverse
+            chunkverses.append(n)
+    return chunkverses
 
 # Compares the chunks from the input file and the model for the current chapter.
 # Determines where to break the chunks in the output usfm, and saves those verse numbers in state.chunks_output.
 def settleChapterChunks():
     state = State()
     model = []
-    input = []
+    output = []
     if len(state.bookchunks_model) >= state.chapter:    # should always be true
         model = state.bookchunks_model[state.chapter-1]
     if len(state.bookchunks_input) >= state.chapter:    # should always be true
         output = state.bookchunks_input[state.chapter-1]
     (start, next, pos) = longchunk(output)
     while pos:
-        chunkverse = chunkAt(start, next, model)
-        if chunkverse < next:
-            output.insert(pos, chunkverse)
-        (start, next, pos) = longchunk(output, pos)
+        chunkverses = chunkAt(start, next, model)
+        chunkverses.reverse()
+        for v in chunkverses:
+            output.insert(pos, v)
+        (start, next, pos) = longchunk(output, pos + len(chunkverses))
     state.recordChapterChunks(output)
 
 # Returns path name for usfm file
@@ -405,9 +406,9 @@ def take(token):
     global lastToken
 
     state = State()
-    if state.needText() and not isTextCarryingToken(token):    # and not isOptional(state.reference):
-        if not token.isTEXT():
-            reportError("Empty verse: " + state.reference)
+    # if state.needText() and not isTextCarryingToken(token):    # and not isOptional(state.reference):
+    #     if not token.isTEXT():
+    #         reportError("Empty verse: " + state.reference)
     if token.isV():
         takeV(token.value)
     elif token.isTEXT():
