@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-# This program converts an prepped Urdu text file containing a Bible book to USFM form.
-#    Extra-biblical content (book overview, outline, footnotes, etc.) has been removed.
-#    Chapters are already marked.
+# This program converts a prepped Urdu text file containing a Bible book to USFM form.
+#    Extra-biblical content (book overview, outline, footnotes, etc.) has been removed or pre-marked with usfm markers.
+#    Chapter numbers pre-marked with \c
 #    Verse numbers all begin on a new line.
 # Leaves .txt file unchanged.
 # Writes .usfm file to same folder. Backs up existing .usfm file, if any.
-
-# Remaining work to be implemented:
-#   Convert numbers (other than numbers that are part of USFM tags) to Urdu.
+# Convert numbers (other than numbers that are part of USFM tags) to Urdu.
+# Inserts \cp tags for publishable chapter numbers.
+# Inserts \vp ... \vp* pairs with publishable verse numbers.
 
 import re       # regular expression module
 import io
@@ -16,7 +16,7 @@ import string
 import sys
 
 # Globals
-source_dir = r'C:\DCS\Urdu\Bible\Genesis.txt'
+source_dir = r'C:\DCS\Urdu\Bible\39-Malachi (2)final.txt'
 nChanged = 0
 max_changes = 1
 filename_re = re.compile(r'.*\.txt$')
@@ -43,7 +43,7 @@ def convertChapters(alltext, usfmpath):
         found = chapter_re.search(alltext)
     output.write(alltext)
     output.close()
-    
+
 verse_re = re.compile(r'([0-9\-]+)[۔\. ]', flags=re.UNICODE)
 
 # Positions at text following the first \c 1.
@@ -134,7 +134,7 @@ def convertFolder(folder):
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         source_dir = sys.argv[1]
-    
+
     if source_dir and os.path.isdir(source_dir):
         convertFolder(source_dir)
         sys.stdout.write("Done. Converted " + str(nChanged) + " files.\n")
