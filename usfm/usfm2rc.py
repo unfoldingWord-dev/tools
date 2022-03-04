@@ -5,10 +5,10 @@
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Urdu\Bible\39-Malachi (2)final.usfm'
-target_dir = r'C:\DCS\Urdu\ur_ulb'
+source_dir = r'C:\DCS\Assamese\ULB\convert\Exodus.usfm'
+target_dir = r'C:\DCS\Assamese\work'
 #en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
-chunk_model_dir = r'C:\DCS\English-WACS\en_ulb'
+chunk_model_dir = r'C:\DCS\Assamese\as_ulb.RPP'
 mark_chunks = True
 max_chunk_size = 4
 
@@ -254,11 +254,12 @@ def settleChapterChunks():
         output = state.bookchunks_input[state.chapter-1]
     (start, next, pos) = longchunk(output)
     while pos:
-        chunkverses = chunkAt(start, next, model)
-        chunkverses.reverse()
-        for v in chunkverses:
-            output.insert(pos, v)
-        (start, next, pos) = longchunk(output, pos + len(chunkverses))
+        if chunkverses := chunkAt(start, next, model):
+            chunkverses.reverse()
+            for v in chunkverses:
+                output.insert(pos, v)
+            pos += len(chunkverses)
+        (start, next, pos) = longchunk(output, pos)
     state.recordChapterChunks(output)
 
 # Returns path name for usfm file
