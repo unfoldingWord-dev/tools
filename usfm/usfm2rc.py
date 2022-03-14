@@ -5,10 +5,10 @@
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Assamese\ULB\convert\Exodus.usfm'
-target_dir = r'C:\DCS\Assamese\work'
+source_dir = r'C:\DCS\Assamese\ULB\convert\hos.usfm'
+target_dir = r'C:\DCS\Assamese\as_ulb.RPP'
 #en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
-chunk_model_dir = r'C:\DCS\Assamese\as_ulb.RPP'
+chunk_model_dir = r'C:\DCS\Assamese\as_ulb.WA'
 mark_chunks = True
 max_chunk_size = 4
 
@@ -191,14 +191,15 @@ chunk_re = re.compile(r'([0-9]{2,3}).usx')
     #chunks.sort()
     #return chunks
 
-usfmchapter_re = re.compile(r'\\c ([0-9]+)')
-usfmverse_re = re.compile(r'\\v ([0-9]+)')
+usfmchapter_re = re.compile(r'\\c +([0-9]+)')
+usfmverse_re = re.compile(r'\\v +([0-9]+)')
+vrange_re = re.compile(r'\\v +([0-9]+)-([0-9]+)')
 
 # Returns a list (chapters) of lists (verse numbers that start the chunks) for the specified book.
 # Appends a generated verse number (last verse + 1) to the end of each verse number list
 def loadChunksUsfm(usfmpath):
     chapters = []
-    chunks = [1]
+    chunks = []
     nv = 1
     with io.open(usfmpath, "tr", encoding="utf-8-sig") as input:
         lines = input.readlines()
@@ -206,12 +207,15 @@ def loadChunksUsfm(usfmpath):
         if line.startswith("\\s5") and nv > 1:
             chunks.append(nv)
         elif versematch := usfmverse_re.match(line):
-            nv = int(versematch.group(1)) + 1
+            if rangematch := vrange_re.match(line):
+                nv = int(rangematch.group(2)) + 1
+            else:
+                nv = int(versematch.group(1)) + 1
         elif chaptermatch := usfmchapter_re.match(line):
-            chunks.append(nv+1)
+            chunks.append(nv)
             nc = int(chaptermatch.group(1))
             if nc > 1 and len(chapters) != nc - 2:
-                reportError("Chapter (" + str(nc) + ") out of order in model usfm file: " + modelpath)
+                reportError("Chapter (" + str(nc) + ") out of order in: " + usfmpath)
             if nc > 1:
                 chapters.append(chunks)
             chunks = [1]    # verse 1 is assumed to always start a chunk
@@ -300,8 +304,12 @@ def takeAsIs(key, value):
         if value:
             state.usfmFile.write(" " + value)
 
-# Treats the token as the book title if no \mt has been encountered yet.
-# Calls takeAsIs() otherwise.
+def takeFootnote(key, value):
+    state = State()
+    state.usfmFile.write(" \\" + key)
+    if value:
+        state.usfmFile.write(" " + value)
+
 def takeMTX(key, value):
     state = State()
     if not state.mt:
@@ -451,6 +459,8 @@ def take(token):
         takeVPS(token.value)
     elif token.isVPE():
         takeVPE()
+    elif isFootnote(token):
+        takeFootnote(token.type, token.value)
     else:
         # sys.stdout.write("Taking other token: ")
         # print token
@@ -509,7 +519,7 @@ def writeHeader():
         state.usfmFile.write('\n')     # blank line between header and chapter 1
 
 backslash_re = re.compile(r'\\\s')
-jammed_re = re.compile(r'(\\v [-0-9]+[^-\s0-9])', re.UNICODE)
+jammed_re = re.compile(r'(\\v +[-0-9]+[^-\s0-9])', re.UNICODE)
 usfmcode_re = re.compile(r'\\[^A-Za-z\+]', re.UNICODE)
 
 def isParseable(str, fname):
