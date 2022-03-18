@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # This Python 3 converts translation questions from TSV to the older markdown format.
 # It only processes a single folder or a single file, no recursion.
+# Removes line breaks <br>
 
 import re
 import io
@@ -13,9 +14,10 @@ from shutil import copy
 
 
 # Globals
-source_dir = r'C:\DCS\Telugu\TQ'  # Where are the TSV files located
-target_dir = r'C:\DCS\Telugu\te_tq.work'
-max_files = 3    # max number of TSV files to be processed
+source_dir = r'C:\DCS\Gujarati\TQ'  # Where are the TSV files located
+target_dir = r'C:\DCS\Gujarati\work'
+resource_type = 'tq'
+max_files = 99    # max number of TSV files to be processed
 nProcessed = 0
 filename_re = re.compile(r'.*\.tsv$')
 projects = []
@@ -25,6 +27,9 @@ def shortname(longpath):
     if source_dir in longpath:
         shortname = longpath[len(source_dir)+1:]
     return shortname
+
+def reportError(msg):
+    sys.stderr.write(msg + '\n')
 
 # Appends information about the current book to the global projects list.
 def appendToProjects(bookId, bookTitle):
@@ -42,7 +47,7 @@ def appendToProjects(bookId, bookTitle):
 # Sort the list of projects and write to projects.yaml
 def dumpProjects():
     global projects
-    
+
     projects.sort(key=operator.itemgetter('sort'))
     path = makeManifestPath()
     manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
@@ -100,35 +105,47 @@ def makeMdPath(bookId, chap, verse):
 
 def writeMdfile(bookId, chap, verse, question, response):
     path = makeMdPath(bookId, chap, verse)
-    if os.path.isfile(path):
-        start = "\n# "
-    else:
+    if verse != writeMdfile.prevverse:
+        mode = "tw"
         start = "# "
-    file = io.open(path, "ta", encoding="utf-8", newline="\n")
+    else:
+        mode = "ta"
+        start = "\n# "
+    file = io.open(path, mode, encoding="utf-8", newline="\n")
     file.write(start + convertQR(question) + "\n\n" + convertQR(response) + "\n")
     file.close()
+    writeMdfile.prevverse = verse
+
+writeMdfile.prevverse = 0
 
 #hash_re = re.compile(r'#([^# \n].*)')    # missing space after #
 #blanklines_re = re.compile(r'[^\>]\<br\>#')     # less than two lines breaks before heading
 
 # Removes unwanted leading and trailing characters from question or response string
+# Removes line breaks <br>
 def convertQR(text):
+    text = text.replace("<br>", " ")
     return text.strip('#\\ ')     # remove leading and trailing spaces and quotes
 
 filename_re = re.compile(r'tq_([123A-Za-z][A-Za-z][A-Za-z]).tsv')
 
+# Returns a (bookId, bookName) pair.
 def getBookId(filename):
-    bookid = None
-    fname = filename_re.search(filename)
-    if fname:
-        bookid = fname.group(1).upper()
-        if not bookid in usfm_verses.verseCounts.keys():
-            sys.stderr.write("Can't get book ID from filename: " + filename + "\n")
-            bookid = None
+    if resource_type == 'obs-tq':
+        book = ("content", "OBS")
     else:
-        sys.stderr.write("Invalid TSV file name: " + filename + "\n")
-    return bookid
-    
+        book = None
+        fname = filename_re.search(filename)
+        if fname:
+            bookid = fname.group(1).upper()
+            if bookid in usfm_verses.verseCounts.keys():
+                book = (bookid, usfm_verses.verseCounts[bookid]["en_name"])
+            else:
+                reportError("Can't get book ID from filename: " + filename)
+        else:
+            reportError("Invalid TSV file name: " + filename)
+    return book
+
 ref_re = re.compile(r'([0-9]+):([0-9]+)')
 
 def convertRow(bookId, row, nrow):
@@ -136,27 +153,54 @@ def convertRow(bookId, row, nrow):
     if ref:
         writeMdfile(bookId, ref.group(1), ref.group(2), row[5], row[6])
     else:
-        sys.stderr.write("  Row " + str(nrow) + " has invalid reference: " + row[0] + "\n")
+        reportError("  Row " + str(nrow) + " has invalid reference: " + row[0])
+
+# Converts a single obs-tq TSV file into several hundred .md files.
+# Places the output files in target folder/content
+def convertObsTqFile(path):
+    print("Converting ", shortname(path))
+    sys.stdout.flush()
+    content_dir = os.path.join(target_dir, "content")
+    data = tsv.tsvRead(path)  # The entire file is returned as a list of lists of strings (rows); each row is a list of strings (columns)
+    nrow = 0
+    for row in data:
+        nrow += 1
+        if nrow > 1:
+            if len(row) == 7:
+                convertRow(bookId, row, nrow)
+            else:
+                reportError("  Row " + str(nrow) + " has " + str(len(row)) + " columns.")
+
 
 # Writes all the notes in the specified file to .md files.
 # Success depends on correctness of the TSV file. Verify beforehand.
-def convertFile(path):
-    bookId = getBookId(path)
-    if bookId:
+def convertTQFile(path):
+    if book := getBookId(path):
         print("Converting ", shortname(path))
         sys.stdout.flush()
-        appendToProjects(bookId, usfm_verses.verseCounts[bookId]["en_name"])
+        if resource_type == 'tq':
+            appendToProjects(book[0], book[1])
         data = tsv.tsvRead(path)  # The entire file is returned as a list of lists of strings (rows); each row is a list of strings.
         nrow = 0
         for row in data:
             nrow += 1
-            if row[0] != "Reference":
+            if nrow > 1:
                 if len(row) == 7:
-                    convertRow(bookId, row, nrow)
+                    convertRow(book[0], row, nrow)
                 else:
-                    sys.stderr.write("  Row " + str(nrow) + " has " + str(len(row)) + " columns.\n")
-            
-# Converts all TSV files in the specified folder. Not recursive.
+                    reportError("  Row " + str(nrow) + " has " + str(len(row)) + " columns.")
+
+# Writes all the notes in the specified file to .md files.
+# Success depends on correctness of the TSV file. Verify beforehand.
+def convertFile(path):
+    # if resource_type == 'tq':
+    #     convertTQFile(path)
+    # elif resource_type == 'obs-tq':
+    convertTQFile(path)
+    # else:
+        # reportError("Resource type not supported: " + resource_type)
+
+    # Converts all TSV files in the specified folder. Not recursive.
 def convertFolder(folder):
     global nProcessed
     global max_files
@@ -186,4 +230,4 @@ if __name__ == "__main__":
         convertFile(path)
         sys.stdout.write("Done. Processed 1 file.\n")
     else:
-        sys.stderr.write("Usage: python tsv2md.py <folder>\n  Use . for current folder.\n")
+        reportError("Usage: python tsv2md.py <folder>\n  Use . for current folder.")
