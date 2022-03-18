@@ -11,8 +11,13 @@ import string
 import sys
 
 # Globals
-source_dir = r'C:\DCS\Malayalam\ml_ta'
+source_dir = r'C:\DCS\Kannada\kn_ta.STR'
 nRewritten = 0
+
+def shortname(path):
+    if path.startswith(source_dir):
+        path = path[len(source_dir)+1:]
+    return path
 
 # Reads the translated title from the specified title.md file.
 def fetchTitle(folder, linkstr):
@@ -26,7 +31,7 @@ def fetchTitle(folder, linkstr):
     return title
 
 title_re = re.compile(r'([ \-]*title: +)[\'"](.*)[\'"]', flags=re.UNICODE)
-link_re =  re.compile(r'    +link: +([\w\-]+)')
+link_re =  re.compile(r'link: +([\w\-]+)')
 section_re = re.compile(r' *sections', re.UNICODE)
 
 def rewriteTocLines(folder, lines, output):
@@ -46,12 +51,12 @@ def rewriteTocLines(folder, lines, output):
         elif title_line:      # previous line was a title
 #                if title_text.isascii():    # not a valid test because English titles include non-ascii like '®'
                 newtitle = ""
-                linkmatch = link_re.match(line)
+                linkmatch = link_re.search(line)
                 if linkmatch:
                     newtitle = fetchTitle(folder, linkmatch.group(1))
                     if newtitle == None:
                         missing_article = True
-                        sys.stdout.write("Article does not exist, removing: " + linkmatch.group(1) + "\n")
+                        sys.stdout.write("Article does not exist, removing reference to: " + linkmatch.group(1) + "\n")
                     else:
                         if '"' in newtitle:
                             title_line = title_prefix + "'" + newtitle + "'\n"
@@ -62,7 +67,7 @@ def rewriteTocLines(folder, lines, output):
                     output.write(line)
                 title_line = None
                 missing_article = False
-    
+
 # Rewrites the toc.yaml files in the specified folder, changing the title of each entry.
 def rewriteToc(folder):
     global nRewritten
@@ -76,7 +81,7 @@ def rewriteToc(folder):
     with io.open(tocpath, "tw", encoding="utf-8", newline='\n') as output:
         rewriteTocLines(folder, lines, output)
     nRewritten += 1
-    
+
 def shortname(longpath):
     shortname = longpath
     if source_dir in longpath:
@@ -97,6 +102,44 @@ def convertFolder(folder):
                 if os.path.isdir(path):
                     convertFolder(path)
 
+def getlinks(tocpath):
+    links = set()
+    with io.open(tocpath, "tr", encoding="utf-8-sig") as input:
+        lines = input.readlines()
+    for line in lines:
+        if link := link_re.search(line):
+            links.add(link.group(1))
+    return links
+
+def checkToc(folder):
+    tocpath = os.path.join(folder, "toc.yaml")
+    if os.path.isfile(tocpath):
+        toclinks = getlinks(tocpath)
+        articles = list()
+        direntries = os.scandir(folder)
+        for direntry in direntries:
+            if direntry.is_dir():
+                articles.append(direntry.name)
+        articles.sort()
+        for article in articles:
+            if not article in toclinks:
+                sys.stderr.write("This article is not referenced in " + shortname(tocpath) + ": " + article + "\n")
+        for link in toclinks:
+            if not link in articles:    # should not occur as rewriteTocLine() removed these
+                sys.stderr.write(shortname(tocpath) + " references a missing article: " + link + "\n")
+    else:
+        sys.stderr.write("File does not exist: " + shortname(tocpath))
+
+# Compares the "link" values in toc.yaml files to the article names in the corresponding folder
+# Reports missing and extra "link" values.
+def checkTocs(folder):
+    if os.path.basename(folder) in {"checking","intro","process","translate"}:
+        checkToc(folder)
+    for dir in ["checking","intro","process","translate"]:
+        path = os.path.join(folder, dir)
+        if os.path.isdir(path):
+            checkToc(path)
+
 # Rewrites toc.yaml files under the specified directory
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
@@ -104,6 +147,7 @@ if __name__ == "__main__":
 
     if source_dir and os.path.isdir(source_dir):
         convertFolder(source_dir)
+        checkTocs(source_dir)
         sys.stdout.write("Done. Rewrote " + str(nRewritten) + " files.\n")
     else:
         sys.stderr.write("Usage: python ta-localizeTitles.py <folder>\n  Use . for current folder.\n")

@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 # This script produces one or more .usfm files in resource container format from valid USFM source text.
-# Chunk division and paragraph locations are based on an English resource container of the same Bible book.
-# Uses parseUsfm module.
-
-# The English RC folder is hard-coded in en_rc_dir.
-# The output folder is also hard-coded.
+# Chunk division and paragraph locations are based on pre-existing usfm files in chunk_model_dir.
+# The model to be used for marking chunks is in chunk_model_dir.
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Russian\RLOB'
-target_dir = r'C:\DCS\Russian\ru_rlob.STR'
-en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
-mark_chunks = False
+source_dir = r'C:\DCS\Assamese\ULB\convert\hos.usfm'
+target_dir = r'C:\DCS\Assamese\as_ulb.RPP'
+#en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
+chunk_model_dir = r'C:\DCS\Assamese\as_ulb.WA'
+mark_chunks = True
+max_chunk_size = 4
 
 projects = []
 translators = []
@@ -22,11 +21,6 @@ issuesFile = None
 import sys
 import os
 import operator
-
-# Set Path for files in support/
-#rootdiroftools = os.path.dirname(os.path.abspath(__file__))
-#sys.path.append(os.path.join(rootdiroftools,'support'))
-
 import usfm_verses
 import parseUsfm
 import io
@@ -49,13 +43,13 @@ class State:
     verse = 0
     needVerseText = False
     needPp = None
-    s5marked = False
-    s5sInFile = False   # True when the file already has s5 markers
+    s5marked = 0
     reference = ""
     usfmFile = 0
-    chunks = []
-    chunkIndex = 0  # reset at \c marker; 
-    
+    bookchunks_input = []
+    bookchunks_model = []
+    chunks_output = []      # for current chapter
+
     def addREM(self, rem):
         State.rem = rem
 
@@ -79,14 +73,14 @@ class State:
 
     def addTOC3(self, toc):
         State.toc3 = toc
-    
+
     def addH(self, h):
         State.h = h
         if h and not State.title:
             State.title = h
         elif State.title.isascii() and not h.isascii():   # favor non-ASCII titles
             State.title = h
-        
+
     def addMT(self, mt):
         State.mt = mt
         if not mt.isascii():    # mt is the highest priority title if not ascii
@@ -98,7 +92,7 @@ class State:
         sts = sts.strip()
         if sts:
             State.sts = sts
-            
+
     def addPostHeader(self, key, value):
         if key:
             State.postHeader += "\n\\" + key + " "
@@ -115,7 +109,7 @@ class State:
         # Open output USFM file for writing.
         usfmPath = os.path.join(target_dir, makeUsfmFilename(id))
         State.usfmFile = io.open(usfmPath, "tw", buffering=1, encoding='utf-8', newline='\n')
-       
+
     def addChapter(self, c):
         State.lastChapter = State.chapter
         State.chapter = int(c)
@@ -126,39 +120,38 @@ class State:
         State.verse = 0
         State.needVerseText = False
         State.reference = State.ID + " " + c
-        if mark_chunks:
-            State.chunks = loadChunks(State.ID, State.chapterPad)
-        State.chunkIndex = 0
         State.needPp = "p"     # need \p marker after each \c marker
 
     def addP(self):
         State.needPp = None
-    
+
     # Called when a \p is encountered in the source but needs to be held for later output.
     def holdP(self, tag):
         State.needPp = tag
 
-    def addS5(self):
-        State.s5sInFile = True
+    def addS5(self, v):
+        State.s5marked = v
 
     def addVerse(self, v):
         State.verse = int(v)
         State.needVerseText = True
         State.reference = State.ID + " " + str(State.chapter) + ":" + v
-    
-    # Returns the  number of the first verse in the current chunk
-    def getChunkVerse(self):
-        v = 999
-        if State.chunkIndex < len(State.chunks):
-            v = State.chunks[State.chunkIndex]
-        return v
-        
-    def advanceChunk(self):
-        State.chunkIndex += 1
-        State.s5marked = False
 
-    def hasS5(self):
-        return (State.s5marked or State.s5sInFile)
+    def recordInputChunks(self, bookchunks):
+        State.bookchunks_input = bookchunks
+
+    def recordModelChunks(self, bookchunks):
+        State.bookchunks_model = bookchunks
+
+    def recordChapterChunks(self, chunks):
+        State.chunks_output = chunks
+
+    # Returns True if the specified verse number should start a new chunk.
+    def startsChunk(self, verse):
+        return (verse in State.chunks_output)
+
+    def hasS5(self, v):
+        return (State.s5marked == v)
 
     def needText(self):
         return State.needVerseText
@@ -179,42 +172,114 @@ class State:
         State.verse = 0
         State.needVerseText = False
         State.needPp = "p"     # need at least one \p marker after \c 1 in each book
-        State.s5marked = False
-        State.s5sInFile = False
+        State.s5marked = 0     # last verse for which chunk has been marked
         State.reference = ""
 
 chunk_re = re.compile(r'([0-9]{2,3}).usx')
 
-# Makes an ordered list of the verse numbers that starts the chunks in the specified book and chapter
-def loadChunks(id, chap):
-    dir = os.path.join(en_rc_dir, "en_" + id + "_ulb")
-    dir = os.path.join(dir, "content")
-    dir = os.path.join(dir, chap)
-    allnames = os.listdir(dir)
+# Makes an ordered list of the verse numbers that start the chunks in the specified book and chapter
+#def loadChunksUsx(id, chap):
+    #dir = os.path.join(en_rc_dir, "en_" + id + "_ulb")
+    #dir = os.path.join(dir, "content")
+    #dir = os.path.join(dir, chap)
+    #allnames = os.listdir(dir)
+    #chunks = []
+    #for name in allnames:
+        #match = chunk_re.match(name)
+        #if match:
+            #chunks.append( int(match.group(1)) )
+    #chunks.sort()
+    #return chunks
+
+usfmchapter_re = re.compile(r'\\c +([0-9]+)')
+usfmverse_re = re.compile(r'\\v +([0-9]+)')
+vrange_re = re.compile(r'\\v +([0-9]+)-([0-9]+)')
+
+# Returns a list (chapters) of lists (verse numbers that start the chunks) for the specified book.
+# Appends a generated verse number (last verse + 1) to the end of each verse number list
+def loadChunksUsfm(usfmpath):
+    chapters = []
     chunks = []
-    for name in allnames:
-        match = chunk_re.match(name)
-        if match:
-            chunks.append( int(match.group(1)) )
-    chunks.sort()
-    return chunks
+    nv = 1
+    with io.open(usfmpath, "tr", encoding="utf-8-sig") as input:
+        lines = input.readlines()
+    for line in lines:
+        if line.startswith("\\s5") and nv > 1:
+            chunks.append(nv)
+        elif versematch := usfmverse_re.match(line):
+            if rangematch := vrange_re.match(line):
+                nv = int(rangematch.group(2)) + 1
+            else:
+                nv = int(versematch.group(1)) + 1
+        elif chaptermatch := usfmchapter_re.match(line):
+            chunks.append(nv)
+            nc = int(chaptermatch.group(1))
+            if nc > 1 and len(chapters) != nc - 2:
+                reportError("Chapter (" + str(nc) + ") out of order in: " + usfmpath)
+            if nc > 1:
+                chapters.append(chunks)
+            chunks = [1]    # verse 1 is assumed to always start a chunk
+            nv = 1
+    chunks.append(nv)
+    chapters.append(chunks)
+    return chapters
+
+# Returns None if there are no long chunks in arr after the specified starting position.
+# Returns a (start, next, index) tuple specifying the next long chunk found.
+# (starting verse, starting verse of next chunk or 999, and index of next starting verse in arr)
+def longchunk(arr, pos=0):
+    rtnval = (None,None,None)
+    i = pos + 1
+    while i < len(arr) and arr[i] - arr[i-1] < max_chunk_size+1:
+        i += 1
+    if i < len(arr):
+        rtnval = (arr[i-1], arr[i], i)
+    return rtnval
+
+# Returns a list of verse numbers between start and next in model.
+# Returns empty list if there are none between.
+# Model is assumed to be a non-empty array of verse numbers in ascending order.
+def chunkAt(start, next, model):
+    chunkverses = []
+    for n in model:
+        if n > start and n < next:
+            chunkverses.append(n)
+    return chunkverses
+
+# Compares the chunks from the input file and the model for the current chapter.
+# Determines where to break the chunks in the output usfm, and saves those verse numbers in state.chunks_output.
+def settleChapterChunks():
+    state = State()
+    model = []
+    output = []
+    if len(state.bookchunks_model) >= state.chapter:    # should always be true
+        model = state.bookchunks_model[state.chapter-1]
+    if len(state.bookchunks_input) >= state.chapter:    # should always be true
+        output = state.bookchunks_input[state.chapter-1]
+    (start, next, pos) = longchunk(output)
+    while pos:
+        if chunkverses := chunkAt(start, next, model):
+            chunkverses.reverse()
+            for v in chunkverses:
+                output.insert(pos, v)
+            pos += len(chunkverses)
+        (start, next, pos) = longchunk(output, pos)
+    state.recordChapterChunks(output)
 
 # Returns path name for usfm file
 def makeUsfmFilename(id):
-    # loadVerseCounts()
     num = usfm_verses.verseCounts[id]['usfm_number']
     return str(num) + "-" + id + ".usfm"
-    
+
 # Returns path of temporary manifest file block listing projects converted
-def makeManifestPath():
+def makeProjectsPath():
     return os.path.join(target_dir, "projects.yaml")
-    
+
 # Looks up the English book name, for use when book name is not defined in the file
 def getDefaultName(id):
-    # loadVerseCounts()
     en_name = usfm_verses.verseCounts[id]['en_name']
     return en_name
-           
+
 def printToken(token):
     if token.isV():
         print("Verse number " + token.value)
@@ -237,10 +302,14 @@ def takeAsIs(key, value):
         # sys.stdout.write(u"takeAsIs(" + key + u"," + str(len(value)) + u"), chapter is " + str(state.chapter) + u"\n")
         state.usfmFile.write("\n\\" + key)
         if value:
-            state.usfmFile.write(" " + value)    
+            state.usfmFile.write(" " + value)
 
-# Treats the token as the book title if no \mt has been encountered yet.
-# Calls takeAsIs() otherwise.
+def takeFootnote(key, value):
+    state = State()
+    state.usfmFile.write(" \\" + key)
+    if value:
+        state.usfmFile.write(" " + value)
+
 def takeMTX(key, value):
     state = State()
     if not state.mt:
@@ -250,23 +319,13 @@ def takeMTX(key, value):
 
 # Copies paragraph marker to output unless a section 5 break is just ahead.
 # In that case, the paragraph marker will automatically be added after \s5.
-def takeP(tag):
+def takePQ(tag):
     state = State()
-    if state.getChunkVerse() != state.verse + 1:
+    if state.startsChunk(state.verse + 1):
+        state.holdP(tag)
+    else:
         state.addP()
         state.usfmFile.write("\n\\" + tag)
-    else:
-        state.holdP(tag)
-
-# Copies paragraph marker to output unless a section 5 break is just ahead.
-# In that case, the paragraph marker will automatically be added after \s5.
-def takeQ(tag):
-    state = State()
-    if state.getChunkVerse() != state.verse + 1:
-        state.addP()
-        state.usfmFile.write("\n\\" + tag)
-    else:
-        state.holdP(tag)
 
 # Called each time a verse marker is encountered, before the verse marker is written to the output stream.
 # Writes an \s5 section marker if it is the first verse in the chunk.
@@ -275,10 +334,10 @@ def addSection(v):
     state = State()
     if mark_chunks:
         vn = int(v)
-        if state.getChunkVerse() == vn:
-            if vn > 1 and not state.hasS5():
+        if state.startsChunk(vn):
+            if vn > 1 and not state.hasS5(vn):
                 state.usfmFile.write("\n\\s5")
-        state.advanceChunk()
+            state.addS5(vn)
     if state.needPp:
         state.usfmFile.write("\n\\" + state.needPp)
         state.addP()
@@ -286,8 +345,9 @@ def addSection(v):
 def takeS5():
     state = State()
     if state.chapter > 0:   # avoid copying \s5 before chapter 1 to simplify writing of header and other chapter 1 handling
-        state.addS5()
-        state.usfmFile.write("\n\\s5")
+        if not state.hasS5(state.verse + 1):
+            state.addS5(state.verse + 1)
+            state.usfmFile.write("\n\\s5")
 
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 def takeV(v):
@@ -305,7 +365,7 @@ def takeV(v):
         state.addVerse(v)
         addSection(v)
     state.usfmFile.write("\n\\v " + v)
-    
+
 def takeText(t):
     state = State()
     # sys.stdout.write(u"takeText(" + str(len(t)) + u")\n")
@@ -324,6 +384,7 @@ def takeVPS(pubv):
 def takeVPE():
     State().usfmFile.write("\\vp*")
 
+# Settle where the chunk boundaries are going to be.
 # Insert an s5 marker before writing any chapter marker.
 # Before writing chapter 1, we output the USFM header.
 def takeC(c):
@@ -331,13 +392,20 @@ def takeC(c):
     if not state.ID:
         sys.stderr.write("Error: no book ID\n")
         sys.exit(-1)
+
     state.addChapter(c)
     if state.chapter == 1:
         writeHeader()
-    if mark_chunks and not state.hasS5():
+        if mark_chunks:
+            modelpath = os.path.join(chunk_model_dir, makeUsfmFilename(state.ID))
+            state.recordModelChunks( loadChunksUsfm(modelpath) )
+    if mark_chunks:
+        settleChapterChunks()
+    if mark_chunks and not state.hasS5(1):
         state.usfmFile.write("\n\n\\s5")
+        state.addS5(1)
     state.usfmFile.write("\n\\c " + c)
- 
+
 # Handle the unmarked chapter label
 def takeCL(cl):
     state = State()
@@ -347,9 +415,9 @@ def take(token):
     global lastToken
 
     state = State()
-    if state.needText() and not isTextCarryingToken(token):    # and not isOptional(state.reference):
-        if not token.isTEXT():
-            reportError("Empty verse: " + state.reference)
+    # if state.needText() and not isTextCarryingToken(token):    # and not isOptional(state.reference):
+    #     if not token.isTEXT():
+    #         reportError("Empty verse: " + state.reference)
     if token.isV():
         takeV(token.value)
     elif token.isTEXT():
@@ -360,9 +428,9 @@ def take(token):
     elif token.isC():
         takeC(token.value)
     elif token.isP() or token.isPI() or token.isPC() or token.isNB():
-        takeP(token.type)
+        takePQ(token.type)
     elif token.isQ() or token.isQ1() or token.isQA() or token.isSP() or token.isQR() or token.isQC():
-        takeQ(token.type)
+        takePQ(token.type)
     elif token.isS():
         takeAsIs(token.type, token.value)
     elif token.isS5():
@@ -391,13 +459,15 @@ def take(token):
         takeVPS(token.value)
     elif token.isVPE():
         takeVPE()
+    elif isFootnote(token):
+        takeFootnote(token.type, token.value)
     else:
         # sys.stdout.write("Taking other token: ")
         # print token
         takeAsIs(token.type, token.value)
 
     lastToken = token
-     
+
 # Returns true if token is part of a cross reference
 def isCrossRef(token):
     return token.isX_S() or token.isX_E() or token.isXO() or token.isXT()
@@ -408,14 +478,14 @@ def isFootnote(token):
 
 def isIntro(token):
     return token.is_is() or token.is_ip() or token.is_iot() or token.is_io()
-    
+
 def isPoetry(token):
     return token.isQ() or token.isQ1() or token.isQA() or token.isSP() or token.isQR() or \
 token.isQC() or token.isD()
 
 def isTextCarryingToken(token):
     return token.isB() or token.isM() or token.isD() or isFootnote(token) or isCrossRef(token) or isPoetry(token) or isIntro(token)
-    
+
 def writeHeader():
     state = State()
     h = state.h
@@ -442,14 +512,14 @@ def writeHeader():
     state.usfmFile.write("\n\\toc2 " + toc2)
     state.usfmFile.write("\n\\toc3 " + state.ID.lower())
     state.usfmFile.write("\n\\mt1 " + mt)      # safest to use \mt1 always. When \mt2 exists, \mt1 us required.
-    
+
     # Write post-header if any
     if state.postHeader:
         state.usfmFile.write(state.postHeader)
-    state.usfmFile.write('\n')     # blank line between header and chapter 1
+        state.usfmFile.write('\n')     # blank line between header and chapter 1
 
 backslash_re = re.compile(r'\\\s')
-jammed_re = re.compile(r'(\\v [-0-9]+[^-\s0-9])', re.UNICODE)
+jammed_re = re.compile(r'(\\v +[-0-9]+[^-\s0-9])', re.UNICODE)
 usfmcode_re = re.compile(r'\\[^A-Za-z\+]', re.UNICODE)
 
 def isParseable(str, fname):
@@ -464,11 +534,11 @@ def isParseable(str, fname):
         reportError("File contains foreign usfm code(s): " + fname)
         parseable = False
     return parseable
-        
+
 def convertFile(usfmpath, fname):
     state = State()
     state.reset()
-    
+    state.recordInputChunks( loadChunksUsfm(usfmpath) )
     input = io.open(usfmpath, "tr", 1, encoding="utf-8-sig")
     str = input.read(-1)
     input.close
@@ -477,9 +547,10 @@ def convertFile(usfmpath, fname):
     success = isParseable(str, fname)
     if success:
         print("CONVERTING " + fname + ":")
-        for token in parseUsfm.parseString(str):
+        tokens = parseUsfm.parseString(str)
+        for token in tokens:
             take(token)
-        state.usfmFile.write("\n")    
+        state.usfmFile.write("\n")
         state.usfmFile.close()
     return success
 
@@ -511,9 +582,10 @@ def getContributors(folder):
         manifestFile = io.open(manifestpath, "tr", encoding='utf-8-sig')
         manifest = yaml.safe_load(manifestFile)
         manifestFile.close()
-        source_versions += manifest['dublin_core']['source'][0]['version']
+        if manifest['dublin_core']['source']:
+            source_versions += manifest['dublin_core']['source'][0]['version']
         translators += manifest['dublin_core']['contributor']
-      
+
 def dumpContributors():
     global translators
     global source_versions
@@ -524,7 +596,7 @@ def dumpContributors():
         f = io.open(path, 'tw', encoding='utf-8', newline='\n')
         for name in contribs:
             f.write('    - "' + name + '"\n')
-        
+
         # Also dump the list of source versions used
         f.write('\n\nSource versions used:\n')
         for version in source_versions:
@@ -549,9 +621,9 @@ def appendToProjects():
 # Sort the list of projects and write to projects.yaml
 def dumpProjects():
     global projects
-    
+
     projects.sort(key=operator.itemgetter('sort'))
-    path = makeManifestPath()
+    path = makeProjectsPath()
     manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
     manifest.write("projects:\n")
     for p in projects:
@@ -580,6 +652,10 @@ def openIssuesFile():
         issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
     return issuesFile
 
+def closeIssuesFile():
+    if issuesFile:
+        issuesFile.close()
+
 # Writes error message to stderr and to issues.txt.
 def reportError(msg):
     try:
@@ -587,18 +663,24 @@ def reportError(msg):
     except UnicodeEncodeError as e:
         state = State()
         sys.stderr.write(state.reference + ": (Unicode...)\n")
-    issues = openIssuesFile()       
+    issues = openIssuesFile()
     issues.write(msg + "\n")
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
-    if os.path.isfile( makeManifestPath() ):
-        os.remove( makeManifestPath() )
+    if os.path.isfile( makeProjectsPath() ):
+        os.remove( makeProjectsPath() )
+
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         source_dir = sys.argv[1]
-    convertFolder(source_dir)
+    if os.path.isfile(source_dir):
+        path = source_dir
+        source_dir = os.path.dirname(path)
+        if convertFile(path, os.path.basename(path)):
+            appendToProjects()
+    else:
+        convertFolder(source_dir)
     dumpProjects()
     dumpContributors()
-    if issuesFile:
-        issuesFile.close()
+    closeIssuesFile()
     print("\nDone.")

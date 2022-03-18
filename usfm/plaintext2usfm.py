@@ -13,8 +13,8 @@
 #    Reports failure when chapter 1 is not found, and other errors.
 
 # Global variables
-source_dir = r'C:\DCS\Tuvan\TEXT'
-target_dir = r'C:\DCS\Tuvan\tyv_reg.work'
+source_dir = r'C:\DCS\Kalmyk\txt'   # must be a folder
+target_dir = r'C:\DCS\Kalmyk\xal_reg.old'
 
 import usfm_verses
 import re
@@ -101,7 +101,8 @@ class State:
     def addText(self, text):
         if len(State.data) > 0:
             State.data += ' '
-        State.data += text.strip()
+        text = text.lstrip(". ")   # lose period after verse number
+        State.data += text.strip()  # lose other leading and trailing white space
         if State.lastEntity != TEXT:
             State.neednext = {VERSE, CHAPTER, TEXT}
             State.priority = whatsNext(State.ID, State.chapter, State.verse)
@@ -110,9 +111,6 @@ class State:
     # Called when the end of file is reached
     def addEOF(self):
         State.usfm_file.close()
-        # State.data = ""
-        # State.chapter = 0
-        # State.verse = 0
         State.lastRef = State.reference
         State.lastEntity = EOF
         State.neednext = {ID}
@@ -141,7 +139,7 @@ def takeChapter(cstr, nchap):
     if State.lastEntity == TITLE:
         writeHeader(state.usfm_file, state.ID, state.data)
     elif state.data:
-        state.usfm_file.write(state.data + "\n")
+        state.usfm_file.write(re.sub(" +", " ", state.data) + "\n")
     state.usfm_file.write("\\c " + str(nchap) + "\n")
     if len(cstr) > len(str(nchap)):
         state.usfm_file.write("\\cl " + cstr + "\n")
@@ -154,7 +152,7 @@ vrange_re = re.compile(r'([0-9])+-([0-9]+)')
 def takeVerse(vstr):
     state = State()
     if state.data:
-        state.usfm_file.write(state.data + "\n")
+        state.usfm_file.write(re.sub(" +", " ", state.data) + "\n")
     state.usfm_file.write("\\v " + vstr + " ")
     if range := vrange_re.search(vstr):
         state.addVerse(range.group(1))
@@ -191,6 +189,11 @@ def take(s, lineno):
             state.missingChapter(state.chapter+1)
     elif state.priority == VERSE:
         (pretext, vv, remainder) = getvv(s, state.verse+1)
+        if not vv:
+            (pretext, vv, remainder) = getvv(s, state.verse+2)
+            missingVerse = f"{state.ID} {state.chapter}:{state.verse+1}"
+            if vv:
+                reportError(f"Skipping {missingVerse}.")
         if vv:
             if pretext:
                 take(pretext, lineno)
@@ -203,6 +206,8 @@ def take(s, lineno):
             state.addText(s)
         else:
             reportError("Expected verse not found. (" + state.reference + str(state.verse+1) + ", line " + str(lineno) + ")")
+            if state.chapter > 0 and state.verse == 0:
+                reportError(f"Is {state.ID} {state.chapter-1}:{state.chapter} missing?")
     elif state.priority == TEXT:
         (pretext, vv, remainder) = getvv(s, state.verse+1)
         if vv:
@@ -232,8 +237,8 @@ def getvv(s, n):
             vv = s[pos:range.end()]
         else:
             vv = str(n)
-        if len(s) > pos + 1 + len(vv):
-            remainder = s[pos + 1 + len(vv):]
+        if len(s) > pos + len(vv):
+            remainder = s[pos + len(vv):]
         else:
             remainder = ""
     return (pretext, vv, remainder)
@@ -368,7 +373,7 @@ def convertBook(path, bookId):
         if len(line) > 0:
             take(line, lineno)
     if state.data and state.chapter > 0:
-        state.usfm_file.write(state.data + '\n')
+        state.usfm_file.write(re.sub(" +", " ", state.data) + '\n')
     state.addEOF()
     if state.missing_chapters:
         reportError("Chapter number " + str(state.chapter+1) + " not found in " + shortname(path))
