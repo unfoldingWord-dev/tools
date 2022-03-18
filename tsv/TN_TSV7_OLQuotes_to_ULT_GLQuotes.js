@@ -2,27 +2,46 @@ const Axios = require("axios");
 const YAML = require('js-yaml-parser');
 const xre = require('xregexp');
 const deepcopy = require('deepcopy');
+const path = require("path");
+const fse = require('fs-extra');
 
 const { readTsv } = require('uw-proskomma/src/utils/tsv');
 const { rejigAlignment } = require('uw-proskomma/src/utils/rejig_alignment');
 // const { doAlignmentQuery } = require('uw-proskomma/src/utils/query');
 const { pruneTokens, slimSourceTokens } = require('uw-proskomma/src/utils/tokens');
 const { UWProskomma } = require('uw-proskomma/src/index');
+const { exit } = require("process");
 
+BBB_NUMBER_DICT = {'GEN':'01','EXO':'02','LEV':'03','NUM':'04','DEU':'05',
+                'JOS':'06','JDG':'07','RUT':'08','1SA':'09','2SA':'10','1KI':'11',
+                '2KI':'12','1CH':'13','2CH':'14','EZR':'15',
+                'NEH':'16',
+                'EST':'17',
+                'JOB':'18','PSA':'19','PRO':'20','ECC':'21','SNG':'22','ISA':'23',
+                'JER':'24','LAM':'25','EZK':'26','DAN':'27','HOS':'28','JOL':'29',
+                'AMO':'30','OBA':'31','JON':'32','MIC':'33','NAM':'34','HAB':'35',
+                'ZEP':'36','HAG':'37','ZEC':'38','MAL':'39',
+                'MAT':'41','MRK':'42','LUK':'43','JHN':'44','ACT':'45',
+                'ROM':'46','1CO':'47','2CO':'48','GAL':'49','EPH':'50','PHP':'51',
+                'COL':'52','1TH':'53','2TH':'54','1TI':'55','2TI':'56','TIT':'57',
+                'PHM':'58','HEB':'59','JAS':'60','1PE':'61','2PE':'62','1JN':'63',
+                '2JN':'64',
+                '3JN':'65', 'JUD':'66', 'REV':'67'};
 
 // Adapted from https://github.com/unfoldingWord-box3/uw-proskomma/blob/main/src/utils/download.js May 2021
 // Changed to accept testament as a parameter, and to only load the correct repo -- UHB or UGNT
 // Removed UST preloading
-const getDocuments = async (pk, testament, book, verbose, serialize) => {
-    const baseURLs = [testament === 'OT' ?
-        ["unfoldingWord", "hbo", "uhb", "https://git.door43.org/unfoldingWord/hbo_uhb/raw/branch/master"] :
-        ["unfoldingWord", "grc", "ugnt", "https://git.door43.org/unfoldingWord/el-x-koine_ugnt/raw/branch/master"],
-    ["unfoldingWord", "en", "ult", "https://git.door43.org/unfoldingWord/en_ult/raw/branch/master"]
+const getDocuments = async (pk, book, verbose, serialize) => {
+    const bibleDirs = [
+        ["unfoldingWord", "hbo", "uhb", path.join(resourcesDir, "hbo_uhb")],
+        ["unfoldingWord", "grc", "ugnt", path.join(resourcesDir, "el-x-koine_ugnt")],
+        // ["unfoldingWord", "en", "ust", path.join(resourcesDir, "en_ust")],
+        ["unfoldingWord", "en", "ult", path.join(resourcesDir, "en_ult")]
     ];
     verbose = verbose || false;
     serialize = serialize || false;
     if (verbose) console.log("Download USFM");
-    for (const [org, lang, abbr, baseURL] of baseURLs) {
+    for (const [org, lang, abbr, bibleDir] of bibleDirs) {
         const selectors = {
             org,
             lang,
@@ -30,40 +49,25 @@ const getDocuments = async (pk, testament, book, verbose, serialize) => {
         };
         if (verbose) console.log(`  ${org}/${lang}/${abbr}`)
         let content = [];
-        await Axios.request(
-            { method: "get", "url": `${baseURL}/manifest.yaml` }
-        )
-            .then(
-                async response => {
-                    const manifest = YAML.safeLoad(response.data);
-                    const bookPaths = manifest.projects.map(e => e.path.split("/")[1]);
-                    for (const bookPath of bookPaths) {
-                        const pathBook = bookPath.split(".")[0].split('-')[1];
-                        if (book && (pathBook !== book)) {
-                            continue;
-                        }
-                        if (verbose) console.log(`    ${pathBook}`)
-                        try {
-                            await Axios.request(
-                                { method: "get", "url": `${baseURL}/${bookPath}` }
-                            )
-                                .then(response => {
-                                    if (response.status !== 200) {
-                                        throw new Error("Bad download status");
-                                    }
-                                    content.push(response.data);
-                                })
-                        } catch (err) {
-                            if (verbose) console.log(`Could not load ${bookPath} for ${lang}/${abbr}`);
-                        }
-                    }
-                }
-            );
+        const manifest = YAML.safeLoad(fse.readFileSync(path.join(bibleDir, "manifest.yaml")));
+        const bookPaths = manifest.projects.map(e => e.path.split("/")[1]);
+        for (const bookPath of bookPaths) {
+            const pathBook = bookPath.split(".")[0].split('-')[1];
+            if (book && (pathBook !== book)) {
+                continue;
+            }
+            if (verbose) console.log(`    ${pathBook}`)
+            try {
+                content.push(fse.readFileSync(path.join(bibleDir, bookPath)).toString())
+            } catch (err) {
+                if (verbose) console.log(`Could not load ${bookPath} for ${lang}/${abbr}`);
+            }
+        }
         if (content.length === 0) {
             if (verbose) console.log(`      Book ${book} not found`);
             continue;
         }
-        if (verbose) console.log(`      Downloaded ${book} ${content.length.toLocaleString()} bytes`)
+        if (verbose) console.log(`      Read File ${book} ${content.length.toLocaleString()} bytes`)
 
         const startTime = Date.now();
         if (abbr === 'ult') { // Preprocess x-occurrence,x-occurrences,x-content into x-align="content:occurrence:occurrences" for easier handling later
@@ -75,8 +79,6 @@ const getDocuments = async (pk, testament, book, verbose, serialize) => {
         if (verbose) console.log(`      Imported in ${Date.now() - startTime} msec`);
         if (serialize) {
             // console.log(`Serializing ${abbr} ${book}…`);
-            const path = require("path");
-            const fse = require('fs-extra');
             const outDir = path.resolve(__dirname, '..', '..', 'serialized');
             // console.log(`  outDir=${outDir}`);
             fse.mkdirs(outDir);
@@ -411,7 +413,7 @@ const gl4Source = (book, cv, sourceTokens, glTokens, origLSearchString, searchOc
     // console.log(`  origLSearchTwoTuples = (${origLSearchTwoTuples.length}) ${origLSearchTwoTuples}`);
     // NOTE: We lose the Greek apostrophes (e.g., from κατ’) in the next line
     const wordLikeOrigLTokens = slimSourceTokens(sourceTokens.filter(t => t.subType === "wordLike")); // drop out punctuation, space, eol, etc., tokens
-    console.log(`  wordLikeOrigLTokens = (${wordLikeOrigLTokens.length}) ${JSON.stringify(wordLikeOrigLTokens)}`); // The length of this list is now the number of Greek words in the verse
+    //console.log(`  wordLikeOrigLTokens = (${wordLikeOrigLTokens.length}) ${JSON.stringify(wordLikeOrigLTokens)}`); // The length of this list is now the number of Greek words in the verse
     const contentTuplesWithOccurrences = contentForSearchWords(origLSearchTwoTuples, searchOccurrence, wordLikeOrigLTokens); // We needed to pass the searchOccurrence parameter thru here
     if (!contentTuplesWithOccurrences) {
         return {
@@ -524,14 +526,30 @@ const getTidiedData = (dataPairs) => {
 // Start of main code
 const pk = new UWProskomma();
 const args = process.argv.slice(2);
-const tsvPath = args[0]; // Path to TSV9 TN
-const book = tsvPath.split("/").reverse()[0].split(".")[0].split("-")[1];
-const testament = args[1] // 'OT' or 'NT'
-// const prune = (args[1] === "prune") || false;
+const resourcesDir = args[0]; // Path to the en_tn and Bible repos parent dir
+const book = args[1];
 const prune = true; // only return the matching quote -- not the entire verse text
 
+if (!fse.existsSync(resourcesDir)) {
+    console.error("no such resources dir ", resourcesDir);
+    exit(1);
+}
+const tnDir = path.join(resourcesDir, "en_tn");
+if (!fse.existsSync(tnDir)) {
+    console.error("no such TN dir ", tnDir);
+    exit(1);
+}
 
-getDocuments(pk, testament, book, true, false) // last parameters are "verbose" and "serialize"
+if (! BBB_NUMBER_DICT[book]) {
+    console.error("INVALID BOOK: "+book);
+    exit(1);
+}
+let testament = 'OT';
+if (BBB_NUMBER_DICT[book] && Number(BBB_NUMBER_DICT[book]) > 41) {
+    testament = 'NT';
+}
+
+getDocuments(pk, book, false, false) // last parameters are "verbose" and "serialize"
     .then(async () => {
         // Query Proskomma which now contains the books
         // Returns the tokens for each verse, accessible by
@@ -541,7 +559,8 @@ getDocuments(pk, testament, book, true, false) // last parameters are "verbose" 
         let nRecords = 0;
         let counts = { pass: 0, fail: 0 };
         const gl = 'ult';
-        for (const tsvRecord of readTsv(tsvPath)) {
+        let tnFile = path.join(tnDir, "en_tn_" + BBB_NUMBER_DICT[book] + "-" + book + ".tsv");
+        for (const tsvRecord of readTsv(tnFile)) {
             // console.log(`tsvRecord = ${JSON.stringify(tsvRecord)}`);
             // if (tsvRecord.chapter === '3') break;
             // if (tsvRecord.verse === '2') break;

@@ -24,6 +24,7 @@ from pathlib import Path
 import random
 import logging
 import csv
+import re
 
 english = None
 target = None
@@ -39,12 +40,12 @@ def get_source_notes() -> Tuple[str,str,str,str,str,str,str]:
         line number story number frame number reference strings
         quote note
     """
-    contents_path = target.joinpath('content/')
+    contents_path = os.path.join(target, 'content')
     print(f"      Getting content lines from {contents_path}")
 
     for story_number in range(1, 50+1):
         for frame_number in range(0, 99+1):
-            filepath = contents_path.joinpath(str(story_number).zfill(2), f'{str(frame_number).zfill(2)}.md')
+            filepath = os.path.join(contents_path, str(story_number).zfill(2), f'{str(frame_number).zfill(2)}.md')
             if os.path.exists(filepath):
                 # print(f"Found {filepath}")
                 pass
@@ -98,60 +99,83 @@ def make_TSV_file() -> Tuple[int,int]:
     print(f"    Converting OBS-TN links to TSV…")
     english_tsv_path = os.path.join(english, 'tn_OBS.tsv')
     target_tsv_path = os.path.join(target, 'tn_OBS.tsv')
+    english_header = []
+    english_rows = []
 
     # Load the previous file so we can use the same row ID fields
     try:
         with open(english_tsv_path, 'rt') as english_file:
             english_tsv = csv.reader(english_file, delimiter="\t")
-        english_tsv.pop(0) # Skip header row
-        print(f"      Loaded {len(english_tsv):,} lines from english tsv file at {english_tsv_path}")
+            english_header = next(english_tsv)
+            for row in english_tsv:
+                english_rows.append(row)
+                previously_generated_ids.append(row[1])
+            print(f"      Loaded {len(english_tsv):,} lines from english tsv file at {english_tsv_path}")
     except Exception as e:
         if 'No such file' in str(e):
             print(f"      No existing file to preload row IDs: {english_tsv_path}")
         else:
             print(f"      Failed to load {english_tsv_path}: {e}")
-        english_tsv = []
 
     # Add all the existing English IDs just to make sure we don't generate a new one the same
-    for row in english_tsv:
-        previously_generated_ids.append(row[1])
 
-    def get_rowFromOriginal(reference:str) -> str:
+    def get_rowFromOriginal(row):
         """
         """
-        # print(f"{BBB} get_rowID({reference}, {tags=}, {quote=}, {occurrence}, {note=})…")
-        found_id = None
+        story_str, frame_str = row[0].split(':')
+        story = -1
+        frame = -1
         try:
-            story = int(reference.split(':')[0])
+            story = int(story_str)
+            frame = int(frame_str)
         except Exception:
-            return [reference, generate_rowID(), "", ""]
-        while len(original_TSV_TQ_lines):
-            old_reference, old_id, old_tags, old_support_reference, old_quote, old_occurrence, old_note = original_TSV_TQ_lines[0].split('\t')
-            if reference == old_reference:
-                return [reference, old_id, old_tags, old_support_reference]
-            try:
-                old_story = int(old_reference.split(':')[0])
-            except Exception:
-                old_story = 0
-            if old_story > story:
-                return None
-            original_TSV_TQ_lines.pop(0)
+            pass
+        while len(english_rows) and story >= 0 and frame >= 0:
+            old_reference, old_id, old_tags, old_support_reference, _, _, _ = english_rows[0]
+            print(old_support_reference)
+            print(row[3])
+            if row[0] == old_reference and old_support_reference == row[4]:
+                english_rows.pop(0)
+                row[1] = old_id
+                row[2] = old_tags
+                return row
+            else:
+                old_story_str, old_frame_str = old_reference.split(':')
+                try:
+                    old_story = int(old_story_str)
+                    old_frame = int(old_frame_str)
+                    if old_story > story or (old_story == story and old_frame > frame):
+                        break
+                    else:
+                        english_rows.pop(0)
+                except Exception:
+                    break
+        row[1] = generate_rowID()
+        return row
     #end of make_TSV_file.get_rowFromOriginal function
 
+    def write_row(row, target_tsv):
+        match = re.match(r'.*(rc://[*a-zA-Z0-9_/-]+).*', row[6])
+        if match:
+            row[3] = match[1]
+            print(row)
+            print(match)
+            exit(1)
+        row = get_rowFromOriginal(row)
+        target_tsv.writerow(row)
+
     num_quotes = 0
-    with open(target_tsv_path, 'wt') as output_TSV_file:
-        writer = csv.writer(output_TSV_file, delimiter='\t', quoting=csv.QUOTE_MINIMAL)
-
-        output_TSV_file.writerow(['Reference', 'ID', 'Tags', 'SupportReference', 'Quote', 'Occurrence', 'Note'])
+    with open(target_tsv_path, 'wt') as target_tsv_file:
+        target_tsv = csv.writer(target_tsv_file, delimiter='\t', quoting=csv.QUOTE_MINIMAL)
+        target_tsv.writerow(english_header)
+        row = None
         for j, (_line_number,story_number,frame_number,quote,note) in enumerate(get_source_notes(), start=1):
-            # print(f"{_j:3}/ Line {line_number:<5} {BBB} {C:>3}:{V:<3} '{quote}' {note}")
-
             reference = f'{story_number}:{frame_number}'
-            tags = ''
-            support_reference = ''
-
             note = note.strip()
             note = note.replace('<br>', '\\n')
+
+            if quote and row:
+                write_row(row, target_tsv)
 
             if quote: # Normally quote is an English OBS quote
                 quote = quote.strip()
@@ -162,19 +186,15 @@ def make_TSV_file() -> Tuple[int,int]:
 
                 occurrence = '1' # default assumption -- could be wrong???
 
-                row = get_rowFromOriginal(reference)
-
-                output_line = f'{reference}\t{row_id}\t{tags}\t{support_reference}\t{quote}\t{occurrence}\t{note}'
-                if j > 1: output_line = f'\n{output_line}'
-                output_TSV_file.write(output_line)
+                row = [reference, '', '', '', quote, occurrence, note]
                 num_quotes += 1
-            else: # We have a continuation line
-                output_TSV_file.write(f'\\n\\n{note}')
-        output_TSV_file.write('\n')
+            elif row and len(row) >= 7: # We have a continuation line
+                row[6] += f"\\n\\n{note}"
+        if row:
+            write_row(row, target_tsv)
     print(f"      {num_quotes:,} quotes and notes written")
     return num_quotes
 # end of make_TSV_file function
-
 
 def main():
     """
@@ -204,7 +224,7 @@ if __name__ == '__main__':
         print(f"Path does not exist: {target}")
         sys.exit(1)
     if not english:
-        enlish = os.path.join(os.path.dirname(target), "en_obs-tn")
+        english = os.path.join(os.path.dirname(target), "en_obs-tn")
     if not os.path.exists(english):
         print(f"Unable to find the English repo at {english}")
         sys.exit(1)

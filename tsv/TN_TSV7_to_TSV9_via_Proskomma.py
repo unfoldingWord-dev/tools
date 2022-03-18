@@ -27,11 +27,11 @@ import logging
 import subprocess
 
 
-LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
-LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_tn2/')
+LOCAL_SOURCE_BASE_FOLDERPATH = Path('/Users/richmahn/repos/git.door43.org/')
+LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_tn/')
 
 # The output folder below must also already exist!
-LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_tn/')
+LOCAL_OUTPUT_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_tn_TSV9/')
 
 BBB_NUMBER_DICT = {'GEN':'01','EXO':'02','LEV':'03','NUM':'04','DEU':'05',
                 'JOS':'06','JDG':'07','RUT':'08','1SA':'09','2SA':'10','1KI':'11',
@@ -49,7 +49,7 @@ BBB_NUMBER_DICT = {'GEN':'01','EXO':'02','LEV':'03','NUM':'04','DEU':'05',
                 '2JN':'64',
                 '3JN':'65', 'JUD':'66', 'REV':'67' }
 
-HELPER_PROGRAM_NAME = 'TN_TSV7_OLQuotes_to_ULT_GLQuotes.js'
+HELPER_PROGRAM_NAME = 'TN_TSV7_OLQuotes_to_UST_GLQuotes.js'
 
 
 def get_TSV7_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str,str,str,str]:
@@ -122,14 +122,14 @@ def convert_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str, nn:st
 
     # Now use Proskomma to find the ULT GLQuote fields for the OrigQuotes in the temporary outputted file
     print(f"      Running Proskomma to find GL quotes for {testament} {BBB}… (might take a few minutes)")
-    completed_process_result = subprocess.run(['node', HELPER_PROGRAM_NAME, temp_output_filepath, testament], capture_output=True)
-    # print(f"Proskomma {BBB} result was: {completed_process_result}")
+    completed_process_result = subprocess.run(['node', HELPER_PROGRAM_NAME, temp_output_filepath, "LUK"], capture_output=True)
+    print(f"Proskomma {BBB} result was: {completed_process_result}")
     if completed_process_result.returncode:
         print(f"      Proskomma {BBB} ERROR result was: {completed_process_result.returncode}")
     if completed_process_result.stderr:
         print(f"      Proskomma {BBB} error output was:\n{completed_process_result.stderr.decode()}")
     proskomma_output_string = completed_process_result.stdout.decode()
-    # print(f"Proskomma {BBB} output was: {proskomma_output_string}") # For debugging JS helper program only
+    print(f"Proskomma {BBB} output was: {proskomma_output_string}") # For debugging JS helper program only
     output_lines = proskomma_output_string.split('\n')
     if output_lines:
         # Log any errors that occurred -- not really needed now coz they go to stderr
@@ -194,7 +194,7 @@ def main():
     total_GLQuote_failures = 0
     failed_book_list = []
     for BBB,nn in BBB_NUMBER_DICT.items():
-        # if BBB != 'EZR': continue # Just process this one book
+        if BBB != 'LUK': continue # Just process this one book
         # if BBB not in ('MAT','MRK','LUK','JHN', 'ACT',
         #                 'ROM','1CO','2CO','GAL','EPH','PHP','COL',
         #                 '1TH','2TH','1TI','2TI','TIT','PHM',

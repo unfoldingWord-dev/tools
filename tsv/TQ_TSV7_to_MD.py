@@ -25,7 +25,7 @@ import re
 import logging
 
 
-LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
+LOCAL_SOURCE_BASE_FOLDERPATH = Path('/Users/richmahn/repos/git.door43.org')
 LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('en_tq2/')
 
 # The output folder below must also already exist!
