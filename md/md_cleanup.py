@@ -9,6 +9,7 @@
 # while restoring the heading levels closer to their intended order.
 # The program promotes the first heading found to a level 1,
 #   and normalizes the subsequent heading levels.
+# For tQ and tW resources, demotes level 1 headings to level 2, after the first line.
 # The success of the algorithm is affected by the consistency of the translator in assigning
 # the original heading levels.
 # All the above program behavior is optional. Set suppress1 if you don't want it.
@@ -17,6 +18,7 @@
 # Outputs files of the same name in the same location.
 #
 # Additional behavior:
+#   Removes BOM, if any.
 #   Converts malformed heading marks "# #"
 #   Removes blank lines between markdown list items.
 #   Assures blank links before and after header lines.
@@ -25,7 +27,11 @@
 #   Removes gratutious formatting asterisks from header lines.
 #
 # Also expands incomplete references to tA articles.
-# For example, expands Vidi: figs_metaphor to Vidi: [[rc://*/ta/man/translate/figs-metaphor]]
+#   For example, expands Vidi: figs_metaphor to Vidi: [[rc://*/ta/man/translate/figs-metaphor]]
+# Replaces non-ASCII text in tA links with the string "placeholder".
+# Removes trailing right parentheses if line contains no left parens.
+# Add trailing right paren if a line contain one unmatched left paren near end of line.
+
 
 import re       # regular expression module
 import io
@@ -36,15 +42,14 @@ from filecmp import cmp
 import codecs
 
 # Globals
-source_dir = r'C:\DCS\Kannada\kn_tw.work\bible\other\virgin.md'
-language_code = 'kn'
-resource_type = 'tw'
+source_dir = r'C:\DCS\Cebuano\ceb_tn'
+language_code = 'ceb'
+resource_type = 'tn'
 server = 'DCS'     # DCS or WACS
 
 nChanged = 0
-max_files = 1111
+max_files = 11111
 
-placeholder_heading = ""
 import substitutions    # change substitutions modules as necessary; generic one is just "substitutions"
 
 suppress1 = False       # Suppress hash mark cleanup
@@ -120,6 +125,7 @@ def fixLists(alltext):
 
 # Calculates and returns the new header level.
 # Updates the truelevel list.
+# Returns the new current level
 def shuffle(truelevel, nmarks, currlevel):
     newlevel = currlevel
     if nmarks > len(truelevel) - 1:     # happens on lines with a lot of gratuitous ##### ## ## ## ##
@@ -149,7 +155,7 @@ def fixHeadingFormats(str):
         text += line + '\n'
     return text
 
-    # Normalizes markdown heading levels.
+# Normalizes markdown heading levels.
 # Removes training blanks from header lines.
 def fixHeadingLevels(str):
     nChanges = 0
@@ -157,10 +163,11 @@ def fixHeadingLevels(str):
     lines = str.splitlines()
     currlevel = 0
     truelevel = [0,1,2,3,4,5,6,7,8,9]
-        # each position in the array represents the calculate true header level for that number of hash marks.
+        # each position in the array represents the calculated true header level for that number of hash marks.
         # To start, the number of hash marks is assumed to be the true level.
         # This array is modified by the shuffle() function.
 
+    lineno = 1
     for line in lines:
         header = hash_re.match(line, 0)
         if header:
@@ -170,7 +177,11 @@ def fixHeadingLevels(str):
                 line = '#' * newlevel + ' ' + line[header.end():]
                 nChanges += 1
             currlevel = newlevel
+        if lineno > 1 and currlevel == 1 and resource_type in {'tw','tq'}:
+            currlevel = 2       # tQ and tW resources should have no level 1 headings after the first line
+            line = "#" + line
         text += line.rstrip() + '\n'
+        lineno += 1
     return text
 
 validlink_re = re.compile(r'/([0-9][0-9])\.md$')
@@ -236,11 +247,6 @@ def fixMdLinks(str):
     return newstr
 
 inlinekey = []      # These are the strings that are actually replaced
-#inlinekey.append( re.compile(r'[：\:\(/ ]figs_(\w*)', flags=re.UNICODE) )
-#inlinekey.append( re.compile(r'[：\:\(/ ]translate_(\w*)', flags=re.UNICODE) )
-#inlinekey.append( re.compile(r'[：\:\(/ ]writing_(\w*)', flags=re.UNICODE) )
-#inlinekey.append( re.compile(r'[：\:\(/ ]guidelines_(\w*)', flags=re.UNICODE) )
-#inlinekey.append( re.compile(r'[：\:\(/ ]bita_(\w*)', flags=re.UNICODE) )
 inlinekey.append( re.compile(r'figs_(\w*)', flags=re.UNICODE) )
 inlinekey.append( re.compile(r'translate_(\w*)', flags=re.UNICODE) )
 inlinekey.append( re.compile(r'writing_(\w*)', flags=re.UNICODE) )
@@ -254,7 +260,7 @@ newstring.append( 'guidelines-' )
 newstring.append( 'bita-' )
 
 # Replaces primitive tA links (those that match something in inlinekey[])
-def fixTaLinks(str):
+def fixTaUnderscores(str):
     text = ""
     count = 0
     lines = str.splitlines()
@@ -295,8 +301,29 @@ def getChapterNumber(str):
         chapno = 0
     return chapno
 
+rclink_re = re.compile(r'([\(\[] *rc://[\*a-z0-9\-\./]+/)(.*?)([a-z0-9\-\./]*[\)\]])')
+
+# Replace non-ASCII parts of rc links with "placeholder" text.
+# This is necessary because on 2/18/22 I discovered that non-ASCII link can disable
+# the whole rendering engine on door43.org. (Example: https://git.door43.org/STR/mr_tw/bible/kt/hebrew.md)
+def fixRcLinks(str):
+    newstr = ""
+    temp = str
+    rclink = rclink_re.search(str)
+    while rclink:
+        if not rclink.group(2).isascii():
+            newstr += str[0:rclink.start()] + rclink.group(1) + "placeholder" + rclink.group(3)
+        else:
+            newstr += str[0:rclink.end()]
+        str = str[rclink.end():]
+        rclink = rclink_re.search(str)
+    newstr += str
+    return newstr
+
+
 reflink_re = re.compile(r'\[+rc://[\*\w]+/bible/notes/(\w\w\w)/(\d+)/(\d+)\]+', flags=re.UNICODE)     # very old style bible/notes links
 
+# Convert legacy format note links to standard form.
 def fixRefLinks(path, str):
     chappath = os.path.dirname(path)
     mychap = getChapterNumber(os.path.basename(chappath))
@@ -430,7 +457,8 @@ def convertWholeFile(source, target):
             convertme = True
             break
     if convertme:
-        text = fixTaLinks(text)
+        text = fixTaUnderscores(text)
+    text = fixRcLinks(text)
     text = fixTnLinks(text)
     text = fixMdLinks(text)
     text = fixRefLinks(source, text)
@@ -470,8 +498,14 @@ paren_re = re.compile(r'[^)]\)$', re.UNICODE)   # ends with single but not doubl
 
 # Returns line with some corrections made
 def cleanupLine(line):
-    line = line.rstrip("\n\t \[\(\{")
+    line = line.rstrip("\n\t \[\(\{#")
     line = line.lstrip("\]\)\}")
+    if line.count("(") == 0:
+        line = line.rstrip(")")
+    if line.count("(") - 1 == line.count(")"):
+        lastleft = line.rfind("(")
+        if lastleft > len(line) - 100 and lastleft > line.rfind(")"):
+            line = line + ")"
     nBoldmarks = line.count("**")
     if nBoldmarks == 1 and line.count("*") % 2 == 0:   # orphaned '**' is a common error
         line = line.replace("**", "")
@@ -513,8 +547,8 @@ def convertByLine(source, target):
             linetype = BLANK
         elif line[0] == '#':
             linetype = HEADER
-            if blankheading_re.match(line) and len(placeholder_heading) > 0:
-                line += " " + placeholder_heading
+            if blankheading_re.match(line) and resource_type in {'tq','tn'}:
+                line += " ??"
         else:
             linetype = TEXT
             if found := listjam_re.match(line):
@@ -560,7 +594,7 @@ def convertFile(path):
     if changed:
         global nChanged
         nChanged += 1
-        sys.stdout.write("Converted " + shortname(path) + "\n")
+        sys.stdout.write("Changed " + shortname(path) + "\n")
         bakpath = path + ".orig"
         if not os.path.isfile(bakpath):
             os.rename(path, bakpath)
@@ -593,11 +627,6 @@ def convertFolder(folder):
     sys.stdout.flush()
 
 if __name__ == "__main__":
-    if resource_type == 'tq':
-        placeholder_heading = "??"
-    elif resource_type == 'tn':
-        placeholder_heading = "(note title)"
-
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         source_dir = sys.argv[1]
 
