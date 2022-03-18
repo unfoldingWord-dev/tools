@@ -5,7 +5,8 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Spanish-es-419\es-419_ulb.lversaw\41-MAT.usfm'
+#source_dir = r'C:\DCS\Assamese\ULB\convert\mal.usfm'
+source_dir = r'C:\DCS\Assamese\as_ulb.RPP\39-MAL.usfm'
 language_code = 'as'
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
@@ -14,8 +15,9 @@ suppress3 = True     # Suppress bad punctuation warnings
 suppress4 = False     # Suppress warnings about useless markers before section markers
 suppress5 = False     # Suppress checks for verse counts
 suppress9 = False     # Suppress warnings about ASCII content
+max_chunk_length = 4
 
-if language_code in {'en','es-419','gl','ha','hr','id','nag','pmy','sw','tpi'}:    # ASCII content
+if language_code in {'en','es','es-419','gl','ha','hr','id','nag','pmy','sw','tpi'}:    # ASCII content
     suppress9 = True
 if language_code == 'ru':
     suppress5 = True
@@ -34,6 +36,7 @@ import footnoted_verses
 import usfm_verses
 import re
 import usfm_utils
+from datetime import date
 
 # Marker types
 PP = 1      # paragraph or quote
@@ -102,7 +105,7 @@ class State:
         State.textOkayHere = False
         State.lastRef = State.reference
         State.reference = State.ID + " " + c
-        State.startChunkRef = State.reference
+        State.startChunkRef = State.reference + ":1"
         State.currMarker = OTHER
 
     def addParagraph(self):
@@ -217,7 +220,7 @@ def openIssuesFile():
             if not os.path.exists(bakpath):
                 os.rename(path, bakpath)
         issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
-
+        issuesFile.write(f"Issues generated {date.today()} from {source_dir}\n------------\n")
     return issuesFile
 
 # Writes error message to stderr and to issues.txt.
@@ -242,8 +245,8 @@ def emptyVerseCheck():
 
 def longChunkCheck():
     state = State()
-    if state.verse - 3 > state.startChunkVerse:
-        reportError("Long chunk starting at: " + state.startChunkRef)
+    if state.verse - (max_chunk_length-1) > state.startChunkVerse:
+        reportError("Long chunk: " + state.startChunkRef + "-" + str(state.verse) + "   (" + str(state.verse-state.startChunkVerse+1) + " verses)")
 
 
 # Verifies that at least one book title is specified, other than the English book title.
@@ -339,7 +342,7 @@ def takeFootnote(token):
 def takeP():
     state = State()
     if state.currMarker in {QQ,PP} and not suppress4:
-        reportError("Warning: \"useless \p or \q before paragraph marker\" at: " + state.reference)
+        reportError("Warning: useless \p or \q before paragraph marker after: " + state.reference)
     state.addParagraph()
 
 
@@ -352,9 +355,9 @@ def takeSection():
     if not suppress4:
         state = State()
         if state.currMarker == PP:
-            reportError("Warning: \"useless paragraph {p,m,nb} marker before section marker\" at: " + state.reference)
+            reportError("Warning: useless paragraph {p,m,nb} marker before section marker at: " + state.reference)
         elif state.currMarker == QQ:
-            reportError("Warning: \"useless \q before section marker\" at: " + state.reference)
+            reportError("Warning: useless \q before section marker at: " + state.reference)
 
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 vinvalid_re = re.compile(r'[^\d\-]')
