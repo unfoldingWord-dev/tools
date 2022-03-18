@@ -16,6 +16,7 @@
 # Counts open and closed parentheses, open and closed brackets. (not markdown-specific)
 # Reports files that have purely ASCII content.
 # Reports files that have a UTF-8 Byye Order Mark (BOM)
+# Reports missing title.md and sub-title.md files in tA.
 
 
 # To-do -- check for other kinds of links in headings, not just TA links.
@@ -23,16 +24,15 @@
 #          Check that tW files begin with H1 heading immediately followed by H2 heading.
 
 # Globals
-source_dir = r'C:\DCS\Kannada\kn_tw.work\bible'
-language_code = 'kn'
-resource_type = 'tw'
-ta_dir = r'C:\DCS\Kannada\kn_ta.STR'    # Target language tA, or English tM for WA
-obstn_dir = r'C:\DCS\Kannada\kn_obs-tn'
+source_dir = r'C:\DCS\Cebuano\ceb_tn'
+language_code = 'ceb'
+resource_type = 'tn'
+ta_dir = r'C:\DCS\Gujarati\gu_ta.STR'    # Target language tA, or English tM for WA
+obstn_dir = r'C:\DCS\Nepali\ne_obs-tn.STR'
 en_tn_dir = r'C:\DCS\English\en_tn.md-orig'
 en_tq_dir = r'C:\DCS\English\en_tq.v18'
-tn_dir = r'C:\DCS\Kannada\kn_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
-#tn_dir = r'C:\DCS\English\en_tn.md-orig'
-tw_dir = r'C:\DCS\Kannada\kn_tw.STR'
+tn_dir = r'C:\DCS\Cebuano\ceb_tn'    # Markdown-style tN folder in target language, for note link validation
+tw_dir = r'C:\DCS\Gujarati\gu_tw.RPP'
 
 nChecked = 0
 nChanged = 0
@@ -49,21 +49,22 @@ suppress7 = False    # Suppress warnings about file starting with blank line
 suppress8 = False    # Suppress warnings about blank lines before, after, and within lists
 suppress9 = False    # Suppress warnings about ASCII content
 suppress10 = False   # Suppress warnings about heading levels
-suppress11 = False    # Suppress warnings about unbalanced parentheses
+suppress11 = True    # Suppress warnings about unbalanced parentheses
 suppress12 = False     # Suppress warnings about newlines at end of file
 suppress13 = False     # Suppress warnings about mistmatched **
-suppress14 = True     # Suppress "invalid note link" warnings
+suppress14 = False     # Suppress "invalid note link" warnings
 suppress15 = True     # Suppress punctuation warnings.
 suppress16 = False     # Suppress warnings about empty files
 suppress17 = (resource_type != 'tn')  # Suppress the missing intro.md file warning, which applies only to tN resources
 suppress18 = False     # Suppress warnings about newline in title.md files
 suppress19 = False     # Suppress "should be a header here" warnings
 suppress20 = False      # Suppress "invalid TA page reference" warnings
+suppress21 = False       # Suppress missing title/subtitle files warnings.
 
 if resource_type == "ta":
     suppress1 = True
     suppress7 = True
-if language_code in {'en','es-419','ha','hr','id','nag','plt','pmy','pt-br','sw'}:    # ASCII content
+if language_code in {'ceb','en','es-419','ha','hr','id','nag','plt','pmy','pt-br','sw'}:    # ASCII content
     suppress9 = True
 
 # Markdown line types
@@ -292,7 +293,10 @@ def take(line):
                 reportError("level 1 heading after line 1")
             elif state.currheadinglevel > state.prevheadinglevel + 1:
                 if resource_type != "ta" or state.prevheadinglevel > 0:
-                    reportError("heading level incremented by more than one level")
+                    if resource_type == 'tw' and state.prevheadinglevel == 0:
+                        reportError("does not begin with H1 header")
+                    else:
+                        reportError("heading level incremented by more than one level")
 
     # In a tW file, the third line must be an H2 heading
     if resource_type == 'tw' and state.linecount == 3 and (state.currlinetype != HEADING or state.currheadinglevel != 2):
@@ -323,7 +327,7 @@ def take(line):
 #                reportError("invalid ordered list style")
     checkLineContents(line)
 
-toobold_re = re.compile(r'#+[ \t]+[\*_]', re.UNICODE)        # unwanted formatting in headings
+toobold_re = re.compile(r'#+[ \t]+.*[\*_]', re.UNICODE)        # unwanted formatting in headings
 unexpected_re = re.compile(r'\([^\)\[]*\]', re.UNICODE)         # ']' after left paren
 unexpected2_re = re.compile(r'\[[^\]\(]*\)', re.UNICODE)         # ')' after left square bracket
 unexpected3_re = re.compile(r'^[^\[]*\]', re.UNICODE)            # ']' before '['
@@ -349,10 +353,10 @@ def checkLineContents(line):
             reportError("Line contains quadruple asterisks, ****")
         elif '***' in line:
             reportError("Line contains triple asterisks, ***")
-        if "**_" in line:
-            reportError("Line contains **_")
-        if "_**" in line:
-            reportError("Line contains _**")
+        #if "**_" in line:
+            #reportError("Line contains **_")
+        #if "_**" in line:
+            #reportError("Line contains _**")
     if not suppress13 and line.count("__") % 2 == 1:
         reportError("Line seems to have mismatched '__'")
     #if "___" in line:
@@ -368,14 +372,25 @@ def checkLineContents(line):
     if '[[[' in line or '[[[' in line or '(((' in line or ')))' in line:
         reportError("Extra parens or brackets")
     if line.count("[") != line.count("]"):
-        reportError("Unbalanced brackets within this line")
+        reportError("Unbalanced brackets within this line: " + str(line.count("[")) + ":" + str(line.count("]")))
     if not suppress11 and line.count("(") != line.count(")"):
-        reportError("Unbalanced parens within this line")
+        reportError("Unbalanced parens within this line: " + str(line.count("(")) + ":" + str(line.count(")")))
+
+rclink2_re = re.compile(r'rc:[a-z0-9\-\.\*/]+(.*?)[\)\]]')
+
+# Reports an error if the line contains any corrupted RC links (containing non-ASCII characters).
+def checkTranslatedLinks(line):
+    links = re.finditer(rclink2_re, line)
+    for link in links:
+        if not link.group(1).isascii():
+            reportError("Has corrupted rc link")
+        if link.group(0).startswith("rc://*/ta") and not link.group(0).startswith("rc://*/ta/man/"):
+            reportError("ta link must start with ta/man in order to render")
 
 unbracketed_re = re.compile(r'[^\[][^\[][^\[]rc\://')
 altbracketed_re = re.compile(r'.\] *\( *rc\://.*\)')
 
-# Returns True if the text (one line from a file) contains an RC link that is not bracketed
+# Reports an error if the text (one line from a file) contains an RC link that is not bracketed
 def checkUnbracketedLinks(text):
     unbracketed = False
     found = unbracketed_re.search(text)
@@ -384,7 +399,6 @@ def checkUnbracketedLinks(text):
         if not altfound:
             unbracketed = True
             reportError("Unbracketed RC link")
-    return unbracketed
 
 # Looks for underscores in TA links.
 # Looks for :en: and rc://en in the line
@@ -401,7 +415,6 @@ def checkUnconvertedLinks(line):
 tapage_re = re.compile(r'\[\[.*?/ta/man/(.*?)]](.*)', flags=re.UNICODE)
 talink_re = re.compile(r'(\(rc://[\*\w\-]+/ta/man/)(.+?/.+?)(\).*)', flags=re.UNICODE)
 obsJpg_re = re.compile(r'https://cdn.door43.org/obs/jpg/360px/obs-en-[0-9]+\-[0-9]+\.jpg$', re.UNICODE)
-reversedlink_re = re.compile(r'\(.*\) *\[.*\]', flags=re.UNICODE)
 
 # Parse tA manual page names from the line.
 # Verifies the existence of the referenced page.
@@ -441,6 +454,7 @@ rcgoodlink_re = re.compile(r'rc://[\w\-\*]+/t', re.UNICODE)
 def checkMdLinks(line, fullpath):
     checkUnconvertedLinks(line)
     checkUnbracketedLinks(line)
+    checkTranslatedLinks(line)
     text = line
     rclink = rclink_re.search(text)
     while rclink:
@@ -547,12 +561,16 @@ def checkRelativeLink(link, currpath):
     if resource_type == 'tw':
         folder = os.path.join(tw_dir, os.path.basename(current_dir))
     elif resource_type == 'ta':
-        folder = os.path.join(ta_dir, os.path.basename(current_dir))
+        category_dir = os.path.basename( os.path.dirname(current_dir))
+        folder = os.path.join(ta_dir, category_dir)
+        folder = os.path.join(folder, os.path.basename(current_dir))
     else:
         folder = current_dir
     referencedPath = os.path.join(folder, link)
     if not os.path.isfile(referencedPath):
         reportError("invalid relative link: " + link)
+
+reversedlink_re = re.compile(r'\(.*\) *\[.*\]', flags=re.UNICODE)
 
 def checkReversedLinks(line):
     if reversedlink_re.search(line):
@@ -776,7 +794,8 @@ def verify_ta_article(dirpath):
     for path in [os.path.join(dirpath, "title.md"), os.path.join(dirpath, "sub-title.md")]:
         state.setPath(path)
         if not os.path.isfile(path):
-            reportError("Missing file", False)
+            if not suppress21:
+                reportError("Missing file", False)
         else:
             checkForBOM(path)
             verifyTitleFileLineEndings(path)
