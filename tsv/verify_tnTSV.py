@@ -19,12 +19,11 @@
 # A lot of these checks are done by tsv2rc.py as well.
 
 # Globals
-source_dir = r'C:\DCS\Russian\ru_tn.STR'
-language_code = 'ru'
+source_dir = r'C:\DCS\Marathi\TN'
+language_code = 'mr'
 source_language = 'en'         # The language that the notes are translated from, usually en
-#ta_dir = r'C:\DCS\English\en_tA.v13'    # English tA
-ta_dir = r'C:\DCS\Russian\ru_ta.STR'    # Use Target language tA if available
-obs_dir = r'C:\DCS\Russian\ru_obs.STR\content'
+ta_dir = r'C:\DCS\Marathi\mr_ta.STR'    # Use Target language tA if available
+obs_dir = r'C:\DCS\Hindi\hi_obs.STR\content'
 
 suppress1 = False    # Suppress warnings about text before first heading and TA page references in headings
 suppress2 = False    # Suppress warnings about blank headings
@@ -34,11 +33,12 @@ suppress5 = True     # Suppress warnings about invalid passage links (don't know
 suppress6 = False    # Suppress warnings about invalid OBS links
 suppress7 = False    # Suppress warnings about file starting with blank line
 suppress9 = False    # Suppress warnings about ASCII content in note.
-suppress10 = False   # Suppress warnings about heading levels
+suppress10 = True   # Suppress warnings about heading levels
 suppress11 = False    # Suppress warnings about unbalanced parentheses
 suppress12 = False    # Suppress warnings about markdown syntax in 1-line notes
 suppress13 = False    # Suppress warnings about multiple lines in non-intro notes
-suppress14 = False    # Suppress warnings about mismatched SupportReference and TA page references
+suppress14 = True    # Suppress warnings about mismatched SupportReference and TA page references
+suppress15 = True    # Suppress warnings each and every blank note (Only report number of blank notes.)
 
 if language_code in {'hr','id','nag','pmy','sw','en','es-419'}:    # Expect ASCII content with these languages
     suppress9 = True
@@ -71,6 +71,7 @@ class State:        # State information about a single note (a single column 9 v
     def setPath(self, path ):
         State.path = path
         State.addRow(self, None)
+        State.nBlanknotes = 0
 
     def addRow(self, locator):
 #        State.key = key             # "<ID>.<verse>.<chapter>"  only needed if referencing English notes
@@ -94,11 +95,13 @@ class State:        # State information about a single note (a single column 9 v
         State.underscores = 0
         State.ascii = True      # In column 9 only
         State.nerrors = 0
-    
+
     def addSimpleNote(self, note):
         State.addLine(self, note)
         State.md_lineno = 0
-    
+        if State.currlinetype == BLANKLINE:
+            State.nBlanknotes += 1
+
     def addLine(self, line):
         State.prevlinetype = State.currlinetype
         State.md_lineno += 1
@@ -124,7 +127,7 @@ class State:        # State information about a single note (a single column 9 v
         State.linetype.append(State.currlinetype)
         if State.ascii and not line.isascii():
             State.ascii = False
-    
+
     # Resets markdown line number to indicate end of line by line checking
     def closeNote(self):
         State.md_lineno = 0     # impacts error message format
@@ -138,7 +141,7 @@ class State:        # State information about a single note (a single column 9 v
         State.leftcurly += line.count("{")
         State.rightcurly += line.count("}")
         State.underscores += line.count('_')
-        
+
     def reportedError(self):
         State.nerrors += 1
 
@@ -179,23 +182,26 @@ def issuesFile():
 
 # Writes error message to stderr and to issues.txt.
 # locater is the first four columns of a row
-def reportError(msg):
+def reportError(msg, reportlocation = True):
     global rowno
     state = State()
     shortpath = shortname(state.path)
-    locater = state.locator     # the first four columns of a row
-    id = ""
-    if locater:
-        id = locater[3]
-        if len(id) > 8:
-            id = id[0:8] + "..."
-    if locater and len(locater) > 3:
-        if state.md_lineno > 0:
-            issue = shortpath + ": " + locater[0] + " " + locater[1] + ":" + locater[2] + " ID=(" + id + "), row " + str(rowno) + "." + str(state.md_lineno) + ": " + msg + ".\n"
+    if reportlocation:
+        locater = state.locator     # the first four columns of a row
+        id = ""
+        if locater:
+            id = locater[3]
+            if len(id) > 8:
+                id = id[0:8] + "..."
+        if locater and len(locater) > 3:
+            if state.md_lineno > 0:
+                issue = shortpath + ": " + locater[0] + " " + locater[1] + ":" + locater[2] + " ID=(" + id + "), row " + str(rowno) + "." + str(state.md_lineno) + ": " + msg + ".\n"
+            else:
+                issue = shortpath + ": " + locater[0] + " " + locater[1] + ":" + locater[2] + " ID=(" + id + "), row " + str(rowno) + ": " + msg + ".\n"
         else:
-            issue = shortpath + ": " + locater[0] + " " + locater[1] + ":" + locater[2] + " ID=(" + id + "), row " + str(rowno) + ": " + msg + ".\n"
+            issue = shortpath + ": row " + str(rowno) + ": " + msg + ".\n"
     else:
-        issue = shortpath + ": row " + str(rowno) + ": " + msg + ".\n"
+        issue = shortpath + ": " + msg + "\n"
     sys.stderr.write(issue)
     issuesFile().write(issue)
 
@@ -228,7 +234,7 @@ def reportSuppressions():
     if suppress13:
         reportSuppression("Warnings about multiple lines in non-intro notes were suppressed")
 
-# This function, instead of take(), checks most notes.
+# This function, instead of takeSplit(), checks simple verse notes.
 # Most notes consist of a single line with no headings or lists.
 def checkSimpleNote(note):
     state = State()
@@ -236,10 +242,10 @@ def checkSimpleNote(note):
     state.addSimpleNote(note)
     if state.currlinetype in {HEADING, LIST_ITEM, ORDEREDLIST_ITEM} and not suppress12:
         reportError("Simple (1-line) note starts with markdown heading or list item")
-    elif state.currlinetype == BLANKLINE:
+    elif state.currlinetype == BLANKLINE and not  suppress15:
         reportError("Blank note")
-    if note.find("<!--") != -1 or note.find("&nbsp;") != -1 or note.find("<b>") != -1:
-        reportError("html code")
+    if note.find("<!--") != -1 or note.find("&nbsp;") != -1 or note.find("<b>") != -1 or note.find("<span") != -1:
+        reportError("html code in simple note")
 
 blankheading_re = re.compile(r'#+$')
 heading_re = re.compile(r'#+[ \t]')
@@ -248,7 +254,8 @@ badclosedHeading_re = re.compile(r'#+[ \t].*[^# \t]#+[ \t]*$', re.UNICODE)  # cl
 toobold_re = re.compile(r'#+[ \t]+[\*_]', re.UNICODE)        # unwanted formatting in headings
 headjam_re = re.compile(r'#[^# ]', re.UNICODE)          # no space after hash mark
 
-def take(line):
+# Processes a "line", which is part of all of a complex note.
+def takeSplit(line):
     state = State()
     state.countParens(line)
     state.addLine(line)
@@ -305,7 +312,7 @@ def take(line):
         reportError("Missing space after hash mark(s)")
     if len(line) > 2 and line[0:2] == '% ':
         reportError("% used to mark a heading")
-    if line.find("<!--") != -1 or line.find("&nbsp;") != -1 or line.find("o:p") != -1:
+    if line.find("<!--") != -1 or line.find("&nbsp;") != -1 or line.find("o:p") != -1 or line.find("<span") != -1:
         reportError("html code")
 
 # Looks for :en: and rc://en in the line
@@ -325,7 +332,7 @@ passagelink_re = re.compile(r']\(([^\)]*?)\)(.*)', flags=re.UNICODE)
 obsJpg_re = re.compile(r'https://cdn.door43.org/obs/jpg/360px/obs-en-[0-9]+\-[0-9]+\.jpg$', re.UNICODE)
 reversedlink_re = re.compile(r'\(.*\) *\[.*\]', flags=re.UNICODE)
 
-# Parse tA manual page names from the link.
+# Parse tA manual page names from the line.
 # Verifies the existence of the referenced page.
 def checkTALinks(line):
     found = False
@@ -354,7 +361,7 @@ def checkTALinks(line):
             if not os.path.isdir(path):
                 reportError("invalid tA link: " + manpage)
             link = talink_re.search(link.group(3))
-    return found          
+    return found
 
 # Verify tA links, note links, OBS links and passage links.
 def checkLinks(line):
@@ -439,7 +446,7 @@ def verifyNote(note, verse):
             reportError("Multiple lines in non-intro note")
         for line in lines:
             line = line.rstrip()
-            take(line)
+            takeSplit(line)
             checkLinks(line)
 #    if len(lines) <= 1 and verse != "intro":       # 1-line  note
     if verse != "intro":       # should be a simple note
@@ -527,7 +534,7 @@ def checkRow(row):
             reportError("SupportReference value does not match any tA articles mentioned in note")
     if len(row[5].strip()) > 0 and row[5].isascii():
         reportError("Invalid (ASCII) OrigQuote (column 6)")
-    if row[6] not in {'0', '1', '2'}:
+    if row[6] not in {'-1', '0', '1', '2', '3', '4'}:
         reportError("Invalid Occurrence value (should be a small number): " + row[6])
     verifyGLQuote(row[7].strip(), row[2])
     verifyNote(row[8], row[2])
@@ -576,6 +583,8 @@ def verifyFile(path):
 #            key = row[0][0:3] + "..."
             state.addRow(None)
             reportError("Wrong number of columns (" + str(nColumns) + ")")
+    if state.nBlanknotes > 0:
+        reportError("has " + str(state.nBlanknotes) + " blank notes", False)
 
 def verifyDir(dirpath):
     for f in os.listdir(dirpath):
@@ -601,7 +610,7 @@ if __name__ == "__main__":
         verifyFile(path)
         nChecked = 1
     else:
-        sys.stderr.write("Folder not found: " + source_dir + '\n') 
+        sys.stderr.write("Folder not found: " + source_dir + '\n')
 
     print("Done. Checked " + str(nChecked) + " files.\n")
     if issuesfile:
