@@ -17,10 +17,11 @@
 # Some of these conditions may be correctable with tq_tsv_cleanup.py.
 
 # Globals
-source_dir = r'C:\DCS\Telugu\TQ'
-language_code = 'te'
+source_dir = r'C:\DCS\Gujarati\TQ'
+resource_type = 'tq'
+language_code = 'gu'
 #ta_dir = r'C:\DCS\English\en_tA.v13'    # English tA
-ta_dir = r'C:\DCS\Marathi\mr_ta.STR'    # Use Target language tA if available
+ta_dir = r'C:\DCS\Gujarati\gu_ta.STR'    # Use Target language tA if available
 obs_dir = r'C:\DCS\Kannada\kn_obs\content'
 
 suppress1 = False    # Suppress warnings about text before first heading and TA page references in headings
@@ -56,7 +57,7 @@ class State:        # State information about a single response (a single column
 
     def addRow(self, locator):
         State.locator = locator     # [ <reference>, <ID> ]
-    
+
 # If issues.txt file is not already open, opens it for writing.
 # First renames existing issues.txt file to issues-oldest.txt unless
 # issues-oldest.txt already exists.
@@ -163,7 +164,7 @@ def checkTALinks(line):
             if not os.path.isdir(path):
                 reportError("invalid tA link: " + manpage)
             link = talink_re.search(link.group(3))
-    return found          
+    return found
 
 # Verify tA links, response links, OBS links and passage links.
 def checkLinks(line):
@@ -216,6 +217,12 @@ def shortname(longpath):
 
 unexpected_re = re.compile(r'\([^\)\[]*\]', re.UNICODE)         # ']' after left paren
 unexpected2_re = re.compile(r'\[[^\]\(]*\)', re.UNICODE)         # ')' after left square bracket
+formatting_re = re.compile(r'[\*_]', re.UNICODE)        # unwanted markdown formatting in headings
+
+def verifyQ(str):
+    if "*" in str or "_" in str:
+        reportError("Markdown formatting in Question")
+    verifyQR(str, "Question")
 
 # Verifies a question or response string
 def verifyQR(str, type):
@@ -252,7 +259,7 @@ def verifyQuestion(question):
         reportError("Question is marked as a heading")
     if question.count('#') > 1:
         reportError('Multiple # hash marks in Question')
-    verifyQR(question[2:], "Question")
+    verifyQ(question[2:])
 
 # Column 7 (Response) verification
 def verifyResponse(response):
@@ -305,15 +312,19 @@ def checkRow(row):
 filename_re = re.compile(r'tq_([123A-Za-z][A-Za-z][A-Za-z]).tsv')
 
 def verifyBookID(filename):
-    fname = filename_re.match(filename)
-    if fname:
-        bookid = fname.group(1).upper()
-        if bookid in usfm_verses.verseCounts.keys():
-            State().setBookID(bookid)
-        else:
-            reportError("Invalid file name; book ID appears to be " + bookid)
+    if resource_type == 'obs-tq':
+        bookid = 'OBS'
+        State().setBookID(bookid)
     else:
-        reportError("Invalid TSV file name")
+        fname = filename_re.match(filename)
+        if fname:
+            bookid = fname.group(1).upper()
+            if bookid in usfm_verses.verseCounts.keys():
+                State().setBookID(bookid)
+            else:
+                reportError("Invalid file name; book ID appears to be " + bookid)
+        else:
+            reportError("Invalid TSV file name")
 
 # Processes the rows in a single TSV file.
 def verifyFile(path, filename):
@@ -348,7 +359,7 @@ def verifyRows(path):
         else:
             state.addRow(None)
             reportError("Wrong number of columns (" + str(nColumns) + ")")
-    
+
 def verifyDir(dirpath):
     for f in os.listdir(dirpath):
         path = os.path.join(dirpath, f)
@@ -370,10 +381,10 @@ if __name__ == "__main__":
     elif os.path.isfile(source_dir):
         path = source_dir
         source_dir = os.path.dirname(path)
-        verifyFile(path)
+        verifyFile(path, os.path.basename(path))
         nChecked = 1
     else:
-        sys.stderr.write("Folder not found: " + source_dir + '\n') 
+        sys.stderr.write("Folder not found: " + source_dir + '\n')
 
     print("Done. Checked " + str(nChecked) + " files.\n")
     if issuesfile:
