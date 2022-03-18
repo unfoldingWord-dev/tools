@@ -15,6 +15,8 @@
 # Also removes double quotes that surround fields that should begin with just a markdown header.
 # Fixes links of the form rc://en/...
 # Untranslates SupportReference values that were mistakenly translated.
+# Removes trailing right parentheses if note contains no left parens.
+# Add trailing right paren if note contain one unmatched left paren near end of line.
 #
 # This script was written for TSV notes files.
 # Backs up the files being modified.
@@ -33,9 +35,9 @@ import tsv
 import substitutions    # this module specifies the string substitutions to apply
 
 # Globals
-source_dir = r'C:\DCS\Kannada\TN.Dec-21\new'  # Where are the files located
-language_code = 'kn'
-max_files = 1     # How many files do you want to process
+source_dir = r'C:\DCS\Marathi\TN'  # Where are the files located
+language_code = 'mr'
+max_files = 111     # How many files do you want to process
 nProcessed = 0
 filename_re = re.compile(r'.*\.tsv$')
 
@@ -54,12 +56,12 @@ def shuffle(truelevel, nmarks, currlevel):
         newlevel = currlevel + 1
     elif truelevel[nmarks] < currlevel:
         newlevel = truelevel[nmarks]
-    
+
     # Adjust the array
     while nmarks > 1 and truelevel[nmarks] > newlevel:
         truelevel[nmarks] = newlevel
         nmarks -= 1
-    return newlevel    
+    return newlevel
 
 header_re = re.compile(r'(#+) ', flags=re.UNICODE)
 
@@ -110,12 +112,18 @@ def fixID(row):
 # Makes corrections on the vernacular note field.
 # Trailing spaces have already been removed.
 def cleanNote(note):
-    note = note.rstrip(" #[\\")
+    note = note.rstrip(" #[\\\(")
+    if note.count("(") == 0:
+        note = note.rstrip(")")
+    if note.count("(") - 1 == note.count(")"):
+        lastleft = note.rfind("(")
+        if lastleft > len(note) - 100 and lastleft > note.rfind(")"):
+            note = note + ")"
     replacement = "rc://" + language_code + "/"
     note = note.replace("rc://*/", replacement)
     note = note.replace("rc://en/", replacement)
     note = note.replace("rc://en_ta/", "rc://" + language_code + "/ta/")
-    
+
     for pair in substitutions.subs:
         note = note.replace(pair[0], pair[1])
     note = fixSpacing(note)     # fix spacing around hash marks
@@ -157,7 +165,7 @@ def mergeRows(data):
 def cleanRow(row):
     i = 0
     while i < len(row):
-        str = row[i].strip(' ')     # remove leading and trailing spaces  
+        str = row[i].strip(' ')     # remove leading and trailing spaces
         if len(str) > 0 and str[0] == '"' and str[-1] == '"':
             str = str[1:-1]
         row[i] = str
@@ -183,7 +191,7 @@ def cleanSupportRef(value, note):
     if not value.isascii():
         if talink := tapage_re.search(note):
             value = talink.group(1)
-    return value        
+    return value
 
 # Returns a value to be used in sorting the row
 def rowValue(row):
