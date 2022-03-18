@@ -4,24 +4,25 @@
 # The resulting containers are importable to BTT-Writer or tStudio to use as source text.
 # Chunk division and paragraph locations are based on \s5 markers in the usfm files.
 # Uses parseUsfm module to parse the usfm files.
-# This script was originally written for converting Gallego RV 1909 Bible
+# This script was originally written for converting the Spanish Reina-Valera 1909 Bible
 # so that Bible could be used as a source text in BTT-Writer.
 # The input file(s) should be verified, correct USFM.
 # Before running the script, set the global variables below.
 
 # Global variables
-source_dir = r'C:\DCS\Spanish (es)\gl_spaRV1909'    # folder containing usfm files
-target_dir = r'C:\DCS\Spanish (es)\rc'
+source_dir = r'C:\DCS\Arabic-arb\arb_nav.TA\subset'    # folder containing usfm files
+target_dir = r'C:\DCS\Arabic-arb\arb_nav_rc'
 en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
 
-# Values to be copied into each of the package.json files
-language_code = 'es'
-language_name = 'Español'
-bible_id = 'sparv'      # lowercase 'ulb' or other bible identifier
-bible_name = 'Reina-Valera 1909 Bible'
-pub_date = "1909-12-31"
-license = "Public Domain"
-version = "1"
+# Values to be written into each of the package.json files
+language_code = 'arb'
+language_name = 'العربية'
+bible_id = 'nav'      # lowercase 'ulb' or other bible identifier
+bible_name = 'New Arabic Version (Ketab El Hayat)'
+direction = "rtl"
+pub_date = "2012-05-17"
+license = "CC-BY-SA 4.0"
+version = "3"
 
 import sys
 import os
@@ -56,7 +57,7 @@ class State:
     target_content_dir = ""
     target_chapter_dir = ""
     usxOutput = None
-    
+
     def addID(self, id):
         State.ID = id
         State.chapter = 0
@@ -67,7 +68,7 @@ class State:
         State.reference = id
         State.en_content_dir = os.path.join( os.path.join(en_rc_dir, "en_" + id.lower() + "_ulb"), "content")
         State.target_content_dir = os.path.join( os.path.join(target_dir, language_code + "_" + id.lower() + "_" + bible_id), "content")
-    
+
     def addTitle(self, bookTitle, mt):
         if not State.title:
             State.title = bookTitle
@@ -75,7 +76,7 @@ class State:
             State.title = bookTitle
         if mt and State.title.isascii() == bookTitle.isascii(): # \mt is highest priority title, everything else being equal
             State.title = bookTitle
-        
+
     def addChapter(self, c):
         State.lastChapter = State.chapter
         State.chapter = int(c)
@@ -117,16 +118,16 @@ class State:
         State.needingVerseText = True
         State.lastRef = State.reference
         State.reference = State.ID + " " + str(State.chapter) + ":" + v
-        
+
     def setUsxOutput(self, file):
         State.usxOutput = file
 
     def needVerseText(self):
         return State.needingVerseText
-        
+
     def saveSection(self, s):
         State.sectionPending = s
-    
+
 def printToken(token):
     if token.isV():
         print("Verse number " + token.value)
@@ -138,7 +139,7 @@ def printToken(token):
         print("Text: <" + token.value + ">")
     else:
         print(token)
-        
+
 # Removes UTF-8 Byte Order Marks (BOM) from specified file if it has one or more.
 def removeBOM(path):
     bytes_to_remove = 0
@@ -152,7 +153,7 @@ def removeBOM(path):
             raw = f.read()
     if bytes_to_remove > 0:
         with open(path, 'wb') as f:
-            f.write(raw)       
+            f.write(raw)
 
 def takeID(id):
     state = State()
@@ -179,7 +180,7 @@ def takeP(type):
     # state.usxOutput.write('<para style="' + type + '">\n\n')
 
 # Writes the section heading immediately if at the beginning of a chapter.
-# Saves the section heading if it occurs after the first verse in a chapter. 
+# Saves the section heading if it occurs after the first verse in a chapter.
 def takeS(s):
     state = State()
     if state.verse == 0:    # section heading is at the start of the chapter
@@ -201,12 +202,13 @@ def takeV(v):
 def takeText(t):
     state = State()
     if state.verse > 0:
-        state.usxOutput.write(t + "\n\n")
+        if state.usxOutput:
+            state.usxOutput.write(t + "\n\n")
     else:
-        reportError("Unhandled text before verse 1. See ", state.reference)
+        reportError("Unhandled text before verse 1. See " + state.reference)
     state.addText()
 
-# Handles each usfm token as the usfm files is parsed. 
+# Handles each usfm token as the usfm files is parsed.
 def take(token):
     state = State()
     if state.needVerseText() and not token.isTEXT():
@@ -234,7 +236,7 @@ def take(token):
             reportError("Unhandled token: " + token.type)
     global lastToken
     lastToken = token
-    
+
 # Called when a \s5 chunk marker occurs, and at the end of every chapter.
 # Closes the current usx file.
 def closeUsx():
@@ -285,6 +287,7 @@ def createManifest(en_book_dir, target_book_dir):
     package['modified_at'] = int(s)
     package['language']['slug'] = language_code
     package['language']['name'] = language_name
+    package['language']['direction'] = direction
     state = State()
     package['project']['slug'] = state.ID.lower()
     package['project']['name'] = state.title
@@ -302,7 +305,7 @@ def createManifest(en_book_dir, target_book_dir):
     package['resource']['status']['version'] = version
 
     path = os.path.join(target_book_dir, "package.json")
-    jsonFile = io.open(path, "tw", encoding='utf-8-sig')
+    jsonFile = io.open(path, "tw", encoding='utf-8', newline='\n')
     json.dump(package, jsonFile, ensure_ascii=False, indent=2)
     jsonFile.close()
     removeBOM(path)     # because tStudio/BTTW chokes on BOM
@@ -312,7 +315,7 @@ def createTitleFile():
     state = State()
     frontFolder = os.path.join(state.target_content_dir, 'front')
     if not os.path.isdir(frontFolder):
-        os.mkdir(frontFolder) 
+        os.mkdir(frontFolder)
     output = io.open(os.path.join(frontFolder, 'title.usx'), 'tw', encoding="utf-8")
     output.write( state.title )
     output.close()
@@ -321,7 +324,7 @@ def createTitleFile():
 def createToc(en_content_dir, content_dir):
     # Temporary implemention -- just copies the English toc.yaml
     copy(os.path.join(en_content_dir, 'toc.yml'), content_dir)    # copy() is from shutil
-    
+
     # TODO: implement a better solution
     path = os.path.join(content_dir, "toc.yaml")
 
