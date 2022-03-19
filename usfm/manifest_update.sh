@@ -50,3 +50,6 @@ $SED -i "s/  modified.*/  modified: \'$DATE\'/" manifest.yaml
 echo "Updated issued and modified dates"
 echo
 echo "--> UPDATE VERSION"
+
+# Run linter on yaml files
+/usr/bin/test -f manifest.yaml && /usr/bin/yamllint *.yaml
