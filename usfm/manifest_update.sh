@@ -52,4 +52,4 @@ echo
 echo "--> UPDATE VERSION"
 
 # Run linter on yaml files
-/usr/bin/test -f manifest.yaml && /usr/bin/yamllint *.yaml
+test -f manifest.yaml && yamllint *.yaml
