@@ -6,8 +6,8 @@
 
 # Global variables
 #source_dir = r'C:\DCS\Assamese\ULB\convert\mal.usfm'
-source_dir = r'C:\DCS\Assamese\as_ulb.RPP\39-MAL.usfm'
-language_code = 'as'
+source_dir = r'C:\DCS\Portuguese\pt-br_ulb.RPP\67-REV.usfm'
+language_code = 'pt-br'
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
@@ -17,7 +17,7 @@ suppress5 = False     # Suppress checks for verse counts
 suppress9 = False     # Suppress warnings about ASCII content
 max_chunk_length = 4
 
-if language_code in {'en','es','es-419','gl','ha','hr','id','nag','pmy','sw','tpi'}:    # ASCII content
+if language_code in {'en','es','es-419','gl','ha','hr','id','nag','pmy','pt-br','sw','tpi'}:    # ASCII content
     suppress9 = True
 if language_code == 'ru':
     suppress5 = True
@@ -334,10 +334,16 @@ def takeC(c):
 
 # Handles all the footnote token types
 def takeFootnote(token):
+    state = State()
     if token.isF_S():
-        State().addFootnoteStart()
-    elif token.isF_E():
-        State().addFootnoteEnd()
+        if state.footnote_starts != state.footnote_ends:
+            reportError(f"Footnote starts before previous one is terminated at {state.reference}")
+        state.addFootnoteStart()
+    else:
+        if state.footnote_starts <= state.footnote_ends:
+            reportError(f"Footnote marker ({token.type}) not between \\f ... \\f* pair at {state.reference}")
+        if token.isF_E():
+            state.addFootnoteEnd()
 
 def takeP():
     state = State()
@@ -415,7 +421,7 @@ reference_re = re.compile(r'[0-9]\: *[0-9]', re.UNICODE)
 # This function is only called when parsing a piece of text preceded by a verse marker.
 def reportFootnotes(text):
     global lastToken
-    if not lastToken.getType().startswith('f'):
+    if not isFootnote(lastToken):
         if reference_re.search(text):
             reportFootnote(':')
         elif "[" in text:
@@ -484,7 +490,8 @@ def takeText(t):
 
 # Returns true if token is part of a footnote
 def isFootnote(token):
-    return token.isF_S() or token.isF_E() or token.isFR() or token.isFR_E() or token.isFT() or token.isFP() or token.isFE_S() or token.isFE_E()
+    return (token.getType().startswith("f") and token.getType() != "fig")
+    #return token.isF_S() or token.isF_E() or token.isFR() or token.isFT() or token.isFP() or token.isFE_S() or token.isFE_E()
 
 # Returns true if token is part of a cross reference
 def isCrossRef(token):
