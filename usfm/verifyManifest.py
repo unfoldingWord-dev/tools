@@ -50,7 +50,7 @@
 #   verifies presence of bible/config.yaml file for tW projects
 
 # Globals
-manifestDir = r'C:\DCS\Spanish-es-419\es-419_ulb.lversaw'
+manifestDir = r'C:\DCS\Marathi\mr_tn.STR'
 nIssues = 0
 projtype = ''
 issuesFile = None
@@ -220,8 +220,10 @@ def verifyCleanDir(dirpath):
         path = os.path.join(dirpath, fname)
         if projtype == 'ta' and fname == 'media.yaml':
             reportError("Unwanted media.yaml file: " + shortname(path))
+        if "manifest" in fname and fname != "manifest.yaml":
+            reportError("Extra manifest file: " + shortname(path))
         if "temp" in fname or "tmp" in fname or "orig" in fname or "bak" in fname or \
-           "Copy" in fname or "txt" in fname or "projects" in fname or fname.endswith(".field"):
+          "Copy" in fname or "txt" in fname or "projects" in fname or fname.endswith(".field"):
             if fname not in {"translate-original", "temple.md", "tempt.md", "contempt.md", "habakkuk.md"}:
                 reportError("Extraneous file: " + shortname(path))
         elif badname_re.match(fname):
