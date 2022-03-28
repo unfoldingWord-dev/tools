@@ -24,14 +24,14 @@
 #          Check that tW files begin with H1 heading immediately followed by H2 heading.
 
 # Globals
-source_dir = r'C:\DCS\Cebuano\ceb_tn'
-language_code = 'ceb'
-resource_type = 'tn'
-ta_dir = r'C:\DCS\Gujarati\gu_ta.STR'    # Target language tA, or English tM for WA
+source_dir = r'C:\DCS\Marathi\mr_ta.STR'
+language_code = 'mr'
+resource_type = 'ta'
+ta_dir = r'C:\DCS\Marathi\mr_ta.STR'    # Target language tA, or English tM for WA
 obstn_dir = r'C:\DCS\Nepali\ne_obs-tn.STR'
 en_tn_dir = r'C:\DCS\English\en_tn.md-orig'
 en_tq_dir = r'C:\DCS\English\en_tq.v18'
-tn_dir = r'C:\DCS\Cebuano\ceb_tn'    # Markdown-style tN folder in target language, for note link validation
+tn_dir = r'C:\DCS\Marathi\mr_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
 tw_dir = r'C:\DCS\Gujarati\gu_tw.RPP'
 
 nChecked = 0
@@ -218,13 +218,19 @@ def checkForBOM(path):
         if beginning[0:3] == b'\xef\xbb\xbf':
             reportError("File has a BOM", False)
 
-def verifyTitleFileLineEndings(path):
+# Called only for tA articles.
+# Verifies whether the file has any line endings (it should not).
+# Verifies whether the file has non-ASCII content.
+def verifyTitleFile(path):
+    input = io.open(path, "rb")
+    content = input.read()
+    input.close()
     if not suppress18:
-        input = io.open(path, "rb")
-        content = input.read()
-        input.close()
         if b'\n' in content:
             reportError("TA title and subtitle files should not have any line endings", False)
+    if not suppress9:
+        if content.isascii():
+            reportError("No non-ASCII content", False)
 
 # Reports empty file and returns True if file is empty.
 def verifyNotEmpty(mdPath):
@@ -798,7 +804,7 @@ def verify_ta_article(dirpath):
                 reportError("Missing file", False)
         else:
             checkForBOM(path)
-            verifyTitleFileLineEndings(path)
+            verifyTitleFile(path)
     if len(os.listdir(dirpath)) > 3:
         reportError("Extraneous file(s) in: " + shortname(dirpath), False)
 
@@ -813,11 +819,13 @@ def verifyDir(dirpath):
     else:
         for f in os.listdir(dirpath):
             path = os.path.join(dirpath, f)
-            if os.path.isdir(path) and f[0] != '.':
-                verifyDir(path)
-            elif resource_type == "ta" and f in {"01.md", "title.md", "sub-title.md"}:
-                verify_ta_article(dirpath)
-                break
+            if os.path.isdir(path):
+                if f[0] != '.':
+                    verifyDir(path)
+            elif resource_type == "ta":
+                if f in {"01.md", "title.md", "sub-title.md"}:
+                    verify_ta_article(dirpath)
+                    break
             elif resource_type in {"tn","tw","obs","obs-tn","obs-tq","obs-sn","obs-sq"} and verifiable(path, f):
                 verifyFile(path)
 
