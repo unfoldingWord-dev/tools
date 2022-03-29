@@ -120,6 +120,7 @@ ft      = usfmTokenValue("ft", phrase)
 fp      = usfmToken("fp")
 fq      = usfmTokenValue("fq", phrase)
 fqa     = usfmTokenValue("fqa", phrase)
+fqa_e    = usfmEndToken('fqa')
 fv      = usfmTokenValue('fv', phrase)
 fv_e     = usfmEndToken('fv')
 fdc     = usfmTokenValue('fdc', phrase)
@@ -292,7 +293,7 @@ element =  MatchFirst([ide, id,
                        fk,
                        ft,
                        fq,
-                       fqa,
+                       fqa, fqa_e,
                        fp,
                        fv, fv_e,
                        fdc, fdc_e,
@@ -452,7 +453,7 @@ def createToken(t):
         'fk':   FKToken,
         'ft':   FTToken,
         'fq':   FQToken,
-        'fqa':  FQAToken,
+        'fqa':  FQAToken, 'fqa*': FQAEndToken,
         'fv':   FVStartToken, 'fv*':  FVEndToken,
         'fdc':  FDCStartToken, 'fdc*': FDCEndToken,
         'fp':   FPToken,
@@ -626,6 +627,7 @@ class UsfmToken:
     def isFP(self):     return False
     def isFQ(self):     return False
     def isFQA(self):    return False
+    def isFQA_E(self):  return False
     def isFVS(self):    return False
     def isFVE(self):    return False
     def isFDCS(self):   return False
@@ -1039,6 +1041,9 @@ class FQToken(UsfmToken):
 class FQAToken(UsfmToken):
     def renderOn(self, printer): return printer.renderFQA(self)
     def isFQA(self):     return True
+class FQAEndToken(UsfmToken):
+    def renderOn(self, printer): return printer.renderFQA_E(self)
+    def isFQA_E(self):    return True
 
 class FEndToken(UsfmToken):
     def renderOn(self, printer): return printer.renderF_E(self)

@@ -5,15 +5,15 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-#source_dir = r'C:\DCS\Assamese\ULB\convert\mal.usfm'
-source_dir = r'C:\DCS\Portuguese\pt-br_ulb.RPP\67-REV.usfm'
-language_code = 'pt-br'
+source_dir = r'C:\DCS\English\en_ulb\67-REV.usfm'
+language_code = 'en'
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
 suppress3 = True     # Suppress bad punctuation warnings
 suppress4 = False     # Suppress warnings about useless markers before section markers
 suppress5 = False     # Suppress checks for verse counts
+suppress6 = True     # Suppress warnings about uW/WA extensions to USFM
 suppress9 = False     # Suppress warnings about ASCII content
 max_chunk_length = 4
 
@@ -344,6 +344,8 @@ def takeFootnote(token):
             reportError(f"Footnote marker ({token.type}) not between \\f ... \\f* pair at {state.reference}")
         if token.isF_E():
             state.addFootnoteEnd()
+    if token.isFQA_E() and not suppress6:
+        reportError(f"Invalid footnote marker ({token.type} is an unfoldingWord/WA extension) in footnote.")
 
 def takeP():
     state = State()
