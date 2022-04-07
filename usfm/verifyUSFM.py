@@ -5,15 +5,15 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r'C:\DCS\English\en_ulb\67-REV.usfm'
-language_code = 'en'
+source_dir = r'C:\DCS\Telugu\te_gst'
+language_code = 'te'
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
 suppress3 = True     # Suppress bad punctuation warnings
 suppress4 = False     # Suppress warnings about useless markers before section markers
 suppress5 = False     # Suppress checks for verse counts
-suppress6 = True     # Suppress warnings about uW/WA extensions to USFM
+suppress6 = False     # Suppress warnings about uW/WA extensions to USFM
 suppress9 = False     # Suppress warnings about ASCII content
 max_chunk_length = 4
 
@@ -25,7 +25,7 @@ if language_code == 'ru':
 lastToken = None
 nextToken = None
 issuesFile = None
-aligned_usfm = None
+aligned_usfm = False
 
 # Set Path for files in support
 import os
@@ -245,9 +245,8 @@ def emptyVerseCheck():
 
 def longChunkCheck():
     state = State()
-    if state.verse - (max_chunk_length-1) > state.startChunkVerse:
+    if not aligned_usfm and state.verse - (max_chunk_length-1) > state.startChunkVerse:
         reportError("Long chunk: " + state.startChunkRef + "-" + str(state.verse) + "   (" + str(state.verse-state.startChunkVerse+1) + " verses)")
-
 
 # Verifies that at least one book title is specified, other than the English book title.
 # This method is called just before chapter 1 begins, so there has been every
@@ -345,7 +344,7 @@ def takeFootnote(token):
         if token.isF_E():
             state.addFootnoteEnd()
     if token.isFQA_E() and not suppress6:
-        reportError(f"Invalid footnote marker ({token.type} is an unfoldingWord/WA extension) in footnote.")
+        reportError(f"Non-standard footnote marker at {state.reference}. ({token.type} is an unfoldingWord/WA extension).")
 
 def takeP():
     state = State()
@@ -675,7 +674,7 @@ def verifyFile(path):
         reportError(shortname(path) + " - contains empty \\wj \\wj* pair(s)")
     if backslasheol_re.search(str):
         reportError(shortname(path) + " - contains stranded backslash(es) at end of line(s)")
-    aligned_usfm = ("lemma=" in str)
+    aligned_usfm = ("lemma=" in str or "x-occurrences" in str)
     if aligned_usfm:
         str = usfm_utils.unalign_usfm(str)
 
