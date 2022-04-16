@@ -47,10 +47,10 @@
 #   verifies presence of title.md and sub-title.md files for tA projects
 #   verifies today's date on README file.
 #   verifies presence of media.yaml file for OBS projects.
-#   verifies presence of bible/config.yaml file for tW projects
+#   verifies config.yaml files for tA or tW projects
 
 # Globals
-manifestDir = r'C:\DCS\Telugu\te_gst'
+manifestDir = r'C:\DCS\Spanish-es-419\es-419_ta.STR'
 nIssues = 0
 projtype = ''
 issuesFile = None
@@ -305,8 +305,6 @@ def verifyDir(dirpath):
 
 # Manifest file verification
 def verifyFile(path):
-    if has_bom(path):
-        reportError("manifest.yaml file has a Byte Order Mark. Remove it.")
     manifest = parseYaml(path)
     verifyKeys("", manifest, ['dublin_core', 'checking', 'projects'])
     verifyCore(manifest['dublin_core'])
@@ -692,9 +690,7 @@ def verifyTitleFiles(folder):
                         reportError("Missing file: " + shortname(path))
 
 def verifyTWfiles(path):
-    configpath = os.path.join( os.path.join(path, "bible"), "config.yaml")
-    if not os.path.isfile(configpath):
-        reportError("File missing: " + shortname(configpath))
+    parseYaml( os.path.join(os.path.join(path, "bible"), "config.yaml") )
 
 # Returns number of ASCII titles found in toc.yaml files (tA projects only).
 # Reports non-ASCII links as errors.
@@ -717,6 +713,8 @@ def verifyTocYaml(contents, tocpath):
 def parseYaml(path):
     contents = None
     if os.path.isfile(path):
+        if has_bom(path):
+            reportError(f"{path} file has a Byte Order Mark. Remove it.")
         with io.open(path, "tr", encoding='utf-8-sig') as file:
             try:
                 contents = yaml.safe_load(file)
