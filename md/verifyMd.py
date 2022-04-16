@@ -20,19 +20,18 @@
 
 
 # To-do -- check for other kinds of links in headings, not just TA links.
-#          Check for ASCII titles in toc.yaml files (tA projects only)
 #          Check that tW files begin with H1 heading immediately followed by H2 heading.
 
 # Globals
-source_dir = r'C:\DCS\Marathi\mr_ta.STR'
-language_code = 'mr'
-resource_type = 'ta'
-ta_dir = r'C:\DCS\Marathi\mr_ta.STR'    # Target language tA, or English tM for WA
-obstn_dir = r'C:\DCS\Nepali\ne_obs-tn.STR'
+source_dir = r'C:\DCS\Gujarati\TW\bible\kt\abomination.md'
+language_code = 'gu'
+resource_type = 'tw'
+ta_dir = r'C:\DCS\Gujarati\gu_ta.STR'    # Target language tA, or English tM for WA
+obstn_dir = r'C:\DCS\Spanish-es-419\es-419_obs-tn.STR'
 en_tn_dir = r'C:\DCS\English\en_tn.md-orig'
-en_tq_dir = r'C:\DCS\English\en_tq.v18'
-tn_dir = r'C:\DCS\Marathi\mr_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
-tw_dir = r'C:\DCS\Gujarati\gu_tw.RPP'
+en_tq_dir = r'C:\DCS\English\en_tq.v27'
+tn_dir = r'C:\DCS\Gujarati\gu_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
+tw_dir = r'C:\DCS\Gujarati\gu_tw.STR'
 
 nChecked = 0
 nChanged = 0
@@ -44,22 +43,22 @@ suppress2 = False    # Suppress warnings about blank headings
 suppress3 = False    # Suppress warnings about item number not followed by period
 suppress4 = False    # Suppress warnings about closed headings
 suppress5 = False    # Suppress warnings about invalid relative links
-suppress6 = False    # Suppress warnings about invalid OBS notes links
+suppress6 = True    # Suppress warnings about invalid OBS notes links
 suppress7 = False    # Suppress warnings about file starting with blank line
 suppress8 = False    # Suppress warnings about blank lines before, after, and within lists
 suppress9 = False    # Suppress warnings about ASCII content
 suppress10 = False   # Suppress warnings about heading levels
-suppress11 = True    # Suppress warnings about unbalanced parentheses
+suppress11 = False    # Suppress warnings about unbalanced parentheses
 suppress12 = False     # Suppress warnings about newlines at end of file
 suppress13 = False     # Suppress warnings about mistmatched **
-suppress14 = False     # Suppress "invalid note link" warnings
+suppress14 = True     # Suppress "invalid note link" warnings
 suppress15 = True     # Suppress punctuation warnings.
 suppress16 = False     # Suppress warnings about empty files
 suppress17 = (resource_type != 'tn')  # Suppress the missing intro.md file warning, which applies only to tN resources
 suppress18 = False     # Suppress warnings about newline in title.md files
 suppress19 = False     # Suppress "should be a header here" warnings
 suppress20 = False      # Suppress "invalid TA page reference" warnings
-suppress21 = False       # Suppress missing title/subtitle files warnings.
+suppress21 = True       # Suppress missing title/subtitle files warnings (applies to tA only)
 
 if resource_type == "ta":
     suppress1 = True
@@ -296,17 +295,21 @@ def take(line):
             elif resource_type not in {"ta","tw"} and state.currheadinglevel > 2:
                 reportError("excessive heading level")
             elif resource_type == 'tw' and state.linecount > 1 and state.currheadinglevel == 1 and state.headingcount > 1:
-                reportError("level 1 heading after line 1")
+                reportError("Incorrect tW file, must have only one H1 heading")
             elif state.currheadinglevel > state.prevheadinglevel + 1:
                 if resource_type != "ta" or state.prevheadinglevel > 0:
-                    if resource_type == 'tw' and state.prevheadinglevel == 0:
-                        reportError("does not begin with H1 header")
-                    else:
-                        reportError("heading level incremented by more than one level")
+                    reportError("heading level incremented by more than one level")
 
+    if resource_type == 'tw' and state.linecount == 1 and (state.currlinetype != HEADING or state.currheadinglevel != 1):
+        reportError("Incorrect tW file, must have H1 heading on line 1")
     # In a tW file, the third line must be an H2 heading
     if resource_type == 'tw' and state.linecount == 3 and (state.currlinetype != HEADING or state.currheadinglevel != 2):
-        reportError("Incorrect tW file, missing '## Definition' or '## Facts' on line 3")
+        reportError("Incorrect tW file, must have H2 \"Definition\" heading on line 3")
+    if resource_type == 'obs' and ".jpg" in line:
+        if not line.startswith("![OBS Image]"):
+            reportError("Incorrect alt text")
+        if not line.endswith(".jpg)"):
+            reportError("Extra character(s) after image link")
 
     # 8/19/21 - Blank lines are optional around lists on DCS, but WACS needs them
     if not suppress8:
@@ -333,7 +336,7 @@ def take(line):
 #                reportError("invalid ordered list style")
     checkLineContents(line)
 
-toobold_re = re.compile(r'#+[ \t]+.*[\*_]', re.UNICODE)        # unwanted formatting in headings
+#toobold_re = re.compile(r'#+[ \t]+.*[\*_]', re.UNICODE)        # unwanted formatting in headings
 unexpected_re = re.compile(r'\([^\)\[]*\]', re.UNICODE)         # ']' after left paren
 unexpected2_re = re.compile(r'\[[^\]\(]*\)', re.UNICODE)         # ')' after left square bracket
 unexpected3_re = re.compile(r'^[^\[]*\]', re.UNICODE)            # ']' before '['
@@ -347,9 +350,9 @@ def checkLineContents(line):
     pos = line.find('&')
     if "<!--" in line or "o:p" in line or (pos >= 0 and line.find(';') > pos):
         reportError("html code")
-    if toobold_re.match(line):
-        if resource_type != "tn" or current_file != "intro.md":
-            reportError("extra formatting in heading")
+    #if toobold_re.match(line):
+        #if resource_type != "tn" or current_file != "intro.md":
+            #reportError("extra formatting in heading")
     if '**' in line:
         if not suppress13 and line.count("**") % 2 == 1:
             reportError("Line seems to have mismatched '**'")
@@ -357,8 +360,8 @@ def checkLineContents(line):
             reportError("Incorrect markdown syntax, space after double asterisk '**'")
         if '****' in line:
             reportError("Line contains quadruple asterisks, ****")
-        elif '***' in line:
-            reportError("Line contains triple asterisks, ***")
+        #elif '***' in line:
+            #reportError("Line contains triple asterisks, ***")
         #if "**_" in line:
             #reportError("Line contains **_")
         #if "_**" in line:
@@ -542,7 +545,7 @@ def checkOBSTNLink(link):
         if not os.path.isfile(referencedPath):
             reportError("invalid OBS story link: " + link)
 
-passagelink_re = re.compile(r'] *\(([^\)]*?)\)(.*)', flags=re.UNICODE)  # [blah](some-kind-of-link)...
+passagelink_re = re.compile(r'] *\(([^\)]*?)\)(.*)', flags=re.UNICODE)  # ](some-kind-of-link)...
 
 # If there is a match to passageLink_re, passage.group(1) is the URL or other text between
 # the parentheses,
@@ -560,6 +563,8 @@ def checkPassageLinks(line, fullpath):
                 reportError("Non-ascii link")
             elif not link.startswith("http") and not suppress5:
                 checkRelativeLink(link, fullpath)
+            else:
+                reportError("http link: " + link)
         passage = passagelink_re.search(passage.group(2))
 
 def checkRelativeLink(link, currpath):
