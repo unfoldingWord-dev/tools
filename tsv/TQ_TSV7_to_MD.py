@@ -25,11 +25,11 @@ import re
 import logging
 
 
-LOCAL_BASE_FOLDERPATH = Path('/Users/richmahn/repos/')
+LOCAL_BASE_FOLDERPATH = Path('/tmp/publish')
 LOCAL_SOURCE_FOLDERPATH = LOCAL_BASE_FOLDERPATH.joinpath('en_tq/')
 
 # The output folder below must also already exist!
-LOCAL_OUTPUT_FOLDERPATH = LOCAL_BASE_FOLDERPATH.joinpath('en_tq_d43/')
+LOCAL_OUTPUT_FOLDERPATH = LOCAL_BASE_FOLDERPATH.joinpath('en_tq/')
 
 BBB_LIST = ('GEN','EXO','LEV','NUM','DEU',
                 'JOS','JDG','RUT','1SA','2SA','1KI',

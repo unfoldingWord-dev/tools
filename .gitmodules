@@ -1,0 +1,3 @@
+[submodule "publishing/tx-dev-dcs"]
+	path = publishing/tx-dev-dcs
+	url = git@git.door43.org:unfoldingWord-dev/tx-dev-dcs.git
