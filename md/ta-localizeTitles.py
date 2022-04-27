@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 # This program localizes the titles of tA articles in toc.yaml files.
-# It copies titles from the title.md files into the toc.yaml files.
-# It also removes (title,link) pairs from the toc.yaml files where the article does not exist.
+#   Copies translated titles from the title.md files.
+#   Removes links to articles that do not exist.
+#   Removes empty sections.
+#   Leaves the structure of the table of contents unchanged (except for removing completely empty parts).
+#
+# Optionally, report errors in config.yaml files.
 
 import re
 import io
@@ -9,15 +13,50 @@ import os
 import codecs
 import string
 import sys
+import yaml
 
 # Globals
-source_dir = r'C:\DCS\Kannada\kn_ta.STR'
+source_dir = r'C:\DCS\Spanish-es-419\es-419_ta.STR\translate'
 nRewritten = 0
+suppress1 = True    # Suppress config.yaml checking
 
 def shortname(path):
     if path.startswith(source_dir):
         path = path[len(source_dir)+1:]
     return path
+
+def reportError(msg):
+    try:
+        sys.stderr.write(msg + '\n')
+    except UnicodeEncodeError as e:
+        sys.stderr.write("Error message cannot display, contains Unicode.\n")
+
+# Attempts to load the specified file as a yaml file.
+# Reports yaml errors.
+# Returns the contents of the file if no errors.
+def parseYaml(path):
+    contents = None
+    if os.path.isfile(path):
+        with io.open(path, "tr", encoding='utf-8-sig') as file:
+            try:
+                contents = yaml.safe_load(file)
+            except yaml.scanner.ScannerError as e:
+                reportError(f"Yaml syntax error at or before line {e.problem_mark.line} in: {shortname(path)}")
+            except yaml.parser.ParserError as e:
+                reportError(f"Yaml parsing error at or before line {e.problem_mark.line} in: {shortname(path)}")
+    else:
+        reportError(f"File missing: {shortname(path)}")
+    return contents
+
+# Verify that the specified fields exist and no others.
+def verifyKeys(article, dict, keys, configpath):
+    for key in keys:
+        if key not in dict:
+            reportError(f"Missing {key} field under {article} in {configpath}")
+    for field in dict:
+        if field not in keys:
+            reportError(f"Extra field: ({field}) under {article} in {configpath}")
+
 
 # Reads the translated title from the specified title.md file.
 def fetchTitle(folder, linkstr):
@@ -34,59 +73,74 @@ title_re = re.compile(r'([ \-]*title: +)[\'"](.*)[\'"]', flags=re.UNICODE)
 link_re =  re.compile(r'link: +([\w\-]+)')
 section_re = re.compile(r' *sections', re.UNICODE)
 
-def rewriteTocLines(folder, lines, output):
-    title_line = None
-    missing_article = False
-    for line in lines:
-        titlematch = title_re.match(line)
-        if titlematch:
-            title_line = line
-            title_prefix = titlematch.group(1)
-            title_text = titlematch.group(2)
-        elif section_re.match(line) or line.strip() == "":
-            if title_line:
-                output.write(title_line)
-                title_line = None
-            output.write(line)
-        elif title_line:      # previous line was a title
-#                if title_text.isascii():    # not a valid test because English titles include non-ascii like '®'
-                newtitle = ""
-                linkmatch = link_re.search(line)
-                if linkmatch:
-                    newtitle = fetchTitle(folder, linkmatch.group(1))
-                    if newtitle == None:
-                        missing_article = True
-                        sys.stdout.write("Article does not exist, removing reference to: " + linkmatch.group(1) + "\n")
-                    else:
-                        if '"' in newtitle:
-                            title_line = title_prefix + "'" + newtitle + "'\n"
-                        elif len(newtitle) > 0:
-                            title_line = title_prefix + '"' + newtitle + '"\n'
-                if not missing_article:
-                    output.write(title_line)
-                    output.write(line)
-                title_line = None
-                missing_article = False
+# Puts double quotes or single quotes around the string, as appropriate.
+def addQuotes(str):
+    quote = '"'
+    if quote in str:
+        quote = "'"
+        if quote in str:
+            quote = ""
+    return quote + str + quote
 
-# Rewrites the toc.yaml files in the specified folder, changing the title of each entry.
-def rewriteToc(folder):
+# Recursive function to convert toc.yaml content
+# Localizes titles where possible.
+# Removes (title,link) pairs where the linked article is missing.
+# Removes empty (title,section) lists.
+def convertContent(folder, content):
+    if 'sections' in content:
+        i = 0
+        while i < len(content['sections']):
+            newcontent = convertContent(folder, content['sections'][i])
+            if newcontent:
+                content['sections'][i] = newcontent
+                i += 1
+            else:
+                del content['sections'][i]
+        if len(content['sections']) == 0:
+            del content['sections']
+    if 'link' in content:
+        if newtitle := fetchTitle(folder, content['link']):
+            content['title'] = newtitle
+        else:
+            sys.stdout.write("Article does not exist, removing reference to: " + content['link'] + "\n")
+            del content['link']
+    if not 'link' in content and not 'sections' in content:
+        content = None
+    return content
+
+# Recursive function to dump the data in our preferred yaml format.
+def dumpContent(content, output, indent):
+    if 'title' in content:
+        if indent == 0:
+            line = f"title: {addQuotes(content['title'])}\n"
+        else:
+            line = " "*(indent-2) + f"- title: {addQuotes(content['title'])}\n"
+        output.write(line)
+    if 'link' in content:
+        line = " "*indent + f"link: {content['link']}\n"
+        output.write(line)
+    if 'sections' in content:
+        if indent == 0:
+            line = "sections:\n"
+        else:
+            line = " "*indent + f"sections:\n"
+        output.write(line)
+        for section in content['sections']:
+            dumpContent(section, output, indent+4)
+
+# Converts and rewrites the toc.yaml file in the specified folder.
+def convertToc(folder):
     global nRewritten
     tocpath = os.path.join(folder, "toc.yaml")
-    input = io.open(tocpath, "tr", 1, encoding="utf-8-sig")
-    lines = input.readlines()
-    input.close()
+    content = parseYaml(tocpath)
     bakpath = tocpath + ".orig"
     if not os.path.isfile(bakpath):
         os.rename(tocpath, bakpath)
+    converted_content = convertContent(folder, content)
     with io.open(tocpath, "tw", encoding="utf-8", newline='\n') as output:
-        rewriteTocLines(folder, lines, output)
+        dumpContent(converted_content, output, 0)
+        # yaml.safe_dump(content, output, allow_unicode=True, encoding='utf-8')
     nRewritten += 1
-
-def shortname(longpath):
-    shortname = longpath
-    if source_dir in longpath:
-        shortname = longpath[len(source_dir)+1:]
-    return shortname
 
 # Recursive routine to process files under the specified folder
 # Only one toc.yaml file is processed under each folder considered.
@@ -94,7 +148,7 @@ def convertFolder(folder):
     tocpath = os.path.join(folder, "toc.yaml")
     if os.path.isfile(tocpath):
         sys.stdout.write("Rewriting: " + shortname(tocpath) + '\n')
-        rewriteToc(folder)
+        convertToc(folder)
     else:
         for entry in os.listdir(folder):
             if entry[0] != '.':
@@ -111,9 +165,11 @@ def getlinks(tocpath):
             links.add(link.group(1))
     return links
 
+# Compares the "link" values in toc.yaml to the article names in the specified folder.
+# Reports missing and extra "link" values.
 def checkToc(folder):
     tocpath = os.path.join(folder, "toc.yaml")
-    if os.path.isfile(tocpath):
+    if parseYaml(tocpath):
         toclinks = getlinks(tocpath)
         articles = list()
         direntries = os.scandir(folder)
@@ -123,22 +179,31 @@ def checkToc(folder):
         articles.sort()
         for article in articles:
             if not article in toclinks:
-                sys.stderr.write("This article is not referenced in " + shortname(tocpath) + ": " + article + "\n")
+                reportError("This article is not referenced in " + shortname(tocpath) + ": " + article)
         for link in toclinks:
             if not link in articles:    # should not occur as rewriteTocLine() removed these
-                sys.stderr.write(shortname(tocpath) + " references a missing article: " + link + "\n")
-    else:
-        sys.stderr.write("File does not exist: " + shortname(tocpath))
+                reportError(shortname(tocpath) + " references a missing article: " + link)
 
-# Compares the "link" values in toc.yaml files to the article names in the corresponding folder
-# Reports missing and extra "link" values.
-def checkTocs(folder):
-    if os.path.basename(folder) in {"checking","intro","process","translate"}:
-        checkToc(folder)
-    for dir in ["checking","intro","process","translate"]:
-        path = os.path.join(folder, dir)
-        if os.path.isdir(path):
-            checkToc(path)
+# Compares the articles referenced in config.yaml to the article names in the corresponding folder.
+# Reports missing and extra articles.
+def checkConfig(folder):
+    badnames = set()
+    configpath = os.path.join(folder, "config.yaml")
+    if contents := parseYaml(configpath):
+        for article in contents:
+            if not os.path.isdir(os.path.join(folder, article)):
+                reportError(f"Article ({article}) referenced in {shortname(configpath)} does not exist")
+                badnames.add(article)
+            verifyKeys(article, contents[article], ["recommended","dependencies"], shortname(configpath))
+            for key in ["recommended","dependencies"]:
+                for name in contents[article][key]:
+                    if not os.path.isdir(os.path.join(folder, name)) and name not in badnames:
+                        reportError(f"Article ({name}) referenced in {shortname(configpath)} does not exist")
+                        badnames.add(name)
+        direntries = os.scandir(folder)
+        for direntry in direntries:
+            if direntry.is_dir() and not direntry.name in contents:
+                reportError(f"This article is not found in {shortname(configpath)}: ({direntry.name})")
 
 # Rewrites toc.yaml files under the specified directory
 if __name__ == "__main__":
@@ -147,7 +212,14 @@ if __name__ == "__main__":
 
     if source_dir and os.path.isdir(source_dir):
         convertFolder(source_dir)
-        checkTocs(source_dir)
+        if os.path.basename(source_dir) in {"checking","intro","process","translate"}:
+            checkToc(source_dir)
+        for dir in ["checking","intro","process","translate"]:
+            folder = os.path.join(source_dir, dir)
+            if os.path.isdir(folder):
+                checkToc(folder)
+                if not suppress1:
+                    checkConfig(folder)
         sys.stdout.write("Done. Rewrote " + str(nRewritten) + " files.\n")
     else:
         sys.stderr.write("Usage: python ta-localizeTitles.py <folder>\n  Use . for current folder.\n")

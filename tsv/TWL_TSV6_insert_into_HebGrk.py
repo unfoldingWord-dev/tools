@@ -28,7 +28,7 @@ import re
 
 # You have to change this single line to be correct for your own filesystem
 # It should point to a folder, under which are the cloned and up-to-date en_twl, hbo_uhb, and el-x-koine_ugnt repos
-LOCAL_BASE_FOLDERPATH = Path('/Users/richmahn/repos/git.door43.org/')
+LOCAL_BASE_FOLDERPATH = Path('/tmp/publish/')
 
 
 # These are the derived repo paths -- input is TWL and UHB/UGNT (without TW links), output is UHB/UGNT with TW links.
