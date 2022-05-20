@@ -6,7 +6,7 @@ A collection of short scripts to interface with the Door43 Content System (DCS) 
 
 The tX system consists of linters and converters running in Docker containers
     to convert DCS Gitea repos to Door43 web pages.
-    (See https://forum.ccbt.bible/t/door43-org-tx-development-architecture/65.)
+    (See https://forum.door43.org/t/door43-org-tx-development-architecture/65.)
     (DCS uses a customised version of Gitea -- Gitea is at https://gitea.io/en-us/.)
 
 These scripts are (most generally useful first down to most specialized):
