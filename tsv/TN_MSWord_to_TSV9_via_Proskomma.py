@@ -26,7 +26,7 @@ import logging
 import subprocess
 
 
-LOCAL_SOURCE_BASE_FOLDERPATH = Path('/mnt/Data/uW_dataRepos/')
+LOCAL_SOURCE_BASE_FOLDERPATH = Path('/Users/richmahn/repos/git.door43.org/')
 LOCAL_SOURCE_FOLDERPATH = LOCAL_SOURCE_BASE_FOLDERPATH.joinpath('GEN_MSWord_notes/')
 
 # The output folder below must also already exist!
@@ -73,10 +73,10 @@ def get_input_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str,str,st
         for line_number, line in enumerate(input_text_file, start=1):
             if line_number == 1 and line.startswith('\ufeff'): line = line[1:] # Remove optional BOM
             line = line.rstrip('\n\r').strip()
-            # print(f"{line_number:3}/ {C}:{V} {status:10} ({len(line)}) '{line}'")
+            print(f"{line_number:3}/ {C}:{V} {status:10} ({len(line)}) '{line}'")
             if status == 'Idle' and line.isdigit(): # chapter number
                 C = line
-                # print(f"     Got chapter #{C} at line {line_number}")
+                print(f"     Got chapter #{C} at line {line_number}")
                 intC = int(C)
                 if intC != lastIntC+1:
                     print(f"WARNING at line {line_number}: Chapter number is not increasing as expected: moving from {lastIntC} to {C}")
@@ -91,13 +91,13 @@ def get_input_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str,str,st
                     V += line[ix]
                     ix += 1
                 verseText = line[ix:].strip()
-                # print(f"     Got {C}:{V} verse text: '{verseText}'")
+                print(f"     Got {C}:{V} verse text: '{verseText}'")
                 status = 'Expecting glQuote'
             elif not line:
                 if status == 'Getting note':
                     if not glQuote or not note:
                         print(f"ERROR at line {line_number} {BBB} {C}:{V}: Why do we have glQuote='{glQuote}' and note='{note}'")
-                    # print(f"  About to yield {C}:{V} '{glQuote}' '{note}' at line {line_number}")
+                    print(f"  About to yield {C}:{V} '{glQuote}' '{note}' at line {line_number}")
                     yield C,V, verseText, glQuote, note
                     glQuote = note = ''
                     status = 'Expecting glQuote or next verse'
@@ -107,7 +107,7 @@ def get_input_fields(input_folderpath:Path, BBB:str) -> Tuple[str,str,str,str,st
                     print(f"     Ignoring {BBB} {C}:{V} paragraph break at line {line_number}")
             elif status == 'Expecting glQuote' or status == 'Expecting glQuote or next verse':
                 glQuote = line
-                # print(f"     Got {C}:{V} GL Quote: '{glQuote}' at line {line_number}")
+                print(f"     Got {C}:{V} GL Quote: '{glQuote}' at line {line_number}")
                 quote_count = verseText.count(glQuote)
                 if quote_count == 0:
                     print(f"WARNING at line {line_number} {BBB} {C}:{V}: glQuote='{glQuote}' seems not to be in verse text: '{verseText}'")
@@ -139,7 +139,7 @@ def convert_MSWrd_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str,
         previously_generated_ids:List[str] = [''] # We make ours unique per file (spec only used to say unique per verse)
         temp_output_TSV_file.write('Book\tChapter\tVerse\tID\tSupportReference\tOrigQuote\tOccurrence\tGLQuote\tOccurrenceNote\n')
         for line_count, (C, V, verse_text, gl_quote, note) in enumerate(get_input_fields(input_folderpath, BBB), start=1):
-            # print(f"Got {BBB} {C}:{V} '{note}' for '{gl_quote}' in: {verse_text}")
+            print(f"Got {BBB} {C}:{V} '{note}' for '{gl_quote}' in: {verse_text}")
 
             generated_id = ''
             while generated_id in previously_generated_ids:
@@ -152,13 +152,13 @@ def convert_MSWrd_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str,
 
             # Find "See:" TA refs and process them -- should only be one
             for match in re.finditer(r'\(See: ([-A-Za-z0-9]+?)\)', note):
-                # print(f"match={match}")
-                # print(f"match.group(1)={match.group(1)}")
+                print(f"match={match}")
+                print(f"match.group(1)={match.group(1)}")
                 assert not support_reference, f"WARNING at {BBB} {C}:{V}: Should only be one TA ref: {note}"
                 support_reference = match.group(1)
-                # print(f"HAD '{note}'")
+                print(f"HAD '{note}'")
                 note = f"{note[:match.start()]}(See: [[rc://en/ta/man/translate/{support_reference}]]){note[match.end():]}"
-                # print(f"NOW '{note}'")
+                print(f"NOW '{note}'")
 
             gl_quote = gl_quote.strip()
             if (gl_quote.startswith('"')): gl_quote = f'“{gl_quote[1:]}'
@@ -184,13 +184,13 @@ def convert_MSWrd_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str,
     # Now use Proskomma to find the ULT GLQuote fields for the OrigQuotes in the temporary outputted file
     print(f"      Running Proskomma to find OrigL quotes for {testament} {BBB}… (might take a few minutes)")
     completed_process_result = subprocess.run(['node', HELPER_PROGRAM_NAME, temp_output_filepath, testament], capture_output=True)
-    # print(f"Proskomma {BBB} result was: {completed_process_result}")
+    print(f"Proskomma {BBB} result was: {completed_process_result}")
     if completed_process_result.returncode:
         print(f"      Proskomma {BBB} ERROR result was: {completed_process_result.returncode}")
     if completed_process_result.stderr:
         print(f"      Proskomma {BBB} error output was:\n{completed_process_result.stderr.decode()}")
     proskomma_output_string = completed_process_result.stdout.decode()
-    # print(f"Proskomma {BBB} output was: {proskomma_output_string}") # For debugging JS helper program only
+    print(f"Proskomma {BBB} output was: {proskomma_output_string}") # For debugging JS helper program only
     output_lines = proskomma_output_string.split('\n')
     if output_lines:
         # Log any errors that occurred -- not really needed now coz they go to stderr
@@ -202,13 +202,13 @@ def convert_MSWrd_TN_TSV(input_folderpath:Path, output_folderpath:Path, BBB:str,
             elif print_next_line_counter > 0:
                 logging.error(output_line)
                 print_next_line_counter -= 1
-        # print(f"      Proskomma got: {' / '.join(output_lines[:9])}") # Displays the UHB/UGNT and ULT loading times
+        print(f"      Proskomma got: {' / '.join(output_lines[:9])}") # Displays the UHB/UGNT and ULT loading times
         print(f"        Proskomma did: {output_lines[-2]}")
     else: logging.critical("No output from Proskomma!!!")
     # Put the GL Quotes into a dict for easy access
     match_dict = {}
     for match in re.finditer(r'(\w{3})_(\d{1,3}):(\d{1,3}) ►(.+?)◄ “(.+?)”', proskomma_output_string):
-        # print(match)
+        print(match)
         B, C, V, gl_quote, orig_quote = match.groups()
         assert B == BBB, f"{B} {C}:{V} '{orig_quote}' Should be equal '{B}' '{BBB}'"
         if orig_quote:
@@ -261,12 +261,12 @@ def main():
         #                 '1TH','2TH','1TI','2TI','TIT','PHM',
         #                 'HEB','JAS','1PE','2PE','1JN','2JN','3JN','JUD','REV'):
         #     continue # Just process NT books
-        # try:
-        lines_read, this_note_count, fail_count = convert_MSWrd_TN_TSV(LOCAL_SOURCE_FOLDERPATH, LOCAL_OUTPUT_FOLDERPATH, BBB, nn)
-        # except Exception as e:
-        #     print(f"   {BBB} got an error: {e}")
-        #     failed_book_list.append((BBB,str(e)))
-        #     lines_read = this_note_count = fail_count = 0
+        try:
+            lines_read, this_note_count, fail_count = convert_MSWrd_TN_TSV(LOCAL_SOURCE_FOLDERPATH, LOCAL_OUTPUT_FOLDERPATH, BBB, nn)
+        except Exception as e:
+            print(f"   {BBB} got an error: {e}")
+            failed_book_list.append((BBB,str(e)))
+            lines_read = this_note_count = fail_count = 0
         total_lines_read += lines_read
         total_files_read += 1
         if this_note_count:
