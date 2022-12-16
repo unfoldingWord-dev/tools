@@ -11,21 +11,21 @@ import os
 import sys
 
 # Globals
-source_dir = r'C:\DCS\Nepali\ne_tN.work'   # must be a folder
+source_dir = r'C:\DCS\Cebuano\ceb_tn'   # must be a folder
 nChanged = 0
-max_changes = 1
-filename_re = re.compile(r'issues.txt')
-#filename_re = re.compile(r'intro\.md$')
+max_changes = 777
+filename_re = re.compile(r'[\d]+\.md$')
 
 yes_backup = True
 prevlost = False
-#prevblank = True
-nlines = 99     # number of lines in the file before filtering
 
-#blankheading_re = re.compile(r'#+ *$')
-#verseref_re = re.compile(r' [\d]{1,3}:[\d]{1,3}', flags=re.UNICODE)
-# lose_re = re.compile(r'# +ayat')  # Arti Kata-kata
-lose_re = re.compile(r'#.*[^\?]$', re.UNICODE)
+HEADING1 = 1
+HEADINGX = 2
+BLANKLINE = 3
+TEXT = 4
+
+lose_re = re.compile(r'\[\[rc://ceb/bible/questions/comprehension/', re.UNICODE)
+lose2_re = re.compile(r'# \[\[rc://ceb/bible/questions/comprehension/', re.UNICODE)
 heading_re = re.compile(r'#+ ', flags=re.UNICODE)
 
 
@@ -42,16 +42,32 @@ def file_qualifies(lines):
 # This function contains the main logic of the script.
 # Returns True if the line is to be kept, False if not.
 # Redefine this function to obtain desired behavior.
-def keeper(line, count):
+def keeper(line, count, prevlinetype, linetype, nextlinetype):
+    global prevlost
+
     keep = True
-    if "Space before phrase ending mark" in line:
+    if lose2_re.match(line):
         keep = False
-#    elif "Free floating mark: (" in line:
-#        keep = False
-#    elif "Space before phrase ending mark: ?" in line:
-#        keep = False
+        prevlost = True
+    else:
+        if prevlost and (len(line.strip()) == 0 or lose_re.match(line)):
+            keep = False
+        else:
+            prevlost = False
     return keep
-    
+
+# Retursn the type of the specified line
+def getLinetype(line):
+    if line.startswith("# "):
+        linetype = HEADING1
+    elif line[0] == '#':
+        linetype = HEADINGX
+    elif len(line.strip()) == 0:
+        linetype = BLANKLINE
+    else:
+        linetype = TEXT
+    return linetype
+
 # Copies selected lines from input to output.
 # Renames the input file to a backup name.
 # Renames the output file to the original input file name.
@@ -59,23 +75,32 @@ def keeper(line, count):
 def filterLines(path):
     global prevlost
 #    global prevblank
-    global nlines
     prevlost = False
 #    prevblank = True
     input = io.open(path, "tr", 1, encoding="utf-8-sig")
     lines = input.readlines()
     input.close()
-#    nlines = len(lines)
     outputlines = []
     changed = False
+    linetypes = []
     if file_qualifies(lines):
-        count = 0
         for line in lines:
-            count += 1
-            if keeper(line, count):
+            linetypes.append(getLinetype(line))
+        prevlinetype = None
+        n = 0
+        for line in lines:
+            if n > 0:
+                prevlinetype = linetypes[n-1]
+            if n+1 < len(linetypes):
+                nextlinetype = linetypes[n+1]
+            else:
+                nextlinetype = None
+
+            if keeper(line, n+1, prevlinetype, linetypes[n], nextlinetype):
                 outputlines.append(line)
             else:
                 changed = True
+            n += 1
 
     if changed:
         if yes_backup:
@@ -87,7 +112,7 @@ def filterLines(path):
         output.close
     return changed
 #    sys.stdout.write("Converted " + shortname(path) + "\n")
-    
+
 def shortname(longpath):
     shortname = longpath
     if source_dir in longpath:
@@ -116,7 +141,7 @@ def convertFolder(folder):
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         source_dir = sys.argv[1]
-    
+
     if os.path.isdir(source_dir):
         convertFolder(source_dir)
         sys.stdout.write("Done. Changed " + str(nChanged) + " files.\n")
