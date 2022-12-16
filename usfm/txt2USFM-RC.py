@@ -8,10 +8,10 @@
 #    Converts multiple books at once if there are multiple books.
 
 # Global variables
-source_dir = r'C:\DCS\Spanish\UDB'
-target_dir = r'C:\DCS\Spanish\es-419_udb.RPP'
-language_code = "es-419"
-mark_chunks = True   # Should be true for GL source text
+source_dir = r'C:\DCS\Havu\REG'  # must be a folder
+target_dir = r'C:\DCS\Havu\work'
+language_code = "Havu"
+mark_chunks = False   # Should be true for GL source text
 
 import usfm_verses
 import re
@@ -167,10 +167,12 @@ sub2_re = re.compile(r'[\n \.,"\'?!]\\ *v[1-9]', re.UNICODE)   # no space before
 sub2m_re = re.compile(r'\\ *v[1-9]', re.UNICODE)       # no space before verse number, possible space betw \ and v  -- match
 sub3_re = re.compile(r'\\v +[0-9\-]+[^0-9\-\n ]', re.UNICODE)       # no space after verse number
 sub4_re = re.compile(r'(\\v +[0-9\-]+ +)\\v +[^1-9]', re.UNICODE)   # \v 10 \v The...
-sub5_re = re.compile(r'\\v( +\\v +[0-9\-]+ +)', re.UNICODE)         # \v \v 10 
+sub5_re = re.compile(r'\\v( +\\v +[0-9\-]+ +)', re.UNICODE)         # \v \v 10
 sub6_re = re.compile(r'[\n ]\\ v [1-9]', re.UNICODE)           # space betw \ and v
 sub6m_re = re.compile(r'\\ v [1-9]', re.UNICODE)               # space betw \ and v -- match
 sub7_re = re.compile(r'[\n ]v [1-9]', re.UNICODE)              # missing backslash
+sub8_re = re.compile(r'(.)([\n ]*\\v [1-9]+) ?([\.\,\:;]) ', re.UNICODE)   # Punctuation after verse marker
+sub9_re = re.compile(r'(\\v [1-9]+) ?([\.\,\:;]) ', re.UNICODE)
 
 # Fixes malformed verse markers
 def fixVerseMarkers(text):
@@ -205,7 +207,7 @@ def fixVerseMarkers(text):
     while found:
         text = text[0:found.start()] + found.group(1) + text[found.end()-1:]
         found = sub4_re.search(text)
-                
+
     found = sub5_re.search(text)
     while found:
         text = text[0:found.start()] + found.group(1) + text[found.end():]
@@ -222,6 +224,17 @@ def fixVerseMarkers(text):
     while found:
         text = text[0:found.start()] + "\n\\v " + text[found.end()-1:]
         found = sub7_re.search(text)
+
+    found = sub8_re.search(text)
+    while found:
+        if found.group(3) != found.group(1):
+            text = text[0:found.start()+1] + found.group(3) + found.group(2) + text[found.end()-1:]
+        else:
+            text = text[0:found.start()+1] + found.group(2) + text[found.end()-1:]
+        found = sub8_re.search(text)
+
+    if found := sub9_re.match(text):
+        text = found.group(1) + text[found.end()-1:]
 
     return text
 
@@ -270,7 +283,7 @@ def augmentChapter(section, chapterTitle):
         else:
             clpstr = "\n\\p\n"
         section = section[:chap.end()].rstrip() + clpstr + section[chap.end():].lstrip()
-    return section          
+    return section
 
 spacedot_re = re.compile(r'[^0-9] [\.\?!;\:,][^\.]')    # space before clause-ending punctuation
 jammed = re.compile(r'[\.\?!;:,)][\w]', re.UNICODE)     # no space between clause-ending punctuation and next word -- but \w matches digits also
@@ -291,7 +304,7 @@ def fixPunctuationSpacing(section):
             section = section[:match.start()+1] + ' ' + section[match.end()-1:]
         match = jammed.search(section, match.end())
     return section
-    
+
 # Inserts space between \c and the chapter number if needed
 def fixChapterMarkers(section):
     pos = 0
@@ -355,7 +368,7 @@ def fixInorMarkers(text, verserange):
     else:
         str = text
     return str
-    
+
 # Reads all the lines from the specified file and converts the text to a single
 # USFM section by adding chapter label, section marker, and paragraph marker where needed.
 # Starts each usfm marker on a new line.
@@ -436,7 +449,7 @@ def getBookTitle():
         f.close()
     else:
         sys.stderr.write("   Can't open " + path + "!\n")
-    return bookTitle 
+    return bookTitle
 
 # Appends information about the current book to the global projects list.
 def appendToProjects(bookId, bookTitle):
@@ -496,7 +509,7 @@ def convertFolder(folder):
                 sys.stderr.write("Unable to determine book ID in " + folder + "\n")
             if not bookTitle:
                 sys.stderr.write("Unable to determine book title in " + folder + "\n")
- 
+
 # Returns file name for usfm file in current folder
 def makeUsfmFilename(bookId):
     # loadVerseCounts()
@@ -508,11 +521,11 @@ def makeUsfmFilename(bookId):
         pathComponents = os.path.split(os.getcwd())   # old method
         filename = pathComponents[-1] + ".usfm"
     return filename
-           
+
 # Returns path of temporary manifest file block listing projects converted
 def makeManifestPath():
     return os.path.join(target_dir, "projects.yaml")
-    
+
 def writeHeader(usfmfile, bookId, bookTitle):
     usfmfile.write("\\id " + bookId + "\n\\ide UTF-8")
     usfmfile.write("\n\\h " + bookTitle)
@@ -626,14 +639,14 @@ def convert(dir):
             folder = os.path.join(dir, directory)
             if isBookFolder(folder):
                 convertFolder(folder)
-    dumpContributors()    
+    dumpContributors()
     dumpProjects()
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         source_dir = sys.argv[1]
-    
+
     if os.path.isdir(source_dir):
         convert(source_dir)
         print("\nDone.")
