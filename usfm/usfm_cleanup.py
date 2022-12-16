@@ -10,12 +10,13 @@ import re       # regular expression module
 import io
 import os
 import substitutions
-import codecs
-import string
+#import parseUsfm
 import sys
 
 # Globals
-source_dir = r'C:\DCS\Laotian\lo_ulb.RPP'
+source_dir = r'C:\DCS\Havu\work'
+language_code = 'hav'
+
 nChanged = 0
 max_changes = 66
 # Customize the behavior of this program by setting these globals:
@@ -70,7 +71,7 @@ def fileQualifies(path):
             break
     return qualify
 
-# Stream edit the file by a simple, regular expression substitution
+# Stream edit the file by a simple string substitution
 def fix_punctuation(str):
     for pair in substitutions.subs:
         str = str.replace(pair[0], pair[1])
@@ -90,6 +91,7 @@ def add_spaces(str):
             found = sub_re.search(str)
     return str
 
+# Corrects issues treating the whole USFM file as a string.
 def convertFile(path):
     global aligned_usfm
     global nChanged
@@ -135,6 +137,7 @@ def convertFolder(folder):
                 convertFolder(path)
             elif entry.endswith(".usfm"):
                 convertFile(path)
+                #convertFileByToken(path)
             if nChanged >= max_changes:
                 break
 
@@ -154,6 +157,6 @@ if __name__ == "__main__":
     else:
         sys.stderr.write("Source file(s) not found: " + source_dir)
         sys.stderr.write("Usage: python usfm_cleanup.py <folder>\n  Use . for current folder.\n")
-    
+
     if aligned_usfm:
         sys.stderr.write("Cannot cleanup aligned USFM.\n")
