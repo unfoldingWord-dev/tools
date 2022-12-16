@@ -11,10 +11,13 @@
 # heading levels.
 #
 # This script also removes spaces before hash in each markdown line.
+# Converts closed markdown headings to open headings.
 # Adds space after markdown header hash marks, if missing.
 # Also removes double quotes that surround fields that should begin with just a markdown header.
-# Fixes links of the form rc://en/...
+# Removes spaces from md file links in notes.
 # Untranslates SupportReference values that were mistakenly translated.
+# Untranslates translated tA links that are otherwise properly formatted, in note fields.
+# Supplies 0 for missing Occurrence values
 # Removes trailing right parentheses if note contains no left parens.
 # Add trailing right paren if note contain one unmatched left paren near end of line.
 #
@@ -35,11 +38,11 @@ import tsv
 import substitutions    # this module specifies the string substitutions to apply
 
 # Globals
-source_dir = r'C:\DCS\Marathi\TN'  # Where are the files located
-language_code = 'mr'
+source_dir = r'C:\DCS\Telugu\work'  # Where are the files located
+language_code = 'te'
+english_dir = r'C:\DCS\English\en_tn.v66'    # latest English tN from https://git.door43.org/Door43-Catalog/en_tn
 max_files = 111     # How many files do you want to process
 nProcessed = 0
-filename_re = re.compile(r'.*\.tsv$')
 
 
 def shortname(longpath):
@@ -79,6 +82,40 @@ def fixHeadingLevels(note):
         header = header_re.search(note, header.start() + newlevel + 1)
     return note
 
+tas = r"\[\[ *rc://" + language_code + "/ta/man/([^\]]*)(\]\][^]]*$)"
+talink_re = re.compile(tas, re.UNICODE)
+entas = r"\[\[ *rc://en/ta/man/([^\]]*)(\]\][^\]]*$)"
+entalink_re = re.compile(entas, re.UNICODE)
+
+# Translators often mistakenly translate part of the tA (manual page) links at the end of notes.
+# This function matches the tA links with the corresponding links in the English notes.
+# Where there is a match, the link is replaced.
+def fixManLinks(note, english_note):
+    link = talink_re.search(note)     # Finds last tA link in note
+    if link and not link.group(1).isascii():
+        enlink = entalink_re.search(english_note)
+        if enlink:
+            note = note[:link.start()] + "[[rc://" + language_code + "/ta/man/" + enlink.group(1) + link.group(2)
+            print(note[len(note)-100:])
+    return note
+
+mdlink_re = re.compile(r'(\( *)([^\(]+\. ?md)', flags=re.UNICODE)   # apparent md file link following a left paren
+
+# Removes erroneous spaces in md file links
+def fixMdLinks(note):
+    lastend = 0
+    link = mdlink_re.search(note)
+    while link:
+        chars = link.group(2)
+        if ' ' in chars:
+            chars = chars.replace(" ", "")
+            note = note[0:lastend+link.start()] + "(" + chars + note[lastend+link.end():]
+        lastend += link.end()
+        if lastend + 3 >= len(note):
+            break
+        link = mdlink_re.search(note[lastend:])
+    return note
+
 hash_re = re.compile(r'#([^# \n].*)')    # missing space after #
 blanklines_re = re.compile(r'[^\>]\<br\>#')     # less than two lines breaks before heading
 # blankheading_re = re.compile(r'# *\<br\>')      # blank heading
@@ -109,9 +146,17 @@ def fixID(row):
         row[3] = row[3][0:4]
     return row
 
+closed_re = re.compile(r'#+ *<br>')
+
+# This function removes hash marks and spaces at the end of each line in a note.
+def uncloseHeadings(note):
+    while sub := closed_re.search(note):
+        note = note[0:sub.start()] + "<br>" + note[sub.end():]
+    return note
+
 # Makes corrections on the vernacular note field.
 # Trailing spaces have already been removed.
-def cleanNote(note):
+def cleanNote(note, english_note):
     note = note.rstrip(" #[\\\(")
     if note.count("(") == 0:
         note = note.rstrip(")")
@@ -123,14 +168,25 @@ def cleanNote(note):
     note = note.replace("rc://*/", replacement)
     note = note.replace("rc://en/", replacement)
     note = note.replace("rc://en_ta/", "rc://" + language_code + "/ta/")
-
+    if note.find("** ") == note.find("**"):      # the first ** is followed by a space
+        note = note.replace("** ", "**", 1)
+    if note.count("**") == 1:
+        pos = note.find("**")
+        if note[pos-1] == " " or (len(note) > pos+2 and note[pos+2] == " ") or len(note) == pos+2:
+            note = note.replace("**", "", 1)
+        else:
+            note = note.replace("**", " ", 1)
     for pair in substitutions.subs:
         note = note.replace(pair[0], pair[1])
+    note = uncloseHeadings(note)
     note = fixSpacing(note)     # fix spacing around hash marks
     note = fixHeadingLevels(note)
+    if english_note:
+        note = fixManLinks(note, english_note)
     while note.endswith("<br>"):
         note = note[0:-4]
         note = note.rstrip(" #[\\")
+    note = fixMdLinks(note)
     return note
 
 # Combines rows that appear to be incorrectly broken.
@@ -162,7 +218,8 @@ def mergeRows(data):
 # Strips leading/trailing quotes and spaces from each column value in the row.
 # Detects and repairs a few common ways in which one column is missing from the row.
 # Makes a few fixes to the note column using cleanNote().
-def cleanRow(row):
+# Supplies Occurrence value if missing.
+def cleanRow(row, english_row):
     i = 0
     while i < len(row):
         str = row[i].strip(' ')     # remove leading and trailing spaces
@@ -180,13 +237,15 @@ def cleanRow(row):
     if len(row) == 10 and row[9].strip() == "":
         row = row[0:9]
     if len(row) == 9:
-        row[8] = cleanNote(row[8])
+        row[8] = cleanNote(row[8], english_row[8] if english_row else None)
         row[4] = cleanSupportRef(row[4], row[8])
+        if len(row[6].strip()) == 0:
+            row[6] = "0"
     return row
 
 tapage_re = re.compile(r'\[\[.*?/ta/man/[\w]+/(.*?)]]', flags=re.UNICODE)
 
-# Translates the value to the last tA article name in the note, if the value is non-ascii to begin with
+# Translates non-ascii value to the tA article name found in the specified note.
 def cleanSupportRef(value, note):
     if not value.isascii():
         if talink := tapage_re.search(note):
@@ -211,13 +270,19 @@ def cleanFile(folder, fname):
     sys.stdout.write(shortname(path) + '\n')
     sys.stdout.flush()
     data = tsv.tsvRead(path)  # The entire file is returned as a list of lists of strings (rows); each row is a list of strings.
+    englishPath = os.path.join(english_dir, fname.replace(language_code, "en", 1))
+    english_data = tsv.tsvRead(englishPath)
+    english = tsv.list2Dict(english_data, [3,2,1])       # dictionary of rows in English
+    # key = 'm030.27.15'
 
+    origdata = []
     if len(data) > 2 and data[0][0] == "Book" and len(data[1][0]) == 3:
         origdata = mergeRows(data)
     data = []
     for row in origdata:
         if len(row) > 1:
-            row = cleanRow(row)
+            key = tsv.make_key(row, [3,2,1])
+            row = cleanRow(row, english[key] if key in english else None)
         data.append(row)
     data.sort(key=rowValue)
 
@@ -238,7 +303,7 @@ def cleanFolder(folder):
         path = os.path.join(folder, entry)
         if os.path.isdir(path) and entry[0] != '.':
             cleanFolder(path)
-        elif filename_re.match(entry):
+        elif entry.endswith('.tsv'):
             cleanFile(folder, entry)
             nProcessed += 1
         if nProcessed >= max_files:
@@ -252,7 +317,7 @@ if __name__ == "__main__":
     if source_dir and os.path.isdir(source_dir):
         cleanFolder(source_dir)
         sys.stdout.write("Done. Processed " + str(nProcessed) + " files.\n")
-    elif filename_re.match(source_dir) and os.path.isfile(source_dir):
+    elif source_dir.endswith('.tsv') and os.path.isfile(source_dir):
         path = source_dir
         source_dir = os.path.dirname(path)
         cleanFile(source_dir, os.path.basename(path))
