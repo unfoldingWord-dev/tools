@@ -21,7 +21,7 @@
 #   Removes BOM, if any.
 #   Converts malformed heading marks "# #"
 #   Removes blank lines between markdown list items.
-#   Assures blank links before and after header lines.
+#   Assures blank lines before and after header lines.
 #   Leading spaces before the asterisk are also removed.
 #   Assures newline at the end of the file.
 #   Removes gratutious formatting asterisks from header lines.
@@ -31,7 +31,8 @@
 # Replaces non-ASCII text in tA links with the string "placeholder".
 # Removes trailing right parentheses if line contains no left parens.
 # Add trailing right paren if a line contain one unmatched left paren near end of line.
-
+# Removes unmatched __ from lines.
+# Balanced single underscores where possible.
 
 import re       # regular expression module
 import io
@@ -42,9 +43,9 @@ from filecmp import cmp
 import codecs
 
 # Globals
-source_dir = r'C:\DCS\Cebuano\ceb_tn'
-language_code = 'ceb'
-resource_type = 'tn'
+source_dir = r'C:\DCS\Nepali\work\rut\04'
+language_code = 'ne'
+resource_type = 'tq'
 server = 'DCS'     # DCS or WACS
 
 nChanged = 0
@@ -143,18 +144,6 @@ def shuffle(truelevel, nmarks, currlevel):
 
 hash_re = re.compile(r' *(#+) +', flags=re.UNICODE)
 
-# Removes asterisks from heading lines
-def fixHeadingFormats(str):
-    nChanges = 0
-    text = ""
-    lines = str.splitlines()
-    for line in lines:
-        header = hash_re.match(line, 0)
-        if header:
-            line = line.replace("*", "")
-        text += line + '\n'
-    return text
-
 # Normalizes markdown heading levels.
 # Removes training blanks from header lines.
 def fixHeadingLevels(str):
@@ -181,6 +170,18 @@ def fixHeadingLevels(str):
             currlevel = 2       # tQ and tW resources should have no level 1 headings after the first line
             line = "#" + line
         text += line.rstrip() + '\n'
+        lineno += 1
+    return text
+
+# Add hash mark to lines 1, 5, 9, etc if they appear to be questions.
+def markQuestionLines(str):
+    lines = str.splitlines()
+    lineno = 1
+    text = ""
+    for line in lines:
+        if lineno % 4 == 1 and line[0] != '#' and line.endswith('?'):
+            line = "# " + line
+        text += line + '\n'
         lineno += 1
     return text
 
@@ -304,7 +305,7 @@ def getChapterNumber(str):
 rclink_re = re.compile(r'([\(\[] *rc://[\*a-z0-9\-\./]+/)(.*?)([a-z0-9\-\./]*[\)\]])')
 
 # Replace non-ASCII parts of rc links with "placeholder" text.
-# This is necessary because on 2/18/22 I discovered that non-ASCII link can disable
+# This is necessary because on 2/18/22 I discovered that non-ASCII links can disable
 # the whole rendering engine on door43.org. (Example: https://git.door43.org/STR/mr_tw/bible/kt/hebrew.md)
 def fixRcLinks(str):
     newstr = ""
@@ -323,7 +324,7 @@ def fixRcLinks(str):
 
 reflink_re = re.compile(r'\[+rc://[\*\w]+/bible/notes/(\w\w\w)/(\d+)/(\d+)\]+', flags=re.UNICODE)     # very old style bible/notes links
 
-# Convert legacy format note links to standard form.
+# Convert legacy format note links (rc://*/bible/notes/...) to standard form.
 def fixRefLinks(path, str):
     chappath = os.path.dirname(path)
     mychap = getChapterNumber(os.path.basename(chappath))
@@ -348,6 +349,15 @@ def fixRefLinks(path, str):
         reflink = reflink_re.search(str)
     newstr += str
     return newstr
+
+#httplink_re = re.compile(r'] *\(https://create.translationcore.com/([\w]+\.md)', flags=re.UNICODE)  # ](some-kind-of-link)...
+
+# For tW files:
+# Replaces links of this form: [...](https://create.translationcore.com/kt/lawofmoses.md)
+# with this: [...](../kt/lawofmoses.md)
+def fixTccHttpLinks(str):
+    return str.replace("](https://create.translationcore.com", "](..")
+
 
 blanks_re = re.compile('[\n \t]+')     # multiple newlines/ white space at beginning of string
 hashblanks_re = re.compile('#  +')      # multiple spaces after hash mark
@@ -443,7 +453,8 @@ def convertWholeFile(source, target):
     if not source.endswith("title.md"):
         if fixHeadings and "## " in text:
             text = fixHeadingLevels(text)
-        text = fixHeadingFormats(text)
+        if resource_type == 'tq':
+            text = markQuestionLines(text)
 
     if resource_type in {'tn','tq'} and "intro.md" not in source and server == 'DCS':
         text = foldLists(text)
@@ -462,6 +473,8 @@ def convertWholeFile(source, target):
     text = fixTnLinks(text)
     text = fixMdLinks(text)
     text = fixRefLinks(source, text)
+    if resource_type == 'tw':
+        text = fixTccHttpLinks(text)
 
     if ebh := extraBlankHeading_re.search(text):
         text = text[:ebh.start()] + ebh.group(1) + text[ebh.end():]
@@ -492,9 +505,12 @@ def balanceUnderscores(line):
             line = line[0:ul.end()+diff] + line[ul.end():]
         elif diff > 0:
             line = line[0:ul.start()] + line[ul.start()+diff:]
+    if line.count('__') == 1:
+        line = line.replace('__', '')
     return line
 
-paren_re = re.compile(r'[^)]\)$', re.UNICODE)   # ends with single but not double right paren
+paren1_re = re.compile(r'[^)]\)$', re.UNICODE)   # ends with single but not double right paren
+#paren2_re = re.compile(r'[^)]\)\)$', re.UNICODE)   # ends with double right paren
 
 # Returns line with some corrections made
 def cleanupLine(line):
@@ -507,7 +523,7 @@ def cleanupLine(line):
         if lastleft > len(line) - 100 and lastleft > line.rfind(")"):
             line = line + ")"
     nBoldmarks = line.count("**")
-    if nBoldmarks == 1 and line.count("*") % 2 == 0:   # orphaned '**' is a common error
+    if nBoldmarks == 1 and (line.count("*") % 2 == 0 or line.startswith("* **")):   # orphaned '**' is a common error
         line = line.replace("**", "")
     elif nBoldmarks > 1 and nBoldmarks % 2 == 0:
         boldpos = line.find("**")      # finds the first ** in the line
@@ -518,8 +534,12 @@ def cleanupLine(line):
             if boldpos > 0 and line[boldpos-1] == ' ':
                 line = line[:boldpos-1] + line[boldpos:]
             boldpos = line.find("**", boldpos+2)    # finds the start of the next ** pair
-    if line.count('(') > line.count(')') and paren_re.search(line):
+    nleft = line.count('(')
+    nright = line.count(')')
+    if nleft > nright and paren1_re.search(line):
         line += ')'
+    if nleft < nright and line.endswith("))"):
+        line = line[0:-1]
     line = balanceUnderscores(line)
     return line
 
@@ -581,6 +601,7 @@ def removeBOM(path):
             f.write(raw)
 
 def convertFile(path):
+    removeBOM(path)
     tmppath = path + ".tmp"
     convertWholeFile(path, tmppath)
     if not os.path.isfile(tmppath):
@@ -605,7 +626,6 @@ def convertFile(path):
         os.remove(tmppath2)
     if tmppath != path and os.path.isfile(tmppath):
         os.remove(tmppath)
-    removeBOM(path)
 
 # Recursive routine to convert all files under the specified folder
 def convertFolder(folder):
