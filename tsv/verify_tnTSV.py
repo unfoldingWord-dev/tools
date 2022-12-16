@@ -16,14 +16,15 @@
 #      Missing space after hash mark(s).
 #      Double quotes enclosing the OccurrenceNote field.
 #      Leading spaces before markdown headers.
+#      Translation of links.
 # A lot of these checks are done by tsv2rc.py as well.
 
 # Globals
-source_dir = r'C:\DCS\Marathi\TN'
-language_code = 'mr'
+source_dir = r'C:\DCS\Telugu\te_tn.STR\te_tn_43-LUK.tsv'
+language_code = 'te'
 source_language = 'en'         # The language that the notes are translated from, usually en
-ta_dir = r'C:\DCS\Marathi\mr_ta.STR'    # Use Target language tA if available
-obs_dir = r'C:\DCS\Hindi\hi_obs.STR\content'
+ta_dir = r'C:\DCS\Kannada\kn_ta.STR'    # Use Target language tA if available
+obs_dir = r'C:\DCS\Kannada\kn_obs\content'
 
 suppress1 = False    # Suppress warnings about text before first heading and TA page references in headings
 suppress2 = False    # Suppress warnings about blank headings
@@ -33,12 +34,12 @@ suppress5 = True     # Suppress warnings about invalid passage links (don't know
 suppress6 = False    # Suppress warnings about invalid OBS links
 suppress7 = False    # Suppress warnings about file starting with blank line
 suppress9 = False    # Suppress warnings about ASCII content in note.
-suppress10 = True   # Suppress warnings about heading levels
+suppress10 = False   # Suppress warnings about heading levels
 suppress11 = False    # Suppress warnings about unbalanced parentheses
 suppress12 = False    # Suppress warnings about markdown syntax in 1-line notes
 suppress13 = False    # Suppress warnings about multiple lines in non-intro notes
 suppress14 = True    # Suppress warnings about mismatched SupportReference and TA page references
-suppress15 = True    # Suppress warnings each and every blank note (Only report number of blank notes.)
+suppress15 = False   # Suppress warning for each and every blank note (Only report number of blank notes.)
 
 if language_code in {'hr','id','nag','pmy','sw','en','es-419'}:    # Expect ASCII content with these languages
     suppress9 = True
@@ -125,7 +126,12 @@ class State:        # State information about a single note (a single column 9 v
             State.currlinetype = TEXT
             State.textcount += 1
         State.linetype.append(State.currlinetype)
-        if State.ascii and not line.isascii():
+        line = line.replace('“', '')    # Disregard curly quotes when determining whether the note is translated.
+        line = line.replace('”', '')
+        line = line.replace("‘", "")
+        line = line.replace("’", "")
+        line = line.replace('…', '')
+        if not line.isascii():
             State.ascii = False
 
     # Resets markdown line number to indicate end of line by line checking
@@ -233,6 +239,8 @@ def reportSuppressions():
         reportSuppression("Warnings about markdown syntax in 1-line notes were suppressed")
     if suppress13:
         reportSuppression("Warnings about multiple lines in non-intro notes were suppressed")
+    if suppress14:
+        reportSuppression("Warnings about mismatched SupportReference and TA page references were suppressed")
 
 # This function, instead of takeSplit(), checks simple verse notes.
 # Most notes consist of a single line with no headings or lists.
@@ -251,6 +259,7 @@ blankheading_re = re.compile(r'#+$')
 heading_re = re.compile(r'#+[ \t]')
 closedHeading_re = re.compile(r'#+[ \t].*#+[ \t]*$', re.UNICODE)
 badclosedHeading_re = re.compile(r'#+[ \t].*[^# \t]#+[ \t]*$', re.UNICODE)  # closing hash without preceding space
+hashmiddle_re = re.compile(r'[^#]+#')         # Hash marks in the middle of the line
 toobold_re = re.compile(r'#+[ \t]+[\*_]', re.UNICODE)        # unwanted formatting in headings
 headjam_re = re.compile(r'#[^# ]', re.UNICODE)          # no space after hash mark
 
@@ -283,6 +292,8 @@ def takeSplit(line):
                 reportError("closed heading")
             if badclosedHeading_re.match(line):
                 reportError("no space before closing hash mark")
+        elif hashmiddle_re.search(line):
+            reportError("Hash marks in the middle of a line in note")
         elif not suppress2 and blankheading_re.match(line):
             reportError("blank heading")
         elif len(line) > 1 and not heading_re.match(line):
@@ -293,7 +304,7 @@ def takeSplit(line):
                     reportError("heading level incremented by more than one level")
     if state.currlinetype == LIST_ITEM and not suppress3:
         if state.prevlinetype in { TEXT, HEADING }:
-            reportError("invalid list syntax; missing blank line before first list item: " + line[0:3] + "...")
+            reportError("invalid list syntax; missing blank line before first list item: " + line[0:7] + "...")
         i = state.md_lineno - 1
         if i > 1 and state.linetype[i-1] == BLANKLINE and state.linetype[i-2] == LIST_ITEM:
             reportError("invalid list style: blank line between list items")
@@ -302,7 +313,7 @@ def takeSplit(line):
             reportError("item number not followed by period")
         if olistitem_re.match(line):
             if state.prevlinetype in { TEXT, HEADING }:
-                reportError("missing blank line before ordered list: " + line[0:4] + "...")
+                reportError("missing blank line before ordered list: " + line[0:7] + "...")
             i = state.md_lineno - 1
             if i > 1 and state.linetype[i-1] == BLANKLINE and state.linetype[i-2] == ORDEREDLIST_ITEM:
                 reportError("blank line between ordered list items")
@@ -326,11 +337,23 @@ def checkUnconvertedLinks(line):
 
 tapage_re = re.compile(r'\[\[.*?/ta/man/(.*?)]](.*)', flags=re.UNICODE)
 talink_re = re.compile(r'(\(rc://[\*\w\-]+/ta/man/)(.+?/.+?)(\).*)', flags=re.UNICODE)
-obslink_re = re.compile(r'(rc://)([\*\w\-]+)(/tn/help/obs/)(\d+)(/\d+)(.*)', flags=re.UNICODE)
 # notelink_re = re.compile(r'(rc://)([\*\w\-]+)(/tn/help/)(\w\w\w/\d+/\d+)(.*)', flags=re.UNICODE)
-passagelink_re = re.compile(r']\(([^\)]*?)\)(.*)', flags=re.UNICODE)
 obsJpg_re = re.compile(r'https://cdn.door43.org/obs/jpg/360px/obs-en-[0-9]+\-[0-9]+\.jpg$', re.UNICODE)
 reversedlink_re = re.compile(r'\(.*\) *\[.*\]', flags=re.UNICODE)
+
+# Check for quadruple asterisks and mismatched asterisks.
+# Also checks for mismatched double underscores.
+def checkAsterisks(note):
+    if '**' in note:
+        if note.count("**") % 2 == 1:
+            reportError("Note seems to have mismatched '**'")
+        if note.find("** ") == note.find("**"):      # the first ** is followed by a space
+            reportError("Incorrect markdown syntax, space after double asterisk '** '")
+        if '****' in note:
+            reportError("Note contains quadruple asterisks, ****")
+    if note.count("__") % 2 == 1:
+        reportError("Note seems to have mismatched '__'")
+
 
 # Parse tA manual page names from the line.
 # Verifies the existence of the referenced page.
@@ -373,7 +396,31 @@ def checkLinks(line):
     if not foundTA and not foundOBS:  # and not foundTN:    # because passagelink_re could match any of these
         if not suppress5:
             checkPassageLinks(line)
+    checkMdLinks(line)
     checkReversedLinks(line)
+
+mdlink_re = re.compile(r'\( *([^\(]+\. ?md)', flags=re.UNICODE)   # apparent md file link following a left paren
+mdnamelink_re = re.compile(r'(..)\.md', flags=re.UNICODE)
+
+# Check for links that are corrupted, either by translating the digits or dropping the leading 0.
+def checkMdLinks(line):
+    link = mdlink_re.search(line)
+    while link:
+        chars = link.group(1)
+        if ' ' in chars or not chars.isascii():
+            reportError("Corrupted md file link: (" + chars)
+        line = line[link.end():]
+        link = mdlink_re.search(line)
+
+    mdnamelink = mdnamelink_re.search(line)
+    while mdnamelink:
+        digits = mdnamelink.group(1)
+        if digits[0] not in '0123456789/.' or digits[1] not in '0123456789':
+            reportError("Corrupted md filename link: " + digits + ".md")
+        line = line[mdnamelink.end():]
+        mdnamelink = mdnamelink_re.search(line)
+
+obslink_re = re.compile(r'(rc://)([\*\w\-]+)(/tn/help/obs/)(\d+)(/\d+)(.*)', flags=re.UNICODE)
 
 # Returns True if any OBS links were found and checked.
 def checkOBSLinks(line):
@@ -409,6 +456,8 @@ def checkOBSLinks(line):
 #    if notelink:
 #        found = True
 #    return found
+
+passagelink_re = re.compile(r'] ?\(([^\)]*?)\)(.*)', flags=re.UNICODE)
 
 # If there is a match to passageLink_re, passage.group(1) is the URL or other text between
 # the parentheses,
@@ -448,11 +497,11 @@ def verifyNote(note, verse):
             line = line.rstrip()
             takeSplit(line)
             checkLinks(line)
-#    if len(lines) <= 1 and verse != "intro":       # 1-line  note
-    if verse != "intro":       # should be a simple note
+    else:       # should be a simple note
         checkSimpleNote(note)
         checkLinks(note)
     state.closeNote()
+    checkAsterisks(note)
     reportParens()
     if len(note) > 0 and state.ascii and not suppress9:
         reportError("No non-ASCII content in note")
@@ -464,6 +513,20 @@ def verifyNote(note, verse):
 def checkColHeader(value, expected, col):
     if value != expected:
         reportError("Invalid column " + str(col) + " header: \"" + value + "\"")
+
+def verifySupportRef(supportref, note):
+    parts = supportref.split('/')
+    if len(parts) == 1:
+        folder = "translate"
+        article = parts[0]
+    else:
+        folder = parts[0]
+        article = parts[-1]
+    path = os.path.join(ta_dir, folder + "/" + article)
+    if not os.path.isdir(path):
+        reportError("Invalid SupportReference value: " + supportref)
+    elif not suppress14 and "rc://" in note and not supportref in note:
+        reportError("SupportReference value does not match any tA articles mentioned in note")
 
 # Reports an error if there is anything wrong with the first row in the TSV file.
 # That row contains nothing but column headings.
@@ -527,11 +590,7 @@ def checkRow(row):
     if not row[4].isascii():
         reportError("Non-ascii SupportReference value (column 5)")
     elif row[4]:
-        path = os.path.join(ta_dir, "translate/" + row[4])
-        if not os.path.isdir(path):
-            reportError("Invalid SupportReference value: " + row[4])
-        elif not suppress14 and "rc://" in row[8] and not row[4] in row[8]:
-            reportError("SupportReference value does not match any tA articles mentioned in note")
+        verifySupportRef(row[4], row[8])
     if len(row[5].strip()) > 0 and row[5].isascii():
         reportError("Invalid (ASCII) OrigQuote (column 6)")
     if row[6] not in {'-1', '0', '1', '2', '3', '4'}:
