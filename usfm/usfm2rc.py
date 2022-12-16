@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 # This script produces one or more .usfm files in resource container format from valid USFM source text.
 # Chunk division and paragraph locations are based on pre-existing usfm files in chunk_model_dir.
+# Inserts paragraph marker after each chapter marker if needed, before verse 1.
 # The model to be used for marking chunks is in chunk_model_dir.
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Assamese\ULB\convert\hos.usfm'
-target_dir = r'C:\DCS\Assamese\as_ulb.RPP'
+source_dir = r'C:\DCS\Burmese\work'
+target_dir = r'C:\DCS\Burmese\my_juds.STR'
 #en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
-chunk_model_dir = r'C:\DCS\Assamese\as_ulb.WA'
-mark_chunks = True
+chunk_model_dir = r'C:\DCS\English\en_ulb'
+mark_chunks = False
 max_chunk_size = 4
 
 projects = []
@@ -30,7 +31,7 @@ import yaml
 
 class State:
     ID = ""
-    rem = ""
+    rem = []
     h = ""
     toc1 = ""
     toc2 = ""
@@ -51,7 +52,7 @@ class State:
     chunks_output = []      # for current chapter
 
     def addREM(self, rem):
-        State.rem = rem
+        State.rem.append(rem)
 
     def addTOC1(self, toc):
         State.toc1 = toc
@@ -160,7 +161,7 @@ class State:
 
     def reset(self):
         State.ID = ""
-        State.rem = ""
+        State.rem = []
         State.h = ""
         State.toc1 = ""
         State.toc2 = ""
@@ -254,8 +255,12 @@ def settleChapterChunks():
     output = []
     if len(state.bookchunks_model) >= state.chapter:    # should always be true
         model = state.bookchunks_model[state.chapter-1]
+    else:
+        reportError("Internal error 1")
     if len(state.bookchunks_input) >= state.chapter:    # should always be true
         output = state.bookchunks_input[state.chapter-1]
+    else:
+        reportError("Internal error 2")
     (start, next, pos) = longchunk(output)
     while pos:
         if chunkverses := chunkAt(start, next, model):
@@ -364,6 +369,8 @@ def takeV(v):
         v = v.strip("-")    # A verse marker like this has occurred:  \v 19-
         state.addVerse(v)
         addSection(v)
+    if (v == "1" or v.startswith("1-")) and state.needPp:
+        state.usfmFile.write("\n\\" + state.needPp)
     state.usfmFile.write("\n\\v " + v)
 
 def takeText(t):
@@ -474,7 +481,7 @@ def isCrossRef(token):
 
 # Returns true if token is part of a footnote
 def isFootnote(token):
-    return token.isF_S() or token.isF_E() or token.isFR() or token.isFR_E() or token.isFT() or token.isFP() or token.isFE_S() or token.isFE_E()
+    return token.isF_S() or token.isF_E() or token.isFR() or token.isFT() or token.isFP() or token.isFE_S() or token.isFE_E()
 
 def isIntro(token):
     return token.is_is() or token.is_ip() or token.is_iot() or token.is_io()
@@ -506,7 +513,8 @@ def writeHeader():
         state.usfmFile.write(" " + state.sts)
     state.usfmFile.write("\n\\ide UTF-8")
     if state.rem:
-        state.usfmFile.write("\n\\rem " + state.rem)
+        for rem in state.rem:
+            state.usfmFile.write("\n\\rem " + rem)
     state.usfmFile.write("\n\\h " + h)
     state.usfmFile.write("\n\\toc1 " + toc1)
     state.usfmFile.write("\n\\toc2 " + toc2)
