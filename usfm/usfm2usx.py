@@ -10,19 +10,19 @@
 # Before running the script, set the global variables below.
 
 # Global variables
-source_dir = r'C:\DCS\Arabic-arb\arb_nav.TA\subset'    # folder containing usfm files
-target_dir = r'C:\DCS\Arabic-arb\arb_nav_rc'
+source_dir = r'C:\DCS\Danish\dan_det.WA'
+target_dir = r'C:\DCS\Danish\dan_det_rc'
 en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
 
 # Values to be written into each of the package.json files
-language_code = 'arb'
-language_name = 'العربية'
-bible_id = 'nav'      # lowercase 'ulb' or other bible identifier
-bible_name = 'New Arabic Version (Ketab El Hayat)'
-direction = "rtl"
-pub_date = "2012-05-17"
-license = "CC-BY-SA 4.0"
-version = "3"
+language_code = 'dan'
+language_name = 'Dansk'
+bible_id = 'det'      # lowercase 'ulb' or other bible identifier
+bible_name = 'Hellig Bibel'
+direction = "ltr"
+pub_date = "2022-06-29"
+license = "Public Domain (NT)"
+version = "1"
 
 import sys
 import os
@@ -60,6 +60,7 @@ class State:
 
     def addID(self, id):
         State.ID = id
+        State.title = ""
         State.chapter = 0
         State.lastVerse = 0
         State.verse = 0
@@ -174,7 +175,16 @@ def takeC(c):
     path = os.path.join(state.target_chapter_dir, "01.usx")
     state.setUsxOutput( io.open(path, "tw", encoding="utf-8", newline='\n') )
 
-# Currently this function does nothing, as paragraphs are not relevant to tStudio/BTTW.
+def takeF(value):
+    State().usxOutput.write('<note style="f" caller="+"> ')
+
+def takeFTFQA(type, value):
+    State().usxOutput.write(f'<char style="{type}">\n{value} </char>\n')
+
+def takeFE():
+    State().usxOutput.write('</note>\n')
+
+# Currently this function does nothing, as paragraphs are not relevant to tStudio/BTTW (confirmed 3/29/22).
 def takeP(type):
     state = State()
     # state.usxOutput.write('<para style="' + type + '">\n\n')
@@ -231,6 +241,12 @@ def take(token):
     elif token.isP() or token.isPI() or token.isPC() or token.isNB() or token.isQ() \
         or token.isQ1() or token.isQA() or token.isSP() or token.isQR() or token.isQC():
         takeP(token.type)
+    elif token.isF_S():
+        takeF(token.value)
+    elif token.isFT() or token.isFQA():
+        takeFTFQA(token.type, token.value)
+    elif token.isF_E():
+        takeFE()
     else:
         if not token.type in {'ide','toc3'}:
             reportError("Unhandled token: " + token.type)
