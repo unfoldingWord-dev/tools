@@ -23,15 +23,15 @@
 #          Check that tW files begin with H1 heading immediately followed by H2 heading.
 
 # Globals
-source_dir = r'C:\DCS\Gujarati\TW\bible\kt\abomination.md'
-language_code = 'gu'
-resource_type = 'tw'
-ta_dir = r'C:\DCS\Gujarati\gu_ta.STR'    # Target language tA, or English tM for WA
-obstn_dir = r'C:\DCS\Spanish-es-419\es-419_obs-tn.STR'
+source_dir = r'C:\DCS\Nepali\work'
+language_code = 'ne'
+resource_type = 'tq'
+ta_dir = r'C:\DCS\Kannada\kn_ta.STR'    # Target language tA, or English tM for WA
+obstn_dir = r'C:\DCS\Russian\ru_obs-tn.STR'
 en_tn_dir = r'C:\DCS\English\en_tn.md-orig'
-en_tq_dir = r'C:\DCS\English\en_tq.v27'
-tn_dir = r'C:\DCS\Gujarati\gu_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
-tw_dir = r'C:\DCS\Gujarati\gu_tw.STR'
+en_tq_dir = r'C:\DCS\English\en_tq.v38'
+tn_dir = r'C:\DCS\Spanish-es-419\es-419_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
+tw_dir = r'C:\DCS\Kannada\kn_tw.STR'
 
 nChecked = 0
 nChanged = 0
@@ -43,7 +43,7 @@ suppress2 = False    # Suppress warnings about blank headings
 suppress3 = False    # Suppress warnings about item number not followed by period
 suppress4 = False    # Suppress warnings about closed headings
 suppress5 = False    # Suppress warnings about invalid relative links
-suppress6 = True    # Suppress warnings about invalid OBS notes links
+suppress6 = False    # Suppress warnings about invalid OBS notes links
 suppress7 = False    # Suppress warnings about file starting with blank line
 suppress8 = False    # Suppress warnings about blank lines before, after, and within lists
 suppress9 = False    # Suppress warnings about ASCII content
@@ -58,7 +58,8 @@ suppress17 = (resource_type != 'tn')  # Suppress the missing intro.md file warni
 suppress18 = False     # Suppress warnings about newline in title.md files
 suppress19 = False     # Suppress "should be a header here" warnings
 suppress20 = False      # Suppress "invalid TA page reference" warnings
-suppress21 = True       # Suppress missing title/subtitle files warnings (applies to tA only)
+suppress21 = False       # Suppress missing title/subtitle files warnings (applies to tA only)
+suppress22 = True       # Suppress warnings about http links
 
 if resource_type == "ta":
     suppress1 = True
@@ -104,6 +105,7 @@ class State:
         State.reported2 = False
         State.leftparens = 0
         State.rightparens = 0
+        State.reported_parens_inline = False
         State.leftbrackets = 0
         State.rightbrackets = 0
         State.leftcurly = 0
@@ -144,9 +146,11 @@ class State:
             State.ascii = False
 
     def countParens(self, line):
-        if not re.search(r'[0-9]\)', line):   # right parens used in list items voids the paren matching logic for that line
-            State.leftparens += line.count("(")
-            State.rightparens += line.count(")")
+        #if not re.search(r'[0-9]\)', line):   # right parens used in list items voids the paren matching logic for that line
+            #State.leftparens += line.count("(")
+            #State.rightparens += line.count(")")
+        State.leftparens += line.count("(")
+        State.rightparens += line.count(")")
         State.leftbrackets += line.count("[")
         State.rightbrackets += line.count("]")
         State.leftcurly += line.count("{")
@@ -161,9 +165,10 @@ class State:
     def report2(self, report=True):
         State.reported2 = report
 
+# Report unbalanced parentheses/brackets on a file-wide basis
 def reportParens():
     state = State()
-    if not suppress11 and state.leftparens != state.rightparens:
+    if not suppress11 and state.reported_parens_inline and state.leftparens != state.rightparens:
         reportError("Parentheses are unbalanced (" + str(state.leftparens) + ":" + str(state.rightparens) + ")", False)
     if state.leftbrackets != state.rightbrackets:
         reportError("Left and right square brackets are unbalanced (" + str(state.leftbrackets) + ":" + str(state.rightbrackets) + ")", False)
@@ -257,13 +262,15 @@ def take(line):
         if state.linecount == 1 and not suppress7:
             reportError("starts with blank line", False)
         return
+    if "placeholder" in line:
+        reportError("Line contains a placeholder.")
     if state.prevlinetype == HEADING and state.currlinetype != BLANKLINE:
         reportError("missing blank line after heading.")
     if state.currlinetype != HEADING and not state.titlefile:
         if state.headingcount == 0 and not suppress1 and not state.reported1:
             reportError("has text before first heading")
             state.report1()
-        if resource_type == 'tq' and state.currQ == state.prevQ:
+        if resource_type == 'tq' and state.currQ == state.prevQ and state.currQ != "":
             reportError("Duplicate questions")
     if state.currlinetype == TEXT and not state.reported2 and not suppress19:
         if state.linecount >= 5 and state.prevlinetype == BLANKLINE and state.linetype[state.linecount-3] in {TEXT,LIST_ITEM,ORDEREDLIST_ITEM}:
@@ -382,8 +389,8 @@ def checkLineContents(line):
         reportError("Extra parens or brackets")
     if line.count("[") != line.count("]"):
         reportError("Unbalanced brackets within this line: " + str(line.count("[")) + ":" + str(line.count("]")))
-    if not suppress11 and line.count("(") != line.count(")"):
-        reportError("Unbalanced parens within this line: " + str(line.count("(")) + ":" + str(line.count(")")))
+    if not suppress11:
+        nRight = reportParensInLine(line, count_numbered=False)
 
 rclink2_re = re.compile(r'rc:[a-z0-9\-\.\*/]+(.*?)[\)\]]')
 
@@ -563,7 +570,7 @@ def checkPassageLinks(line, fullpath):
                 reportError("Non-ascii link")
             elif not link.startswith("http") and not suppress5:
                 checkRelativeLink(link, fullpath)
-            else:
+            elif not suppress22:
                 reportError("http link: " + link)
         passage = passagelink_re.search(passage.group(2))
 
@@ -586,6 +593,21 @@ reversedlink_re = re.compile(r'\(.*\) *\[.*\]', flags=re.UNICODE)
 def checkReversedLinks(line):
     if reversedlink_re.search(line):
         reportError("Reversed link syntax")
+
+paren_re = re.compile(r'[0-9১-৩]+\)', flags=re.UNICODE)   # Right parens after a number. May match too much.
+parens_re = re.compile(r'\([0-9১-৩]+\)', flags=re.UNICODE)   # Number in parentheses.
+
+def reportParensInLine(line, count_numbered=False):
+    right = line.count(")")
+    rightX = right
+    left = line.count("(")
+    if right > left and not count_numbered:    # eliminate miscounts from parenthesized ordered list in the line
+        numbered_parens = len( paren_re.findall(line) )
+        parenthesized_numbers = len( parens_re.findall(line) )
+        rightX -= (numbered_parens - parenthesized_numbers)
+    if left != rightX:
+        reportError("Unbalanced parens within this line: " + str(left) + ":" + str(right))
+        State().reported_parens_inline = True
 
 def shortname(longpath):
     shortname = longpath
