@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# This program is intended to replacr v.9 URLs in tA with v.10 URLs.
+# This program is intended to replace obsolete URLs in tA with current URLs.
 # Its work is limited to a predefined dictionary of URLs.
 # Backs up the .md file being modified.
 # Outputs .md files of the same name in the same location.
@@ -7,15 +7,15 @@
 import re       # regular expression module
 import io
 import os
-# import shutil
 import codecs
 import string
 import sys
 
 # Globals
+source_dir = r'C:\DCS\Telugu\te_ta.work'
 nChanged = 0
-max_changes = 25
-filename_re = re.compile(r'01\.md$')
+max_changes = 1
+filename_re = re.compile(r'.+\.md$')
 
 # Keystring is used only to find the lines that may need replacements done.
 keystring = []
@@ -42,7 +42,8 @@ v9string.append("(figs-partsofspeech)")
 v9string.append("(figs-verbs)")
 v9string.append("(figs-distinguish)")
 v9string.append("(figs-verbs)")
-
+v9string.append("(writing-connecting-word)")
+v9string.append("(writing-connecting word)")
 # Strings to replace with
 v10string = []
 v10string.append( 'https://unfoldingword.org/tw/' )
@@ -61,6 +62,8 @@ v10string.append( "(../figs-partsofspeech/01.md)" )
 v10string.append( "(../figs-verbs/01.md)" )
 v10string.append( "(../figs-distinguish/01.md)" )
 v10string.append( "(../figs-verbs/01.md)" )
+v10string.append( "(../grammar-connect-words-phrases/01.md)" )
+v10string.append( "(../grammar-connect-words-phrases/01.md)" )
 
 
 # Copies lines from input to output.
@@ -98,14 +101,11 @@ def convertFileByLines(path):
         nChanged += 1    
         sys.stdout.write("Converted " + shortname(path) + "\n")
 
-prefix_re = re.compile(r'C:\\DCS')
-
 def shortname(longpath):
     shortname = longpath
-    if prefix_re.match(longpath):
-        shortname = "..." + longpath[6:]
+    if source_dir in longpath:
+        shortname = longpath[len(source_dir)+1:]
     return shortname
-
 
 # Recursive routine to convert all files under the specified folder
 def convertFolder(folder):
@@ -126,13 +126,11 @@ def convertFolder(folder):
 
 # Processes all .txt files in specified directory, one at a time
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        folder = r'C:\DCS\Kannada\kn_tA'
-    else:
-        folder = sys.argv[1]
+    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
+        source_dir = sys.argv[1]
 
-    if folder and os.path.isdir(folder):
-        convertFolder(folder)
+    if os.path.isdir(source_dir):
+        convertFolder(source_dir)
         sys.stdout.write("Done. Changed " + str(nChanged) + " files.\n")
     else:
-        sys.stderr.write("Usage: python streamEdit.py <folder>\n  Use . for current folder.\n")
+        sys.stderr.write("Usage: python ta_v10_urls.py <folder>\n  Use . for current folder.\n")
