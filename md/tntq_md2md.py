@@ -11,10 +11,10 @@
 #    Fixes links of this form [[:en:...]]
 
 # Global variables
-source_dir = r'C:\DCS\TokPisin\TN'
-target_dir = r'C:\DCS\TokPisin\tpi_tn'
-language_code = 'tpi'
-resource_type = 'tn'
+source_dir = r'C:\DCS\Nepali\TQ'
+target_dir = r'C:\DCS\Nepali\work'
+language_code = 'ne'
+resource_type = 'tq'
 Contributors_only = False    # set to True if all you want is the list of contributors (for Marv)
 
 projects = []
@@ -78,7 +78,8 @@ def getContributors(path):
         manifest = yaml.safe_load(manifestFile)
         manifestFile.close()
         source_versions += manifest['dublin_core']['source'][0]['version']
-        translators += manifest['dublin_core']['contributor']
+        if contributors := manifest['dublin_core']['contributor']:
+            translators += contributors
 
 # Returns the English book name from usfm_verses
 def getBookTitle(id):
@@ -105,7 +106,7 @@ def appendToProjects(bookId, bookTitle):
 # Sort the list of projects and write to projects.yaml
 def dumpProjects():
     global projects
-    
+
     projects.sort(key=operator.itemgetter('sort'))
     path = makeManifestPath()
     manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
@@ -135,7 +136,7 @@ def dumpTranslators():
     f = io.open(path, 'tw', encoding='utf-8', newline='\n')
     for name in contribs:
         f.write('    - "' + name + '"\n')
-    
+
     # Also dump the list of source versions used
     f.write('\n\nSource versions used:\n')
     for version in source_versions:
@@ -206,7 +207,7 @@ def convertBook(path):
             chap01pathAlt = os.path.join( os.path.join(path, bookId.lower(), "01"))
             if bookId.lower() == "psa" and not os.path.isdir(chap01pathAlt):
                 chap01pathAlt = os.path.join( os.path.join(path, "psa", "001"))
-    
+
             if os.path.isdir(chap01pathAlt) and not os.path.isdir(chap01path):
                 path = os.path.join(path, bookId.lower())
                 relativepath = shortname(path)
@@ -225,7 +226,7 @@ def convertBook(path):
         elif relativepath != "" and relativepath.lower() != "content":
             sys.stderr.write("Not identified as a book folder: " + relativepath + '\n')
     return bookTitle
- 
+
 # Converts the book or books contained in the specified folder
 def convert(dir):
     if not os.path.isdir(target_dir):
@@ -237,18 +238,17 @@ def convert(dir):
             folder = os.path.join(dir, directory)
             if os.path.isdir(folder) and directory[0] != ".":
                 convert(folder)
-    dumpProjects()
-    global translators
-    if len(translators) > 0:
-        dumpTranslators()
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         source_dir = sys.argv[1]
-    
+
     if os.path.isdir(source_dir):
         convert(source_dir)
+        dumpProjects()
+        if len(translators) > 0:
+            dumpTranslators()
     else:
         sys.stderr.write("Folder not found: " + source_dir)
     print("\nDone.")
