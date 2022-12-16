@@ -13,6 +13,7 @@ subs = [
 	("</ ", "</"),      #malformed html
 #	("< ", "<"),      # commented out because this is not always an issue of malformed html
 	("&nbsp;", " "),
+	("&quot;", "\""),
 	("&#34;", "\""),
 	("&#39;", "'"),
 	("<o:p>", ""),
