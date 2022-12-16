@@ -5,7 +5,7 @@
 # I do some modifications to the text in MS Word first, and export to a UTF-8 text file before using this script.
 # The input text has been converted to USFM format except for the footnotes, which are still at the end of the file.
 
-source_dir = r'C:\DCS\Assamese\ULB\convert\hos.usfm'
+source_dir = r'C:\DCS\Assamese\ULB.NT\convert'
 language_code = 'as'
 
 import io
@@ -67,7 +67,7 @@ def partOfUsfmTag(line, pos):
     intag = False
     if tag := usfmtag_re.search(line[left:pos+1]):
         intag = line[pos] in tag.group(1)
-    return intag 
+    return intag
 
 # Returns the first position in the line where the specified string is found not preceded by a backslash
 # Returns -1 if not found.
@@ -119,7 +119,7 @@ def okayToWrite(line):
             okay = (footnote in footnotes)
     return okay
 
-verseable_re = re.compile(r'\\[vpq]', re.UNICODE)
+verseable_re = re.compile(r'\\[vpqm]', re.UNICODE)
 
 # Returns True if the line could contain a verse or part of a verse.
 # Assumes that usfm markers, if any, occur only at the beginning of the line.
@@ -153,7 +153,8 @@ def listVerses(line, prevn):
 # Modifies the lines list directly, and writes the new lines to the specified output file.
 # Omits \footnote lines from the output, if the footnote was successfully inserted in the text.
 def convertText(lines, output):
-    nFootnotes = parseFootnotes(lines)   # First pass, only populates the global footnotes list
+    parseFootnotes(lines)   # First pass, only populates the global footnotes list
+    global footnotes
     if footnotes:
         chapter = 0
         vn = 0
