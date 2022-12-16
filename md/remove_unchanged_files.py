@@ -4,12 +4,10 @@
 # only partially updated. I don't want to have to redo the cleanup of files that have already
 # been cleaned up and not updated from the field. So I developed this script to eliminate the
 # unchanged files from the source.
-#
-# AFTER RUNNING THIS SCRIPT
-# Remove the older folder and replace it with a complete clone of the updated repo
 
-updated_dir = r'C:\DCS\Hindi\TN'    # new source folder, from which files will be removed
-older_dir = r'C:\DCS\Hindi\TN.Dec-21'  # make both of these paths as low level as possible to avoid removing too many files
+
+updated_dir = r'C:\DCS\Nepali\TQ'    # new source folder, from which files will be removed
+older_dir = r'C:\DCS\Nepali\TQ.Aug-22'  # make both of these paths as low level as possible to avoid removing too many files
 nRemoved = 0
 nLeft = 0
 
