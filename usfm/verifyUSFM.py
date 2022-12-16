@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 # Script for verifying proper USFM.
 # Reports errors to stderr and issues.txt.
-# Set source_dir and usfmVersion to run.
+# Set source_dir and language_code to run.
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Telugu\te_gst'
-language_code = 'te'
+source_dir = r"C:\DCS\Marathi\work"
+language_code = 'mr'
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
@@ -14,11 +14,15 @@ suppress3 = True     # Suppress bad punctuation warnings
 suppress4 = False     # Suppress warnings about useless markers before section markers
 suppress5 = False     # Suppress checks for verse counts
 suppress6 = False     # Suppress warnings about uW/WA extensions to USFM
+suppress7 = False     # Suppress warnings about square brackets indicating footnotes
 suppress9 = False     # Suppress warnings about ASCII content
-max_chunk_length = 4
 
-if language_code in {'en','es','es-419','gl','ha','hr','id','nag','pmy','pt-br','sw','tpi'}:    # ASCII content
+max_chunk_length = 400
+
+if language_code in {'en','es','es-419','gl','ha','hr','id','kpj','nag','pmy','pt-br','sw','tl','tpi'}:    # ASCII content
     suppress9 = True
+if language_code in {'as','bn','gu','hi','kn','ml','mr','nag','ne','or','ru','ta','te'}:    # ASCII content
+    suppress9 = False
 if language_code == 'ru':
     suppress5 = True
 
@@ -41,7 +45,6 @@ from datetime import date
 # Marker types
 PP = 1      # paragraph or quote
 QQ = 2
-MM = 3
 OTHER = 9
 
 class State:
@@ -59,6 +62,8 @@ class State:
     textOkayHere = False
     footnote_starts = 0
     footnote_ends = 0
+    endnote_starts = 0
+    endnote_ends = 0
     reference = ""
     lastRef = ""
     startChunkRef = ""
@@ -76,6 +81,8 @@ class State:
         State.startChunkVerse = 1
         State.footnote_starts = 0
         State.footnote_ends = 0
+        State.endnote_starts = 0
+        State.endnote_ends = 0
         State.needVerseText = False
         State.textLength = 0
         State.textOkayHere = False
@@ -84,6 +91,7 @@ class State:
         State.reference = id + " header/intro"
         State.currMarker = OTHER
         State.toc3 = None
+        State.upperCaseReported = False
 
     def getIDs(self):
         return State.IDs
@@ -113,6 +121,11 @@ class State:
         State.needQQ = False
         State.textOkayHere = True
         State.currMarker = PP
+    def addPoetry(self):
+        State.needQQ = False
+        State.needPP = False
+        State.textOkayHere = True
+        State.currMarker = QQ
 
     # Records the start of a new chunk
     def addS5(self):
@@ -132,12 +145,6 @@ class State:
     def addAcrosticHeading(self):
         State.textOkayHere = True
         State.needQQ = True
-
-    def addPoetry(self):
-        State.needQQ = False
-        State.needPP = False
-        State.currMarker = QQ
-        State.textOkayHere = True
 
     # Resets needQQ flag so that errors are not repeated verse after verse
     def resetPoetry(self):
@@ -176,7 +183,20 @@ class State:
         State.needVerseText = False
         State.textOkayHere = True
 
-    # Adds the specified reference to the set of error references
+    # Increments \fe counter
+    def addEndnoteStart(self):
+        State.endnote_starts += 1
+        State.currMarker = OTHER
+        State.needVerseText = False
+        State.textOkayHere = True
+
+    # Increments \fe* counter
+    def addEndnoteEnd(self):
+        State.endnote_ends += 1
+        State.needVerseText = False
+        State.textOkayHere = True
+
+           # Adds the specified reference to the set of error references
     # Returns True if reference can be added
     # Returns False if reference was previously added
     def addError(self, ref):
@@ -199,6 +219,9 @@ class State:
     # Returns the English title for the specified book
     def bookTitleEnglish(self, id):
         return usfm_verses.verseCounts[id]['en_name']
+
+    def reportedUpperCase(self):
+        State.upperCaseReported = True
 
 def shortname(longpath):
     shortname = longpath
@@ -240,7 +263,7 @@ def emptyVerseCheck():
     if not suppress1 and not isOptional(state.reference) and state.getTextLength() < 10 and state.verse != 0:
         if state.getTextLength() == 0:
             reportError("Empty verse: " + state.reference)
-        else:
+        elif not isShortVerse(state.reference):
             reportError("Verse fragment: " + state.reference)
 
 def longChunkCheck():
@@ -278,6 +301,8 @@ def verifyFootnotes():
     state = State()
     if state.footnote_starts != state.footnote_ends:
         reportError(state.ID + ": mismatched footnote tags (" + str(state.footnote_starts) + " started and " + str(state.footnote_ends) + " ended)")
+    if state.endnote_starts != state.endnote_ends:
+        reportError(state.ID + ": mismatched endnote tags (" + str(state.endnote_starts) + " started and " + str(state.endnote_ends) + " ended)")
 
 # Checks whether the entire file was empty or unreadable
 def verifyNotEmpty(filename):
@@ -331,27 +356,39 @@ def takeC(c):
     elif state.chapter > state.lastChapter + 1:
         reportError("Missing chapter(s) between: " + state.lastRef + " and " + state.reference)
 
-# Handles all the footnote token types
+# Handles all the footnote and endnote token types
 def takeFootnote(token):
     state = State()
     if token.isF_S():
         if state.footnote_starts != state.footnote_ends:
             reportError(f"Footnote starts before previous one is terminated at {state.reference}")
         state.addFootnoteStart()
+    elif token.isFE_S():
+        if state.endnote_starts != state.endnote_ends:
+            reportError(f"Endnote starts before previous one is terminated at {state.reference}")
+        reportError(f"Warning: endnote \\fe ... \\fe* at {state.reference} may break USFM Converter and Scripture App Builder.")
+        state.addEndnoteStart()
+    elif token.isF_E():
+        state.addFootnoteEnd()
+    elif token.isFE_E():
+        state.addEndnoteEnd()
     else:
-        if state.footnote_starts <= state.footnote_ends:
+        if state.footnote_starts <= state.footnote_ends and state.endnote_starts <= state.endnote_ends:
             reportError(f"Footnote marker ({token.type}) not between \\f ... \\f* pair at {state.reference}")
-        if token.isF_E():
-            state.addFootnoteEnd()
     if token.isFQA_E() and not suppress6:
         reportError(f"Non-standard footnote marker at {state.reference}. ({token.type} is an unfoldingWord/WA extension).")
 
 def takeP():
     state = State()
     if state.currMarker in {QQ,PP} and not suppress4:
-        reportError("Warning: useless \p or \q before paragraph marker after: " + state.reference)
+        reportError("Warning: back to back paragraph/poetry markers after: " + state.reference)
+    if state.needText() and not isOptional(state.reference):
+        reportError("Paragraph marker after verse marker, or empty verse: " + state.reference)
     state.addParagraph()
 
+def takeQ():
+    takeP()
+    State().addPoetry()
 
 def takeS5():
     longChunkCheck()
@@ -475,7 +512,7 @@ def takeText(t):
             # reportError(u"Missing verse marker or extra text around " + state.reference + u": <" + t[0:10] + u'>.')
             reportError("Missing verse marker or extra text near " + state.reference)
         if lastToken:
-            reportError("  preceding Token.type was " + lastToken.getType())
+            reportError("  preceding Token was \\" + lastToken.getValue())
         else:
             reportError("  no preceding Token")
     if "<" in t and not ">" in t:
@@ -485,8 +522,10 @@ def takeText(t):
             reportError("Angle bracket not closed at " + state.reference)
     if not suppress3 and not aligned_usfm:
         reportPunctuation(t)
-    if lastToken.isV() and not aligned_usfm:
+    if lastToken.isV() and not aligned_usfm and not suppress7:
         reportFootnotes(t)
+    if not suppress9 and t.isascii():
+      reportError("Verse is entirely ASCII: " + state.reference)
     state.addText(t)
 
 # Returns true if token is part of a footnote
@@ -514,6 +553,11 @@ def isOptional(ref, previous=False):
 'MRK 16:17', 'MRK 16:18', 'MRK 16:19', 'MRK 16:20',
 'MRK 11:26', 'MRK 15:28', 'LUK 17:36', 'LUK 23:17', 'JHN 5:4', 'JHN 7:53', 'JHN 8:1', 'ACT 8:37', 'ACT 15:34',\
 'ACT 24:7', 'ACT 28:29', 'ROM 16:24', 'REV 12:18' }
+
+def isShortVerse(ref):
+    return ref in { 'LEV 11:15', 'DEU 5:19', \
+'JOB 9:1', 'JOB 12:1', 'JOB 16:1', 'JOB 19:1', 'JOB 21:1', 'JOB 27:1', 'JOB 29:1' }
+
 
 def isPoetry(token):
     return token.isQ() or token.isQ1() or token.isQ2() or token.isQ3() or token.isQA() or \
@@ -574,13 +618,14 @@ def take(token):
     elif token.isQA():
         state.addAcrosticHeading()
     elif isPoetry(token):
-        state.addPoetry()
+        takeQ()
     elif isTitleToken(token):
         state.addTitle(token.value)
         if token.isMT() and token.value.isascii() and not suppress9:
             reportError("mt token has ASCII value in " + state.reference)
-        if token.value.isupper():
+        if token.value.isupper() and not state.upperCaseReported:
             reportError("Upper case book title in " + state.reference)
+            state.reportedUpperCase()
     elif token.isTOC3():
         state.addToc3(token.value)
         if (len(token.value) != 3 or not token.value.isascii()):
@@ -727,7 +772,7 @@ if __name__ == "__main__":
         source_dir = os.path.dirname(path)
         verifyFile(path)
     else:
-        sys.stderr.write("No such folder: " + source_dir)
+        sys.stderr.write("No such folder or file: " + source_dir)
         exit(-1)
 
     if issuesFile:
