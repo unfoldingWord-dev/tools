@@ -50,7 +50,7 @@
 #   verifies config.yaml files for tA or tW projects
 
 # Globals
-manifestDir = r'C:\DCS\Spanish-es-419\es-419_ta.STR'
+manifestDir = r'C:\DCS\Bengali\bn_glt'
 nIssues = 0
 projtype = ''
 issuesFile = None
@@ -117,14 +117,14 @@ def countUsfmFiles():
 
 # Returns True if the specified string is a recognized Bible type of project type
 def isBibleType(id):
-    return (isAlignedBibleType(id) or id in {'ulb','udb','reg','blv','nav'})
+    return (isAlignedBibleType(id) or id in {'ulb','udb','reg','blv','nav','det','juds'})
 
 # Returns True if the specified string is a recognized Aligned Bible type of project type
 # Preliminary implementation - list needs refinement (6/21/21)
 def isAlignedBibleType(id):
     return (id in {'ust', 'ult', 'iev','irv','isv','glt','gnt','gst','ocb', \
                    'rhb','rlb','rlv','rob','rlob','rsb','rsob', \
-                   'stv','trs'})
+                   'stv','tlob','trs'})
 
 # This function validates the project entries for a tA project.
 # tA projects should have four projects entries, each with specific content
@@ -265,7 +265,7 @@ def verifyCore(core):
     elif core['language']['identifier'] in {'as','bn','gu','hi','kn','ml','mr','nag','or','pa','ta','te','ur-deva'} and pub != 'BCS':
         reportError("Publisher name should be 'BCS' for BCS resources.")
     verifyRelations(core['relation'])
-    if 'rights' in list(core.keys()) and core['rights'] != 'CC BY-SA 4.0':  # would this work: 'rights' in core
+    if 'rights' in core and core['rights'] != 'CC BY-SA 4.0':  # was 'rights' in list(core.keys()) and ...
         reportError("Invalid value for rights: " + core['rights'])
     verifySource(core['source'])
     verifySubject(core['subject'])
@@ -373,7 +373,7 @@ def verifyLanguage(language):
             reportError("Language identifier (" + language['identifier'] + ") does not match first part of directory name: " + os.path.basename(manifestDir))
     if verifyStringField(language, 'title', 3):
         language_code = language['identifier']
-        if language['title'].isascii() and not language_code in {'en','es','es-419','gl','ha','hr','id','nag','pmy','pt-br','sw','tpi'}:
+        if language['title'].isascii() and not language_code in {'dan','en','es','es-419','gl','ha','hr','id','nag','pmy','pt-br','sw','tl','tpi'}:
             reportWarning("Remember to localize language title: " + language['title'])
 
 # For OBS projects, verify that media.yaml is valid.
@@ -438,7 +438,7 @@ def verifyProject(project, language_code):
         if project['title'] not in {'translationWords','Translation Words'}:
             reportError("Invalid project:title: " + project['title'] + ". Should be translationWords or Translation Words")
     elif isBibleType(projtype):
-        if project['title'].isascii() and not language_code in {'en','es','es-419','gl','ha','hr','id','nag','pmy','pt-br','sw','tpi'}:
+        if project['title'].isascii() and not language_code in {'dan','en','es','es-419','gl','ha','hr','id','kpj','nag','pmy','pt-br','sw','tl','tpi'}:
             reportError("ASCII project:title book title: " + str(project['title']))
         bookinfo = usfm_verses.verseCounts[project['identifier'].upper()]
         if int(project['sort']) != bookinfo['sort']:
@@ -563,8 +563,8 @@ def verifyRelation(rel):
             if parts[1] not in {'obs','obs-tn','obs-tq','obs-sn','obs-sq','tn','tq','tw','ta','tm'} and not isBibleType(parts[1]):
                 if parts[1][0:4] != 'ugnt' and parts[1][0:3] != 'uhb':
                     reportError("Invalid project code in relation element: " + rel)
-            if parts[1] == projtype or (projtype == 'tn-tsv' and parts[1] == 'tn'):
-                reportError("Project code in relation element is same as current project: " + rel)
+            #if parts[1] == projtype or (projtype == 'tn-tsv' and parts[1] == 'tn'):
+                #reportError("Project code in relation element is same as current project: " + rel)
 
 # The relation element is a list of strings.
 def verifyRelations(relations):
@@ -732,7 +732,7 @@ def verifyYamls(folderpath):
     tocpath = os.path.join(folderpath, "toc.yaml")
     if contents := parseYaml(tocpath):
         nAsciiTitles = verifyTocYaml(contents, shortname(tocpath))
-        if nAsciiTitles > 0 and getLanguageId() not in {'ceb','en','es-419','ha','hr','id','nag','plt','pmy','pt-br','sw'}:
+        if nAsciiTitles > 0 and getLanguageId() not in {'ceb','en','es-419','ha','hr','id','nag','plt','pmy','pt-br','sw','tl'}:
             reportWarning(f"{nAsciiTitles} likely untranslated titles in {shortname(tocpath)}")
 
 def verifyType(type):
