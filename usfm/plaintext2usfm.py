@@ -2,19 +2,22 @@
 # This script converts plain text files containing books of the Bible to usfm files.
 # The text files must be prepared to meet these conditions:
 #    Each file contains a single book of the Bible, and no extraneous text.
-#    The files are named XXX.txt, where XXX is the three-character book code.
+#    The file names match XXX.txt, where XXX is the 3-character book id.
 #    UTF-8 encoding is required.
 #    The first line of each file contains the book title, with no other characters.
 #    Chapter and verse numbers are in Arabic numerals (0-9).
+#    Input text file does not contain USFM markers.
 # The script performs these operations:
 #    Populates the USFM headers based on the text file name and first line.
 #    Standardizes the names of .usfm files. For example 41-MAT.usfm and 42-MRK.usfm.
 #    Converts multiple books at once if there are multiple books.
 #    Reports failure when chapter 1 is not found, and other errors.
+# The scritpt does not mark chunks. If that is desired. run usfm2rc.py later.
+# This script did not work well for Karajá.
 
 # Global variables
-source_dir = r'C:\DCS\Kalmyk\txt'   # must be a folder
-target_dir = r'C:\DCS\Kalmyk\xal_reg.old'
+source_dir = r'C:\DCS\Karajá\work'   # must be a folder
+target_dir = r'C:\DCS\Karajá\work'
 
 import usfm_verses
 import re
@@ -101,7 +104,7 @@ class State:
     def addText(self, text):
         if len(State.data) > 0:
             State.data += ' '
-        text = text.lstrip(". ")   # lose period after verse number
+        text = text.lstrip(". ")   # lose period after preceding verse number
         State.data += text.strip()  # lose other leading and trailing white space
         if State.lastEntity != TEXT:
             State.neednext = {VERSE, CHAPTER, TEXT}
@@ -120,6 +123,7 @@ class State:
             State.lastref = State.ID + " 0"
 
 # Determines whether a verse or a chapter is expected next.
+# Based on the current book, chapter and verse as specified by the arguments.
 # Not all languages and translation follow the same versification scheme, however.
 # Returns VERSE, CHAPTER, or EOF
 def whatsNext(book, chapter, verse):
@@ -169,7 +173,7 @@ def take(s, lineno):
     if state.priority == TITLE:
         state.addTitle(s, lineno)
     elif state.priority == CHAPTER:
-        if hasnumber(s, state.chapter+1) >= 0 and len(s) < 25:
+        if hasnumber(s, state.chapter+1) >= 0 and len(s) < 25:    # may have to allow longer s
             takeChapter(s, state.chapter+1)
         elif TITLE in state.neednext:   # haven't reached chapter 1 yet
             state.addTitle(s, lineno)
@@ -189,7 +193,7 @@ def take(s, lineno):
             state.missingChapter(state.chapter+1)
     elif state.priority == VERSE:
         (pretext, vv, remainder) = getvv(s, state.verse+1)
-        if not vv:
+        if not vv and state.verse+1 < usfm_verses.verseCounts[state.ID]['verses'][state.chapter-1]:
             (pretext, vv, remainder) = getvv(s, state.verse+2)
             missingVerse = f"{state.ID} {state.chapter}:{state.verse+1}"
             if vv:
@@ -210,6 +214,11 @@ def take(s, lineno):
                 reportError(f"Is {state.ID} {state.chapter-1}:{state.chapter} missing?")
     elif state.priority == TEXT:
         (pretext, vv, remainder) = getvv(s, state.verse+1)
+        if not vv and state.verse+1 < usfm_verses.verseCounts[state.ID]['verses'][state.chapter-1]:
+            (pretext, vv, remainder) = getvv(s, state.verse+2)
+            missingVerse = f"{state.ID} {state.chapter}:{state.verse+1}"
+            if vv:
+                reportError(f"Skipping {missingVerse}.")
         if vv:
             if pretext:
                 state.addText(pretext)
@@ -292,6 +301,8 @@ def openIssuesFile():
                 os.rename(path, bakpath)
         issues_file = io.open(path, "tw", buffering=2048, encoding='utf-8', newline='\n')
     return issues_file
+
+# idfield_re = re.compile(r'\\id ([\w][\w][\w])', re.UNICODE)
 
 # Parses the book id from the file name.
 # Return upper case bookId, or empty string on failure.
@@ -413,7 +424,8 @@ if __name__ == "__main__":
     setup()
     if os.path.isdir(source_dir):
         convertFolder(source_dir)
-        dumpProjects()
+        if projects:
+            dumpProjects()
         print("\nDone.")
     else:
         sys.stderr.write("Invalid folder: " + source_dir + "\n")
