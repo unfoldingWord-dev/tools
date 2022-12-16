@@ -17,9 +17,9 @@
 
 # Global variables
 source_dir = r'C:\DCS\Telugu\TN'
-target_dir = r'C:\DCS\Telugu\te_tn.STR'
+target_dir = r'C:\DCS\Telugu\work'
 language_code = 'te'
-english_dir = r'C:\DCS\English\en_tn.v53'    # latest English tN from https://git.door43.org/Door43-Catalog/en_tn
+english_dir = r'C:\DCS\English\en_tn.v66'    # latest English tN from https://git.door43.org/Door43-Catalog/en_tn
 
 book = ''
 chapter = 0
@@ -87,8 +87,6 @@ def checkRow(row, nColumns, key, path):
             reportError("Invalid SupportReference (column 5)", path, key, row[0:4])
         if len(row[5].strip()) > 0 and row[5].isascii():
             reportError("Invalid OrigQuote (column 6)", path, key, row[0:4])
-        if row[6] not in {'0', '1', '2'}:
-            reportError("Invalid Occurrence (should be a small number): " + row[6], path, key, row[0:4])
         if badheading_re.search(row[8]):
             reportError("Missing space after hash mark(s)", path, key, row[0:4])
     else:
@@ -106,8 +104,8 @@ def convertFile(path, fname):
 
     englishPath = os.path.join(english_dir, fname.replace(language_code, "en", 1))
     if os.path.isfile(englishPath):
-        data = tsv.tsvRead(englishPath)
-        english = tsv.list2Dict(data, [3,2,1])
+        data = tsv.tsvRead(englishPath)         # list of rows
+        english = tsv.list2Dict(data, [3,2,1])  # dictionary of rows
         data = tsv.tsvRead(path)
         heading = True
         for row in data:
@@ -152,7 +150,7 @@ def convertFile(path, fname):
                 else:
                     checkRow(row, nColumns, key, path)
                     if nColumns > 8 and englishlink_re.search(row[8]):
-                        new = "rc://*/"
+                        new = "rc://" + language_code + "/"
                         row[8] = row[8].replace("rc://en/", new)
             else:
                 key = row[0][0:3] + "... "
@@ -202,7 +200,7 @@ def fixID(row):
         row.insert(4, col4)
         row[3] = row[3][0:4]
     return row
-   
+
 def shortname(longpath):
     shortname = longpath
     if source_dir in longpath:
@@ -225,7 +223,7 @@ def appendToProjects(bookId, fname):
 # Sort the list of projects and write to projects.yaml
 def dumpProjects():
     global projects
-    
+
     projects.sort(key=operator.itemgetter('sort'))
     path = os.path.join(target_dir, "projects.yaml")
     manifest = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
@@ -252,7 +250,7 @@ def reportError(msg, path, key="", locater=None):
         sys.stderr.write(issue)
     except UnicodeEncodeError as e:
         sys.stderr.write(shortname(path) + ": (Unicode...), line " + str(rowno) + ": " + msg + "\n")
- 
+
     issues = openIssuesFile()
     issues.write(issue)
 
@@ -270,7 +268,7 @@ if __name__ == "__main__":
         source_dir = os.path.dirname(path)
         convertFile(path, os.path.basename(path))
     else:
-        sys.stderr.write("Invalid directory: " + source_dir) 
+        sys.stderr.write("Invalid directory: " + source_dir)
         exit(-1)
 
     if issuesFile:
