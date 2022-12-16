@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # This program converts a folder of OBS text files in the newer tStudio
-# format (one .txt file per OBS chunk, multiple chunks per story)
+# format (multiple .txt files per story)
 # to a set of corresponding OBS story files in Markdown format.
 # Outputs .md files to a content folder under target_dir.
 # The input should contain folders named 01-50, front, and back.
@@ -13,10 +13,10 @@ import string
 import sys
 import shutil
 
-
 # Globals
-target_dir = r'/Users/richmahn/repos/git.door43.org/apd_obs'
-en_contentdir = r'/Users/richmahn/repos/git.door43.org/en_obs/content'
+source_dir = r'C:\DCS\Farsi\OBS'
+target_dir = r'C:\DCS\Farsi\work'
+en_contentdir = r'C:\DCS\English\en_obs.v8\content'
 
 # Merges the contents of each file in the folder, into output mdfile.
 # Intersperses image links between text from each file if it can.
@@ -31,14 +31,14 @@ def merge(image_list, folder, mdfile):
 
     for filename in chunklist:
         inputpath = os.path.join(folder, filename)
-        enc = detect_by_bom(inputpath, default="utf-8")
-        input = io.open(inputpath, "tr", 1, encoding=enc)
+        #enc = detect_by_bom(inputpath, default="utf-8")
+        input = io.open(inputpath, "tr", encoding='utf-8-sig')
         chunk = input.read().strip()
         if chunk:
             if images_inline and chunksOut < len(image_list):
                 mdfile.write("\n" + image_list[chunksOut])
-            mdfile.write(u"\n")
-            mdfile.write(chunk + u"\n")
+            mdfile.write("\n")
+            mdfile.write(chunk + "\n")
         chunksOut += 1
         input.close()
 
@@ -50,7 +50,7 @@ def merge(image_list, folder, mdfile):
 
 # Returns the list of chunk file names
 def listChunks(folder):
-    filenames = sorted(os.listdir(folder))
+    filenames = os.listdir(folder)
     chunks = []
     chunkname = re.compile(r'[0-1][0-9]\.txt')
     for filename in filenames:
@@ -63,31 +63,18 @@ image_re = re.compile(r'\!\[OBS Image\]')
 # Returns a list of images parsed out of the specified OBS file.
 def listImages(mdpath):
     image_list = []
-    enc = detect_by_bom(mdpath, default="utf-8")
-    input = io.open(mdpath, "tr", 1, encoding=enc)
+    #enc = detect_by_bom(mdpath, default="utf-8")
+    input = io.open(mdpath, "tr", 1, encoding='utf-8-sig')
     for line in input.readlines():
         if image_re.match(line):
             image_list.append(line)
     input.close()
     return image_list
 
-
-def detect_by_bom(path, default):
-    with open(path, 'rb') as f:
-        raw = f.read(4)
-        f.close
-    for enc,boms in \
-            ('utf-8-sig',[codecs.BOM_UTF8]),\
-            ('utf-16',[codecs.BOM_UTF16_LE,codecs.BOM_UTF16_BE]),\
-            ('utf-32',[codecs.BOM_UTF32_LE,codecs.BOM_UTF32_BE]):
-        if any(raw.startswith(bom) for bom in boms):
-            return enc
-    return default
-
 # Outputs up to two line of title.txt into .md file.
 def outputTitle(titlepath, mdfile):
-    enc = detect_by_bom(titlepath, default="utf-8")
-    input = io.open(titlepath, "tr", 1, encoding=enc)
+    #enc = detect_by_bom(titlepath, default="utf-8")
+    input = io.open(titlepath, "tr", 1, encoding='utf-8-sig')
     lines = input.readlines()
     input.close()
     titleLinesOut = 0
@@ -100,11 +87,11 @@ def outputTitle(titlepath, mdfile):
             elif titleLinesOut == 1:
                 mdfile.write("## " + line + "\n")      # subtitle
                 break
-    
+
 # Outputs the contents of refpath, enclosed with underscores.
 def outputReference(refpath, mdfile):
-    enc = detect_by_bom(refpath, default="utf-8")
-    input = io.open(refpath, "tr", 1, encoding=enc)
+    #enc = detect_by_bom(refpath, default="utf-8")
+    input = io.open(refpath, "tr", 1, encoding='utf-8-sig')
     lines = input.readlines()
     input.close()
     for line in lines:
@@ -116,7 +103,7 @@ import shutil
 
 # Creates copy of path in contentdir.
 # Does nothing if destination path already exists.
-# Used for copying "back" or "front" folders to 
+# Used for copying "back" or "front" folders to
 def copyFolder(path, subdir, contentdir):
     destpath = os.path.join(contentdir, subdir)
     if not os.path.exists(destpath):
@@ -129,10 +116,10 @@ def renameTitle(contentdir, subdir):
     if os.path.isfile(titlepath):
         mdpath = os.path.join(frontpath, "title.md")
         os.rename(titlepath, mdpath)
-    
+
 # Merge title, chunks, and reference the files from folder into one equivalent .md file
 def convertStory(folder, storynumber, contentpath):
-    sys.stdout.write("Converting " + folder + "\n")
+    sys.stdout.write("Converting " + folder + "\\\n")
     sys.stdout.flush()
     mdpath = os.path.join(contentpath, storynumber + ".md")
     english_md_path = os.path.join(en_contentdir, storynumber + '.md')
@@ -141,7 +128,7 @@ def convertStory(folder, storynumber, contentpath):
         sys.stderr.write("Cannot access English OBS file: " + english_md_path + "\n")
     else:
         mdfile = io.open(mdpath, "tw", encoding='utf-8', newline='\n')
-        
+
         # convert title
         titlepath = os.path.join(folder, "title.txt")
         if os.path.isfile(titlepath):
@@ -165,7 +152,7 @@ def convertStories(masterfolder):
     if not os.path.isdir(contentpath):
         os.mkdir(contentpath)
 
-    for subdir in sorted(os.listdir(masterfolder)):
+    for subdir in os.listdir(masterfolder):
         if subdir[0] == '.':
             continue
         folder = os.path.join(masterfolder, subdir)
@@ -175,7 +162,7 @@ def convertStories(masterfolder):
                 renameTitle(contentpath, subdir)
             elif re.match(r'[0-5][0-9]$', subdir):
                 convertStory(folder, subdir, contentpath)
-  
+
 # Copies front/intro.md from English content if missing in target
 # Copies back/intro.md from English content if missing in target
 def copyIntroFile(target, dir):
@@ -191,13 +178,11 @@ def copyIntroFile(target, dir):
 
 # Processes all .txt files in specified directory, one at a time
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] == 'hard-coded-path':
-        folder = r'E:\DCS\Arli\OBS'
-    else:
-        folder = sys.argv[1]
+    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
+        source_dir = sys.argv[1]
 
-    if folder and os.path.isdir(folder):
-        convertStories(folder)
+    if source_dir and os.path.isdir(source_dir):
+        convertStories(source_dir)
         contentdir = os.path.join(target_dir, "content")
         copyIntroFile(contentdir, "front")
         copyIntroFile(contentdir, "back")
