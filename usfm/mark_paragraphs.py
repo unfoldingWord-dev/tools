@@ -5,23 +5,20 @@
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Havu\work"
-target_dir = r'C:\DCS\Havu\hav_reg.ta'
 model_dir = r'C:\DCS\English\en_ulb.WA-Nov-22'
-
-removeS5markers = True
+source_dir = r'C:\DCS\Cebuano\ceb_ulb.WA'     # files to be changed
+removeS5markers = False
 
 nCopied = 0
 issuesFile = None
+reportFile = None
 
 import sys
 import os
-import operator
-import usfm_verses
 import parseUsfm
 import io
-import codecs
 import re
+import shutil
 
 class State:
     fname = ""
@@ -30,40 +27,47 @@ class State:
     pChapter = 0    # location of latest paragraph mark already in input text
     pVerse = 0      # location of latest paragraph mark already in input text
     reference = ""
-    usfmFile = 0
+    __usfmFile = 0
     paragraphs_model = []   # list of {pmark, chapter, verse, located}
 
     def addFile(self, fname):
         State.fname = fname
         State.chapter = 0
         State.verse = 0
+        State.bridge = 0
         State.pChapter = 0
         State.pVerse = 0
         State.reference = fname
         State.paragraphs_model = []
         # Open output USFM file for writing.
-        usfmPath = os.path.join(target_dir, fname)
-        State.usfmFile = io.open(usfmPath, "tw", buffering=1, encoding='utf-8', newline='\n')
+        tmpPath = os.path.join(source_dir, fname + ".tmp")
+        State.__usfmFile = io.open(tmpPath, "tw", buffering=1, encoding='utf-8', newline='\n')
+        State.__spaced = True   # no space wanted at top of file
 
     def addID(self, id):
         State.ID = id
         State.chapter = 0
         State.verse = 0
+        State.bridge = 0
 
     def addChapter(self, c):
         State.lastChapter = State.chapter
         State.chapter = int(c)
         State.verse = 0
-        State.reference = State.ID + " chapter " + c
+        State.bridge = 0
+        State.reference = State.ID[0:3].upper() + " chapter " + c
 
     # Records the location of a paragraph marker found in the input text.
     def addP(self):
         State.pChapter = State.chapter
-        State.pVerse = State.verse + 1
+        State.pVerse = State.bridge + 1
 
     def addVerse(self, v):
-        State.verse = int(v)
-        State.reference = State.ID + " " + str(State.chapter) + ":" + v
+        v1 = v.split('-')[0]
+        v2 = v.split('-')[-1]
+        State.verse = int(v1)
+        State.bridge = int(v2)
+        State.reference = State.ID[0:3].upper() + " " + str(State.chapter) + ":" + v
 
     # Returns True if a paragraph mark was already recorded for the current verse.
     # See addP()
@@ -79,91 +83,82 @@ class State:
                 break
         return pmark
 
-    #def recordModelParagraphs(self, bookchunks):
-        #State.bookchunks_model = bookchunks
+    #def addText(self):
+        #State.currMarker = OTHER
 
-    #def recordChapterParagraphs(self, chunks):
-        #State.paragraphs_output = chunks
+    # Writes specified string to the usfm file, inserting spaces where needed.
+    def usfmWrite(self, str):
+        if not State.__spaced and str[0] != '\n':
+            str = " " + str
+        State.__usfmFile.write(str)
+        State.__spaced = (str[-1] == ' ')
 
-    # Returns True if the specified verse number should start a new chunk.
-    #def startsChunk(self, verse):
-        #return (verse in State.paragraphs_output)
+    def usfmClose(self):
+        State.__usfmFile.close()
 
-    #def needText(self):
-        #return State.needVerseText
-    def addText(self):
-        State.needVerseText = False
 
-# Looks up the English book name, for use when book name is not defined in the file
-#def getDefaultName(id):
-    #en_name = usfm_verses.verseCounts[id]['en_name']
-    #return en_name
-
-#def printToken(token):
-    #if token.isV():
-        #print("Verse number " + token.value)
-    #elif token.isC():
-        #print("Chapter " + token.value)
-    #elif token.isS():
-        #sys.stdout.write("Section heading: " + token.value)
-    #elif token.isTEXT():
-        #print("Text: <" + token.value + ">")
-    #else:
-        #print(token)
+# Write to the file with or without a newline as appropriate
+def takeStyle(key):
+    State().usfmWrite("\n\\" + key)
 
 # Write to the file with or without a newline as appropriate
 def takeAsIs(key, value):
     state = State()
-    state.usfmFile.write("\n\\" + key)
+    state.usfmWrite("\n\\" + key)
     if value:
-        state.usfmFile.write(" " + value)
+        state.usfmWrite(value)
 
 def takeFootnote(key, value):
     state = State()
-    state.usfmFile.write(" \\" + key)
-    if value:
-        state.usfmFile.write(" " + value)
+    if key in {"f", "fe"}:
+        state.usfmWrite("\n\\" + key)
+    else:
+        state.usfmWrite("\\" + key)
+    if value:           # or key in {"f*", "fp"}
+        state.usfmWrite(value)
 
 def takeID(id):
     state = State()
     state.addID(id)
-    state.usfmFile.write("\\id " + id)
+    state.usfmWrite("\\id " + id)
 
 # Copies paragraph marker to output unless output already has a paragraph there.
-def takePQ(tag):
+def takePQ(tag, value):
     state = State()
     state.addP()
-    state.usfmFile.write("\n\\" + tag)
+    state.usfmWrite("\n\\" + tag)
+    if value:
+        state.usfmWrite(value)
 
 def takeS5():
     if not removeS5markers:
         state = State()
-        state.usfmFile.write("\n\\s5")
+        state.usfmWrite("\n\\s5")
 
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
 def takeV(v):
     global nCopied
     state = State()
-    v1 = v.split('-')[0]
-    state.addVerse(v1)
+    #v1 = v.split('-')[0]
+    #v2 = v.split('-')[-1]
+    state.addVerse(v)
     if not state.pAlready():
         if pmark := state.pmarkInModel():
-            state.usfmFile.write("\n\\" + pmark)
+            state.usfmWrite("\n\\" + pmark)
             nCopied += 1
-    state.usfmFile.write("\n\\v " + v + " ")
+    state.usfmWrite("\n\\v " + v)
 
 def takeText(t):
     state = State()
-    state.addText()
-    state.usfmFile.write(t)
+    state.usfmWrite(t)
+    #state.addText()
 
-# Settle where the chunk boundaries are going to be.
-# Before writing chapter 1, we output the USFM header.
+# Output chapter
 def takeC(c):
     state = State()
     state.addChapter(c)
-    state.usfmFile.write("\n\\c " + c)
+    state.usfmWrite("\n\\c " + c)
 
 # Handles the specified token from the input file.
 # Inserts paragraph markers where needed from model.
@@ -176,13 +171,15 @@ def take(token):
     elif token.isC():
         takeC(token.value)
     elif isParagraph(token) or isPoetry(token):
-        takePQ(token.type)
+        takePQ(token.type, token.value)
     elif token.isS5():
         takeS5()
     elif token.isID():
-        takeID(token.value[0:3].upper())   # use first 3 characters of \id value
+        takeID(token.value)
     elif isFootnote(token):
         takeFootnote(token.type, token.value)
+    elif isCharacterStyle(token):
+        takeStyle(token.type)
     else:
         takeAsIs(token.type, token.value)
 
@@ -190,56 +187,67 @@ def take(token):
 def isCrossRef(token):
     return token.isX_S() or token.isX_E() or token.isXO() or token.isXT()
 
-# Returns true if token is part of a footnote
+# Returns true if token is part of a footnote or cross reference
 def isFootnote(token):
-    return token.isF_S() or token.isF_E() or token.isFR() or token.isFT() or token.isFP() or token.isFE_S() or token.isFE_E()
+    return token.isF_S() or token.isF_E() or token.isFR() or token.isFT() or token.isFP() or \
+token.isFE_S() or token.isFE_E() # or token.isX_S() or token.isX_E()
 
-def isIntro(token):
-    return token.is_is() or token.is_ip() or token.is_iot() or token.is_io()
+def isCharacterStyle(token):
+    return token.isBDS() or token.isBDE() or token.isITS() or token.isITE() or token.isBDITS() or token.isBDITE() \
+or token.isADDS() or token.isADDE() or token.isPNS() or token.isPNE()
 
 def isParagraph(token):
-    return token.isP() or token.isPI() or token.isPC() or token.isNB() or token.isB()
+    return token.isP() or token.isM() or token.isPI() or token.isPC() or token.isNB() or token.isB() \
+or token.is_ip() or token.is_iot() or token.is_io() or token.is_io2()
 
 def isPoetry(token):
     return token.isQ() or token.isQ1() or token.isQ2() or token.isQ3() or \
-token.isQA() or token.isSP() or token.isQR() or token.isQC() or token.isD()
+token.isQA() or token.isSP() or token.isQR() or token.isQC() or token.isD() or\
+token.isQSS()
 
 backslash_re = re.compile(r'\\\s')
 jammed_re = re.compile(r'(\\v +[-0-9]+[^-\s0-9])', re.UNICODE)
-usfmcode_re = re.compile(r'\\[^A-Za-z\+]', re.UNICODE)
+usfmcode_re = re.compile(r'(\\[^a-z\+])', re.UNICODE)
 
 def isParseable(str, fname):
     parseable = True
     if backslash_re.search(str):
-        reportError("File contains stranded backslash(es): " + fname)
+        reportError(f"{fname} contains stranded backslash(es)")
 #        parseable = False
-    if jammed_re.search(str):
-        reportError("File contains verse number(s) not followed by space: " + fname)
+    if bad := jammed_re.search(str):
+        reportError(f"{fname} contains verse number(s) not followed by space: {bad.group(1)}")
         parseable = True   # let it convert because the bad spots are easier to locate in the converted USFM
-    if usfmcode_re.search(str):
-        reportError("File contains foreign usfm code(s): " + fname)
+    if badcode := usfmcode_re.search(str):
+        reportError(f"{fname} contains foreign usfm code(s): {badcode.group(1)}")
         parseable = False
     return parseable
 
+# Returns False if the usfm file is not parseable.
 def convertFile(usfmpath, fname):
+    global nCopied
+    startn = nCopied
     state = State()
     if not state.fname:
-        reportError("Error: State is not initialized")
+        reportError("Internal error: State is not initialized")  # first pass (scan) sets the state
         sys.exit(-1)
-    input = io.open(usfmpath, "tr", 1, encoding="utf-8-sig")
-    str = input.read(-1)
-    input.close
+    with io.open(usfmpath, "tr", 1, encoding="utf-8-sig") as input:
+        str = input.read(-1)
 
     sys.stdout.flush()
     success = isParseable(str, fname)
     if success:
-        print("Converting " + fname)
-        #state.addFile(fname)
+        sys.stdout.write(f"Converting {fname}\n")
+        sys.stdout.flush()
         tokens = parseUsfm.parseString(str)
         for token in tokens:
             take(token)
-        state.usfmFile.write("\n")
-        state.usfmFile.close()
+        state.usfmWrite("\n")
+        state.usfmClose()
+        if nCopied > startn:
+            renameUsfmFiles(usfmpath)
+        else:
+            removeTempFiles(usfmpath)
+            sys.stdout.write(f"  No changes to {fname}\n")
     return success
 
 # Converts the book or books contained in the specified folder
@@ -247,52 +255,89 @@ def convertFolder(folder):
     if not os.path.isdir(folder):
         reportError("Invalid folder path given: " + folder)
         return
-    if not os.path.isdir(target_dir):
-        os.mkdir(target_dir)
     for fname in os.listdir(folder):
         path = os.path.join(folder, fname)
         if fname[0] != '.' and os.path.isdir(path):
             convertFolder(path)
         elif fname.endswith('sfm'):
-            model_path = os.path.join(model_dir, fname)
-            if scanModelFile(model_path, fname):
-                if not convertFile(path, fname):
-                    reportError("File cannot be converted: " + fname)
-            else:
-                reportError("Model file is unusable: " + fname)
+            processFile(path)
+
+# Copies specified file to same file name with orig appended.
+# Does not overwrite existing backup file.
+def backupUsfmFile(path):
+    bakpath = path + "orig"
+    if not os.path.isfile(bakpath):
+        shutil.copyfile(path, bakpath)
+
+# Deletes temp file and backup file, and leaves original file unchanged.
+def removeTempFiles(path):
+    tmppath = path + ".tmp"
+    os.remove(tmppath)
+    bakpath = path + "orig"
+    os.remove(bakpath)
+
+# Renames temp usfmfile to its original name, overwriting the original usfm file.
+def renameUsfmFiles(usfmpath):
+    tmppath = usfmpath + ".tmp"
+    if os.path.isfile(tmppath):
+        if os.path.isfile(usfmpath):
+            os.remove(usfmpath)
+        os.rename(tmppath, usfmpath)
 
 # If issues.txt file is not already open, opens it for writing.
-# First renames existing issues.txt file to issues-oldest.txt unless
-# issues-oldest.txt already exists.
+# Overwrites existing issues.txt file, if any.
 # Returns new file pointer.
 def openIssuesFile():
     global issuesFile
     if not issuesFile:
         global source_dir
-        path = os.path.join(target_dir, "uncopied pp marks.txt")
+        path = os.path.join(source_dir, "issues.txt")
         issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
     return issuesFile
 
-def closeIssuesFile():
+def openReportFile():
+    global reportFile
+    if not reportFile:
+        global source_dir
+        path = os.path.join(source_dir, "uncopied pp marks.txt")
+        reportFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
+    return reportFile
+
+def closeIssuesFiles():
+    global issuesFile
+    global reportFile
     if issuesFile:
         issuesFile.close()
+        issuesFile = None
+    if reportFile:
+        reportFile.close()
+        reportFile = None
 
-# Writes error message to stderr and to issues.txt.
-def reportError(msg, writeToStderr=True):
-    if writeToStderr:
+# Writes message to stderr and to issues.txt.
+# If it is not a real issue, writes message to report file.
+def reportError(msg, realIssue=True):
+    if realIssue:
         try:
             sys.stderr.write(msg + "\n")
         except UnicodeEncodeError as e:
             state = State()
             sys.stderr.write(state.reference + ": (Unicode...)\n")
-    issues = openIssuesFile()
-    issues.write(msg + "\n")
+        issues = openIssuesFile()
+        issues.write(msg + "\n")
+    else:
+        report = openReportFile()
+        report.write(msg + "\n")
 
 # Sets the chapter number in the state object
 # If there is still a tentative paragraph mark, remove it.
 def scanC(c):
     state = State()
     state.addChapter(c)
+    if len(state.paragraphs_model) > 0:
+        pp = state.paragraphs_model[-1]
+        if not pp['located']:
+            reportError(f"Paragraph mark (\\{pp['pmark']}) before {state.reference} not copied", False)
+            state.paragraphs_model.remove(pp)
 
 # Save the paragraph mark and its tentative location
 # If the previous paragraph mark is still tentative, it is invalid, overwrite it in the state.
@@ -301,7 +346,7 @@ def scanPQ(type, value):
     p = {}
     p['pmark'] = type
     p['chapter'] = state.chapter
-    p['verse'] = state.verse
+    p['verse'] = 0      # verse unknown
     p['located'] = False
     if len(state.paragraphs_model) > 0:
         pp = state.paragraphs_model[-1]
@@ -323,12 +368,12 @@ def scanText(value):
 # Assign the verse number to the preceding paragraph mark, if any.
 def scanV(v):
     state = State()
-    v = v.split('-')[0]
     state.addVerse(v)
+    v1 = v.split('-')[0]
     if len(state.paragraphs_model) > 0:
-        pp = state.paragraphs_model[-1]
+        pp = state.paragraphs_model[-1]     # the last pq found
         if not pp['located']:
-            pp['verse'] = int(v)
+            pp['verse'] = int(v1)
             pp['located'] = True
 
 # Analyzes the specified token in the model file.
@@ -344,19 +389,20 @@ def scan(token):
     elif isParagraph(token) or isPoetry(token):
         scanPQ(token.type, token.value)
     elif token.isID():
-        state.addID(token.value[0:3].upper())   # use first 3 characters of \id value
+        state.addID(token.value)
 
 # Gathers the location and type of all paragraph marks in the model USFM file.
 def scanModelFile(modelpath, fname):
     if os.path.isfile(modelpath):
         input = io.open(modelpath, "tr", 1, encoding="utf-8-sig")
         str = input.read(-1)
-        input.close
+        input.close()
         sys.stdout.flush()
         success = isParseable(str, os.path.basename(modelpath))
         if success:
             state = State()
-            print("Parsing model file: " + fname)
+            sys.stdout.write(f"Parsing model file: {fname}\n")
+            sys.stdout.flush()
             state.addFile(fname)
             tokens = parseUsfm.parseString(str)
             for token in tokens:
@@ -366,20 +412,43 @@ def scanModelFile(modelpath, fname):
         success = False
     return success
 
+def countParagraphs(path):
+    with io.open(path, "tr", 1, encoding="utf-8-sig") as input:
+        str = input.read(-1)
+    nchapters = str.count("\\c ")
+    nparagraphs = str.count("\\p") + str.count("\\nb") + str.count("\\li")
+    npoetry = str.count("\\q")
+    return (nchapters, nparagraphs, npoetry)
+
+def processFile(path):
+    global model_dir
+    fname = os.path.basename(path)
+    (nChapters, nParagraphs, nPoetry) = countParagraphs(path)
+    if nParagraphs / nChapters < 2.5 and nPoetry / nChapters < 15:
+        model_path = os.path.join(model_dir, fname)
+        if scanModelFile(model_path, fname):
+            backupUsfmFile(path)
+            if not convertFile(path, fname):
+                reportError("File cannot be converted: " + fname)
+        else:
+            reportError("Model file is unusable: " + model_path)
+    else:
+        reportError(f"{fname} has {nParagraphs} paragraphs and {nPoetry} poetry marks in {nChapters} chapters. No need to mark additional paragraphs.", False)
+        #reportError(f"  p/c = {nParagraphs / nChapters}", False)
+        #reportError(f"  q/c = {nPoetry / nChapters}", False)
+
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         source_dir = sys.argv[1]
-    if os.path.isfile(source_dir):
+    if os.path.isdir(source_dir):
+        convertFolder(source_dir)
+    elif os.path.isfile(source_dir) and source_dir.endswith("sfm"):
         path = source_dir
         source_dir = os.path.dirname(path)
-        fname = os.path.basename(path)
-        model_path = os.path.join(model_dir, fname)
-        if scanModelFile(model_path, fname):
-            convertFile(path, fname)
-        else:
-            reportError("Model file is unusable: " + model_path)
+        processFile(path)
     else:
-        convertFolder(source_dir)
-    closeIssuesFile()
+        sys.stderr.write("Invalid folder or file: " + source_dir)
+        exit(-1)
+    closeIssuesFiles()
     print(f"\nDone. Copied {nCopied} paragraph marks")
