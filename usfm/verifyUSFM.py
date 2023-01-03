@@ -5,8 +5,8 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Marathi\work"
-language_code = 'mr'
+source_dir = r'C:\DCS\Assamese\as_ulb.RPP'
+language_code = 'as'
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
@@ -21,7 +21,7 @@ max_chunk_length = 400
 
 if language_code in {'en','es','es-419','gl','ha','hr','id','kpj','nag','pmy','pt-br','sw','tl','tpi'}:    # ASCII content
     suppress9 = True
-if language_code in {'as','bn','gu','hi','kn','ml','mr','nag','ne','or','ru','ta','te'}:    # ASCII content
+if language_code in {'as','bn','gu','hi','kn','ml','mr','nag','ne','or','pa','ru','ta','te','zh'}:    # ASCII content
     suppress9 = False
 if language_code == 'ru':
     suppress5 = True
@@ -141,6 +141,7 @@ class State:
         State.lastRef = State.reference
         State.reference = State.ID + " " + str(State.chapter) + ":" + v
         State.currMarker = OTHER
+        State.asciiVerse = True   # until proven False
 
     def addAcrosticHeading(self):
         State.textOkayHere = True
@@ -164,6 +165,8 @@ class State:
         State.needVerseText = False
         State.textLength += len(text)
         State.textOkayHere = True
+        if not text.isascii():
+          State.asciiVerse = False
 
 #    def footnotes_started(self):
 #        return State.footnote_starts
@@ -257,14 +260,16 @@ def reportError(msg):
     issues = openIssuesFile()
     issues.write(msg + "\n")
 
-# Report missing text in previous verse
-def emptyVerseCheck():
+# Report missing text or all ASCII text, in previous verse
+def previousVerseCheck():
     state = State()
     if not suppress1 and not isOptional(state.reference) and state.getTextLength() < 10 and state.verse != 0:
         if state.getTextLength() == 0:
             reportError("Empty verse: " + state.reference)
         elif not isShortVerse(state.reference):
             reportError("Verse fragment: " + state.reference)
+    if not suppress9 and state.asciiVerse:
+        reportError("Verse is entirely ASCII: " + state.reference)
 
 def longChunkCheck():
     state = State()
@@ -342,7 +347,7 @@ def takeC(c):
     state = State()
     # Report missing text in previous verse
     if c != "1":
-        emptyVerseCheck()
+        previousVerseCheck()
         longChunkCheck()
     state.addChapter(c)
     if len(state.IDs) == 0:
@@ -412,10 +417,7 @@ vinvalid_re = re.compile(r'[^\d\-]')
 def takeV(vstr):
     state = State()
     if vstr != "1":
-        emptyVerseCheck()   # Checks previous verse
-#    if vinvalid_re.search(vstr):
-#        reportError("Non-numeric verse number near " + State.reference)
-#    else:
+        previousVerseCheck()   # Checks previous verse
     vlist = []
     if vstr.find('-') > 0:
         vv_range = vv_re.search(vstr)
@@ -524,8 +526,6 @@ def takeText(t):
         reportPunctuation(t)
     if lastToken.isV() and not aligned_usfm and not suppress7:
         reportFootnotes(t)
-    if not suppress9 and t.isascii():
-      reportError("Verse is entirely ASCII: " + state.reference)
     state.addText(t)
 
 # Returns true if token is part of a footnote
@@ -740,8 +740,8 @@ def verifyFile(path):
             n += 1
         state = State()
         if not state.toc3:
-            reportError("No \\toc3 tag")
-        emptyVerseCheck()       # checks last verse in the file
+            reportError("No \\toc3 tag in " + shortname(path))
+        previousVerseCheck()       # checks last verse in the file
         verifyNotEmpty(path)
         if not suppress5:
             verifyVerseCount()      # for the last chapter
