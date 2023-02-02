@@ -6,8 +6,9 @@
 
 # Global variables
 model_dir = r'C:\DCS\English\en_ulb.WA-Nov-22'
-source_dir = r'C:\DCS\Cebuano\ceb_ulb.WA'     # files to be changed
-removeS5markers = False
+source_dir = r'C:\DCS\Shubi\suj_reg'     # files to be changed
+removeS5markers = True
+copy_nb = False
 
 nCopied = 0
 issuesFile = None
@@ -140,8 +141,6 @@ vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 def takeV(v):
     global nCopied
     state = State()
-    #v1 = v.split('-')[0]
-    #v2 = v.split('-')[-1]
     state.addVerse(v)
     if not state.pAlready():
         if pmark := state.pmarkInModel():
@@ -197,8 +196,11 @@ def isCharacterStyle(token):
 or token.isADDS() or token.isADDE() or token.isPNS() or token.isPNE()
 
 def isParagraph(token):
-    return token.isP() or token.isM() or token.isPI() or token.isPC() or token.isNB() or token.isB() \
+    pmark = token.isP() or token.isM() or token.isPI() or token.isPC() or token.isNB() or token.isB() \
 or token.is_ip() or token.is_iot() or token.is_io() or token.is_io2()
+    if token.isNB() and ("en_ulb" in model_dir or not copy_nb):
+        pmark = False
+    return pmark
 
 def isPoetry(token):
     return token.isQ() or token.isQ1() or token.isQ2() or token.isQ3() or \
