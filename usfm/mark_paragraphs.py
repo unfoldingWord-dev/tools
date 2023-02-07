@@ -5,9 +5,10 @@
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
-model_dir = r'C:\DCS\English\en_ulb.WA-Nov-22'
-source_dir = r'C:\DCS\Shubi\suj_reg'     # files to be changed
+model_dir = r'C:\DCS\English\en_udb.paragraphs'
+source_dir = r"C:\DCS\Olukhayo\lko_reg"     # files to be changed
 removeS5markers = True
+xlateS5markers = False   # Dubious validity, and not tested for texts that have both kinds of markers already. Translates most \s5 markers to \p markers.
 copy_nb = False
 
 nCopied = 0
@@ -20,6 +21,7 @@ import parseUsfm
 import io
 import re
 import shutil
+import usfm_verses
 
 class State:
     fname = ""
@@ -84,8 +86,10 @@ class State:
                 break
         return pmark
 
-    #def addText(self):
-        #State.currMarker = OTHER
+    # Returns True if current verse is the last verse in a chapter
+    def isEndOfChapter(self):
+        chaps = usfm_verses.verseCounts[State.ID]['verses']
+        return (State.verse >= chaps[State.chapter-1])
 
     # Writes specified string to the usfm file, inserting spaces where needed.
     def usfmWrite(self, str):
@@ -120,6 +124,9 @@ def takeFootnote(key, value):
 
 def takeID(id):
     state = State()
+    if len(id) < 3:
+        reportError("Invalid ID: " + id)
+    id = id[0:3].upper()
     state.addID(id)
     state.usfmWrite("\\id " + id)
 
@@ -132,9 +139,13 @@ def takePQ(tag, value):
         state.usfmWrite(value)
 
 def takeS5():
+    state = State()
     if not removeS5markers:
-        state = State()
         state.usfmWrite("\n\\s5")
+    elif xlateS5markers and state.chapter > 0 and not state.isEndOfChapter():
+        global nCopied
+        nCopied += 1
+        takePQ("p", None)      # this adds \p before \c, so must run usfm_cleanup afterwards
 
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
@@ -453,4 +464,4 @@ if __name__ == "__main__":
         sys.stderr.write("Invalid folder or file: " + source_dir)
         exit(-1)
     closeIssuesFiles()
-    print(f"\nDone. Copied {nCopied} paragraph marks")
+    print(f"\nDone. Introduced {nCopied} paragraphs")
