@@ -10,14 +10,11 @@ import sys
 import os
 
 # Global variables
-source_dir = r'C:\DCS\Russian\UST'   # folder containing usfm files to be converted
-target_dir = r'C:\DCS\Russian\ru_ust.STR'
+source_dir = r'C:\DCS\Nepali\GST'   # folder containing usfm files to be converted
+target_dir = r'C:\DCS\Nepali\work'
 projects = []
 contributors = []
 checkers = []
-# Set Path for files in support/
-# rootdiroftools = os.path.dirname(os.path.abspath(__file__))
-# sys.path.append(os.path.join(rootdiroftools,'support'))
 
 import usfm_verses
 import io
@@ -35,13 +32,13 @@ class State:
     toc2 = ""
     toc3 = ""
     mt = ""
-    title = ""         # updates to the best non-ascii title if any, or best ascii title 
+    title = ""         # updates to the best non-ascii title if any, or best ascii title
     postHeader = ""
     prevkey = ""
     key = ""
     reference = ""
     usfmFile = 0
-    
+
     def addTOC1(self, toc):
         State.toc1 = toc
         State.title = toc
@@ -50,7 +47,7 @@ class State:
         State.h = h
         if not State.toc1:
             State.title = h
-        
+
     def addMT(self, mt):
         if not State.mt:
             State.mt = mt
@@ -71,7 +68,7 @@ class State:
 
     def addTOC3(self, toc):
         State.toc3 = toc
-    
+
     def addPostHeader(self, key, value):
         if key:
             State.postHeader += "\n\\" + key + " "
@@ -80,7 +77,7 @@ class State:
         if value:
             State.postHeader += value
         State.key = key
-    
+
     def addKey(self, key):
         State.prevkey = State.key
         State.key = key
@@ -179,17 +176,17 @@ def makeUsfmFilename(id):
     # loadVerseCounts()
     num = usfm_verses.verseCounts[id]['usfm_number']
     return str(num) + "-" + id + ".usfm"
-    
+
 # Returns path of temporary manifest file block listing projects converted
 def makeProjectsPath():
     return os.path.join(target_dir, "projects.yaml")
-    
+
 # Looks up the English book name, for use when book name is not defined in the file
 def getDefaultName(id):
     # loadVerseCounts()
     en_name = usfm_verses.verseCounts[id]['en_name']
     return en_name
-           
+
 def takeAsIs(key, value):
     state = State()
     state.addPostHeader(key, value)
@@ -268,12 +265,12 @@ def writeUsfm(body):
         toc3 = state.ID.lower()
     state.usfmFile.write("\n\\toc3 " + toc3)
     state.usfmFile.write("\n\\mt1 " + state.mt)    # safest to use \mt1 always. When \mt2 exists, \mt1 is required.
-    
+
     # Write post-header if any
     state.usfmFile.write('\n')
     state.usfmFile.write(state.postHeader)
     state.usfmFile.write('\n')
-    
+
     # Write the rest of the file
     for line in body:
         takeBody(line)
@@ -288,7 +285,7 @@ def writeUsfm(body):
 def convertFile(usfmpath, fname):
     state = State()
     state.reset()
-    
+
     print("CONVERTING " + fname + ":")
     sys.stdout.flush()
     input = io.open(usfmpath, "tr", 1, encoding="utf-8")
@@ -303,10 +300,10 @@ def convertFile(usfmpath, fname):
             body = []
             body.append(line)
             body += input.readlines()    # read the remainder of the usfm file
-            input.close
+            input.close()
             writeUsfm(body)
     except RuntimeError as dup:
-        input.close
+        input.close()
         raise
     return True
 
@@ -331,7 +328,7 @@ def convertFolder(folder):
         return
     if not os.path.isdir(target_dir):
         os.mkdir(target_dir)
-        
+
     usfmcount = 0
     for fname in os.listdir(folder):
         path = os.path.join(folder, fname)
@@ -344,7 +341,7 @@ def convertFolder(folder):
                 appendToProjects()
             except RuntimeError as dup:
                 printError(str(dup))
-            
+
 # Eliminates duplicates from contributors list and sorts the list.
 # Outputs list to contributors.txt.
 def dumpContributors():
@@ -358,9 +355,9 @@ def dumpContributors():
         for name in contribs:
             if name:
                 f.write('    - "' + name + '"\n')
-    
+
         checkrs = list(set(checkers))
-        checkrs.sort()            
+        checkrs.sort()
         f.write("\nCheckers:\n")
         for name in checkrs:
             if name:
@@ -370,7 +367,7 @@ def dumpContributors():
 # Sort the list of projects and write to projects.yaml
 def dumpProjects():
     global projects
-    
+
     projects.sort(key=operator.itemgetter('sort'))
     path = makeProjectsPath()
     manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
