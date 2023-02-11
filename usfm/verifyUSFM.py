@@ -5,8 +5,8 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Assamese\as_ulb.RPP'
-language_code = 'as'
+source_dir = r"C:\DCS\Shubi\suj_reg"
+language_code = 'suj'
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
@@ -15,7 +15,7 @@ suppress4 = False     # Suppress warnings about useless markers before section m
 suppress5 = False     # Suppress checks for verse counts
 suppress6 = False     # Suppress warnings about uW/WA extensions to USFM
 suppress7 = False     # Suppress warnings about square brackets indicating footnotes
-suppress9 = False     # Suppress warnings about ASCII content
+suppress9 = True     # Suppress warnings about ASCII content
 
 max_chunk_length = 400
 
@@ -51,6 +51,7 @@ class State:
     IDs = []
     ID = ""
     titles = []
+    chaptertitles = []
     chapter = 0
     verse = 0
     lastVerse = 0
@@ -75,6 +76,7 @@ class State:
         State.IDs.append(id)
         State.ID = id
         State.titles = []
+        State.chaptertitles = []
         State.chapter = 0
         State.lastVerse = 0
         State.verse = 0
@@ -115,6 +117,18 @@ class State:
         State.reference = State.ID + " " + c
         State.startChunkRef = State.reference + ":1"
         State.currMarker = OTHER
+
+    def addChapterLabel(self, title):
+        # first strip the chapter number and extraneous characters
+        ch = " " + str(State.chapter)
+        chlen = len(ch)
+        title.strip()
+        if title.endswith(ch):
+            title = title[:-chlen]
+        title = title.strip()
+        title = re.sub(" +", " ", title)
+        if title not in State.chaptertitles:
+            State.chaptertitles.append(title)
 
     def addParagraph(self):
         State.needPP = False
@@ -289,6 +303,12 @@ def verifyBookTitle():
     if not title_ok:
         reportError("No non-English book title for " + state.ID)
 
+# Reports inconsistent chapter titling
+def verifyChapterTitles():
+    state = State()
+    if len(state.chaptertitles) > 1:
+        reportError(f"Inconsistent chapter titling: {state.chaptertitles} in {state.ID}")
+
 # Verifies correct number of verses for the current chapter.
 # This method is called just before the next chapter begins.
 def verifyVerseCount():
@@ -360,6 +380,12 @@ def takeC(c):
         reportError("Missing chapters before: " + state.reference)
     elif state.chapter > state.lastChapter + 1:
         reportError("Missing chapter(s) between: " + state.lastRef + " and " + state.reference)
+
+# Processes a chapter label
+def takeCL(label):
+    state = State()
+    # Report missing text in previous verse
+    state.addChapterLabel(label)
 
 # Handles all the footnote and endnote token types
 def takeFootnote(token):
@@ -522,6 +548,8 @@ def takeText(t):
             reportError("Unresolved translation conflict near " + state.reference)
         else:
             reportError("Angle bracket not closed at " + state.reference)
+    if "Conflict Parsing Error" in t:
+        reportError("BTT Writer artifact in " + state.reference)
     if not suppress3 and not aligned_usfm:
         reportPunctuation(t)
     if lastToken.isV() and not aligned_usfm and not suppress7:
@@ -556,7 +584,7 @@ def isOptional(ref, previous=False):
 
 def isShortVerse(ref):
     return ref in { 'LEV 11:15', 'DEU 5:19', \
-'JOB 9:1', 'JOB 12:1', 'JOB 16:1', 'JOB 19:1', 'JOB 21:1', 'JOB 27:1', 'JOB 29:1' }
+'JOB 9:1', 'JOB 12:1', 'JOB 16:1', 'JOB 19:1', 'JOB 21:1', 'JOB 27:1', 'JOB 29:1', 'LUK 20:30' }
 
 
 def isPoetry(token):
@@ -600,6 +628,8 @@ def take(token):
         if token.value == "1":
             verifyBookTitle()
         takeC(token.value)
+    elif token.isCL():
+        takeCL(token.value)
     elif token.isP() or token.isPI() or token.isPC() or token.isNB() or token.isM():
         takeP()
         if token.value:     # paragraph markers can be followed by text
@@ -707,7 +737,6 @@ def reportOrphans(lines, path):
 wjwj_re = re.compile(r' \\wj +\\wj\*', flags=re.UNICODE)
 backslasheol_re = re.compile(r'\\ *\n')
 
-
 # Corresponding entry point in tx-manager code is verify_contents_quiet()
 def verifyFile(path):
     global aligned_usfm
@@ -719,6 +748,8 @@ def verifyFile(path):
         reportError(shortname(path) + " - contains empty \\wj \\wj* pair(s)")
     if backslasheol_re.search(str):
         reportError(shortname(path) + " - contains stranded backslash(es) at end of line(s)")
+    if '\x00' in str:
+        reportError(shortname(path) + " - null bytes found")
     aligned_usfm = ("lemma=" in str or "x-occurrences" in str)
     if aligned_usfm:
         str = usfm_utils.unalign_usfm(str)
@@ -727,7 +758,6 @@ def verifyFile(path):
     sys.stdout.flush()
     if len(str) < 100:
         reportError(shortname(path) + " is incomplete.")
-
     else:
         verifyWholeFile(str, shortname(path))
         tokens = parseUsfm.parseString(str)
@@ -747,6 +777,7 @@ def verifyFile(path):
             verifyVerseCount()      # for the last chapter
         verifyChapterCount()
         verifyFootnotes()
+        verifyChapterTitles()
         state.addID("")
         sys.stderr.flush()
 
