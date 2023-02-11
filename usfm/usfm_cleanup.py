@@ -14,8 +14,7 @@ import substitutions
 import sys
 
 # Globals
-source_dir = r'C:\DCS\Havu\work'
-language_code = 'hav'
+source_dir = r"C:\DCS\Lusonga\luo-x-lusonga_reg"
 
 nChanged = 0
 max_changes = 66
@@ -78,7 +77,8 @@ def fix_punctuation(str):
     return str
 
 # spacing_list is a list of compiled expressions where a space needs to be inserted
-spacing_list = [ re.compile(r'[\.,;][A-Za-z]', re.UNICODE), re.compile(r'\*[^ \n]', re.UNICODE)]
+#spacing_list = [ re.compile(r'[\.,;][A-Za-z]', re.UNICODE), re.compile(r'\*[^ \n]', re.UNICODE)]
+spacing_list = [ re.compile(r'[\.,;][A-Za-z]', re.UNICODE) ]
 
 # Adds spaces where needed. spacing_list contrals what happens.
 # spacing_list may need to be customized for every language.
