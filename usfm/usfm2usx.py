@@ -284,7 +284,7 @@ idcode_re = re.compile(r'\\id +([\w][\w][\w])')
 def getBookId(usfmpath):
     input = io.open(usfmpath, "tr", encoding="utf-8-sig")
     str = input.readline()
-    input.close
+    input.close()
     if idcode := idcode_re.match(str):
         bookId = idcode.group(1)
     else:
@@ -358,7 +358,7 @@ def convertFile(usfmpath, bookId):
         sys.stdout.flush()
         input = io.open(usfmpath, "tr", encoding="utf-8-sig")
         str = input.read()
-        input.close
+        input.close()
         for token in parseUsfm.parseString(str):
             take(token)
         closeUsx()
