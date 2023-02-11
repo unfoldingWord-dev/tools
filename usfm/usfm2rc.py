@@ -6,8 +6,8 @@
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Burmese\work'
-target_dir = r'C:\DCS\Burmese\my_juds.STR'
+source_dir = r'C:\DCS\PapuanMalay\pmy_ulb.TA'
+target_dir = r'C:\DCS\PapuanMalay\work'
 #en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
 chunk_model_dir = r'C:\DCS\English\en_ulb'
 mark_chunks = False
@@ -549,7 +549,7 @@ def convertFile(usfmpath, fname):
     state.recordInputChunks( loadChunksUsfm(usfmpath) )
     input = io.open(usfmpath, "tr", 1, encoding="utf-8-sig")
     str = input.read(-1)
-    input.close
+    input.close()
 
     sys.stdout.flush()
     success = isParseable(str, fname)
