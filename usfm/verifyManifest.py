@@ -50,7 +50,7 @@
 #   verifies config.yaml files for tA or tW projects
 
 # Globals
-manifestDir = r'C:\DCS\Bengali\bn_glt'
+manifestDir = r'C:\DCS\Gujarati\gu_tn.STR'
 nIssues = 0
 projtype = ''
 issuesFile = None
@@ -73,6 +73,9 @@ def getLanguageId():
     global manifestDir
     parts = os.path.basename(manifestDir).split('_', 1)
     return parts[0]
+
+def expectAscii(language_id):
+    return language_id in {'ceb','dan','en','es','es-419','fr','gl','ha','hr','id','ilo','lko','nag','pmy','pt-br','suj','sw','tl','tpi'}
 
 # If manifest-issues.txt file is not already open, opens it for writing.
 # Returns file pointer, which is also a global.
@@ -117,7 +120,7 @@ def countUsfmFiles():
 
 # Returns True if the specified string is a recognized Bible type of project type
 def isBibleType(id):
-    return (isAlignedBibleType(id) or id in {'ulb','udb','reg','blv','nav','det','juds'})
+    return (isAlignedBibleType(id) or id in {'ulb','udb','reg', 'ayt', 'blv','cuv','nav','det','juds'})
 
 # Returns True if the specified string is a recognized Aligned Bible type of project type
 # Preliminary implementation - list needs refinement (6/21/21)
@@ -349,7 +352,7 @@ def verifyIdentifier(core):
             print("projtype = " + projtype)
         parts = manifestDir.rsplit('_', 1)
         lastpart = parts[-1].lower()
-        if lastpart != id.lower() and lastpart != id.lower() + ".str" and lastpart != id.lower() + ".rpp" and lastpart != id.lower() + ".work":
+        if lastpart != id.lower() and not lastpart.startswith(id.lower() + '.'):
             # last part of directory name should match the projtype string
             reportWarning("Project identifier (" + id + ") does not match last part of directory name: " + lastpart)
 
@@ -373,7 +376,7 @@ def verifyLanguage(language):
             reportError("Language identifier (" + language['identifier'] + ") does not match first part of directory name: " + os.path.basename(manifestDir))
     if verifyStringField(language, 'title', 3):
         language_code = language['identifier']
-        if language['title'].isascii() and not language_code in {'dan','en','es','es-419','gl','ha','hr','id','nag','pmy','pt-br','sw','tl','tpi'}:
+        if language['title'].isascii() and not expectAscii(language_code):
             reportWarning("Remember to localize language title: " + language['title'])
 
 # For OBS projects, verify that media.yaml is valid.
@@ -398,9 +401,13 @@ def verifyMedium(medium):
 
 # Confirms the existence of a LICENSE file
 def verifyOtherFiles():
-    licensepath1 = os.path.join(manifestDir, "LICENSE.md")
-    licensepath2 = os.path.join(manifestDir, "LICENSE")
-    if not os.path.isfile(licensepath1) and not os.path.isfile(licensepath2):
+    found = False
+    for fname in {"LICENSE", "LICENSE.TXT", "LICENSE.MD"}:
+        path = os.path.join(manifestDir, fname)
+        if os.path.isfile(path):
+            found = True
+            break
+    if not found:
         reportError("LICENSE file is missing")
 
 # Verifies that the project contains the six required fields and no others.
@@ -438,7 +445,7 @@ def verifyProject(project, language_code):
         if project['title'] not in {'translationWords','Translation Words'}:
             reportError("Invalid project:title: " + project['title'] + ". Should be translationWords or Translation Words")
     elif isBibleType(projtype):
-        if project['title'].isascii() and not language_code in {'dan','en','es','es-419','gl','ha','hr','id','kpj','nag','pmy','pt-br','sw','tl','tpi'}:
+        if project['title'].isascii() and not expectAscii(language_code):
             reportError("ASCII project:title book title: " + str(project['title']))
         bookinfo = usfm_verses.verseCounts[project['identifier'].upper()]
         if int(project['sort']) != bookinfo['sort']:
@@ -732,7 +739,7 @@ def verifyYamls(folderpath):
     tocpath = os.path.join(folderpath, "toc.yaml")
     if contents := parseYaml(tocpath):
         nAsciiTitles = verifyTocYaml(contents, shortname(tocpath))
-        if nAsciiTitles > 0 and getLanguageId() not in {'ceb','en','es-419','ha','hr','id','nag','plt','pmy','pt-br','sw','tl'}:
+        if nAsciiTitles > 0 and not expectAscii(getLanguageId()):
             reportWarning(f"{nAsciiTitles} likely untranslated titles in {shortname(tocpath)}")
 
 def verifyType(type):
