@@ -29,11 +29,11 @@ def convertText(lines, output):
             length = len(line)
             versenum = number_re.search(line)
         output.write(line)
-            
+
 def detect_by_bom(path, default):
     with open(path, 'rb') as f:
         raw = f.read(4)
-        f.close
+        f.close()
     for enc,boms in \
             ('utf-8-sig',(codecs.BOM_UTF8)),\
             ('utf-16',(codecs.BOM_UTF16_LE,codecs.BOM_UTF16_BE)),\
@@ -54,7 +54,7 @@ def convertFile(folder, fname):
     usfm = fname.replace(".txt", ".usfm")
     outputpath = os.path.join(folder, usfm)
     output = io.open(outputpath, "tw", buffering=1, encoding="utf-8", newline='\n')
-    
+
     convertText(lines, output)   # converts this .txt file to .usfm
     output.close()
     sys.stdout.write("Converted " + fname + '\n')
