@@ -13,7 +13,7 @@ import substitutions
 import sys
 
 # Globals
-source_dir = r"C:\DCS\Hausa\ha_ulb.work\43-LUK.usfm"
+source_dir = r"C:\DCS\Gcirku\work"
 
 nChanged = 0
 max_changes = 66
@@ -79,22 +79,25 @@ def usfm_remove_s5(str):
 
 
 # Returns True if the specified file contains any of the strings to be translated.
-def fileQualifies(path):
-    qualify = False
-    input = io.open(path, "tr", 1, encoding="utf-8-sig")
-    alltext = input.read()
-    input.close()
-    if ".." in alltext:     # or (remove_E2808C and "‌" in alltext):  # E2 80 8C character, or \u200c
-        qualify = True
-    else:
-        for pair in substitutions.subs:
-            if pair[0] in alltext:
-                qualify = True
-                break
-    return qualify
+# def fileQualifies(path):
+#     qualify = False
+#     input = io.open(path, "tr", 1, encoding="utf-8-sig")
+#     alltext = input.read()
+#     input.close()
+#     if ".." in alltext:     # or (remove_E2808C and "‌" in alltext):  # E2 80 8C character, or \u200c
+#         qualify = True
+#     else:
+#         for pair in substitutions.subs:
+#             if pair[0] in alltext:
+#                 qualify = True
+#                 break
+#     return qualify
+
+spacey3_re = re.compile(r'\\v [0-9]+ ([\(\'"])[\s]', re.UNICODE)    # verse starts with free floating quote mark
 
 # Replaces substrings from substitutions module
 # Reduces double periods to single periods
+# Removes space after initial quote.
 def fix_punctuation(str):
     for pair in substitutions.subs:
         str = str.replace(pair[0], pair[1])
@@ -103,6 +106,12 @@ def fix_punctuation(str):
         if pos != str.find("...", pos):
             str = str[:pos] + str[pos+1:]
         pos = str.find("..", pos+2)
+    pos = 0
+    bad = spacey3_re.search(str)
+    while bad:
+        pos += bad.end()
+        str = str[:pos-1] + str[pos:]
+        bad = spacey3_re.search(str[pos:])
     return str
 
 # spacing_list is a list of compiled expressions where a space needs to be inserted
@@ -137,7 +146,7 @@ def convertFile(path):
     if enable_move_pq:
         alltext = usfm_move_pq(alltext)
         alltext = usfm_remove_pq(alltext)
-    if enable_fix_punctuation and not aligned_usfm and fileQualifies(path):
+    if enable_fix_punctuation and not aligned_usfm:  # and fileQualifies(path):
         alltext = fix_punctuation(alltext)
     if enable_add_spaces and not aligned_usfm:
         alltext = add_spaces(alltext)
