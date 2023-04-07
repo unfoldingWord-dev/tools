@@ -109,7 +109,7 @@ def filterLines(path):
                 os.rename(path, bakpath)
         output = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
         output.writelines(outputlines)
-        output.close
+        output.close()
     return changed
 #    sys.stdout.write("Converted " + shortname(path) + "\n")
 
