@@ -6,10 +6,10 @@
 
 # Global variables
 model_dir = r'C:\DCS\English\en_udb.paragraphs'
-source_dir = r"C:\DCS\Olukhayo\lko_reg"     # files to be changed
+source_dir = r"C:\DCS\Hausa\ha_ulb.work\62-2PE.usfm"     # files to be changed
 removeS5markers = True
 xlateS5markers = False   # Dubious validity, and not tested for texts that have both kinds of markers already. Translates most \s5 markers to \p markers.
-copy_nb = False
+copy_nb = True
 
 nCopied = 0
 issuesFile = None
@@ -208,8 +208,8 @@ or token.isADDS() or token.isADDE() or token.isPNS() or token.isPNE()
 
 def isParagraph(token):
     pmark = token.isP() or token.isM() or token.isPI() or token.isPC() or token.isNB() or token.isB() \
-or token.is_ip() or token.is_iot() or token.is_io() or token.is_io2()
-    if token.isNB() and ("en_ulb" in model_dir or not copy_nb):
+        or token.is_ip() or token.is_iot() or token.is_io() or token.is_io2()
+    if (token.isNB() or token.isB() or token.isM()) and not copy_nb:
         pmark = False
     return pmark
 
@@ -308,13 +308,13 @@ def openIssuesFile():
         issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
     return issuesFile
 
-def openReportFile():
-    global reportFile
-    if not reportFile:
-        global source_dir
-        path = os.path.join(source_dir, "uncopied pp marks.txt")
-        reportFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
-    return reportFile
+#def openReportFile():
+    #global reportFile
+    #if not reportFile:
+        #global source_dir
+        #path = os.path.join(source_dir, "uncopied pp marks.txt")
+        #reportFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
+    #return reportFile
 
 def closeIssuesFiles():
     global issuesFile
@@ -337,9 +337,9 @@ def reportError(msg, realIssue=True):
             sys.stderr.write(state.reference + ": (Unicode...)\n")
         issues = openIssuesFile()
         issues.write(msg + "\n")
-    else:
-        report = openReportFile()
-        report.write(msg + "\n")
+    #else:
+        #report = openReportFile()
+        #report.write(msg + "\n")
 
 # Sets the chapter number in the state object
 # If there is still a tentative paragraph mark, remove it.
