@@ -99,8 +99,6 @@ def outputReference(refpath, mdfile):
         if line:
             mdfile.write("\n_" + line + "_\n")
 
-import shutil
-
 # Creates copy of path in contentdir.
 # Does nothing if destination path already exists.
 # Used for copying "back" or "front" folders to
