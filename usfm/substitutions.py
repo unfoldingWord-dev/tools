@@ -36,13 +36,18 @@ subs = [
     (">> ", "» "),
 #    (" <", ", «"),
 #    (">", "»"),
+
+    # Doubled marks
 	(",,", ","),
+	(";;", ";"),
+	("::", ":"),
+
 #	("?.", "?"),
 	(".?", "?"),
 	(".!", "!"),
 	("!.", "!"),
 
-# Fix space after opening quote mark (but not straight quotes!)
+# Fix space before/after opening quote mark (but not straight quotes!)
 	(", “ ", ", “"),
 	("? “ ", "? “"),
 	("! “ ", "! “"),
