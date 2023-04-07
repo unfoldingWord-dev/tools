@@ -5,17 +5,17 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Shubi\suj_reg"
-language_code = 'suj'
+source_dir = r"C:\DCS\Hausa\ha_ulb.work"
+language_code = 'ha'
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
-suppress3 = True     # Suppress bad punctuation warnings
-suppress4 = False     # Suppress warnings about useless markers before section markers
+suppress3 = False     # Suppress bad punctuation warnings
+suppress4 = False     # Suppress warnings about useless markers before section/title markers
 suppress5 = False     # Suppress checks for verse counts
-suppress6 = False     # Suppress warnings about uW/WA extensions to USFM
+#suppress6 = True     # Suppress warnings about uW/WA extensions to USFM, like \fqa*
 suppress7 = False     # Suppress warnings about square brackets indicating footnotes
-suppress9 = True     # Suppress warnings about ASCII content
+suppress9 = False     # Suppress warnings about ASCII content
 
 max_chunk_length = 400
 
@@ -23,8 +23,8 @@ if language_code in {'en','es','es-419','gl','ha','hr','id','kpj','nag','pmy','p
     suppress9 = True
 if language_code in {'as','bn','gu','hi','kn','ml','mr','nag','ne','or','pa','ru','ta','te','zh'}:    # ASCII content
     suppress9 = False
-if language_code == 'ru':
-    suppress5 = True
+#if language_code == 'ru':
+    #suppress5 = True
 
 lastToken = None
 nextToken = None
@@ -44,7 +44,9 @@ from datetime import date
 
 # Marker types
 PP = 1      # paragraph or quote
-QQ = 2
+QQ = 2      # poetry
+B = 3       # \b for blank line; no titles, text, or verse markers may immediately follow
+C = 4       # \c
 OTHER = 9
 
 class State:
@@ -52,6 +54,7 @@ class State:
     ID = ""
     titles = []
     chaptertitles = []
+    nChapterLabels = 0
     chapter = 0
     verse = 0
     lastVerse = 0
@@ -77,6 +80,7 @@ class State:
         State.ID = id
         State.titles = []
         State.chaptertitles = []
+        State.nChapterLabels = 0
         State.chapter = 0
         State.lastVerse = 0
         State.verse = 0
@@ -105,6 +109,9 @@ class State:
     def addToc3(self, toc3):
         State.toc3 = toc3
 
+    def addB(self):
+        State.currMarker = B
+
     def addChapter(self, c):
         State.lastChapter = State.chapter
         State.chapter = int(c)
@@ -116,19 +123,23 @@ class State:
         State.lastRef = State.reference
         State.reference = State.ID + " " + c
         State.startChunkRef = State.reference + ":1"
-        State.currMarker = OTHER
+        State.currMarker = C
 
     def addChapterLabel(self, title):
         # first strip the chapter number and extraneous characters
-        ch = " " + str(State.chapter)
-        chlen = len(ch)
+        chend = " " + str(State.chapter)
+        chstart = str(State.chapter) + " "
+        chlen = len(chend)
         title.strip()
-        if title.endswith(ch):
+        if title.endswith(chend):
             title = title[:-chlen]
+        elif title.startswith(chstart):
+            title = title[chlen:]
         title = title.strip()
         title = re.sub(" +", " ", title)
         if title not in State.chaptertitles:
             State.chaptertitles.append(title)
+        State.nChapterLabels += 1
 
     def addParagraph(self):
         State.needPP = False
@@ -140,6 +151,8 @@ class State:
         State.needPP = False
         State.textOkayHere = True
         State.currMarker = QQ
+    def addSection(self):
+        State.currMarker = OTHER
 
     # Records the start of a new chunk
     def addS5(self):
@@ -282,7 +295,7 @@ def previousVerseCheck():
             reportError("Empty verse: " + state.reference)
         elif not isShortVerse(state.reference):
             reportError("Verse fragment: " + state.reference)
-    if not suppress9 and state.asciiVerse:
+    if not suppress9 and state.asciiVerse and state.getTextLength() > 0:
         reportError("Verse is entirely ASCII: " + state.reference)
 
 def longChunkCheck():
@@ -308,6 +321,8 @@ def verifyChapterTitles():
     state = State()
     if len(state.chaptertitles) > 1:
         reportError(f"Inconsistent chapter titling: {state.chaptertitles} in {state.ID}")
+    if state.nChapterLabels > 1 and state.nChapterLabels != state.chapter:
+        reportError(f"Some chapters do not have chapter labels but {state.nChapterLabels} do.")
 
 # Verifies correct number of verses for the current chapter.
 # This method is called just before the next chapter begins.
@@ -353,14 +368,11 @@ def printToken(token):
     else:
         print(token)
 
-def takeID(id):
-    state = State()
-    if len(id) < 3:
-        reportError("Invalid ID: " + id)
-    id = id[0:3].upper()
-    if id in state.getIDs():
-        reportError("Duplicate ID: " + id)
-    state.addID(id)
+# \b is used to indicate additional white space between paragraphs.
+# No text or verse marker should follow this marker
+# and it should not be used before or after titles to indicate white space.
+def takeB():
+    State().addB()
 
 # Processes a chapter tag
 def takeC(c):
@@ -406,33 +418,60 @@ def takeFootnote(token):
     else:
         if state.footnote_starts <= state.footnote_ends and state.endnote_starts <= state.endnote_ends:
             reportError(f"Footnote marker ({token.type}) not between \\f ... \\f* pair at {state.reference}")
-    if token.isFQA_E() and not suppress6:
-        reportError(f"Non-standard footnote marker at {state.reference}. ({token.type} is an unfoldingWord/WA extension).")
+    #if token.isFQA_E() and not suppress6:
+        #reportError(f"Non-standard footnote marker at {state.reference}. ({token.type} is an unfoldingWord/WA extension).")
+    takeText(token.value, footnote=True)
 
-def takeP():
+def takeID(id):
+    state = State()
+    if len(id) < 3:
+        reportError("Invalid ID: " + id)
+    id = id[0:3].upper()
+    if id in state.getIDs():
+        reportError("Duplicate ID: " + id)
+    state.addID(id)
+
+def takeP(type):
     state = State()
     if state.currMarker in {QQ,PP} and not suppress4:
         reportError("Warning: back to back paragraph/poetry markers after: " + state.reference)
     if state.needText() and not isOptional(state.reference):
         reportError("Paragraph marker after verse marker, or empty verse: " + state.reference)
+    if type == 'nb' and state.currMarker != C:
+        reportError("\\nb marker should follow chapter marker: " + state.reference)
     state.addParagraph()
 
-def takeQ():
-    takeP()
+def takeQ(type):
+    takeP(type)
     State().addPoetry()
 
 def takeS5():
     longChunkCheck()
     State().addS5()
-    takeSection()
+    takeSection('s5')
 
-def takeSection():
+def takeSection(tag):
+    state = State()
     if not suppress4:
         state = State()
         if state.currMarker == PP:
-            reportError("Warning: useless paragraph {p,m,nb} marker before section marker at: " + state.reference)
+            reportError(f"Warning: useless paragraph (p,m,nb) marker before \\{tag} marker at: {state.reference}")
         elif state.currMarker == QQ:
-            reportError("Warning: useless \q before section marker at: " + state.reference)
+            reportError(f"Warning: useless \q before \\{tag} marker at: {state.reference}")
+        elif state.currMarker == B:
+            reportError(f"\\b may not be used before or after section heading. {state.reference}")
+    state.addSection()
+
+def takeTitle(token):
+    state = State()
+    state.addTitle(token.value)
+    if token.isMT() and token.value.isascii() and not suppress9:
+        reportError("mt token has ASCII value in " + state.reference)
+    if token.value.isupper() and not state.upperCaseReported:
+        reportError("Upper case book title in " + state.reference)
+        state.reportedUpperCase()
+    if state.currMarker == B:
+        reportError("\\b may not be used before or after titles or headings. " + state.reference)
 
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 vinvalid_re = re.compile(r'[^\d\-]')
@@ -442,6 +481,8 @@ vinvalid_re = re.compile(r'[^\d\-]')
 # Reports errors related to the verse number(s), such as missing or duplicated verses.
 def takeV(vstr):
     state = State()
+    if state.currMarker == B:
+        reportError(f"\\b should be used only between paragraphs. {state.reference}")
     if vstr != "1":
         previousVerseCheck()   # Checks previous verse
     vlist = []
@@ -482,33 +523,36 @@ def takeV(vstr):
             reportError("Missing verses between: " + state.lastRef + " and " + state.reference)
 
 reference_re = re.compile(r'[0-9]\: *[0-9]', re.UNICODE)
+bracketed_re = re.compile(r'\[ *([^\]]+) *\]', re.UNICODE)
 
 # Looks for possible verse references and square brackets in the text, not preceded by a footnote marker.
 # This function is only called when parsing a piece of text preceded by a verse marker.
 def reportFootnotes(text):
     global lastToken
+    state = State()
     if not isFootnote(lastToken):
         if reference_re.search(text):
             reportFootnote(':')
+        elif ('(' in text or '[' in text) and (isOptional(state.reference) or state.reference in footnoted_verses.footnotedVerses):
+            reportFootnote('(')
         elif "[" in text:
-            reportFootnote('[')
-        else:
-            state = State()
-            if '(' in text and isOptional(state.reference):
-                reportFootnote('(')
+            fn = bracketed_re.search(text)
+            if not fn or ' ' in fn.group(1):    # orphan [, or more than one word between brackets
+                reportFootnote('[')
 
 def reportFootnote(trigger):
     state = State()
     reference = state.reference
     if trigger == ':' or isOptional(reference) or reference in footnoted_verses.footnotedVerses:
-        reportError("Probable untagged footnote at " + reference)
+        reportError("Untagged footnote (probable) at " + reference)
     else:
         reportError("Possible untagged footnote at square bracket at " + reference)
 #    reportError("  preceding Token.type was " + lastToken.getType())   #
 
-punctuation_re = re.compile(r'([\.\?!;\:,][^\s\u200b\)\]\'"’”»›])', re.UNICODE)  # note: \u200b is an invisible character, used like a space in Laotian
+punctuation_re = re.compile(r'([\.\?!;\:,][^\s\u200b\)\]\'"’”»›])', re.UNICODE)  # note: \u200b indicates word boundaries in scripts that do not use explicit spacing, but is used (seemingly incorrectly) like a space in Laotian
 spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’”»›])', re.UNICODE)
 spacey2_re = re.compile(r'[\s]([\(\'"])[\s]', re.UNICODE)
+wordmedial_punct_re = re.compile(r'[\w][\.\?!;\:,][\)\]\'"’”»›][\w]', re.UNICODE)
 
 def reportPunctuation(text):
     global lastToken
@@ -518,7 +562,7 @@ def reportPunctuation(text):
             chars = bad.group(1)
             if not (chars[0] in ',.' and chars[1] in "0123456789"):   # it's a number
                 if not (chars[0] == ":" and chars[1] in "0123456789"):
-                    reportError("Bad punctuation at " + state.reference + ": " + chars)
+                    reportError("Check the punctuation at " + state.reference + ": " + chars)
                 elif not (lastToken.getType().startswith('f') or lastToken.getType().startswith('io') \
                           or lastToken.getType().startswith('ip')):
                     reportError("Possible verse reference (" + chars + ") out of place: " + state.reference)
@@ -528,8 +572,14 @@ def reportPunctuation(text):
         reportError("Free floating mark at " + state.reference + ": " + bad.group(1))
     if "''" in text:
         reportError("Repeated quotes at " + state.reference)
+    if wordmedial_punct_re.search(text):
+        reportError("Word medial punctuation in " + state.reference)
 
-def takeText(t):
+period_re = re.compile(r' *\.', re.UNICODE)    # detects period starting a phrase
+numberprefix_re = re.compile(r'[^\s,0-9\(][0-9]+', re.UNICODE)
+leadingzero_re = re.compile(r'[\s]0[0-9,]*', re.UNICODE)
+
+def takeText(t, footnote=False):
     global lastToken
     state = State()
     if not state.textOkay() and not isTextCarryingToken(lastToken):
@@ -554,6 +604,15 @@ def takeText(t):
         reportPunctuation(t)
     if lastToken.isV() and not aligned_usfm and not suppress7:
         reportFootnotes(t)
+    if period_re.match(t):
+        reportError("Misplaced period in " + state.reference)
+    if t.startswith(str(state.verse) + " "):
+        reportError("Verse number in text (probable): " + state.reference)
+    if prefixed := numberprefix_re.search(t):
+        if not footnote or prefixed.group(0)[0] != ':':
+            reportError(f"Invalid number prefix: {prefixed.group(0)} at {state.reference}")
+    if leadzero := leadingzero_re.search(t):
+        reportError(f"Invalid leading zero: {leadzero.group(0)} at {state.reference}")
     state.addText(t)
 
 # Returns true if token is part of a footnote
@@ -584,8 +643,7 @@ def isOptional(ref, previous=False):
 
 def isShortVerse(ref):
     return ref in { 'LEV 11:15', 'DEU 5:19', \
-'JOB 9:1', 'JOB 12:1', 'JOB 16:1', 'JOB 19:1', 'JOB 21:1', 'JOB 27:1', 'JOB 29:1', 'LUK 20:30' }
-
+'JOB 3:2', 'JOB 9:1', 'JOB 12:1', 'JOB 16:1', 'JOB 19:1', 'JOB 21:1', 'JOB 27:1', 'JOB 29:1', 'LUK 20:30' }
 
 def isPoetry(token):
     return token.isQ() or token.isQ1() or token.isQ2() or token.isQ3() or token.isQA() or \
@@ -631,7 +689,7 @@ def take(token):
     elif token.isCL():
         takeCL(token.value)
     elif token.isP() or token.isPI() or token.isPC() or token.isNB() or token.isM():
-        takeP()
+        takeP(token.type)
         if token.value:     # paragraph markers can be followed by text
             reportError("Unexpected: text returned as part of paragraph token." +  state.reference)
             takeText(token.value)
@@ -643,19 +701,16 @@ def take(token):
         takeFootnote(token)
     elif token.isS5():
         takeS5()
-    elif token.isS():
-        takeSection()
+    elif token.isS() or token.isMR() or token.isMT() or token.isMS() or token.isD() or token.isSP():
+        takeSection(token.type)
     elif token.isQA():
         state.addAcrosticHeading()
     elif isPoetry(token):
-        takeQ()
+        takeQ(token.type)
+    elif token.isB():
+        takeB()
     elif isTitleToken(token):
-        state.addTitle(token.value)
-        if token.isMT() and token.value.isascii() and not suppress9:
-            reportError("mt token has ASCII value in " + state.reference)
-        if token.value.isupper() and not state.upperCaseReported:
-            reportError("Upper case book title in " + state.reference)
-            state.reportedUpperCase()
+        takeTitle(token)
     elif token.isTOC3():
         state.addToc3(token.value)
         if (len(token.value) != 3 or not token.value.isascii()):
