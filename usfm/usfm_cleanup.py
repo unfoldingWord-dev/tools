@@ -10,11 +10,10 @@ import re       # regular expression module
 import io
 import os
 import substitutions
-#import parseUsfm
 import sys
 
 # Globals
-source_dir = r"C:\DCS\Lusonga\luo-x-lusonga_reg"
+source_dir = r"C:\DCS\Hausa\ha_ulb.work\43-LUK.usfm"
 
 nChanged = 0
 max_changes = 66
@@ -23,6 +22,12 @@ enable_move_pq = True
 enable_fix_punctuation = True
 enable_add_spaces = True    # Add spaces between commo/period and a letter
 aligned_usfm = False
+remove_s5 = True
+
+# Some UTF-8 special characters
+# E2 80 8B = \u200b - zero width space. See https://en.wikipedia.org/wiki/Zero-width_space
+# E2 80 8C = \u200c - zero width non-joiner. See https://en.wikipedia.org/wiki/Zero-width_non-joiner
+# E2 80 8D = \u200d - zero width joiner
 
 def shortname(longpath):
     shortname = longpath
@@ -45,18 +50,33 @@ def usfm_move_pq(str):
     newstr += str
     return newstr
 
-# Remove paragraph marker followed by another paragraph marker
-losepq_re = re.compile(r'\n(\\[pqm][i1-9]?)\n+(\\[pqm][i1-9 ]?.*?)\n', flags=re.UNICODE+re.DOTALL)
+#losepq_re = re.compile(r'\n(\\[pqm][i1-9]?)\n+(\\[pqm][i1-9 ]?.*?)\n', flags=re.UNICODE+re.DOTALL)
+losepq_re = re.compile(r'\n\\[pqm][i1-9]? *\n+(\\[^v].*?\n)', flags=re.UNICODE)
 
+# Remove standalone paragraph markers not followed by verse marker.
 def usfm_remove_pq(str):
     newstr = ""
     found = losepq_re.search(str)
     while found:
-        newstr += str[:found.start()] + "\n" + found.group(2) + "\n"
+        newstr += str[:found.start()] + "\n" + found.group(1)
         str = str[found.end():]
         found = losepq_re.search(str)
     newstr += str
     return newstr
+
+s5_re = re.compile(r'\n\\s5 *?\n', flags=re.UNICODE+re.DOTALL)
+
+# Removes \s5 markers
+def usfm_remove_s5(str):
+    newstr = ""
+    found = s5_re.search(str)
+    while found:
+        newstr += str[:found.start()] + "\n"
+        str = str[found.end():]
+        found = s5_re.search(str)
+    newstr += str
+    return newstr
+
 
 # Returns True if the specified file contains any of the strings to be translated.
 def fileQualifies(path):
@@ -64,16 +84,25 @@ def fileQualifies(path):
     input = io.open(path, "tr", 1, encoding="utf-8-sig")
     alltext = input.read()
     input.close()
-    for pair in substitutions.subs:
-        if pair[0] in alltext:
-            qualify = True
-            break
+    if ".." in alltext:     # or (remove_E2808C and "‌" in alltext):  # E2 80 8C character, or \u200c
+        qualify = True
+    else:
+        for pair in substitutions.subs:
+            if pair[0] in alltext:
+                qualify = True
+                break
     return qualify
 
-# Stream edit the file by a simple string substitution
+# Replaces substrings from substitutions module
+# Reduces double periods to single periods
 def fix_punctuation(str):
     for pair in substitutions.subs:
         str = str.replace(pair[0], pair[1])
+    pos = str.find("..", 0)
+    while pos >= 0:
+        if pos != str.find("...", pos):
+            str = str[:pos] + str[pos+1:]
+        pos = str.find("..", pos+2)
     return str
 
 # spacing_list is a list of compiled expressions where a space needs to be inserted
@@ -103,6 +132,8 @@ def convertFile(path):
     input.close()
     aligned_usfm = ("lemma=" in alltext)
 
+    if remove_s5:
+        alltext = usfm_remove_s5(alltext)
     if enable_move_pq:
         alltext = usfm_move_pq(alltext)
         alltext = usfm_remove_pq(alltext)
@@ -135,7 +166,7 @@ def convertFolder(folder):
             path = os.path.join(folder, entry)
             if os.path.isdir(path):
                 convertFolder(path)
-            elif entry.endswith(".usfm"):
+            elif entry.lower().endswith("sfm"):
                 convertFile(path)
                 #convertFileByToken(path)
             if nChanged >= max_changes:
