@@ -50,7 +50,7 @@
 #   verifies config.yaml files for tA or tW projects
 
 # Globals
-manifestDir = r'C:\DCS\Gujarati\gu_tn.STR'
+manifestDir = r'C:\DCS\Telugu\te_tn.STR'
 nIssues = 0
 projtype = ''
 issuesFile = None
@@ -395,7 +395,7 @@ def verifyMedium(medium):
     if medium['identifier'] != 'door43' and medium['url'].count(version) != 2:
         reportError("Correct the version numbers in media.yaml url's")
     if medium['identifier'] == 'pdf':
-        sys.stdout.write("Verify all language codes and version numbers in media.yaml.\n")
+        sys.stdout.write("Verify all language codes and {latest} version in media.yaml.\n")
     else:
         sys.stdout.write("Review the " + medium['identifier'] + " media entry in media.yaml.\n")
 
@@ -476,7 +476,7 @@ def verifyProject(project, language_code):
                 reportError("Invalid project:title: " + project['title'])
         elif projtype == 'obs-tq':
             if not project['title'].endswith('Open Bible Stories Translation Questions'):
-                reportError("Invalid project:title: " + project['title'])
+                reportError("Invalid project:title for obs-tq project: " + project['title'])
         elif projtype == 'obs-sn':
             if project['title'] != 'Open Bible Stories Study Notes':
                 reportError("Invalid project:title: " + project['title'])
@@ -607,7 +607,9 @@ def verifySource(source):
         verifyKeys("source[x]", dict, ['language', 'identifier', 'version'])
 
         global projtype
-        if dict['identifier'] != projtype and projtype in {'obs', 'obs-tn','obs-tq','obs-sn','obs-sq', 'tn', 'tq', 'tw'}:
+        if projtype in {'obs','obs-tq','obs-tn','obs-sq','obs-sn'} and dict['identifier'] != 'obs':
+            reportError(f"Incorrect source:identifier for project type: {projtype}: should be 'obs'")
+        if dict['identifier'] != projtype and projtype in {'obs', 'tn', 'tq', 'tw'}:
             reportError("Inappropriate source:identifier (" + dict['identifier'] + ") for project type: " + projtype)
         if dict['identifier'] != 'ulb' and projtype == 'reg':
             reportError("Incorrect source:identifier for reg project: " + dict['identifier'])
