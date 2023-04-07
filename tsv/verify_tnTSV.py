@@ -20,10 +20,10 @@
 # A lot of these checks are done by tsv2rc.py as well.
 
 # Globals
-source_dir = r'C:\DCS\Telugu\te_tn.STR\te_tn_43-LUK.tsv'
-language_code = 'te'
+source_dir = r'C:\DCS\Kannada\TN'
+language_code = 'kn'
 source_language = 'en'         # The language that the notes are translated from, usually en
-ta_dir = r'C:\DCS\Kannada\kn_ta.STR'    # Use Target language tA if available
+ta_dir = r'C:\DCS\Telugu\te_ta.STR'    # Use Target language tA if available
 obs_dir = r'C:\DCS\Kannada\kn_obs\content'
 
 suppress1 = False    # Suppress warnings about text before first heading and TA page references in headings
@@ -40,6 +40,8 @@ suppress12 = False    # Suppress warnings about markdown syntax in 1-line notes
 suppress13 = False    # Suppress warnings about multiple lines in non-intro notes
 suppress14 = True    # Suppress warnings about mismatched SupportReference and TA page references
 suppress15 = False   # Suppress warning for each and every blank note (Only report number of blank notes.)
+#pass_pages = ['translate-blessing', 'grammar-collectivenouns']
+pass_pages = []
 
 if language_code in {'hr','id','nag','pmy','sw','en','es-419'}:    # Expect ASCII content with these languages
     suppress9 = True
@@ -241,6 +243,8 @@ def reportSuppressions():
         reportSuppression("Warnings about multiple lines in non-intro notes were suppressed")
     if suppress14:
         reportSuppression("Warnings about mismatched SupportReference and TA page references were suppressed")
+    if len(pass_pages) > 0:
+        reportSuppression("Certain TA page names were not checked for validity. See pass_pages in code.")
 
 # This function, instead of takeSplit(), checks simple verse notes.
 # Most notes consist of a single line with no headings or lists.
@@ -335,8 +339,6 @@ def checkUnconvertedLinks(line):
             reportError("Unconverted language code")
 
 
-tapage_re = re.compile(r'\[\[.*?/ta/man/(.*?)]](.*)', flags=re.UNICODE)
-talink_re = re.compile(r'(\(rc://[\*\w\-]+/ta/man/)(.+?/.+?)(\).*)', flags=re.UNICODE)
 # notelink_re = re.compile(r'(rc://)([\*\w\-]+)(/tn/help/)(\w\w\w/\d+/\d+)(.*)', flags=re.UNICODE)
 obsJpg_re = re.compile(r'https://cdn.door43.org/obs/jpg/360px/obs-en-[0-9]+\-[0-9]+\.jpg$', re.UNICODE)
 reversedlink_re = re.compile(r'\(.*\) *\[.*\]', flags=re.UNICODE)
@@ -344,16 +346,28 @@ reversedlink_re = re.compile(r'\(.*\) *\[.*\]', flags=re.UNICODE)
 # Check for quadruple asterisks and mismatched asterisks.
 # Also checks for mismatched double underscores.
 def checkAsterisks(note):
+    #if '****' in note:
+        #reportError("Note contains quadruple asterisks, ****")
+    #elif '**' in note:
     if '**' in note:
         if note.count("**") % 2 == 1:
             reportError("Note seems to have mismatched '**'")
-        if note.find("** ") == note.find("**"):      # the first ** is followed by a space
-            reportError("Incorrect markdown syntax, space after double asterisk '** '")
-        if '****' in note:
-            reportError("Note contains quadruple asterisks, ****")
+        #if note.find("** ") == note.find("**"):      # the first ** is followed by a space
+            #reportError("Incorrect markdown syntax, space after double asterisk '** '")
     if note.count("__") % 2 == 1:
         reportError("Note seems to have mismatched '__'")
 
+# Compares specified page name to a list of page namss that are not to be checked.
+def passpage(manpage):
+    passthispage = False
+    for name in pass_pages:
+        if manpage.endswith(name):
+            passthispage = True
+            break
+    return passthispage
+
+tapage_re = re.compile(r'\[\[.*?/ta/man/(.*?)]](.*)', flags=re.UNICODE)
+talink_re = re.compile(r'(\(rc://[\*\w\-]+/ta/man/)(.+?/.+?)(\).*)', flags=re.UNICODE)
 
 # Parse tA manual page names from the line.
 # Verifies the existence of the referenced page.
@@ -365,12 +379,13 @@ def checkTALinks(line):
         if line and line[0] == '#' and not suppress1:
             reportError("tA page reference in heading")
         manpage = page.group(1)
-        path = os.path.join(ta_dir, manpage)
-        if not os.path.isdir(path):
-            reportError("invalid tA page reference: " + manpage)
+        if not passpage(manpage):
+            path = os.path.join(ta_dir, manpage)
+            if not os.path.isdir(path):
+                reportError("invalid tA page reference: " + manpage)
         page = tapage_re.search(page.group(2))
 
-    if not found:
+    if not found:   # means there were no normal looking /ta/man/ page references in the line
         link = talink_re.search(line)
         while link:
             found = True
@@ -404,6 +419,8 @@ mdnamelink_re = re.compile(r'(..)\.md', flags=re.UNICODE)
 
 # Check for links that are corrupted, either by translating the digits or dropping the leading 0.
 def checkMdLinks(line):
+    savline = line
+
     link = mdlink_re.search(line)
     while link:
         chars = link.group(1)
@@ -412,6 +429,7 @@ def checkMdLinks(line):
         line = line[link.end():]
         link = mdlink_re.search(line)
 
+    line = savline
     mdnamelink = mdnamelink_re.search(line)
     while mdnamelink:
         digits = mdnamelink.group(1)
@@ -515,18 +533,19 @@ def checkColHeader(value, expected, col):
         reportError("Invalid column " + str(col) + " header: \"" + value + "\"")
 
 def verifySupportRef(supportref, note):
-    parts = supportref.split('/')
-    if len(parts) == 1:
-        folder = "translate"
-        article = parts[0]
-    else:
-        folder = parts[0]
-        article = parts[-1]
-    path = os.path.join(ta_dir, folder + "/" + article)
-    if not os.path.isdir(path):
-        reportError("Invalid SupportReference value: " + supportref)
-    elif not suppress14 and "rc://" in note and not supportref in note:
-        reportError("SupportReference value does not match any tA articles mentioned in note")
+    if not passpage(supportref):
+        parts = supportref.split('/')
+        if len(parts) == 1:
+            folder = "translate"
+            article = parts[0]
+        else:
+            folder = parts[0]
+            article = parts[-1]
+        path = os.path.join(ta_dir, folder + "/" + article)
+        if not os.path.isdir(path):
+            reportError("Invalid SupportReference value: " + supportref)
+        elif not suppress14 and "rc://" in note and not supportref in note:
+            reportError("SupportReference value does not match any tA articles mentioned in note")
 
 # Reports an error if there is anything wrong with the first row in the TSV file.
 # That row contains nothing but column headings.
