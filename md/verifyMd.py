@@ -23,15 +23,15 @@
 #          Check that tW files begin with H1 heading immediately followed by H2 heading.
 
 # Globals
-source_dir = r'C:\DCS\Nepali\work'
-language_code = 'ne'
-resource_type = 'tq'
+source_dir = r'C:\DCS\Kannada\kn_ta.STR\translate\translate-transliterate'
+language_code = 'kn'
+resource_type = 'ta'
 ta_dir = r'C:\DCS\Kannada\kn_ta.STR'    # Target language tA, or English tM for WA
-obstn_dir = r'C:\DCS\Russian\ru_obs-tn.STR'
+obstn_dir = r'C:\DCS\Hindi\hi_obs-tn.STR'
 en_tn_dir = r'C:\DCS\English\en_tn.md-orig'
 en_tq_dir = r'C:\DCS\English\en_tq.v38'
-tn_dir = r'C:\DCS\Spanish-es-419\es-419_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
-tw_dir = r'C:\DCS\Kannada\kn_tw.STR'
+tn_dir = r'C:\DCS\Marathi\mr_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
+tw_dir = r'C:\DCS\Gujarati\gu_tw.STR\bible'
 
 nChecked = 0
 nChanged = 0
@@ -51,7 +51,7 @@ suppress10 = False   # Suppress warnings about heading levels
 suppress11 = False    # Suppress warnings about unbalanced parentheses
 suppress12 = False     # Suppress warnings about newlines at end of file
 suppress13 = False     # Suppress warnings about mistmatched **
-suppress14 = True     # Suppress "invalid note link" warnings
+suppress14 = True     # Suppress "invalid note link" warnings, including invalid OBS note links
 suppress15 = True     # Suppress punctuation warnings.
 suppress16 = False     # Suppress warnings about empty files
 suppress17 = (resource_type != 'tn')  # Suppress the missing intro.md file warning, which applies only to tN resources
@@ -198,19 +198,21 @@ def openIssuesFile():
     return issuesFile
 
 # Writes error message to stderr and to issues.txt.
-def reportError(msg, report_lineno=True):
+def reportError(msg, report_lineno=True, path=None):
     state = State()
     issues = openIssuesFile()
     if msg[-1] != '\n':
         msg += '\n'
+    if not path:
+        path = shortname(state.path)
     if report_lineno and state.linecount > 0:
         try:
-            sys.stderr.write(shortname(state.path) + " line " + str(state.linecount) + ": " + msg)
+            sys.stderr.write(path + " line " + str(state.linecount) + ": " + msg)
         except UnicodeEncodeError as e:
-            sys.stderr.write(shortname(state.path) + " line " + str(state.linecount) + ": (Unicode...)\n")
-        issues.write(shortname(state.path) + " line " + str(state.linecount) + ": " + msg)
+            sys.stderr.write(path + " line " + str(state.linecount) + ": (Unicode...)\n")
+        issues.write(path + " line " + str(state.linecount) + ": " + msg)
     else:
-        sys.stderr.write(shortname(state.path) +  ": " + msg)
+        sys.stderr.write(path +  ": " + msg)
         issues.write(shortname(state.path) + ": " + msg)
     state.reportedError()
 
@@ -375,8 +377,8 @@ def checkLineContents(line):
             #reportError("Line contains _**")
     if not suppress13 and line.count("__") % 2 == 1:
         reportError("Line seems to have mismatched '__'")
-    #if "___" in line:
-        #reportError("Triple underscore")
+    if "____" in line:
+        reportError("Quadruple underscore")
     if unexpected_re.search(line):
         reportError("found ']' after left paren")
     if unexpected2_re.search(line):
@@ -404,7 +406,7 @@ def checkTranslatedLinks(line):
             reportError("ta link must start with ta/man in order to render")
 
 unbracketed_re = re.compile(r'[^\[][^\[][^\[]rc\://')
-altbracketed_re = re.compile(r'.\] *\( *rc\://.*\)')
+altbracketed_re = re.compile(r'.?\] ?\( *rc\://.*\)')
 
 # Reports an error if the text (one line from a file) contains an RC link that is not bracketed
 def checkUnbracketedLinks(text):
@@ -511,7 +513,7 @@ def checkOBSLinks(line):
         found = True
         if link.group(2) != "*" and link.group(2) != language_code:
             reportError("invalid language code in OBS notes link")
-        elif not suppress6:
+        elif not suppress6 and not suppress14:
             obsPath = os.path.join(obstn_dir, link.group(4))
             obsPath = os.path.join(obsPath, link.group(5) + ".md")
             if not os.path.isfile(obsPath):
@@ -567,7 +569,7 @@ def checkPassageLinks(line, fullpath):
         elif not "/ta/" in link and not '/tn/' in link and not '/tw/' in link and not (resource_type == 'obs' and obsJpg_re.match(link)):
             # i.e. we are dealing with a relative path to a resource of the same type
             if not link.isascii():
-                reportError("Non-ascii link")
+                reportError("Non-ascii link: " + link)
             elif not link.startswith("http") and not suppress5:
                 checkRelativeLink(link, fullpath)
             elif not suppress22:
@@ -833,7 +835,7 @@ def verify_ta_article(dirpath):
             checkForBOM(path)
             verifyTitleFile(path)
     if len(os.listdir(dirpath)) > 3:
-        reportError("Extraneous file(s) in: " + shortname(dirpath), False)
+        reportError("has extraneous file(s)", False, shortname(dirpath))
 
 def verifyDir(dirpath):
     state = State()
