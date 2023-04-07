@@ -42,7 +42,7 @@ def keeper(line, count):
     if blankverse := waste_re.match(line):
         keep = False
     return keep
-    
+
 # Copies selected lines from input to output.
 # Renames the input file to a backup name.
 # Renames the output file to the original input file name.
@@ -73,10 +73,10 @@ def filterLines(path):
                 os.rename(path, bakpath)
         output = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
         output.writelines(outputlines)
-        output.close
+        output.close()
     return changed
 #    sys.stdout.write("Converted " + shortname(path) + "\n")
-    
+
 def shortname(longpath):
     shortname = longpath
     if source_dir in longpath:
@@ -105,7 +105,7 @@ def convertFolder(folder):
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         source_dir = sys.argv[1]
-    
+
     if os.path.isdir(source_dir):
         convertFolder(source_dir)
         sys.stdout.write("Done. Changed " + str(nChanged) + " files.\n")
