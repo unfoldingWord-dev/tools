@@ -3,10 +3,10 @@
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
-source_dir = r'C:\DCS\Assamese\as_ulb.RPP'
+source_dir = r"C:\DCS\Hausa\ha_ulb.work"
 
 issuesFile = None
-
+countsFile = None
 import sys
 import os
 import io
@@ -34,11 +34,25 @@ def openIssuesFile():
         issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
     return issuesFile
 
-def closeIssuesFiles():
-    global issuesFile
+def closeFiles():
+    global issuesFile, countsFile
     if issuesFile:
         issuesFile.close()
         issuesFile = None
+    if countsFile:
+        countsFile.close()
+        countsFile = None
+
+# If count_pp.txt file is not already open, opens it for writing.
+# Overwrites existing count_pp.txt file, if any.
+# Returns file pointer.
+def openCountsFile():
+    global countsFile
+    if not countsFile:
+        global source_dir
+        path = os.path.join(source_dir, "count_pp.txt")
+        countsFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
+    return countsFile
 
 # Writes the error messages to stderr and to issues.txt.
 def reportError(msg):
@@ -59,16 +73,24 @@ def countParagraphs(path):
     npoetry = str.count("\\q")
     return (nchapters, nparagraphs, npoetry)
 
+def reportCounts(fname, nParagraphs, nPoetry, nChapters):
+    countsFile = openCountsFile()
+    msg = f"{fname} has {nParagraphs} paragraphs and {nPoetry} poetry marks in {nChapters} chapters.\n"
+    sys.stdout.write(msg)
+    countsFile.write(msg)
+    if nParagraphs / nChapters > 2.5 or nPoetry / nChapters > 15:
+        msg = f"      this book already has paragraphs or poetry marked.\n"
+        sys.stdout.write(msg)
+        countsFile.write(msg)
+        # msg = f"      p/c = {nParagraphs / nChapters}"
+        # msg = f"      q/c = {nPoetry / nChapters}"
+
 # Reports number of chapters, paragraphs and poetry marks contained in the specified file.
 def processFile(path):
     global model_dir
     fname = os.path.basename(path)
     (nChapters, nParagraphs, nPoetry) = countParagraphs(path)
-    print(f"{fname} has {nParagraphs} paragraphs and {nPoetry} poetry marks in {nChapters} chapters.")
-    if nParagraphs / nChapters > 2.5 or nPoetry / nChapters > 15:
-        print(f"      this book already has paragraphs or poetry marked")
-        print(f"      p/c = {nParagraphs / nChapters}")
-        print(f"      q/c = {nPoetry / nChapters}")
+    reportCounts(fname, nParagraphs, nPoetry, nChapters)
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
@@ -83,4 +105,4 @@ if __name__ == "__main__":
     else:
         sys.stderr.write("Invalid folder or file: " + source_dir)
         exit(-1)
-    closeIssuesFiles()
+    closeFiles()
