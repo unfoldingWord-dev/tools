@@ -10,9 +10,9 @@ import os
 import sys
 
 # Globals
-source_dir = r'C:\DCS\Hindi\hi_iev'
+source_dir = r'C:\DCS\Oriya\GST.eph\50-EPH.usfm'
 nChanged = 0
-max_changes = 66
+max_changes = 1
 #filename_re = re.compile(r'intro\.md$')
 filename_re = re.compile(r'.+\.usfm$')
 yes_backup = True
@@ -86,10 +86,10 @@ def filterLines(path):
                 os.rename(path, bakpath)
         output = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
         output.writelines(outputlines)
-        output.close
+        output.close()
     return changed
 #    sys.stdout.write("Converted " + shortname(path) + "\n")
-    
+
 def shortname(longpath):
     shortname = longpath
     if source_dir in longpath:
