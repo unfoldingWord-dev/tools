@@ -82,8 +82,8 @@ def convertByLine(path):
         for i in range(len(v9string)):
             line = line.replace( v9string[i], v10string[i] )
         output.write(line)
-    output.close
-    
+    output.close()
+
 # Detects whether the specified file contains any of the strings we are looking for.
 # If there is a match, calls convertByLine() to do the conversion.
 def convertFileByLines(path):
@@ -98,7 +98,7 @@ def convertFileByLines(path):
             break
     if convertme:
         convertByLine(path)
-        nChanged += 1    
+        nChanged += 1
         sys.stdout.write("Converted " + shortname(path) + "\n")
 
 def shortname(longpath):
