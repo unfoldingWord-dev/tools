@@ -25,6 +25,7 @@
 #   Leading spaces before the asterisk are also removed.
 #   Assures newline at the end of the file.
 #   Removes gratutious formatting asterisks from header lines.
+#   Underlines last nonblank line in OBS files.
 #
 # Also expands incomplete references to tA articles.
 #   For example, expands Vidi: figs_metaphor to Vidi: [[rc://*/ta/man/translate/figs-metaphor]]
@@ -43,9 +44,9 @@ from filecmp import cmp
 import codecs
 
 # Globals
-source_dir = r'C:\DCS\Nepali\work\rut\04'
-language_code = 'ne'
-resource_type = 'tq'
+source_dir = r'C:\DCS\Kannada\work'
+language_code = 'kn'
+resource_type = 'ta'
 server = 'DCS'     # DCS or WACS
 
 nChanged = 0
@@ -549,18 +550,21 @@ tripleasterisk_re = re.compile(r'( *)\*\*\*([^\*]+\*\*.*)', re.UNICODE)     # li
 
 # Adds blank lines where needed before and after heading lines
 # Supply placeholder heading if needed.
+# Underlines last nonblank line in OBS files.
 # Always writes target file, even if no changes.
 def convertByLine(source, target):
     input = io.open(source, "tr", 1, encoding="utf-8-sig")
     lines = input.readlines()
     input.close()
 
+    lineno = 0
     BLANK = 0       # blank line or top of file
     HEADER = 1
     TEXT = 2
     linetype = BLANK
     output = io.open(target, "tw", buffering=1, encoding='utf-8', newline='\n')
     for line in lines:
+        lineno += 1
         line = cleanupLine(line)    # strips some whitespace, bad brackets, orphan **, and doubles right paren when needed
         prevlinetype = linetype
         if len(line) == 0:
@@ -575,11 +579,13 @@ def convertByLine(source, target):
                 line = found.group(1) + " " + found.group(2)
             if found := tripleasterisk_re.match(line):
                 line = found.group(1) + "* **" + found.group(2)
+            if resource_type == 'obs' and lineno + 1 >= len(lines):
+                line = underline(line)
         if (linetype == HEADER and prevlinetype != BLANK) or (linetype == TEXT and prevlinetype == HEADER):
             output.write('\n')
         if not (linetype == BLANK and prevlinetype == BLANK):
             output.write(line + '\n')
-    output.close
+    output.close()
 
 # Rewrites path without BOM if file has a UTF-8 Byte Order Mark.
 # Backs up path to path.orig if any change and if path.orig does not already exist.
@@ -599,6 +605,14 @@ def removeBOM(path):
             os.rename(path, bakpath)
         with open(path, 'wb') as f:
             f.write(raw)
+
+def underline(line):
+    line.strip()
+    if line[0] != '_':
+        line = '_' + line
+    if line[-1] != '_':
+        line += '_'
+    return line
 
 def convertFile(path):
     removeBOM(path)
