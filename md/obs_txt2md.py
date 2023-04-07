@@ -39,12 +39,12 @@ def merge(image_list, txtfile, mdfile):
             else:
                 mdfile.write("\n" + line + "\n")
                 chunksOut += 1  # necessary?
-                
+
     if not images_inline:
         mdfile.write("\n\n")
         for image in image_list:
             mdfile.write(image)
-                
+
 
 refstart_re = re.compile(r'\:\s*$')     # match colon at end of line
 
@@ -77,7 +77,7 @@ def listImages(mdpath):
 def detect_by_bom(path, default):
     with open(path, 'rb') as f:
         raw = f.read(4)
-        f.close
+        f.close()
     for enc,boms in \
             ('utf-8-sig',(codecs.BOM_UTF8)),\
             ('utf-16',(codecs.BOM_UTF16_LE,codecs.BOM_UTF16_BE)),\
