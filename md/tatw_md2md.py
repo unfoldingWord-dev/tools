@@ -5,9 +5,9 @@
 #    Uses convert2md.md2md() to convert links and things.
 
 # Global variables
-source_dir = r'C:\DCS\Assamese\TA\Stage 2'      # Source and target directories must be at the same level
-target_dir = r'C:\DCS\Assamese\as_ta'
-language_code = 'as'
+source_dir = r'C:\DCS\Kannada\TA'      # Source and target directories must be at the same level
+target_dir = r'C:\DCS\Kannada\work'
+language_code = 'kn'
 resource_type = 'ta'    # should be ta or tw
 
 import re
@@ -47,7 +47,7 @@ def makeTargetDir(fullpath):
     if not os.path.exists(targetDir):
         os.makedirs(targetDir)
     return targetDir
-    
+
 def copyFile(fname, fullpath):
     targetDir = makeTargetDir(fullpath)
     targetPath = os.path.join(targetDir, fname)
@@ -66,7 +66,7 @@ def stripcopy(fname, fullpath):
     mdPath = os.path.join(targetDir, fname)
     output = io.open(mdPath, "tw", encoding="utf-8")
     output.write(text)
-    output.close    
+    output.close()
 
 # Converts .md file in fullpath location to .md file in target dir.
 def convertFile(fname, fullpath):
