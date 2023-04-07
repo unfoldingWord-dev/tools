@@ -34,12 +34,14 @@ import re       # regular expression module
 import io
 import os
 import sys
+sys.path.append("../")
+from md import stars
 import tsv
 import substitutions    # this module specifies the string substitutions to apply
 
 # Globals
-source_dir = r'C:\DCS\Telugu\work'  # Where are the files located
-language_code = 'te'
+source_dir = r'C:\DCS\Kannada\TN'  # Where are the files located
+language_code = 'kn'
 english_dir = r'C:\DCS\English\en_tn.v66'    # latest English tN from https://git.door43.org/Door43-Catalog/en_tn
 max_files = 111     # How many files do you want to process
 nProcessed = 0
@@ -90,6 +92,7 @@ entalink_re = re.compile(entas, re.UNICODE)
 # Translators often mistakenly translate part of the tA (manual page) links at the end of notes.
 # This function matches the tA links with the corresponding links in the English notes.
 # Where there is a match, the link is replaced.
+# This does not fix other kinds of links, such as links to other notes (e.g. ../લેવીય/૦૮/૩૦.md is not fixed)
 def fixManLinks(note, english_note):
     link = talink_re.search(note)     # Finds last tA link in note
     if link and not link.group(1).isascii():
@@ -154,6 +157,33 @@ def uncloseHeadings(note):
         note = note[0:sub.start()] + "<br>" + note[sub.end():]
     return note
 
+def cleanAsterisks(note):
+    lines = note.split("<br>")
+    if len(lines) > 1:
+        newlines = []
+        for line in lines:
+            line = stars.fix_boldmarks(line)
+            newlines.append(line)
+        note = "<br>".join(newlines[::1])
+    else:       # should be a simple note
+        note = stars.fix_boldmarks(note)
+
+    # Old implementation
+    # if note.count("*") == 2 and note.count("**") == 1:   # Remove single, unmatched **
+    #     pos = note.find("**")
+    #     if note[pos-1] == " " or (len(note) > pos+2 and note[pos+2] == " ") or len(note) == pos+2:
+    #         note = note.replace("**", "", 1)
+    #     else:
+    #         note = note.replace("**", " ", 1)
+    # if note.count("*") % 2 == 0 and note.count("**") % 2 == 1:   # Try to identify and remove unpaired **
+    #     #-- rewrite this --
+    #     if note.count(" ** ") == 1:
+    #         pos = note.find(" ** ")
+    #         note = note[0:pos] + note[pos+4:]
+    # if note.find("** ") == note.find("**"):      # Remove space after the first **
+    #     note = note.replace("** ", "**", 1)
+    return note
+
 # Makes corrections on the vernacular note field.
 # Trailing spaces have already been removed.
 def cleanNote(note, english_note):
@@ -166,16 +196,10 @@ def cleanNote(note, english_note):
             note = note + ")"
     replacement = "rc://" + language_code + "/"
     note = note.replace("rc://*/", replacement)
+    note = note.replace("rc://* /", replacement)
     note = note.replace("rc://en/", replacement)
     note = note.replace("rc://en_ta/", "rc://" + language_code + "/ta/")
-    if note.find("** ") == note.find("**"):      # the first ** is followed by a space
-        note = note.replace("** ", "**", 1)
-    if note.count("**") == 1:
-        pos = note.find("**")
-        if note[pos-1] == " " or (len(note) > pos+2 and note[pos+2] == " ") or len(note) == pos+2:
-            note = note.replace("**", "", 1)
-        else:
-            note = note.replace("**", " ", 1)
+    note = cleanAsterisks(note)
     for pair in substitutions.subs:
         note = note.replace(pair[0], pair[1])
     note = uncloseHeadings(note)
@@ -215,18 +239,24 @@ def mergeRows(data):
         newdata.append(data[i])
     return newdata
 
-# Strips leading/trailing quotes and spaces from each column value in the row.
+# Strips leading and trailing spaces from each field in the data.
+# Strips paired quotes surrounding each field.
+def strip_quotes(data):
+    for row in data:
+        i = 0
+        while i < len(row):
+            str = row[i].strip(' ')     # remove leading and trailing spaces
+            if len(str) > 1 and str[0] == '"' and str[-1] == '"':
+                str = str[1:-1]
+            if len(str) > 1 and str[0] == '"' and str[-1] == '"':   # do it again to fix double double quotes
+                str = str[1:-1]
+            row[i] = str
+            i += 1
+
 # Detects and repairs a few common ways in which one column is missing from the row.
 # Makes a few fixes to the note column using cleanNote().
 # Supplies Occurrence value if missing.
 def cleanRow(row, english_row):
-    i = 0
-    while i < len(row):
-        str = row[i].strip(' ')     # remove leading and trailing spaces
-        if len(str) > 0 and str[0] == '"' and str[-1] == '"':
-            str = str[1:-1]
-        row[i] = str
-        i += 1
     if len(row) == 8:
         if len(row[3]) > 4: # A common problem, where the ID column is merged with the next column.
             row = fixID(row)
@@ -269,29 +299,32 @@ def cleanFile(folder, fname):
     path = os.path.join(folder, fname)
     sys.stdout.write(shortname(path) + '\n')
     sys.stdout.flush()
-    data = tsv.tsvRead(path)  # The entire file is returned as a list of lists of strings (rows); each row is a list of strings.
+    data = tsv.tsvRead(path)  # The entire file is returned as a list (rows) of lists of strings (columns)
+    strip_quotes(data)
     englishPath = os.path.join(english_dir, fname.replace(language_code, "en", 1))
     english_data = tsv.tsvRead(englishPath)
+    strip_quotes(english_data)
     english = tsv.list2Dict(english_data, [3,2,1])       # dictionary of rows in English
-    # key = 'm030.27.15'
 
     origdata = []
     if len(data) > 2 and data[0][0] == "Book" and len(data[1][0]) == 3:
         origdata = mergeRows(data)
-    data = []
-    for row in origdata:
-        if len(row) > 1:
-            key = tsv.make_key(row, [3,2,1])
-            row = cleanRow(row, english[key] if key in english else None)
-        data.append(row)
-    data.sort(key=rowValue)
+        data = []
+        for row in origdata:
+            if len(row) > 1:
+                key = tsv.make_key(row, [3,2,1])
+                row = cleanRow(row, english[key] if key in english else None)
+            data.append(row)
+        data.sort(key=rowValue)
 
-    bakpath = path.replace(".tsv", ".tsvorig")
-    if not os.path.isfile(bakpath):
-        os.rename(path, bakpath)
-    if fname.startswith("en_"):
-        path = os.path.join(folder, language_code + fname[2:])
-    tsv.tsvWrite(data, path)
+        bakpath = path.replace(".tsv", ".tsvorig")
+        if not os.path.isfile(bakpath):
+            os.rename(path, bakpath)
+        if fname.startswith("en_"):
+            path = os.path.join(folder, language_code + fname[2:])
+        tsv.tsvWrite(data, path)
+    else:
+        sys.stderr.write(f"Data in {fname} does not look right. Abort\n")
 
 # Recursive routine to convert all files under the specified folder
 def cleanFolder(folder):
