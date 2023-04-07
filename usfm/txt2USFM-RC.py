@@ -8,9 +8,9 @@
 #    Converts multiple books at once if there are multiple books.
 
 # Global variables
-source_dir = r'C:\DCS\Havu\REG'  # must be a folder
-target_dir = r'C:\DCS\Havu\work'
-language_code = "Havu"
+source_dir = r'C:\DCS\Shubi\REG'  # must be a folder
+target_dir = r'C:\DCS\Shubi\work'
+language_code = "suj"
 mark_chunks = False   # Should be true for GL source text
 
 import usfm_verses
@@ -469,13 +469,23 @@ def dumpProjects():
     manifest.write("projects:\n")
     for p in projects:
         manifest.write("  -\n")
-        manifest.write("    title: '" + p['title'] + "'\n")
+        if not "'" in p['title']:
+            manifest.write("    title: '" + p['title'] + "'\n")
+        else:
+            manifest.write('    title: "' + p['title'] + '"\n')
         manifest.write("    versification: ufw\n")
         manifest.write("    identifier: '" + p['id'] + "'\n")
         manifest.write("    sort: " + str(p['sort']) + "\n")
         manifest.write("    path: '" + p['path'] + "'\n")
         manifest.write("    categories: " + p['category'] + "\n")
     manifest.close()
+
+# Write the chapter titles to the specified file
+#def dumpChapterTitles(titles, path):
+    #with io.open(path, 'tw', encoding='utf-8', newline='\n') as f:
+        #for name in titles:
+            #if name:
+                #f.write(name + '\n')
 
 def shortname(longpath):
     shortname = longpath
@@ -605,11 +615,14 @@ def convertBook(folder, bookId, bookTitle):
     chapters = listChapters(folder)
     # Open output USFM file for writing.
     usfmPath = os.path.join(target_dir, makeUsfmFilename(bookId))
+    titlesPath = usfmPath.replace(".usfm", "-chapters.txt")
     usfmFile = io.open(usfmPath, "tw", buffering=1, encoding='utf-8', newline='\n')
     writeHeader(usfmFile, bookId, bookTitle)
+    #titles = []
 
     for chap in chapters:
         chapterTitle = getChapterTitle(folder, chap)
+        #titles.append(chapterTitle)
         chunks = listChunks(chap)
         i = 0
         while i < len(chunks):
@@ -619,12 +632,9 @@ def convertBook(folder, bookId, bookTitle):
             section = convertFile(txtPath, chapterTitle) + '\n'
             usfmFile.write(section)
             i += 1
-        # Process misnamed 00.txt file last, if it exists
-        # if os.access(chap + "/00.txt", os.F_OK):
-        #     section = convertFile(chap, "00.txt") + u'\n'
-        #     usfmFile.write(section)
     # Wrap up
     usfmFile.close()
+    # dumpChapterTitles(titles, titlesPath)
 
 # Converts the book or books contained in the specified folder
 def convert(dir):
