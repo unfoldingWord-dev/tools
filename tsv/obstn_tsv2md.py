@@ -21,8 +21,8 @@ import tsv
 from shutil import copy
 
 # Globals
-source_dir = r'C:\DCS\Spanish-es-419\OBSTN'  # Where are the TSV files located
-target_dir = r'C:\DCS\Spanish-es-419\work'
+source_dir = r'C:\DCS\Hindi\OBS-TN.Feb-23'  # Where are the TSV files located
+target_dir = r'C:\DCS\Hindi\work'
 
 def shortname(longpath):
     shortname = longpath
@@ -117,6 +117,8 @@ def convertFolder(folder):
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         source_dir = sys.argv[1]
+    if not os.path.isdir(target_dir):
+        os.mkdir(target_dir)
 
     if source_dir and os.path.isdir(source_dir):
         convertFolder(source_dir)
