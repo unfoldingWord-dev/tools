@@ -5,21 +5,20 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Hausa\ha_ulb.work"
-language_code = 'ha'
+source_dir = r"C:\DCS\Gcirku\work"
+language_code = 'diu'
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
 suppress3 = False     # Suppress bad punctuation warnings
 suppress4 = False     # Suppress warnings about useless markers before section/title markers
 suppress5 = False     # Suppress checks for verse counts
-#suppress6 = True     # Suppress warnings about uW/WA extensions to USFM, like \fqa*
 suppress7 = False     # Suppress warnings about square brackets indicating footnotes
 suppress9 = False     # Suppress warnings about ASCII content
 
 max_chunk_length = 400
 
-if language_code in {'en','es','es-419','gl','ha','hr','id','kpj','nag','pmy','pt-br','sw','tl','tpi'}:    # ASCII content
+if language_code in {'diu','en','es','es-419','gl','ha','hr','id','kpj','nag','pmy','pt-br','sw','tl','tpi'}:    # ASCII content
     suppress9 = True
 if language_code in {'as','bn','gu','hi','kn','ml','mr','nag','ne','or','pa','ru','ta','te','zh'}:    # ASCII content
     suppress9 = False
@@ -418,8 +417,6 @@ def takeFootnote(token):
     else:
         if state.footnote_starts <= state.footnote_ends and state.endnote_starts <= state.endnote_ends:
             reportError(f"Footnote marker ({token.type}) not between \\f ... \\f* pair at {state.reference}")
-    #if token.isFQA_E() and not suppress6:
-        #reportError(f"Non-standard footnote marker at {state.reference}. ({token.type} is an unfoldingWord/WA extension).")
     takeText(token.value, footnote=True)
 
 def takeID(id):
@@ -550,8 +547,9 @@ def reportFootnote(trigger):
 #    reportError("  preceding Token.type was " + lastToken.getType())   #
 
 punctuation_re = re.compile(r'([\.\?!;\:,][^\s\u200b\)\]\'"’”»›])', re.UNICODE)  # note: \u200b indicates word boundaries in scripts that do not use explicit spacing, but is used (seemingly incorrectly) like a space in Laotian
-spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’”»›])', re.UNICODE)
-spacey2_re = re.compile(r'[\s]([\(\'"])[\s]', re.UNICODE)
+spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’”»›])', re.UNICODE)    # space before phrase-ending mark
+spacey2_re = re.compile(r'[\s]([\(\'"«“‘’”»›])[\s]', re.UNICODE)    # free floating marks
+spacey3_re = re.compile(r'([\(\'"«“‘])[\s]', re.UNICODE)       # quote-space at beginning of verse
 wordmedial_punct_re = re.compile(r'[\w][\.\?!;\:,][\)\]\'"’”»›][\w]', re.UNICODE)
 
 def reportPunctuation(text):
@@ -569,6 +567,8 @@ def reportPunctuation(text):
     if bad := spacey_re.search(text):
         reportError("Space before phrase ending mark at " + state.reference + ": " + bad.group(1))
     if bad := spacey2_re.search(text):
+        reportError("Free floating mark at " + state.reference + ": " + bad.group(1))
+    if bad := spacey3_re.match(text):
         reportError("Free floating mark at " + state.reference + ": " + bad.group(1))
     if "''" in text:
         reportError("Repeated quotes at " + state.reference)
