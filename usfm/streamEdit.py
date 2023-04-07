@@ -54,7 +54,7 @@ def convertByLine(path):
                 #line = sub.group(1) + u"" + sub.group(2)
                 sub = inlinekey[i].search(line)
         output.write(line)
-    output.close
+    output.close()
 
 
 # keystring is used only in line-by-line. But it is searched against the entire file one time.
