@@ -5,7 +5,7 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Gcirku\work"
+source_dir = r"C:\DCS\Gcirku\diu_reg"
 language_code = 'diu'
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
@@ -546,7 +546,9 @@ def reportFootnote(trigger):
         reportError("Possible untagged footnote at square bracket at " + reference)
 #    reportError("  preceding Token.type was " + lastToken.getType())   #
 
-punctuation_re = re.compile(r'([\.\?!;\:,][^\s\u200b\)\]\'"’”»›])', re.UNICODE)  # note: \u200b indicates word boundaries in scripts that do not use explicit spacing, but is used (seemingly incorrectly) like a space in Laotian
+adjacent_re = re.compile(r'([\.\?!;\:,][\.\?!;\:,])', re.UNICODE)
+punctuation_re = re.compile(r'([\.\?!;\:,][^\s\u200b\)\]\'"’”»›])', re.UNICODE)
+# note: \u200b indicates word boundaries in scripts that do not use explicit spacing, but is used (seemingly incorrectly) like a space in Laotian
 spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’”»›])', re.UNICODE)    # space before phrase-ending mark
 spacey2_re = re.compile(r'[\s]([\(\'"«“‘’”»›])[\s]', re.UNICODE)    # free floating marks
 spacey3_re = re.compile(r'([\(\'"«“‘])[\s]', re.UNICODE)       # quote-space at beginning of verse
@@ -564,6 +566,8 @@ def reportPunctuation(text):
                 elif not (lastToken.getType().startswith('f') or lastToken.getType().startswith('io') \
                           or lastToken.getType().startswith('ip')):
                     reportError("Possible verse reference (" + chars + ") out of place: " + state.reference)
+    if bad := adjacent_re.search(text):
+        reportError("Check repeated punctuation at " + state.reference + ": " + bad.group(1))
     if bad := spacey_re.search(text):
         reportError("Space before phrase ending mark at " + state.reference + ": " + bad.group(1))
     if bad := spacey2_re.search(text):
@@ -606,7 +610,7 @@ def takeText(t, footnote=False):
         reportFootnotes(t)
     if period_re.match(t):
         reportError("Misplaced period in " + state.reference)
-    if t.startswith(str(state.verse) + " "):
+    if not footnote and t.startswith(str(state.verse) + " "):
         reportError("Verse number in text (probable): " + state.reference)
     if prefixed := numberprefix_re.search(t):
         if not footnote or prefixed.group(0)[0] != ':':
@@ -696,7 +700,7 @@ def take(token):
     elif token.isV():
         takeV(token.value)
     elif token.isTEXT():
-        takeText(token.value)
+        takeText(token.value, state.footnote_starts > state.footnote_ends)
     elif isFootnote(token):
         takeFootnote(token)
     elif token.isS5():
