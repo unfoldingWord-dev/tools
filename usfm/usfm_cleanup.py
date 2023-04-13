@@ -9,11 +9,12 @@
 import re       # regular expression module
 import io
 import os
+import shutil
 import substitutions
 import sys
 
 # Globals
-source_dir = r"C:\DCS\Gcirku\work"
+source_dir = r"C:\DCS\Sambiu\work2"
 
 nChanged = 0
 max_changes = 66
@@ -93,11 +94,11 @@ def usfm_remove_s5(str):
 #                 break
 #     return qualify
 
-spacey3_re = re.compile(r'\\v [0-9]+ ([\(\'"])[\s]', re.UNICODE)    # verse starts with free floating quote mark
+spacey3_re = re.compile(r'\\v [0-9]+ ([\(\'"«“‘])[\s]', re.UNICODE)    # verse starts with free floating quote mark
 
 # Replaces substrings from substitutions module
 # Reduces double periods to single periods
-# Removes space after initial quote.
+# Removes space after initial quote or left paren.
 def fix_punctuation(str):
     for pair in substitutions.subs:
         str = str.replace(pair[0], pair[1])
@@ -129,17 +130,16 @@ def add_spaces(str):
             found = sub_re.search(str)
     return str
 
-# Corrects issues treating the whole USFM file as a string.
-def convertFile(path):
+# Rewrites file and returns True if any changes are made.
+def convert_wholefile(path):
     global aligned_usfm
-    global nChanged
-    prev_nChanged = nChanged
 
     input = io.open(path, "tr", encoding="utf-8-sig")
     alltext = input.read()
     origtext = alltext
     input.close()
     aligned_usfm = ("lemma=" in alltext)
+    changed = False
 
     if remove_s5:
         alltext = usfm_remove_s5(alltext)
@@ -151,17 +151,117 @@ def convertFile(path):
     if enable_add_spaces and not aligned_usfm:
         alltext = add_spaces(alltext)
     if alltext != origtext:
-        bakpath = path + ".orig"
-        if not os.path.isfile(bakpath):
-            os.rename(path, bakpath)
         output = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
         output.write(alltext)
         output.close()
+        changed = True
+    return changed
+
+# Returns the complementary quote character
+def matechar(quote):
+    leftquote  = "\"'«“‘"
+    rightquote = "\"'»”’"
+    pos = leftquote.find(quote)
+    if pos >= 0:
+        mate = rightquote[pos]
+    else:
+        pos = rightquote.find(quote)
+        mate = leftquote[pos]   # works even if pos is -1
+    return mate
+
+# Returns position of the matching quote mark, or -1 if not found
+def find_mate(quote, pos, line):
+    mate = matechar(quote)
+    nFollowing = line[pos+1:].count(mate)
+    nPreceding = line[:pos-1].count(mate)
+    if nFollowing % 2 == 1 and nPreceding % 2 == 0:
+        matepos = line.find(mate, pos+1)
+    elif nFollowing % 2 == 0 and nPreceding % 2 == 1:
+        matepos = line.rfind(mate, 0, pos-1)
+    else:
+        matepos = -1
+    return matepos
+
+quotemedial_re = re.compile(r'[\w][\.\?!;\:,](["\'«“‘’”»])[\w]', re.UNICODE)    # adjacent punctuation where second char is a quote mark
+# -- to here -- r'[\.\?!;\:,\)\]"«“‘’”»›]'
+
+def change_quote_medial(line):
+    pos = 0
+    changed = False
+    while bad := quotemedial_re.search(line):
+        pos = bad.start() + 2
+        matepos = find_mate(bad.group(1), pos, line)
+        if matepos > pos:
+            line = line[:pos] + ' ' + line[pos:]
+            changed = True
+        elif 0 <= matepos < pos:
+            line = line[:pos+1] + ' ' + line[pos+1:]
+            changed = True
+        bad = quotemedial_re.search(line)
+        if bad and bad.start() <= pos:
+            break
+    return (changed, line)
+
+quotefloat_re = re.compile(r' (["\'«“‘’”»])[\s]', re.UNICODE)
+
+def change_floating_quotes(line):
+    pos = 0
+    changed = False
+    while bad := quotefloat_re.search(line):
+        pos = bad.start() + 1
+        matepos = find_mate(bad.group(1), pos, line)
+        if matepos > pos:
+            line = line[:pos+1] + line[pos+2:]
+            changed = True
+        elif 0 <= matepos < pos:
+            line = line[:pos-1] + line[pos:]
+            changed = True
+        bad = quotefloat_re.search(line)
+        if bad and bad.start() <= pos:
+            break
+    return (changed, line)
+
+# Rewrites the file, making changes to individual lines
+# Returns True if any changes are made
+def convert_by_line(path):
+    with io.open(path, "tr", encoding="utf-8-sig") as input:
+        lines = input.readlines()
+    output = io.open(path, "tw", encoding='utf-8', newline='\n')
+    changedfile = False
+
+    for line in lines:
+        (changed1, line) = change_quote_medial(line)
+        (changed2, line) = change_floating_quotes(line)
+        if changed1 or changed2:
+            changedfile = True
+        output.write(line)
+    output.close()
+    return changedfile
+
+# Corrects issues in the USFM file
+def convertFile(path):
+    global nChanged
+    prev_nChanged = nChanged
+    tmppath = path + ".tmp"
+    os.rename(path, tmppath)    # to preserve time stamp
+    shutil.copyfile(tmppath, path)
+
+    if convert_wholefile(path):
+        nChanged += 1
+    if convert_by_line(path):
         nChanged += 1
 
     if nChanged > prev_nChanged:
         nChanged = prev_nChanged + 1
         sys.stdout.write("Changed " + shortname(path) + "\n")
+        bakpath = path + ".orig"
+        if not os.path.isfile(bakpath):
+            os.rename(tmppath, bakpath)
+        else:
+            os.remove(tmppath)
+    else:       # no changes to file
+        os.remove(path)
+        os.rename(tmppath, path)
 
 # Recursive routine to convert all files under the specified folder
 def convertFolder(folder):
@@ -177,7 +277,6 @@ def convertFolder(folder):
                 convertFolder(path)
             elif entry.lower().endswith("sfm"):
                 convertFile(path)
-                #convertFileByToken(path)
             if nChanged >= max_changes:
                 break
 
@@ -196,7 +295,7 @@ if __name__ == "__main__":
         sys.stdout.write("Done. Changed " + str(nChanged) + " files.\n")
     else:
         sys.stderr.write("Source file(s) not found: " + source_dir)
-        sys.stderr.write("Usage: python usfm_cleanup.py <folder>\n  Use . for current folder.\n")
+        sys.stderr.write("\nUsage: python usfm_cleanup.py <folder>\n  Use . for current folder.\n")
 
     if aligned_usfm:
         sys.stderr.write("Cannot cleanup aligned USFM.\n")
