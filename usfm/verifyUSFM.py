@@ -5,22 +5,22 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Sambiu\work2"
-language_code = 'diu-x-rusambiu'
-#language_code = 'diu'
-std_clabel = "Ligaununo"    # leave blank if you don't have a standard chapter label
+language_code = 'plt'
+std_clabel = ""    # leave blank if you don't have a standard chapter label
+source_dir = r"C:\DCS\Malagasy\plt_ulb.lv"
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
-suppress3 = False     # Suppress bad punctuation warnings
+suppress3 = False    # Suppress bad punctuation warnings
 suppress4 = False     # Suppress warnings about useless markers before section/title markers
 suppress5 = False     # Suppress checks for verse counts
+suppress6 = False    # Suppress warnings about straight quotes
 suppress7 = False     # Suppress warnings about square brackets indicating footnotes
 suppress9 = True     # Suppress warnings about ASCII content
 
 max_chunk_length = 400
 
-if language_code in {'diu','en','es','es-419','gl','ha','hr','id','kpj','nag','pmy','pt-br','sw','tl','tpi'}:    # ASCII content
+if language_code in {'diu','en','es','es-419','gl','ha','hr','id','kpj','nag','plt','pmy','pt-br','sw','tl','tpi'}:    # ASCII content
     suppress9 = True
 if language_code in {'as','bn','gu','hi','kn','ml','mr','nag','ne','or','pa','ru','ta','te','zh'}:    # ASCII content
     suppress9 = False
@@ -586,21 +586,23 @@ def context(text, start, end):
     end = text.find(' ', end, -1)
     return text[start:end] if end > start else text[start:]
 
-adjacent_re = re.compile(r'([\.\?!;\:,][\.\?!;\:,])', re.UNICODE)
-punctuation_re = re.compile(r'([\.\?!;\:,][^\s\u200b\)\]\'"’”»›])', re.UNICODE)
+#adjacent_re = re.compile(r'([\.\?!;\:,][\.\?!;\:,])', re.UNICODE)
+punctuation_re = re.compile(r'([\.\?!;\:,][^\s\u200b\)\]\'"’”»›])', re.UNICODE)     # phrase ending punctuation that doesn't actually end
 # note: \u200b indicates word boundaries in scripts that do not use explicit spacing, but is used (seemingly incorrectly) like a space in Laotian
 spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’”»›])', re.UNICODE)    # space before phrase-ending mark
 spacey2_re = re.compile(r'[\s][\(\'"«“‘’”»›][\s]', re.UNICODE)    # free floating marks
 spacey3_re = re.compile(r'[\(\'"«“‘’”»›][\s]', re.UNICODE)       # quote-space at beginning of verse
 spacey4_re = re.compile(r'[\s][\(\'"«“‘’”»›]$', re.UNICODE)       # quote-space at end of verse
-wordmedial_punct_re = re.compile(r'[\w][\.\?!;\:,\(\)\[\]"«“‘’”»›][\.\?!;\:,\(\)\[\]\'"«“‘’”»›]*[\w]', re.UNICODE)
-outsidequote_re = re.compile(r'([\'"’”»›][\.\?!])', re.UNICODE)   # Period or other sentence ending punctuation outside closing quote.
+#wordmedial_punct_re = re.compile(r'[\w][\.\?!;\:,\(\)\[\]"«“‘’”»›][\.\?!;\:,\(\)\[\]\'"«“‘’”»›]*[\w]', re.UNICODE)
+wordmedial_punct_re = re.compile(r'[\w][\.\?!;\:,\(\)\[\]"«“‘”»›][\.\?!;\:,\(\)\[\]\'"«“‘’”»›]*[\w]', re.UNICODE)
+outsidequote_re = re.compile(r'([\'"’”»›][\.!])', re.UNICODE)   # Period or exclamation outside closing quote.
 
 def reportPunctuation(text):
     global lastToken
     state = State()
     if bad := punctuation_re.search(text):
-        if text[bad.start():bad.end()+1] != '...':
+        i = bad.start()
+        if text[i:i+3] != '...' or text[i:i+4] == "....":
             chars = bad.group(1)
             if not (chars[0] in ',.' and chars[1] in "0123456789"):   # it's a number
                 if not (chars[0] == ":" and chars[1] in "0123456789"):
@@ -609,12 +611,16 @@ def reportPunctuation(text):
                           or lastToken.getType().startswith('ip')):
                     str = context(text, bad.start()-2, bad.end()+1)
                     reportError(f"Untagged footnote (probable) at {state.reference}: {str}", 43)
-    if bad := adjacent_re.search(text):
-        reportError("Check repeated punctuation at " + state.reference + ": " + bad.group(1), 47)
+    #if bad := adjacent_re.search(text):
+        #i = bad.start()
+        #if text[i:i+3] != "..." or text[i:i+4] == "....":   # Don't report proper ellipses ...
+            #reportError("Check repeated punctuation at " + state.reference + ": " + bad.group(1), 47)
     if bad := spacey_re.search(text):
         reportError("Space before phrase ending mark at " + state.reference + ": " + bad.group(1), 48)
     if bad := outsidequote_re.search(text):
-        reportError(f"Punctuation after quote mark at {state.reference}: {bad.group(1)}", 50)
+        i = bad.start()
+        if text[i+1:i+4] != "...":
+            reportError(f"Punctuation after quote mark at {state.reference}: {bad.group(1)}", 50)
 
     if bad := spacey2_re.search(text):
         str = context(text, bad.start()-2, bad.end()+2)
@@ -628,12 +634,14 @@ def reportPunctuation(text):
     if "''" in text or '""' in text:
         reportError("Repeated quotes at " + state.reference, 51)
     bad = wordmedial_punct_re.search(text)
-    if bad and text[bad.end()] not in "0123456789":
+    if bad and text[bad.end()-1] not in "0123456789":
         str = context(text, bad.start(), bad.end())
         reportError(f"Word medial punctuation in {state.reference}: {str}", 52)
 
 period_re = re.compile(r' *\.', re.UNICODE)    # detects period starting a phrase
-numberprefix_re = re.compile(r'[^\s,0-9\(][0-9]+', re.UNICODE)
+numberprefix_re = re.compile(r'[^\s,.0-9\(][0-9]+', re.UNICODE)
+unsegmented_re = re.compile(r'[0-9][0-9][0-9][0-9]+')
+numberformat_re = re.compile(r'[0-9]+[\.,]?\s[\.,]?[0-9]+')
 leadingzero_re = re.compile(r'[\s]0[0-9,]*', re.UNICODE)
 
 def takeText(t, footnote=False):
@@ -666,9 +674,13 @@ def takeText(t, footnote=False):
     if not footnote and t.startswith(str(state.verse) + " "):
         reportError("Verse number in text (probable): " + state.reference, 59)
     if prefixed := numberprefix_re.search(t):
-        if not footnote or prefixed.group(0)[0] != ':':
+        if not footnote or (prefixed.group(0)[0] not in {':','-'}):
             reportError(f"Invalid number prefix: {prefixed.group(0)} at {state.reference}", 60)
-    if leadzero := leadingzero_re.search(t):
+    if unsegmented := unsegmented_re.search(t):
+        reportError(f"Unsegmented number: {unsegmented.group(0)} at {state.reference}", 61.5)
+    if fmt := numberformat_re.search(t):
+        reportError(f"Space in number {fmt.group(0)} at {state.reference}", 61.6)
+    elif leadzero := leadingzero_re.search(t):
         reportError(f"Invalid leading zero: {leadzero.group(0)} at {state.reference}", 61)
     state.addText(t)
 
@@ -758,7 +770,7 @@ def take(token):
         takeFootnote(token)
     elif token.isS5():
         takeS5()
-    elif token.isS() or token.isMR() or token.isMT() or token.isMS() or token.isD() or token.isSP():
+    elif token.isS() or token.isMR() or token.isMS() or token.isD() or token.isSP():
         takeSection(token.type)
     elif token.isQA():
         state.addAcrosticHeading()
@@ -772,6 +784,8 @@ def take(token):
         state.addToc3(token.value)
         if (len(token.value) != 3 or not token.value.isascii()):
             reportError("Invalid toc3 value in " + state.reference, 64)
+        elif token.value.upper() != state.ID:
+            reportError(f"toc3 value ({token.value}) not the same as book ID in {state.reference}", 64.5)
     elif token.isUnknown():
         if token.value == "p":
             reportError("Orphaned paragraph marker after " + state.reference, 65)
@@ -816,21 +830,26 @@ def verifyChapterAndVerseMarkers(text, path):
         reportError("Missing space after verse number: " + str + " in " + path, 74)
 
 orphantext_re = re.compile(r'\n\n[^\\]', re.UNICODE)
+embeddedquotes_re = re.compile(r"\w'\w")
 
 # Receives the text of an entire book as input.
 # Verifies things that are better done as a whole file.
 # Can't report verse references because we haven't started to parse the book yet.
 # Returns False if the file is hopelessly invalid.
 def verifyWholeFile(str, path):
-    if len(str) < 100:
-        reportError("Incomplete usfm file: " + path, 75)
-    else:
-        verifyChapterAndVerseMarkers(str, path)
+    verifyChapterAndVerseMarkers(str, path)
 
-        lines = str.split('\n')
-        orphans = orphantext_re.search(str)
-        if orphans:
-            reportOrphans(lines, path)
+    lines = str.split('\n')
+    orphans = orphantext_re.search(str)
+    if orphans:
+        reportOrphans(lines, path)
+
+    if not suppress6:
+        nsingle = str.count("'") - len(embeddedquotes_re.findall(str))
+        ndouble = str.count('"')
+        if nsingle > 0 or ndouble > 0:
+            reportError(f"Straight quotes found in {shortname(path)}: {ndouble} doubles, {nsingle} singles not counting word-medial, ", 75)
+
 
 conflict_re = re.compile(r'<+ HEAD', re.UNICODE)   # conflict resolution tag
 
