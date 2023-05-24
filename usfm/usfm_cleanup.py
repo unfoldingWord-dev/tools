@@ -9,26 +9,24 @@
 import re       # regular expression module
 import io
 import os
+import quotes
 import shutil
 import substitutions
 import sys
 
 # Globals
-source_dir = r"C:\DCS\Sambiu\work2"
+source_dir = r"C:\DCS\Malagasy\plt_ulb.lv"
 
 nChanged = 0
 max_changes = 66
 # Customize the behavior of this program by setting these globals:
 enable_move_pq = True
-enable_fix_punctuation = True
-enable_add_spaces = True    # Add spaces between commo/period and a letter
+enable_fix_punctuation = True   # substitutions.py, double periodd, and spacing at beginning of verse
+enable_add_spaces = True    # Add spaces between commo/period/colon and a letter
+promote_quotes = False       # Promote straight quote to curly quotes. Not recommended until confident of quote placements.
 aligned_usfm = False
 remove_s5 = True
 
-# Some UTF-8 special characters
-# E2 80 8B = \u200b - zero width space. See https://en.wikipedia.org/wiki/Zero-width_space
-# E2 80 8C = \u200c - zero width non-joiner. See https://en.wikipedia.org/wiki/Zero-width_non-joiner
-# E2 80 8D = \u200d - zero width joiner
 
 def shortname(longpath):
     shortname = longpath
@@ -79,26 +77,11 @@ def usfm_remove_s5(str):
     return newstr
 
 
-# Returns True if the specified file contains any of the strings to be translated.
-# def fileQualifies(path):
-#     qualify = False
-#     input = io.open(path, "tr", 1, encoding="utf-8-sig")
-#     alltext = input.read()
-#     input.close()
-#     if ".." in alltext:     # or (remove_E2808C and "‌" in alltext):  # E2 80 8C character, or \u200c
-#         qualify = True
-#     else:
-#         for pair in substitutions.subs:
-#             if pair[0] in alltext:
-#                 qualify = True
-#                 break
-#     return qualify
-
 spacey3_re = re.compile(r'\\v [0-9]+ ([\(\'"«“‘])[\s]', re.UNICODE)    # verse starts with free floating quote mark
 
 # Replaces substrings from substitutions module
 # Reduces double periods to single periods
-# Removes space after initial quote or left paren.
+# Removes space after quote or left paren at beginning of verse.
 def fix_punctuation(str):
     for pair in substitutions.subs:
         str = str.replace(pair[0], pair[1])
@@ -116,8 +99,7 @@ def fix_punctuation(str):
     return str
 
 # spacing_list is a list of compiled expressions where a space needs to be inserted
-#spacing_list = [ re.compile(r'[\.,;][A-Za-z]', re.UNICODE), re.compile(r'\*[^ \n]', re.UNICODE)]
-spacing_list = [ re.compile(r'[\.,;][A-Za-z]', re.UNICODE) ]
+spacing_list = [ re.compile(r'[\.,;:][A-Za-z]') ]
 
 # Adds spaces where needed. spacing_list contrals what happens.
 # spacing_list may need to be customized for every language.
@@ -128,6 +110,61 @@ def add_spaces(str):
             pos = found.start() + 1
             str = str[:pos] + ' ' + str[pos:]
             found = sub_re.search(str)
+    return str
+
+quote0_re = re.compile(r'\s([\'"]+)[\w]+([\'"]+)\s')     # a single word in quotes
+quote1_re = re.compile(r' ([\'"]+)\w')     # SPACE quotes word => open quotes
+quote2_re = re.compile(r': ([\'"])+')     # colon SPACE quotes => open quotes
+quote3_re = re.compile(r'[,;]([\'"]+) ')     # comma/semicolon quotes SPACE => close quotes
+quote4_re = re.compile(r'[\.!\?]([\'"]+)')     # period/bang/question quotes => close quotes
+quote5_re = re.compile(r'\w([\'"]+) *\n')        # word quotes EOL
+opentrans = str.maketrans('\'"', "‘“")
+closetrans = str.maketrans('\'"', '’”')
+
+# Changes straight quotes to curly quotes where context suggests with very high confidence.
+def promoteQuotes(str):
+    pos = 0
+    snippet = quote0_re.search(str, pos)
+    while snippet:
+        # if len(snippet.group(1)) == 1 and len(snippet.group(1)) == 1:       # TEMPORARY!!!!!!
+        if snippet.group(1) == snippet.group(2) and len(snippet.group(1)) == 1:
+            (i,j) = (snippet.start()+1, snippet.end()-1)
+            str = str[0:i] + snippet.group(1).translate(opentrans) + str[i+1:j-1] + snippet.group(2).translate(closetrans) + str[j:]
+        pos = snippet.end()
+        snippet = quote0_re.search(str, pos)
+
+    snippet = quote1_re.search(str)
+    while snippet:
+        (i,j) = (snippet.start()+1, snippet.end()-1)
+        str = str[0:i] + snippet.group(1).translate(opentrans) + str[j:]
+        snippet = quote1_re.search(str)
+
+    snippet = quote2_re.search(str)
+    while snippet:
+        (i,j) = (snippet.start()+2, snippet.end())
+        str = str[0:i] + snippet.group(1).translate(opentrans) + str[j:]
+        snippet = quote2_re.search(str)
+
+    snippet = quote3_re.search(str)
+    while snippet:
+        (i,j) = (snippet.start()+1, snippet.end()-1)
+        str = str[0:i] + snippet.group(1).translate(closetrans) + str[j:]
+        snippet = quote3_re.search(str)
+
+    snippet = quote4_re.search(str)
+    while snippet:
+        (i,j) = (snippet.start()+1, snippet.end())
+        str = str[0:i] + snippet.group(1).translate(closetrans) + str[j:]
+        snippet = quote4_re.search(str)
+
+    snippet = quote5_re.search(str)
+    while snippet:
+        (i,j) = (snippet.start()+1, snippet.start() + 1 + len(snippet.group(1)))
+        str = str[0:i] + snippet.group(1).translate(closetrans) + str[j:]
+        snippet = quote5_re.search(str)
+
+    for pair in quotes.subs:
+        str = str.replace(pair[0], pair[1])
     return str
 
 # Rewrites file and returns True if any changes are made.
@@ -150,6 +187,8 @@ def convert_wholefile(path):
         alltext = fix_punctuation(alltext)
     if enable_add_spaces and not aligned_usfm:
         alltext = add_spaces(alltext)
+    if promote_quotes and not aligned_usfm:
+        alltext = promoteQuotes(alltext)
     if alltext != origtext:
         output = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
         output.write(alltext)
@@ -183,7 +222,6 @@ def find_mate(quote, pos, line):
     return matepos
 
 quotemedial_re = re.compile(r'[\w][\.\?!;\:,](["\'«“‘’”»])[\w]', re.UNICODE)    # adjacent punctuation where second char is a quote mark
-# -- to here -- r'[\.\?!;\:,\)\]"«“‘’”»›]'
 
 def change_quote_medial(line):
     pos = 0
