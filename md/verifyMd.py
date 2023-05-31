@@ -18,20 +18,20 @@
 # Reports files that have a UTF-8 Byye Order Mark (BOM)
 # Reports missing title.md and sub-title.md files in tA.
 
-
 # To-do -- check for other kinds of links in headings, not just TA links.
-#          Check that tW files begin with H1 heading immediately followed by H2 heading.
 
 # Globals
-source_dir = r'C:\DCS\Kannada\kn_ta.STR\translate\translate-transliterate'
-language_code = 'kn'
-resource_type = 'ta'
-ta_dir = r'C:\DCS\Kannada\kn_ta.STR'    # Target language tA, or English tM for WA
+source_dir = r'C:\DCS\Farsi\fa_tw.RPP\bible\names'
+language_code = 'fa'
+resource_type = 'tw'
+ta_dir = r'C:\DCS\Oriya\or_ta.STR'    # Target language tA, or English tM for WA
 obstn_dir = r'C:\DCS\Hindi\hi_obs-tn.STR'
+en_ta_dir = r'C:\DCS\English\en_ta.v29'
 en_tn_dir = r'C:\DCS\English\en_tn.md-orig'
 en_tq_dir = r'C:\DCS\English\en_tq.v38'
-tn_dir = r'C:\DCS\Marathi\mr_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
-tw_dir = r'C:\DCS\Gujarati\gu_tw.STR\bible'
+tn_dir = r'C:\DCS\Farsi\fa_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
+tw_dir = r'C:\DCS\Farsi\fa_tw.RPP\bible'
+en_tw_dir = r'C:\DCS\English-WACS\en_tw.RPP\bible'
 
 nChecked = 0
 nChanged = 0
@@ -227,15 +227,24 @@ def checkForBOM(path):
 # Called only for tA articles.
 # Verifies whether the file has any line endings (it should not).
 # Verifies whether the file has non-ASCII content.
-def verifyTitleFile(path):
-    input = io.open(path, "rb")
-    content = input.read()
-    input.close()
+def verifyTitleFile(dirpath, fname):
+    path = os.path.join(dirpath, fname)
+    with io.open(path, "rb") as input:
+        content = input.read()
     if not suppress18:
         if b'\n' in content:
             reportError("TA title and subtitle files should not have any line endings", False)
-    if not suppress9:
-        if content.isascii():
+    if content.isascii():
+        if suppress9:   # must check for untranslated titles by comparing to English
+            (category_path, article) = os.path.split(dirpath)
+            (enta, category) = os.path.split(category_path)
+            en_path = os.path.join(os.path.join(os.path.join(en_ta_dir, category), article), fname)
+            if os.path.isfile(en_path):
+                with io.open(en_path, "rb") as input:
+                    en_content = input.read()
+                if content == en_content:
+                    reportError("File is not translated", False)
+        else:           # ASCII content is untranslated
             reportError("No non-ASCII content", False)
 
 # Reports empty file and returns True if file is empty.
@@ -366,7 +375,7 @@ def checkLineContents(line):
         if not suppress13 and line.count("**") % 2 == 1:
             reportError("Line seems to have mismatched '**'")
         if line.find("** ") == line.find("**"):      # the first ** is followed by a space
-            reportError("Incorrect markdown syntax, space after double asterisk '**'")
+            reportError("Incorrect markdown syntax, space after first double asterisk '**'")
         if '****' in line:
             reportError("Line contains quadruple asterisks, ****")
         #elif '***' in line:
@@ -640,6 +649,14 @@ def reportPunctuation(text):
 
 storyfile_re = re.compile(r'[0-9][0-9]\.md$')
 
+# Verifies that the file name and directory exist in en_tw_dir.
+def verifyTWfname(path):
+    (dir, fname) = os.path.split(path)
+    endir = os.path.join(en_tw_dir, os.path.basename(dir))
+    enpath = os.path.join(endir, fname)
+    if not os.path.isfile(enpath):
+        reportError(f"File does not exist in English tW: {shortname(path)}")
+
 # Markdown file verification
 def verifyFile(path):
     global current_file
@@ -654,6 +671,8 @@ def verifyFile(path):
     state = State()
     state.setPath(path)
     checkForBOM(path)
+    if resource_type == 'tw':
+        verifyTWfname(path)
     empty = verifyNotEmpty(path)
     if not empty:
         for line in lines:
@@ -826,14 +845,15 @@ def verify_ta_article(dirpath):
     else:
         reportError("Missing 01.md file in: " + shortname(dirpath), False)
 
-    for path in [os.path.join(dirpath, "title.md"), os.path.join(dirpath, "sub-title.md")]:
+    for fname in ["title.md", "sub-title.md"]:
+        path = os.path.join(dirpath, fname)
         state.setPath(path)
         if not os.path.isfile(path):
             if not suppress21:
                 reportError("Missing file", False)
         else:
             checkForBOM(path)
-            verifyTitleFile(path)
+            verifyTitleFile(dirpath, fname)
     if len(os.listdir(dirpath)) > 3:
         reportError("has extraneous file(s)", False, shortname(dirpath))
 
@@ -864,6 +884,8 @@ if __name__ == "__main__":
 
     if not tw_dir.endswith("bible"):
         tw_dir = os.path.join(tw_dir, "bible")
+    if not en_tw_dir.endswith("bible"):
+        en_tw_dir = os.path.join(en_tw_dir, "bible")
     if not obstn_dir.endswith("content"):
         obstn_dir = os.path.join(obstn_dir, "content")
 
