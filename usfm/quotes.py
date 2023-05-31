@@ -18,6 +18,7 @@ subs = [
 	('"’', '”’')
 ]
 
+import re
 quote0_re = re.compile(r'\s([\'"]+)[\w]+([\'"]+)\s')     # a single word in quotes
 quote1_re = re.compile(r' ([\'"]+)\w')     # SPACE quotes word => open quotes
 quote2_re = re.compile(r': ([\'"])+')     # colon SPACE quotes => open quotes
