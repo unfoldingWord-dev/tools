@@ -8,8 +8,8 @@
 
 # Set these globals
 source_dir = r"C:\DCS\Kubu\work\41-MAT.usfm"
-promote_all_quotes = True
-promote_double_quotes = True
+promote_all_quotes = False      # promote single and double straight quotes to curly quotes, except word-medial
+promote_double_quotes = False   # promote only double quotes
 
 nChanged = 0
 max_changes = 66
