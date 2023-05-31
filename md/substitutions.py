@@ -53,3 +53,8 @@ subs = [
 	("..md", ".md"),
 	(".jpg?direct&", ".jpg")    # OBS image links
 ]
+
+ascii_digits = "0123456789"
+nepali_digits = "०१२३४५६७८९"
+farsi_digits = "۰۱۲۳۴۵۶۷۸۹"
+fa2ascii = str.maketrans(farsi_digits, ascii_digits)
