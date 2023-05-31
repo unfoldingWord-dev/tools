@@ -11,21 +11,21 @@ current_str = ""
 current_stars = []
 
 class Cluster:
-    def __init__(self, c, pos):
+    def __init__(self, c, pos, spaceleft, leading):
         self.c = c
         self.nstars = c.count('*')
-        self.leading = (pos == 0)
-        self.lefty = ((c[0] == ' ' or pos == 0) and c[-1] == '*')
+        self.leading = (pos == 0 or leading)
+        self.lefty = ((c[0] == ' ' or pos == 0 or spaceleft) and c[-1] == '*')
         self.righty = (c[0] == '*' and c[-1] == ' ') and pos > 0
         self.floating = (c[0] == ' ' and c[-1] == ' ') and pos > 0
         self.tight = (c[0] == '*' and c[-1] == '*') and pos > 0
         self.length = len(c)
         self.startpos = pos
         self.endpos = pos + len(c)
-        self.ldist = 0      # ldist and rdist are not used except for debugging
+        self.ldist = 0
         self.rdist = 0
         self.if_removed = 9999
-    
+
     def write(self, file):
         file.write(f"{self.c}: nstars={self.nstars}, ")
         if self.leading:
@@ -41,17 +41,26 @@ class Cluster:
         file.write(f"pos {self.startpos}:{self.endpos}, ")
         file.write(f"ldist={self.ldist}, rdist={self.rdist}\n")
 
-cluster_re = re.compile(r' *\*{1,2} ?', re.UNICODE)
+cluster_re = re.compile(r' *\*{1,2} ?', re.UNICODE) # one or two stars possibly surrounded by space
+rclinl_re = re.compile(r'rc://*/', re.UNICODE)
+blockquote_re = re.compile(r'[> ]*\*', re.UNICODE)
 
 # Parses the string and returns corresponding list of star clusters
 def analyze(str):
     starlist = []
     pos = 0
+    preceding = ''
+    if blockquote_re.match(str):
+        preceding = '>'
+    rcpos = str.find("rc://*/")
     c = cluster_re.search(str)
     while c:
-        cluster = Cluster(c.group(0), pos + c.start())
-        starlist.append(cluster)
+        if rcpos < 0 or c.start() != rcpos + 5:
+            cluster = Cluster(c.group(0), pos + c.start(), (c.start() == 0 and preceding == ' '), (preceding == '>'))
+            starlist.append(cluster)
+        preceding = str[c.end()-1]    # equals a space when we have two clusters separated by a space
         str = str[c.end():]
+        rcpos = str.find("rc://*")
         pos += c.end()
         c = cluster_re.search(str)
     starlist = set_distances(starlist)
@@ -108,7 +117,7 @@ def reinterpret(str, starlist):
             if length == 3:
                 replacement = "** "
             else:
-                replacement = " **" + ' ' * length-3    # Don't change the length of the string
+                replacement = " **" + ' ' * (length-3)    # Don't change the length of the string
             newstr = newstr[:starlist[i].startpos] + replacement + newstr[starlist[i+1].endpos:]
             i += 1
         i += 1
@@ -116,43 +125,88 @@ def reinterpret(str, starlist):
         str = newstr
         starlist = analyze(str)
 
-    # Promote 1-star nodes to 2-star nodes
-    pos = 0
-    newstr = ""
-    for cluster in starlist:
-        newc = cluster.c
-        if cluster.nstars == 1 and not cluster.leading:
-            cpos = newc.find('*')
-            newc = newc[:cpos] + '*' + newc[cpos:]
-        newstr += str[pos:cluster.startpos] + newc
-        pos = cluster.endpos
-    newstr += str[pos:]
-    newlist = analyze(newstr)
+    # Resolve leading, lefty 1-star nodes if possible
+    if starlist[0].leading and starlist[0].nstars == 1 and starlist[0].lefty:
+        insertc = None
+        if len(starlist) == 1:
+            insertc =  ' '
+        elif starlist[1].nstars >= 2 and starlist[1].startpos - starlist[0].endpos < 35:
+            insertc = '*'
+        if insertc:
+            pos = str.find('*')
+            newstr = str[:pos+1] + insertc + str[pos+1:]
+            str = newstr
+            starlist = analyze(str)
 
-    # Remove stranded clusters
-    nClusters = len(newlist)
+    # Promote unpaired 1-star nodes to 2-star nodes
+    pos = 0
+    nsingles = nclustersOfSize(1, starlist)
+    # if starlist[0].nstars == 1 and starlist[0].leading:
+    #     nsingles -= 1
+    if nsingles > 0 and nsingles % 2 != 0 and nclustersOfSize(2, starlist) > 0:
+        newstr = ""
+        for cluster in starlist:
+            newc = cluster.c
+            if cluster.nstars == 1 and not cluster.leading:
+                cpos = newc.find('*')
+                newc = newc[:cpos] + '*' + newc[cpos:]
+            newstr += str[pos:cluster.startpos] + newc
+            pos = cluster.endpos
+        newstr += str[pos:]
+        if newstr != str:
+            starlist = analyze(newstr)
+
+    # Remove stranded cluster
+    nClusters = len(starlist)
     if nClusters > 0:
-        cluster1 = newlist[0]
-        if cluster1.nstars == 1 and cluster1.leading:
+        cluster1 = starlist[0]
+        if cluster1.nstars == 1 and cluster1.leading and nsingles % 2 != 0:
             startbold = 1
         else:
             startbold = 0
         if (nClusters-startbold) % 2 != 0:
-            (first,last) = find_stranded_by_spacing(newlist[startbold:])
+            (first,last) = find_stranded_by_spacing(starlist[startbold:])
             if first == last:
                 stranded = first + startbold
             else:
-                stranded = find_stranded_by_length(newlist[first+startbold:]) + first+startbold
-            pos1 = newlist[stranded].startpos + (1 if newlist[stranded].lefty else 0)
-            pos2 = newlist[stranded].endpos - (1 if (newlist[stranded].righty or newlist[stranded].floating) else 0)
+                stranded = find_stranded_by_length(starlist[first+startbold:]) + first+startbold
+            pos1 = starlist[stranded].startpos + (1 if starlist[stranded].lefty and not starlist[stranded].leading else 0)
+            pos2 = starlist[stranded].endpos - (1 if (starlist[stranded].righty or starlist[stranded].floating) else 0)
             addspace = ""
-            if newlist[stranded].tight and newstr[pos2] not in ".,;?!\"" and newstr[pos1-1] not in "\"'":
+            if pos2 < len(newstr) and starlist[stranded].tight and newstr[pos2] not in ".,;?!\"" and newstr[pos1-1] not in "\"'":
                 addspace = " "
             newstr = newstr[:pos1] + addspace + newstr[pos2:]  # eliminates stranded cluster
     return newstr
 
+# Determines which cluster is most likely stranded, based on adjacency of asterisks to text
+# and to other clusters.
+# Returns the indexes of the first and last likely stranded clusters.
+def find_stranded_by_spacing(starlist):
+    if starlist[0].rdist == 0:
+        i = j = 0
+    elif starlist[-1].ldist == 0:
+        i = j = len(starlist) - 1
+    else:
+        nclusters = len(starlist)
+        # find first suspect cluster
+        i = 0
+        while i+1 < nclusters:
+            if starlist[i].lefty and starlist[i+1].righty and starlist[i].rdist > 0:
+                i += 2
+            else:
+                break
+        # Find last suspect cluster
+        j = nclusters - 1
+        while j-1 >= 0:         # find last suspect cluster
+            if starlist[j-1].lefty and starlist[j].righty and starlist[j].ldist > 0:
+                j -= 2
+            else:
+                break
+    return (i, j)
+
 # Determines which cluster is most likely stranded, based on distances between clusters.
 # Returns the index of the stranded cluster.
+# This algorithm should be improved to give some weight to lefty righty properties.
 def find_stranded_by_length(starlist):
     i = 0
     stranded = i
@@ -166,29 +220,6 @@ def find_stranded_by_length(starlist):
             stranded = i
         i += 2
     return stranded
-
-# Determines which cluster is most likely stranded, based on adjacency of asterisks to text.
-# Returns the indexes of the first and last likely stranded clusters.
-def find_stranded_by_spacing(starlist):
-    nclusters = len(starlist)
-
-    # find first suspect cluster
-    i = 0
-    while i+1 < nclusters:  
-        if starlist[i].lefty and starlist[i+1].righty:
-            i += 2
-        else:
-            break
-
-    # Find last suspect cluster
-    j = nclusters - 1
-    while j-1 >= 0:         # find last suspect cluster
-        if starlist[j-1].lefty and starlist[j].righty:
-            j -= 2
-        else:
-            break
-    return (i, j)
-
 
 # twopairs_re = re.compile(r'\*\* *\*\*', re.UNICODE)
 # first2_re = re.compile(r' *\*\* ?', re.UNICODE)
@@ -279,13 +310,13 @@ def calculate_confidence(starlist):
         # ntriples = nclustersOfSize(3, starlist)
         # nquads = nclustersOfSize(4, starlist)
         cluster1 = starlist[0]
-        if cluster1.nstars == 1 and cluster1.leading and nsingles == 1:
+        if cluster1.nstars == 1 and cluster1.leading and (nsingles % 2 == 1 or not cluster1.lefty):
             startbold = 1
         else:
             startbold = 0
         if (nclusters+startbold) % 2 == 1:
             conf = 0
-        if nsingles > 0 and cluster1.nstars != 1:
+        if nsingles > 0 and (cluster1.nstars != 1 or not cluster1.leading or cluster1.lefty):
             conf -= (40 if nsingles % 2 == 1 else 20)
         # if ntriples > 0:
             # conf -= (5 if (ntriples == 1 and cluster1.nstars == 3) else 80)
@@ -295,6 +326,8 @@ def calculate_confidence(starlist):
         maxlen = maxBoldLength(starlist[startbold:])
         if maxlen > 15:
             conf -= (20 if maxlen > 35 else maxlen-15)
+        elif maxlen < 2:
+            conf -= 10
         conf -= 5 * badPairing(starlist[startbold:])
     return conf
 
