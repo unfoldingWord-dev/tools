@@ -36,7 +36,7 @@ ORDEREDLIST_ITEM = 5
 class State:
     prevlinetype = None
     currlinetype = None
-    
+
     def newFile(self):
         State.prevlinetype = None
         State.currlinetype = None
@@ -88,7 +88,7 @@ def convertJson(inputPath, mdPath, shortname):
     if len(notes) > 0:
         nIn = 0   # used in error messages below
         nOut = 0
-    
+
         # Open output .md file for writing.
         mdFile = io.open(mdPath, "tw", buffering=1, encoding='utf-8', newline='\n')
         for note in notes:
@@ -130,7 +130,7 @@ def md2md(inputPath, mdPath, langcode, shortname):
 
     input = io.open(inputPath, "tr", 1, encoding="utf-8-sig")
     lines = input.readlines(-1)
-    input.close
+    input.close()
     nLinesOrig = len(lines)
 
     if nLinesOrig > 0:
@@ -168,7 +168,7 @@ jams_re = re.compile(r'( *#+)[\w]', re.UNICODE)     # no space after hash marks
 def fixHeadings(line):
     line = re.sub(r'#[\s][\s]+', '# ', line, count=1, flags=re.UNICODE)     # remove extra spaces/tabs after hash mark
     line = re.sub(r'\*[\s][\s]+', '* ', line, count=1, flags=re.UNICODE)    # remove extra spaces/tabs after asterisk
-    
+
     # ensure space after hash(es) or asterisk(s) at beginning of line
     if line.count("*") % 2 == 1:    # odd number of asterisks
         jam = jams_re.match(line)
@@ -200,7 +200,7 @@ def convertLine(line, nIn, mdFile, path, shortname):
     origlen = len(line)
     line = normalize(line)
     needblank = False
-    
+
     state = State()
     # state.addLine(line)   # this is now down by md2md()
     if state.currlinetype == HEADING:
@@ -220,7 +220,7 @@ def convertLine(line, nIn, mdFile, path, shortname):
     if needblank:
         mdFile.write('\n')
     mdFile.write(line.rstrip() + '\n')
-    
+
     if len(line) - origlen > 15 or len(line) - origlen < -33:
         sys.stderr.write("Manually check conversion of line " + str(nIn) + " in " + shortname(path) + ".\n")
         sys.stderr.write("  Length difference: " + str(len(line) - origlen) + "\n")
@@ -230,7 +230,7 @@ def keepNote(note):
     keep = len(note) > 0 and (note['title'] or note['body'])
     if note['title'].strip() == "" and note['body'].strip() == "":
         keep = False
-    
+
     # I deleted notes containing "bible:questions" from the Vietnamese collection.
 #    if keep and "bible:questions" in note['title'] and "bible:questions" in note['body']:
 #        keep = False
@@ -276,7 +276,7 @@ def normalize(ustr):
     str = re.sub(r'&nbsp;', ' ', str, count=0)
     str = re.sub(r'#  +', '# ', str)     # removes extra spaces following hash mark
     str = re.sub(r'^\[?:?en:', '[[:en:', str)   # fix missing bracket at beginning of string
-    
+
     if not g_multilist:
         str = re.sub(r'    *', '  ', str)   # reduce runs of 3 or more spaces
         str = re.sub(r'\n +\*', '\n*', str)     # removes spaces before asterisk, although they are required in multi-level lists (uncommon)
@@ -374,7 +374,7 @@ def normalizeLink(linkstr):
     else:
         linkstr = normalizeTaLink(lastpart)
     return linkstr
-    
+
 fulllink_re = re.compile(r'.*:(\w\w\w):(\d+):(\d+)\|(.+)', flags=re.UNICODE)
 partlink_re = re.compile(r'.*:(\w\w\w):(\d+):(\d+)', flags=re.UNICODE)
 
@@ -397,7 +397,7 @@ def normalizeNoteLink(lastpart):
         linkstr = readable + buildFileRef(ref.group(1), ref.group(2), ref.group(3))
     else:
         linkstr = "[linkerror" + lastpart + "]"    # revert to old style link, to be dealt with manually
-    return linkstr        
+    return linkstr
 
 # Builds the most readable verse reference possible from the specified parameters, in square brackets.
 def buildBriefRef(bookId, chapter, verse):
@@ -419,7 +419,7 @@ def buildReadableRef(bookId, reference):
         str = '[' + bookId.upper() + ' ' + reference + ']'
     return str
 
-# Builds a relative path to the referent .md file, in parentheses. 
+# Builds a relative path to the referent .md file, in parentheses.
 def buildFileRef(bookId, chapter, chunk):
     global g_mdPath
     chapter = leadZeros(bookId, chapter)
