@@ -25,7 +25,9 @@
 #   Leading spaces before the asterisk are also removed.
 #   Assures newline at the end of the file.
 #   Removes gratutious formatting asterisks from header lines.
-#   Underlines last nonblank line in OBS files.
+#   For OBS files:
+#       Underlines last nonblank line in OBS files.
+#       Remove ? options at the end of the URL for any images.
 #
 # Also expands incomplete references to tA articles.
 #   For example, expands Vidi: figs_metaphor to Vidi: [[rc://*/ta/man/translate/figs-metaphor]]
@@ -42,12 +44,13 @@ import string
 import sys
 from filecmp import cmp
 import codecs
+import stars
 
 # Globals
-source_dir = r'C:\DCS\Kannada\work'
-language_code = 'kn'
-resource_type = 'ta'
-server = 'DCS'     # DCS or WACS
+source_dir = r'C:\DCS\Farsi\fa_tw.RPP\bible\names'
+language_code = 'fa'
+resource_type = 'tw'
+server = 'WACS'     # DCS or WACS
 
 nChanged = 0
 max_files = 11111
@@ -517,24 +520,13 @@ paren1_re = re.compile(r'[^)]\)$', re.UNICODE)   # ends with single but not doub
 def cleanupLine(line):
     line = line.rstrip("\n\t \[\(\{#")
     line = line.lstrip("\]\)\}")
+    line = stars.fix_boldmarks(line)
     if line.count("(") == 0:
         line = line.rstrip(")")
     if line.count("(") - 1 == line.count(")"):
         lastleft = line.rfind("(")
         if lastleft > len(line) - 100 and lastleft > line.rfind(")"):
             line = line + ")"
-    nBoldmarks = line.count("**")
-    if nBoldmarks == 1 and (line.count("*") % 2 == 0 or line.startswith("* **")):   # orphaned '**' is a common error
-        line = line.replace("**", "")
-    elif nBoldmarks > 1 and nBoldmarks % 2 == 0:
-        boldpos = line.find("**")      # finds the first ** in the line
-        while boldpos >= 0:
-            if line.find("** ", boldpos) == boldpos:      # the first ** is followed by a space
-                line = line[:boldpos+2] + line[boldpos+3:]
-            boldpos = line.find("**", boldpos+2)    # find the next ** in the line
-            if boldpos > 0 and line[boldpos-1] == ' ':
-                line = line[:boldpos-1] + line[boldpos:]
-            boldpos = line.find("**", boldpos+2)    # finds the start of the next ** pair
     nleft = line.count('(')
     nright = line.count(')')
     if nleft > nright and paren1_re.search(line):
@@ -565,8 +557,10 @@ def convertByLine(source, target):
     output = io.open(target, "tw", buffering=1, encoding='utf-8', newline='\n')
     for line in lines:
         lineno += 1
-        line = cleanupLine(line)    # strips some whitespace, bad brackets, orphan **, and doubles right paren when needed
         prevlinetype = linetype
+        line = line.strip()
+        if len(line) > 0:
+            line = cleanupLine(line)    # strips some bad brackets, orphan **, and doubles right paren when needed
         if len(line) == 0:
             linetype = BLANK
         elif line[0] == '#':
