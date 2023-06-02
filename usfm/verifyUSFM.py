@@ -5,9 +5,9 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-language_code = 'plt'
-std_clabel = ""    # leave blank if you don't have a standard chapter label
-source_dir = r"C:\DCS\Malagasy\plt_ulb.lv"
+source_dir = r"C:\DCS\Kubu\work\48-2CO.usfm"
+language_code = 'kvb'
+std_clabel = "Pasal"    # leave blank if you don't have a standard chapter label
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
@@ -365,7 +365,7 @@ def verifyVerseCount():
         # Revelation 12 may have 17 or 18 verses, normally 17.
         if state.reference != 'REV 12:18' and state.reference != '3JN 1:15' and state.reference != '2CO 13:13' \
             and state.reference != 'ACT 19:40':
-            reportError("Chapter should have " + str(state.nVerses(state.ID, state.chapter)) + " verses: "  + state.reference, 8)
+            reportError(f"Chapter {state.chapter} normally has {state.nVerses(state.ID, state.chapter)} verses: {state.reference}", 8)
 
 def verifyFootnotes():
     state = State()
@@ -562,8 +562,8 @@ def reportFootnotes(text):
     global lastToken
     state = State()
     if not isFootnote(lastToken):
-        if reference_re.search(text):
-            reportFootnote(':')
+        if ref := reference_re.search(text):
+            reportFootnote(ref.group(0))
         elif ('(' in text or '[' in text) and (isOptional(state.reference) or state.reference in footnoted_verses.footnotedVerses):
             reportFootnote('(')
         elif "[" in text:
@@ -574,11 +574,12 @@ def reportFootnotes(text):
 def reportFootnote(trigger):
     state = State()
     reference = state.reference
-    if trigger == ':' or isOptional(reference) or reference in footnoted_verses.footnotedVerses:
-        reportError("Untagged footnote (probable) at " + reference, 43)
+    if ':' in trigger:
+        reportError(f"Probable chapter:verse reference ({trigger}) at {reference} belongs in a footnote", 43)
+    elif isOptional(reference) or reference in footnoted_verses.footnotedVerses:
+        reportError(f"Bracket or parens found in {reference}, a verse that is often footnoted", 43.1)
     else:
-        reportError("Possible untagged footnote at square bracket at " + reference, 44)
-#    reportError("  preceding Token.type was " + lastToken.getType())   #
+        reportError(f"Optional text or possible untagged footnote at {reference}", 44)
 
 # Returns a string containing text preceding specified start position and following end position
 def context(text, start, end):
