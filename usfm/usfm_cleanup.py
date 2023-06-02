@@ -7,7 +7,7 @@
 #    to the next line after the \s# marker.
 
 # Set these globals
-source_dir = r"C:\DCS\Kubu\work\41-MAT.usfm"
+source_dir = r"C:\DCS\Kubu\work\63-1JN.usfm"
 promote_all_quotes = False      # promote single and double straight quotes to curly quotes, except word-medial
 promote_double_quotes = False   # promote only double quotes
 
@@ -38,7 +38,7 @@ def shortname(longpath):
     return shortname
 
 #  Move paragraph marker before section marker to follow the section marker
-movepq_re = re.compile(r'\n(\\[pqm][i1-9]*?)\n+(\\s[1-9].*?)\n', flags=re.UNICODE+re.DOTALL)
+movepq_re = re.compile(r'\n(\\[pqm][i1-9]*?)\n+(\\s[1-9 ].*?)\n', flags=re.UNICODE+re.DOTALL)
 
 # Moves standalone \p \m and \q markers which occur just before an \s# marker
 #    to the next line after the \s# marker.
