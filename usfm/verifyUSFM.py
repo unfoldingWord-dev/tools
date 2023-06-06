@@ -5,9 +5,9 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Kubu\work\48-2CO.usfm"
-language_code = 'kvb'
-std_clabel = "Pasal"    # leave blank if you don't have a standard chapter label
+source_dir = r"C:\DCS\Nubi\kcn_reg"
+language_code = 'kcn'
+std_clabel = "Sura"    # leave blank if you don't have a standard chapter label
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
@@ -15,12 +15,12 @@ suppress3 = False    # Suppress bad punctuation warnings
 suppress4 = False     # Suppress warnings about useless markers before section/title markers
 suppress5 = False     # Suppress checks for verse counts
 suppress6 = False    # Suppress warnings about straight quotes
-suppress7 = False     # Suppress warnings about square brackets indicating footnotes
+suppress7 = False    # Suppress warning about UPPER CASE book titles
 suppress9 = True     # Suppress warnings about ASCII content
 
 max_chunk_length = 400
 
-if language_code in {'diu','en','es','es-419','gl','ha','hr','id','kpj','nag','plt','pmy','pt-br','sw','tl','tpi'}:    # ASCII content
+if language_code in {'diu','en','es','es-419','gl','ha','hr','id','kcn','kpj','nag','plt','pmy','pt-br','sw','tl','tpi'}:    # ASCII content
     suppress9 = True
 if language_code in {'as','bn','gu','hi','kn','ml','mr','nag','ne','or','pa','ru','ta','te','zh'}:    # ASCII content
     suppress9 = False
@@ -498,7 +498,7 @@ def takeTitle(token):
     state.addTitle(token.value)
     if token.isMT() and token.value.isascii() and not suppress9:
         reportError("mt token has ASCII value in " + state.reference, 30)
-    if token.value.isupper() and not state.upperCaseReported:
+    if token.value.isupper() and not state.upperCaseReported and not suppress7:
         reportError("Upper case book title in " + state.reference, 31)
         state.reportedUpperCase()
     if state.currMarker == B:
@@ -579,7 +579,7 @@ def reportFootnote(trigger):
     elif isOptional(reference) or reference in footnoted_verses.footnotedVerses:
         reportError(f"Bracket or parens found in {reference}, a verse that is often footnoted", 43.1)
     else:
-        reportError(f"Optional text or possible untagged footnote at {reference}", 44)
+        reportError(f"Optional text or untagged footnote at {reference}", 44)
 
 # Returns a string containing text preceding specified start position and following end position
 def context(text, start, end):
@@ -640,7 +640,8 @@ def reportPunctuation(text):
         reportError(f"Word medial punctuation in {state.reference}: {str}", 52)
 
 period_re = re.compile(r' *\.', re.UNICODE)    # detects period starting a phrase
-numberprefix_re = re.compile(r'[^\s,.0-9\(][0-9]+', re.UNICODE)
+numberprefix_re = re.compile(r'[^\s,\.0-9\(][0-9]+', re.UNICODE)
+numbersuffix_re = re.compile(r'[0-9]+[^\s,;\.0-9\)]', re.UNICODE)
 unsegmented_re = re.compile(r'[0-9][0-9][0-9][0-9]+')
 numberformat_re = re.compile(r'[0-9]+[\.,]?\s[\.,]?[0-9]+')
 leadingzero_re = re.compile(r'[\s]0[0-9,]*', re.UNICODE)
@@ -668,7 +669,7 @@ def takeText(t, footnote=False):
         reportError("BTT Writer artifact in " + state.reference, 57)
     if not suppress3 and not aligned_usfm:
         reportPunctuation(t)
-    if lastToken.isV() and not aligned_usfm and not suppress7:
+    if lastToken.isV() and not aligned_usfm:
         reportFootnotes(t)
     if period_re.match(t):
         reportError("Misplaced period in " + state.reference, 58)
@@ -677,6 +678,9 @@ def takeText(t, footnote=False):
     if prefixed := numberprefix_re.search(t):
         if not footnote or (prefixed.group(0)[0] not in {':','-'}):
             reportError(f"Invalid number prefix: {prefixed.group(0)} at {state.reference}", 60)
+    if suffixed := numbersuffix_re.search(t):
+        if not footnote or (suffixed.group(0)[-1] not in {':','-'}):
+            reportError(f"Invalid number suffix: {suffixed.group(0)} at {state.reference}", 60.1)
     if unsegmented := unsegmented_re.search(t):
         reportError(f"Unsegmented number: {unsegmented.group(0)} at {state.reference}", 61.5)
     if fmt := numberformat_re.search(t):
