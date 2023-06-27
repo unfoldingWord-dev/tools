@@ -5,9 +5,9 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Nubi\kcn_reg"
-language_code = 'kcn'
-std_clabel = "Sura"    # leave blank if you don't have a standard chapter label
+source_dir = r"C:\DCS\Kodi\work\43-LUK.usfm"
+language_code = "kod"
+std_clabel = "Pasal"    # leave blank if you don't have a standard chapter label
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
@@ -15,7 +15,7 @@ suppress3 = False    # Suppress bad punctuation warnings
 suppress4 = False     # Suppress warnings about useless markers before section/title markers
 suppress5 = False     # Suppress checks for verse counts
 suppress6 = False    # Suppress warnings about straight quotes
-suppress7 = False    # Suppress warning about UPPER CASE book titles
+suppress7 = True    # Suppress warning about UPPER CASE book titles
 suppress9 = True     # Suppress warnings about ASCII content
 
 max_chunk_length = 400
@@ -55,6 +55,7 @@ class State:
     IDs = []
     ID = ""
     titles = []
+    usfm_version = 2
     chaptertitles = []
     nChapterLabels = 0
     chapter = 0
@@ -160,6 +161,9 @@ class State:
     def addS5(self):
         State.startChunkVerse = State.verse + 1
         State.startChunkRef = State.ID + " " + str(State.chapter) + ":" + str(State.startChunkVerse)
+
+    def addUsfmVersion(self, version):
+        State.usfm_version = int(version[0])
 
     def addVerse(self, v):
         State.lastVerse = State.verse
@@ -314,7 +318,6 @@ def reportIssues():
     issuesfile = openIssuesFile()
     issuesfile.write("\nSUMMARY:\n")
     for issue in issues.items():
-        #issuesfile.write(f"{issue[1][1]} occurrence(s) of \"{issue[1][0]}\"\n")
         issuesfile.write(f"{issue[1][0]} --- {issue[1][1]} occurrence(s).\n")
 
 # Report missing text or all ASCII text, in previous verse
@@ -553,7 +556,7 @@ def takeV(vstr):
         elif state.verse > state.lastVerse + 2 and state.addError(state.lastRef):
             reportError("Missing verses between: " + state.lastRef + " and " + state.reference, 41)
 
-reference_re = re.compile(r'[0-9]\: *[0-9]', re.UNICODE)
+reference_re = re.compile(r'[0-9]+\: *[0-9]+', re.UNICODE)
 bracketed_re = re.compile(r'\[ *([^\]]+) *\]', re.UNICODE)
 
 # Looks for possible verse references and square brackets in the text, not preceded by a footnote marker.
@@ -639,12 +642,15 @@ def reportPunctuation(text):
         str = context(text, bad.start(), bad.end())
         reportError(f"Word medial punctuation in {state.reference}: {str}", 52)
 
-period_re = re.compile(r' *\.', re.UNICODE)    # detects period starting a phrase
+period_re = re.compile(r'[\s]*[\.,;:!\?]', re.UNICODE)    # detects phrase-ending punctuation starting a phrase
+numberembed_re = re.compile(r'[^\s,:\.0-9\(]+[0-9]+[^\s,;\.0-9\)]+')
 numberprefix_re = re.compile(r'[^\s,\.0-9\(][0-9]+', re.UNICODE)
 numbersuffix_re = re.compile(r'[0-9]+[^\s,;\.0-9\)]', re.UNICODE)
 unsegmented_re = re.compile(r'[0-9][0-9][0-9][0-9]+')
 numberformat_re = re.compile(r'[0-9]+[\.,]?\s[\.,]?[0-9]+')
 leadingzero_re = re.compile(r'[\s]0[0-9,]*', re.UNICODE)
+number_re = re.compile(r'\s([0-9]+)\s')       # possible verse number in text
+
 
 def takeText(t, footnote=False):
     global lastToken
@@ -671,16 +677,25 @@ def takeText(t, footnote=False):
         reportPunctuation(t)
     if lastToken.isV() and not aligned_usfm:
         reportFootnotes(t)
-    if period_re.match(t):
-        reportError("Misplaced period in " + state.reference, 58)
+    if period := period_re.match(t):
+        if len(t) <= period.end() + 1:
+            reportError(f"Punctuation on a line by itself at {state.reference}", 58)
+        else:
+            reportError("Text begins with phrase-ending punctuation in " + state.reference, 58.1)
     if not footnote and t.startswith(str(state.verse) + " "):
         reportError("Verse number in text (probable): " + state.reference, 59)
-    if prefixed := numberprefix_re.search(t):
-        if not footnote or (prefixed.group(0)[0] not in {':','-'}):
-            reportError(f"Invalid number prefix: {prefixed.group(0)} at {state.reference}", 60)
-    if suffixed := numbersuffix_re.search(t):
-        if not footnote or (suffixed.group(0)[-1] not in {':','-'}):
-            reportError(f"Invalid number suffix: {suffixed.group(0)} at {state.reference}", 60.1)
+    elif v := number_re.search(t):
+        if v.group(1) == str(state.verse) or v.group(1) == str(state.verse+1):
+            reportError(f"Possible verse number in text at {state.reference}", 59.1)
+    if embed := numberembed_re.search(t):
+        reportError(f"Embedded number in word: {embed.group(0)} at {state.reference}", 60)
+    else:
+        if prefixed := numberprefix_re.search(t):
+            if not footnote or (prefixed.group(0)[0] not in {':','-'}):
+                reportError(f"Invalid number prefix: {prefixed.group(0)} at {state.reference}", 60.1)
+        if suffixed := numbersuffix_re.search(t):
+            if not footnote or (suffixed.group(0)[-1] not in {':','-'}):
+                reportError(f"Invalid number suffix: {suffixed.group(0)} at {state.reference}", 60.2)
     if unsegmented := unsegmented_re.search(t):
         reportError(f"Unsegmented number: {unsegmented.group(0)} at {state.reference}", 61.5)
     if fmt := numberformat_re.search(t):
@@ -791,12 +806,14 @@ def take(token):
             reportError("Invalid toc3 value in " + state.reference, 64)
         elif token.value.upper() != state.ID:
             reportError(f"toc3 value ({token.value}) not the same as book ID in {state.reference}", 64.5)
+    elif token.isUSFM():
+        state.addUsfmVersion(token.value)
     elif token.isUnknown():
         if token.value == "p":
             reportError("Orphaned paragraph marker after " + state.reference, 65)
         elif token.value == "v":
             reportError("Unnumbered verse after " + state.reference, 66)
-        elif not aligned_usfm:
+        elif state.usfm_version == 2:
             reportError("Invalid USFM token (\\" + token.value + ") near " + state.reference, 67)
 
     if language_code in {"ur"} and isNumericCandidate(token) and re.search(r'[0-9]', token.value, re.UNICODE):
@@ -850,10 +867,11 @@ def verifyWholeFile(str, path):
         reportOrphans(lines, path)
 
     if not suppress6:
-        nsingle = str.count("'") - len(embeddedquotes_re.findall(str))
+        nembedded = len(embeddedquotes_re.findall(str))
+        nsingle = str.count("'") - nembedded
         ndouble = str.count('"')
         if nsingle > 0 or ndouble > 0:
-            reportError(f"Straight quotes found in {shortname(path)}: {ndouble} doubles, {nsingle} singles not counting word-medial, ", 75)
+            reportError(f"Straight quotes found in {shortname(path)}: {ndouble} doubles, {nsingle} singles not counting {nembedded} word-medial.", 75)
 
 
 conflict_re = re.compile(r'<+ HEAD', re.UNICODE)   # conflict resolution tag
