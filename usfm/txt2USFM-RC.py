@@ -8,8 +8,8 @@
 #    Converts multiple books at once if there are multiple books.
 
 # Global variables
-source_dir = r'C:\DCS\Kodi\REG\kod_tit_text_reg'  # must be a folder
-target_dir = r'C:\DCS\Kodi\work'
+source_dir = r'C:\DCS\Kodi\REG'  # must be a folder
+target_dir = r'C:\DCS\Kodi\work2'
 language_code = "kod"
 mark_chunks = False   # Should be true for GL source text
 
@@ -252,14 +252,16 @@ def combineLines(lines):
         line = line.replace(" \\", "\n\\")
         line = line.strip()    # strip leading and trailing whitespace
 
-        if line:    # discard lines that reduced to nothing
-            if not section:
-                section = line
-            else:
-                if line[0] == '\\' or line.startswith("==") or line.startswith(">>"):
-                    section = section + "\n" + line
-                else:
-                    section = section + " " + line
+        #if line:    # discard lines that reduced to nothing
+            #if not section:
+                #section = line
+            #else:
+        if len(line) == 0 or line[0] == '\\' or line.startswith("==") or line.startswith(">>"):
+            section += "\n" + line
+        elif section and section[-1] == '\n':
+            section += line
+        else:
+            section += " " + line
     return section
 
 cvExpr = re.compile(r'\\[cv] [0-9]+')
