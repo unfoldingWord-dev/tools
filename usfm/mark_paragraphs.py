@@ -8,12 +8,12 @@
 # Global variables
 #model_dir = r'C:\DCS\English\en_udb.paragraphs'
 model_dir = r'C:\DCS\Indonesian\id_ayt.TA'
-source_dir = r"C:\DCS\Kodi\work\61-1PE.usfm"     # file(s) to be changed
+source_dir = r"C:\DCS\Kodi\work2\61-1PE.usfm"     # file(s) to be changed
 removeS5markers = True
 xlateS5markers = False   # Dubious validity, and not tested for texts that have both kinds of markers already. Translates most \s5 markers to \p markers.
 copy_nb = False
 
-nCopied = 0
+nCopied = 0     # number of paragraphs and sections copied from model
 issuesFile = None
 reportFile = None
 
@@ -195,10 +195,12 @@ def takeV(v):
     state.usfmWrite("\n\\v " + v)
 
 def takeText(t):
+    global nCopied
     state = State()
     smark = None if state.expectingText() else state.smarkInModel()
     if smark:
         state.usfmWrite(f"\n\\{smark} {t}")
+        nCopied += 1
         state.addP()           # PTXprint wants a paragraph or poetry mark after section heading
         state.usfmWrite("\n\\p")
     else:
@@ -270,7 +272,7 @@ usfmcode_re = re.compile(r'(\\[^a-z\+])', re.UNICODE)
 def isParseable(str, fname):
     parseable = True
     if backslash_re.search(str):
-        reportError(f"{fname} contains stranded backslash(es) followed by space")
+        reportError(f"{fname} contains stranded backslash(es) followed by space or newline")
 #        parseable = False
     if bad := jammed_re.search(str):
         reportError(f"{fname} contains verse number(s) not followed by space: {bad.group(1)}")
@@ -496,16 +498,17 @@ def processFile(path):
     global model_dir
     fname = os.path.basename(path)
     (nChapters, nParagraphs, nPoetry) = countParagraphs(path)
-    if nParagraphs / nChapters < 2.5 and nPoetry / nChapters < 15:
-        model_path = os.path.join(model_dir, fname)
-        if scanModelFile(model_path, fname):
-            backupUsfmFile(path)
-            if not convertFile(path, fname):
-                reportError("File cannot be converted: " + fname)
-        else:
-            reportError("Model file is unusable: " + model_path)
+
+    #if nParagraphs / nChapters < 2.5 and nPoetry / nChapters < 15:
+    model_path = os.path.join(model_dir, fname)
+    if scanModelFile(model_path, fname):
+        backupUsfmFile(path)
+        if not convertFile(path, fname):
+            reportError("File cannot be converted: " + fname)
     else:
-        reportError(f"{fname} has {nParagraphs} paragraphs and {nPoetry} poetry marks in {nChapters} chapters. No need to mark additional paragraphs.", False)
+        reportError("Model file is unusable: " + model_path)
+    #else:
+        #reportError(f"{fname} has {nParagraphs} paragraphs and {nPoetry} poetry marks in {nChapters} chapters. No need to mark additional paragraphs.", False)
         #reportError(f"  p/c = {nParagraphs / nChapters}", False)
         #reportError(f"  q/c = {nPoetry / nChapters}", False)
 
@@ -523,4 +526,4 @@ if __name__ == "__main__":
         sys.stderr.write("Invalid folder or file: " + source_dir)
         exit(-1)
     closeIssuesFiles()
-    print(f"\nDone. Introduced {nCopied} paragraphs")
+    print(f"\nDone. Introduced {nCopied} paragraphs / sections")
