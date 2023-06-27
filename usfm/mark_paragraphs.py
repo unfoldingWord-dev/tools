@@ -2,14 +2,16 @@
 # This script converts one or more valid .usfm files by adding paragraph marks.
 # The model used for marking paragraphs are the USFM files in model_dir.
 # Inserts paragraph marker after each chapter marker if needed, before verse 1.
-# The input file(s) should be verified, correct USFM.
+# Marks unmarked text as section headings where present in model.
+# The input file(s) should be verified, correct USFM, except for unmarked text which may become section headings.
 
 # Global variables
-model_dir = r'C:\DCS\English\en_udb.paragraphs'
-source_dir = r"C:\DCS\Hausa\ha_ulb.work\62-2PE.usfm"     # files to be changed
+#model_dir = r'C:\DCS\English\en_udb.paragraphs'
+model_dir = r'C:\DCS\Indonesian\id_ayt.TA'
+source_dir = r"C:\DCS\Kodi\work\61-1PE.usfm"     # file(s) to be changed
 removeS5markers = True
 xlateS5markers = False   # Dubious validity, and not tested for texts that have both kinds of markers already. Translates most \s5 markers to \p markers.
-copy_nb = True
+copy_nb = False
 
 nCopied = 0
 issuesFile = None
@@ -23,15 +25,23 @@ import re
 import shutil
 import usfm_verses
 
+# Marker types
+TEXT = 1
+OTHER = 9
+
 class State:
     fname = ""
     chapter = 0
     verse = 0
     pChapter = 0    # location of latest paragraph mark already in input text
     pVerse = 0      # location of latest paragraph mark already in input text
+    sChapter = 0    # location of latest section heading already in input text
+    sVerse = 0      # location of latest section heading already in input text
     reference = ""
     __usfmFile = 0
-    paragraphs_model = []   # list of {pmark, chapter, verse, located}
+    paragraphs_model = []   # list of {mark, chapter, verse, located}
+    sections_model = []
+    expectText = False
 
     def addFile(self, fname):
         State.fname = fname
@@ -42,6 +52,8 @@ class State:
         State.pVerse = 0
         State.reference = fname
         State.paragraphs_model = []
+        State.sections_model = []
+        State.expectText = False
         # Open output USFM file for writing.
         tmpPath = os.path.join(source_dir, fname + ".tmp")
         State.__usfmFile = io.open(tmpPath, "tw", buffering=1, encoding='utf-8', newline='\n')
@@ -52,6 +64,7 @@ class State:
         State.chapter = 0
         State.verse = 0
         State.bridge = 0
+        State.expectText = False
 
     def addChapter(self, c):
         State.lastChapter = State.chapter
@@ -59,11 +72,16 @@ class State:
         State.verse = 0
         State.bridge = 0
         State.reference = State.ID[0:3].upper() + " chapter " + c
+        State.expectText = False
 
     # Records the location of a paragraph marker found in the input text.
     def addP(self):
         State.pChapter = State.chapter
         State.pVerse = State.bridge + 1
+        State.expectText = True
+
+    def addText(self):
+        State.expectText = False
 
     def addVerse(self, v):
         v1 = v.split('-')[0]
@@ -71,6 +89,10 @@ class State:
         State.verse = int(v1)
         State.bridge = int(v2)
         State.reference = State.ID[0:3].upper() + " " + str(State.chapter) + ":" + v
+        State.expectText = True
+
+    def addFootnote(self):
+        State.expectText = True
 
     # Returns True if a paragraph mark was already recorded for the current verse.
     # See addP()
@@ -82,9 +104,21 @@ class State:
         pmark = None
         for pp in State.paragraphs_model:
             if pp['chapter'] == State.chapter and pp['verse'] == State.verse and pp['located']:
-                pmark = pp['pmark']
+                pmark = pp['mark']
                 break
         return pmark
+
+    def expectingText(self):
+        return State.verse > 0 and State.expectText
+
+    # Returns the section mark that occurred in the model file at the current location.
+    def smarkInModel(self):
+        smark = None
+        for s in State.sections_model:
+            if s['chapter'] == State.chapter and s['verse'] == State.verse and s['located']:
+                smark = s['mark']
+                break
+        return smark
 
     # Returns True if current verse is the last verse in a chapter
     def isEndOfChapter(self):
@@ -115,6 +149,7 @@ def takeAsIs(key, value):
 
 def takeFootnote(key, value):
     state = State()
+    state.addFootnote()
     if key in {"f", "fe"}:
         state.usfmWrite("\n\\" + key)
     else:
@@ -161,8 +196,14 @@ def takeV(v):
 
 def takeText(t):
     state = State()
-    state.usfmWrite(t)
-    #state.addText()
+    smark = None if state.expectingText() else state.smarkInModel()
+    if smark:
+        state.usfmWrite(f"\n\\{smark} {t}")
+        state.addP()           # PTXprint wants a paragraph or poetry mark after section heading
+        state.usfmWrite("\n\\p")
+    else:
+        state.usfmWrite(t)
+        state.addText()
 
 # Output chapter
 def takeC(c):
@@ -171,7 +212,7 @@ def takeC(c):
     state.usfmWrite("\n\\c " + c)
 
 # Handles the specified token from the input file.
-# Inserts paragraph markers where needed from model.
+# Inserts paragraph and section markers where needed from model.
 def take(token):
     state = State()
     if token.isV():
@@ -218,6 +259,10 @@ def isPoetry(token):
 token.isQA() or token.isSP() or token.isQR() or token.isQC() or token.isD() or\
 token.isQSS()
 
+def isSection(token):
+    return token.isS() or token.isS2() or token.isS3() or token.isS4() or token.isSR() \
+        or token.isR() or token.isD() or token.isSP()
+
 backslash_re = re.compile(r'\\\s')
 jammed_re = re.compile(r'(\\v +[-0-9]+[^-\s0-9])', re.UNICODE)
 usfmcode_re = re.compile(r'(\\[^a-z\+])', re.UNICODE)
@@ -225,7 +270,7 @@ usfmcode_re = re.compile(r'(\\[^a-z\+])', re.UNICODE)
 def isParseable(str, fname):
     parseable = True
     if backslash_re.search(str):
-        reportError(f"{fname} contains stranded backslash(es)")
+        reportError(f"{fname} contains stranded backslash(es) followed by space")
 #        parseable = False
     if bad := jammed_re.search(str):
         reportError(f"{fname} contains verse number(s) not followed by space: {bad.group(1)}")
@@ -349,15 +394,15 @@ def scanC(c):
     if len(state.paragraphs_model) > 0:
         pp = state.paragraphs_model[-1]
         if not pp['located']:
-            reportError(f"Paragraph mark (\\{pp['pmark']}) before {state.reference} not copied", False)
+            reportError(f"Paragraph mark (\\{pp['mark']}) before {state.reference} not copied", False)
             state.paragraphs_model.remove(pp)
 
 # Save the paragraph mark and its tentative location
 # If the previous paragraph mark is still tentative, it is invalid, overwrite it in the state.
-def scanPQ(type, value):
+def scanPQ(type):
     state = State()
     p = {}
-    p['pmark'] = type
+    p['mark'] = type
     p['chapter'] = state.chapter
     p['verse'] = 0      # verse unknown
     p['located'] = False
@@ -367,18 +412,30 @@ def scanPQ(type, value):
             state.paragraphs_model.remove(pp)
     state.paragraphs_model.append(p)
 
+# Save the section mark and its location.
+# Unlike paragraph marks, sections marks take the previous verse number as their location.
+def scanS(type):
+    state = State()
+    section = {}
+    section['mark'] = type
+    section['chapter'] = state.chapter
+    section['verse'] = state.verse
+    section['located'] = True
+    state.sections_model.append(section)
+
 # If there is a paragraph mark not assigned to a verse yet,
-# report it because the paragraph apparently occurs in the middle of a verse.
+# report it because it apparently occurs in the middle of a verse.
 def scanText(value):
     state = State()
     if len(state.paragraphs_model) > 0:
         pp = state.paragraphs_model[-1]
         if not pp['located']:
-            reportError(f"Paragraph mark (\\{pp['pmark']}) within {state.reference} not copied", False)
+            reportError(f"Paragraph mark (\\{pp['mark']}) within {state.reference} not copied", False)
             state.paragraphs_model.remove(pp)
 
 # v is the verse number or range
 # Assign the verse number to the preceding paragraph mark, if any.
+# Unlike sections, paragraphs take the location of the following verse.
 def scanV(v):
     state = State()
     state.addVerse(v)
@@ -400,7 +457,9 @@ def scan(token):
     elif token.isTEXT():
         scanText(token.value)
     elif isParagraph(token) or isPoetry(token):
-        scanPQ(token.type, token.value)
+        scanPQ(token.type)
+    elif isSection(token):
+        scanS(token.type)
     elif token.isID():
         state.addID(token.value)
 
