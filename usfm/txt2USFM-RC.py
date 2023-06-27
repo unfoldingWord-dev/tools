@@ -8,9 +8,9 @@
 #    Converts multiple books at once if there are multiple books.
 
 # Global variables
-source_dir = r'C:\DCS\Shubi\REG'  # must be a folder
-target_dir = r'C:\DCS\Shubi\work'
-language_code = "suj"
+source_dir = r'C:\DCS\Kodi\REG\kod_tit_text_reg'  # must be a folder
+target_dir = r'C:\DCS\Kodi\work'
+language_code = "kod"
 mark_chunks = False   # Should be true for GL source text
 
 import usfm_verses
@@ -171,10 +171,10 @@ sub5_re = re.compile(r'\\v( +\\v +[0-9\-]+ +)', re.UNICODE)         # \v \v 10
 sub6_re = re.compile(r'[\n ]\\ v [1-9]', re.UNICODE)           # space betw \ and v
 sub6m_re = re.compile(r'\\ v [1-9]', re.UNICODE)               # space betw \ and v -- match
 sub7_re = re.compile(r'[\n ]v [1-9]', re.UNICODE)              # missing backslash
-sub8_re = re.compile(r'(.)([\n ]*\\v [1-9]+) ?([\.\,\:;]) ', re.UNICODE)   # Punctuation after verse marker
-sub9_re = re.compile(r'(\\v [1-9]+) ?([\.\,\:;]) ', re.UNICODE)
+sub8_re = re.compile(r'(.)([\n ]*\\v [0-9\-]+ +)([\.\,\:;])', re.UNICODE)   # Punctuation after verse marker
+sub9_re = re.compile(r'(\\v [0-9\-]+ +)([\.\,\:;])', re.UNICODE)
 
-# Fixes malformed verse markers
+# Fixes malformed verse markers in a single chunk of text.
 def fixVerseMarkers(text):
     found = sub0_re.search(text)
     while found:
@@ -225,16 +225,18 @@ def fixVerseMarkers(text):
         text = text[0:found.start()] + "\n\\v " + text[found.end()-1:]
         found = sub7_re.search(text)
 
+    # Move or remove the phrase-ending punctuation character found right after a verse marker.
     found = sub8_re.search(text)
     while found:
-        if found.group(3) != found.group(1):
-            text = text[0:found.start()+1] + found.group(3) + found.group(2) + text[found.end()-1:]
+        #if found.group(3) != found.group(1):
+        if found.group(1) not in {'.',',',':',';','?','!'}:
+            text = text[0:found.start()+1] + found.group(3) + found.group(2) + text[found.end():]
         else:
-            text = text[0:found.start()+1] + found.group(2) + text[found.end()-1:]
+            text = text[0:found.start()+1] + found.group(2) + text[found.end():]
         found = sub8_re.search(text)
 
     if found := sub9_re.match(text):
-        text = found.group(1) + text[found.end()-1:]
+        text = found.group(1) + text[found.end():]
 
     return text
 
