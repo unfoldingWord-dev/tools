@@ -5,9 +5,9 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Kodi\work\43-LUK.usfm"
-language_code = "kod"
-std_clabel = "Pasal"    # leave blank if you don't have a standard chapter label
+source_dir = r"C:\DCS\Ruuli\work"
+language_code = "ruc"
+std_clabel = "Essula"    # leave blank if you don't have a standard chapter label
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
@@ -15,7 +15,7 @@ suppress3 = False    # Suppress bad punctuation warnings
 suppress4 = False     # Suppress warnings about useless markers before section/title markers
 suppress5 = False     # Suppress checks for verse counts
 suppress6 = False    # Suppress warnings about straight quotes
-suppress7 = True    # Suppress warning about UPPER CASE book titles
+suppress7 = False    # Suppress warning about UPPER CASE book titles
 suppress9 = True     # Suppress warnings about ASCII content
 
 max_chunk_length = 400
@@ -554,7 +554,7 @@ def takeV(vstr):
             if state.addError(state.lastRef):
                 reportError("Missing verse between: " + state.lastRef + " and " + state.reference, 41)
         elif state.verse > state.lastVerse + 2 and state.addError(state.lastRef):
-            reportError("Missing verses between: " + state.lastRef + " and " + state.reference, 41)
+            reportError("Missing verses between: " + state.lastRef + " and " + state.reference, 41.1)
 
 reference_re = re.compile(r'[0-9]+\: *[0-9]+', re.UNICODE)
 bracketed_re = re.compile(r'\[ *([^\]]+) *\]', re.UNICODE)
@@ -567,7 +567,7 @@ def reportFootnotes(text):
     if not isFootnote(lastToken):
         if ref := reference_re.search(text):
             reportFootnote(ref.group(0))
-        elif ('(' in text or '[' in text) and (isOptional(state.reference) or state.reference in footnoted_verses.footnotedVerses):
+        elif ('(' in text or '[' in text or ')' in text) and (isOptional(state.reference) or state.reference in footnoted_verses.footnotedVerses):
             reportFootnote('(')
         elif "[" in text:
             fn = bracketed_re.search(text)
@@ -614,7 +614,7 @@ def reportPunctuation(text):
                 elif not (lastToken.getType().startswith('f') or lastToken.getType().startswith('io') \
                           or lastToken.getType().startswith('ip')):
                     str = context(text, bad.start()-2, bad.end()+1)
-                    reportError(f"Untagged footnote (probable) at {state.reference}: {str}", 43)
+                    reportError(f"Untagged footnote (probable) at {state.reference}: {str}", 46)
     #if bad := adjacent_re.search(text):
         #i = bad.start()
         #if text[i:i+3] != "..." or text[i:i+4] == "....":   # Don't report proper ellipses ...
@@ -643,7 +643,7 @@ def reportPunctuation(text):
         reportError(f"Word medial punctuation in {state.reference}: {str}", 52)
 
 period_re = re.compile(r'[\s]*[\.,;:!\?]', re.UNICODE)    # detects phrase-ending punctuation starting a phrase
-numberembed_re = re.compile(r'[^\s,:\.0-9\(]+[0-9]+[^\s,;\.0-9\)]+')
+numberembed_re = re.compile(r'[^\s,:\.0-9\(\-]+[0-9]+[^\s,;\.0-9\)]+')
 numberprefix_re = re.compile(r'[^\s,\.0-9\(][0-9]+', re.UNICODE)
 numbersuffix_re = re.compile(r'[0-9]+[^\s,;\.0-9\)]', re.UNICODE)
 unsegmented_re = re.compile(r'[0-9][0-9][0-9][0-9]+')
