@@ -50,7 +50,9 @@
 #   verifies config.yaml files for tA or tW projects
 
 # Globals
-manifestDir = r'C:\DCS\Telugu\te_tn.STR'
+manifestDir = r'C:\DCS\Dayak Bajare\knx-x-bajare_reg'
+expectAsciiTitles = True     # Suppress warnings about ASCII content
+
 nIssues = 0
 projtype = ''
 issuesFile = None
@@ -75,7 +77,7 @@ def getLanguageId():
     return parts[0]
 
 def expectAscii(language_id):
-    return language_id in {'ceb','dan','en','es','es-419','fr','gl','ha','hr','id','ilo','lko','nag','pmy','pt-br','suj','sw','tl','tpi'}
+    return (expectAsciiTitles or language_id in {'ceb','dan','en','es','es-419','fr','gl','ha','hr','id','ilo','kvb','lko','ngp','plt','pmy','pt-br','ruc','sw','tl','tpi'})
 
 # If manifest-issues.txt file is not already open, opens it for writing.
 # Returns file pointer, which is also a global.
@@ -216,6 +218,7 @@ def verifyChecking(checking):
             reportError("Invalid value for checking_level: " + checking['checking_level'])
 
 badname_re = re.compile(r'.*\d\d\d\d+.*\.md$')
+issuesfile_re = re.compile(r'issues.*\.txt')
 
 # Checks for extraneous files in the directory... recursive
 def verifyCleanDir(dirpath):
@@ -227,8 +230,11 @@ def verifyCleanDir(dirpath):
             reportError("Extra manifest file: " + shortname(path))
         if "temp" in fname or "tmp" in fname or "orig" in fname or "bak" in fname or \
           "Copy" in fname or "txt" in fname or "projects" in fname or fname.endswith(".field"):
-            if fname not in {"translate-original", "temple.md", "tempt.md", "contempt.md", "habakkuk.md"}:
+            if issuesfile_re.match(fname):
+                reportWarning(f"{fname} file may be extraneous")
+            elif fname not in {"translate-original", "temple.md", "tempt.md", "contempt.md", "habakkuk.md", "issues.txt"}:
                 reportError("Extraneous file: " + shortname(path))
+
         elif badname_re.match(fname):
             reportError("Likely misnamed file: " + shortname(path))
         if os.path.isdir(path) and fname != ".git":
@@ -612,7 +618,7 @@ def verifySource(source):
         if dict['identifier'] != projtype and projtype in {'obs', 'tn', 'tq', 'tw'}:
             reportError("Inappropriate source:identifier (" + dict['identifier'] + ") for project type: " + projtype)
         if dict['identifier'] != 'ulb' and projtype == 'reg':
-            reportError("Incorrect source:identifier for reg project: " + dict['identifier'])
+            reportWarning("Unusual source:identifier for reg project: " + dict['identifier'])
         if dict['identifier'] != 'tn' and projtype == 'tn-tsv':
             reportError("Incorrect source:identifier for tn-tsv project: " + dict['identifier'])
         if not re.match(r'[a-z][a-z0-9-]', dict['identifier'], re.UNICODE):
