@@ -5,9 +5,9 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Ruuli\work"
-language_code = "ruc"
-std_clabel = "Essula"    # leave blank if you don't have a standard chapter label
+source_dir = r"C:\DCS\Dayak Bajare\knx-x-bajare_reg\44-JHN.usfm"
+language_code = "knx-x-bajare"
+std_clabel = ""    # leave blank if you don't have a standard chapter label
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
@@ -438,7 +438,7 @@ def takeCL(label):
 # Handles all the footnote and endnote token types
 def takeFootnote(token):
     state = State()
-    if token.isF_S():
+    if token.isF_S() or token.isRQS():
         if state.footnote_starts != state.footnote_ends:
             reportError(f"Footnote starts before previous one is terminated at {state.reference}", 18)
         state.addFootnoteStart()
@@ -447,7 +447,7 @@ def takeFootnote(token):
             reportError(f"Endnote starts before previous one is terminated at {state.reference}", 19)
         reportError(f"Warning: endnote \\fe ... \\fe* at {state.reference} may break USFM Converter and Scripture App Builder.", 20)
         state.addEndnoteStart()
-    elif token.isF_E():
+    elif token.isF_E() or token.isRQE():
         state.addFootnoteEnd()
     elif token.isFE_E():
         state.addEndnoteEnd()
@@ -706,7 +706,7 @@ def takeText(t, footnote=False):
 
 # Returns true if token is part of a footnote
 def isFootnote(token):
-    return (token.getType().startswith("f") and token.getType() != "fig")
+    return (token.getType().startswith("f") and token.getType() != "fig") or token.getType().startswith("rq")
     #return token.isF_S() or token.isF_E() or token.isFR() or token.isFT() or token.isFP() or token.isFE_S() or token.isFE_E()
 
 # Returns true if token is part of a cross reference
