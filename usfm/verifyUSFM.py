@@ -5,8 +5,8 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Dayak Bajare\knx-x-bajare_reg\44-JHN.usfm"
-language_code = "knx-x-bajare"
+source_dir = r"C:\DCS\Reta\work\41-MAT.usfm"
+language_code = "ret"
 std_clabel = ""    # leave blank if you don't have a standard chapter label
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
@@ -205,6 +205,9 @@ class State:
 #        return State.footnote_starts
 #    def footnotes_ended(self):
 #        return State.footnote_ends
+
+    def inFootnote(self):
+        return State.footnote_starts > State.footnote_ends or State.endnote_starts > State.endnote_ends
 
     # Increments \f counter
     def addFootnoteStart(self):
@@ -452,7 +455,7 @@ def takeFootnote(token):
     elif token.isFE_E():
         state.addEndnoteEnd()
     else:
-        if state.footnote_starts <= state.footnote_ends and state.endnote_starts <= state.endnote_ends:
+        if not state.inFootnote():
             reportError(f"Footnote marker ({token.type}) not between \\f ... \\f* pair at {state.reference}", 21)
     takeText(token.value, footnote=True)
 
@@ -611,7 +614,7 @@ def reportPunctuation(text):
             if not (chars[0] in ',.' and chars[1] in "0123456789"):   # it's a number
                 if not (chars[0] == ":" and chars[1] in "0123456789"):
                     reportError("Check the punctuation at " + state.reference + ": " + chars, 45)
-                elif not (lastToken.getType().startswith('f') or lastToken.getType().startswith('io') \
+                elif not (state.inFootnote() or lastToken.getType().startswith('io') \
                           or lastToken.getType().startswith('ip')):
                     str = context(text, bad.start()-2, bad.end()+1)
                     reportError(f"Untagged footnote (probable) at {state.reference}: {str}", 46)
@@ -785,7 +788,7 @@ def take(token):
     elif token.isV():
         takeV(token.value)
     elif token.isTEXT():
-        takeText(token.value, state.footnote_starts > state.footnote_ends)
+        takeText(token.value, state.inFootnote())
     elif isFootnote(token):
         takeFootnote(token)
     elif token.isS5():
