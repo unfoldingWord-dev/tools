@@ -8,7 +8,7 @@
 # Global variables
 #model_dir = r'C:\DCS\English\en_udb.paragraphs'
 model_dir = r'C:\DCS\Indonesian\id_ayt.TA'
-source_dir = r"C:\DCS\Kodi\work2\61-1PE.usfm"     # file(s) to be changed
+source_dir = r"C:\DCS\Reta\work\42-MRK.usfm"     # file(s) to be changed
 removeS5markers = True
 xlateS5markers = False   # Dubious validity, and not tested for texts that have both kinds of markers already. Translates most \s5 markers to \p markers.
 copy_nb = False
@@ -150,7 +150,7 @@ def takeAsIs(key, value):
 def takeFootnote(key, value):
     state = State()
     state.addFootnote()
-    if key in {"f", "fe"}:
+    if key in {"f", "fe", "rq"}:
         state.usfmWrite("\n\\" + key)
     else:
         state.usfmWrite("\\" + key)
@@ -243,7 +243,7 @@ def isCrossRef(token):
 # Returns true if token is part of a footnote or cross reference
 def isFootnote(token):
     return token.isF_S() or token.isF_E() or token.isFR() or token.isFT() or token.isFP() or \
-token.isFE_S() or token.isFE_E() # or token.isX_S() or token.isX_E()
+token.isFE_S() or token.isFE_E() or token.isRQS() or token.isRQE()
 
 def isCharacterStyle(token):
     return token.isBDS() or token.isBDE() or token.isITS() or token.isITE() or token.isBDITS() or token.isBDITE() \
