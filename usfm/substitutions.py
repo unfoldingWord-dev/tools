@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
-# substitutions module, used by translate.py.
+# substitutions module, used by usfm_cleanup.py.
 # An ordered list of tuples to be used for string substitutions.
 
-#import re
+# Some UTF-8 special characters
+# E2 80 8B = \u200b - zero width space. See https://en.wikipedia.org/wiki/Zero-width_space
+# E2 80 8C = \u200c - zero width non-joiner. See https://en.wikipedia.org/wiki/Zero-width_non-joiner
+# E2 80 8D = \u200d - zero width joiner
 
 subs = [
 # Remove \u200b and \u200c where they have no effect or don't belong.
@@ -24,6 +27,7 @@ subs = [
     ("\u200b\u200b", "\u200b"),
     ("*​\u200b", "* "),    # (specific to Laotian)
 
+# Fix some quote marks
     ("''''", "'\""),
     ("'''", "'\""),
     ("''", "\""),
@@ -42,10 +46,13 @@ subs = [
 	(";;", ";"),
 	("::", ":"),
 
-#	("?.", "?"),
+	("?.\n", "?\n"),
 	(".?", "?"),
 	(".!", "!"),
 	("!.", "!"),
+	("?\".", "?\""),
+	("\".\n", ".\"\n"),
+	("'.\n", ".'\n"),
 
 # Fix space before/after opening quote mark (but not straight quotes!)
 	(", “ ", ", “"),
