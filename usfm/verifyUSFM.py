@@ -5,9 +5,9 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Reta\work\41-MAT.usfm"
+source_dir = r"C:\DCS\Reta\ret_reg"
 language_code = "ret"
-std_clabel = ""    # leave blank if you don't have a standard chapter label
+std_clabel = "Ejel"    # leave blank if you don't have a standard chapter label
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
@@ -15,7 +15,7 @@ suppress3 = False    # Suppress bad punctuation warnings
 suppress4 = False     # Suppress warnings about useless markers before section/title markers
 suppress5 = False     # Suppress checks for verse counts
 suppress6 = False    # Suppress warnings about straight quotes
-suppress7 = False    # Suppress warning about UPPER CASE book titles
+suppress7 = True    # Suppress warning about UPPER CASE book titles
 suppress9 = True     # Suppress warnings about ASCII content
 
 max_chunk_length = 400
@@ -434,7 +434,7 @@ def takeCL(label):
     global std_clabel
     state = State()
     # Report missing text in previous verse
-    state.addChapterLabel(label)
+    state.addChapterLabel(label.rstrip())
     if std_clabel and not std_clabel in label:
         reportError(f"Non-standard chapter label at {state.reference}: {label}", 42)
 
@@ -597,7 +597,7 @@ def context(text, start, end):
 punctuation_re = re.compile(r'([\.\?!;\:,][^\s\u200b\)\]\'"’”»›])', re.UNICODE)     # phrase ending punctuation that doesn't actually end
 # note: \u200b indicates word boundaries in scripts that do not use explicit spacing, but is used (seemingly incorrectly) like a space in Laotian
 spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’”»›])', re.UNICODE)    # space before phrase-ending mark
-spacey2_re = re.compile(r'[\s][\(\'"«“‘’”»›][\s]', re.UNICODE)    # free floating marks
+spacey2_re = re.compile(r'[\s][\[\]\(\'"«“‘’”»›][\s]', re.UNICODE)    # free floating marks
 spacey3_re = re.compile(r'[\(\'"«“‘’”»›][\s]', re.UNICODE)       # quote-space at beginning of verse
 spacey4_re = re.compile(r'[\s][\(\'"«“‘’”»›]$', re.UNICODE)       # quote-space at end of verse
 #wordmedial_punct_re = re.compile(r'[\w][\.\?!;\:,\(\)\[\]"«“‘’”»›][\.\?!;\:,\(\)\[\]\'"«“‘’”»›]*[\w]', re.UNICODE)
@@ -688,19 +688,20 @@ def takeText(t, footnote=False):
     if not footnote and t.startswith(str(state.verse) + " "):
         reportError("Verse number in text (probable): " + state.reference, 59)
     elif v := number_re.search(t):
-        if v.group(1) == str(state.verse) or v.group(1) == str(state.verse+1):
+        if (v.group(1) == str(state.verse) and v.start() == 0) or v.group(1) == str(state.verse+1):
             reportError(f"Possible verse number in text at {state.reference}", 59.1)
     if embed := numberembed_re.search(t):
         reportError(f"Embedded number in word: {embed.group(0)} at {state.reference}", 60)
     else:
-        if prefixed := numberprefix_re.search(t):
-            if not footnote or (prefixed.group(0)[0] not in {':','-'}):
-                reportError(f"Invalid number prefix: {prefixed.group(0)} at {state.reference}", 60.1)
         if suffixed := numbersuffix_re.search(t):
             if not footnote or (suffixed.group(0)[-1] not in {':','-'}):
                 reportError(f"Invalid number suffix: {suffixed.group(0)} at {state.reference}", 60.2)
+        if prefixed := numberprefix_re.search(t):
+            if not footnote or (prefixed.group(0)[0] not in {':','-'}):
+                reportError(f"Invalid number prefix: {prefixed.group(0)} at {state.reference}", 60.1)
     if unsegmented := unsegmented_re.search(t):
-        reportError(f"Unsegmented number: {unsegmented.group(0)} at {state.reference}", 61.5)
+        if len(unsegmented.group(0)) > 4:
+            reportError(f"Unsegmented number: {unsegmented.group(0)} at {state.reference}", 61.5)
     if fmt := numberformat_re.search(t):
         reportError(f"Space in number {fmt.group(0)} at {state.reference}", 61.6)
     elif leadzero := leadingzero_re.search(t):
