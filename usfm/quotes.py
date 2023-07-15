@@ -20,11 +20,12 @@ subs = [
 
 import re
 quote0_re = re.compile(r'\s([\'"]+)[\w]+([\'"]+)\s')     # a single word in quotes
-quote1_re = re.compile(r' ([\'"]+)\w')     # SPACE quotes word => open quotes
+quote1_re = re.compile(r'[ \(]([\'"]+)\w')     # SPACE|PAREN quotes word => open quotes
 quote2_re = re.compile(r': ([\'"])+')     # colon SPACE quotes => open quotes
-quote3_re = re.compile(r'[,;]([\'"]+) ')     # comma/semicolon quotes SPACE => close quotes
-quote4_re = re.compile(r'[\.!\?]([\'"]+)')     # period/bang/question quotes => close quotes
+quote3_re = re.compile(r'[,;]([\'"]+)[ \)]')     # comma/semicolon quotes SPACE|PAREN => close quotes
+quote4_re = re.compile(r'[\.,!\?]([\'"]+)')     # period/bang/question quotes => close quotes
 quote5_re = re.compile(r'\w([\'"]+) *\n')        # word quotes EOL
+quote6_re = re.compile(r'([\'"]+\?)')         # quotes question => close quotes question
 opentrans = str.maketrans('\'"', "‘“")
 closetrans = str.maketrans('\'"', '’”')
 
@@ -69,6 +70,12 @@ def promoteQuotes(str):
         (i,j) = (snippet.start()+1, snippet.start() + 1 + len(snippet.group(1)))
         str = str[0:i] + snippet.group(1).translate(closetrans) + str[j:]
         snippet = quote5_re.search(str)
+
+    snippet = quote6_re.search(str)
+    while snippet:
+        (i,j) = (snippet.start(), snippet.end())
+        str = str[0:i] + snippet.group(0).translate(closetrans) + str[j:]
+        snippet = quote6_re.search(str)
 
     for pair in subs:
         str = str.replace(pair[0], pair[1])
