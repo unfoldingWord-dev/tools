@@ -8,7 +8,7 @@
 # Global variables
 #model_dir = r'C:\DCS\English\en_udb.paragraphs'
 model_dir = r'C:\DCS\Indonesian\id_ayt.TA'
-source_dir = r"C:\DCS\Reta\work\42-MRK.usfm"     # file(s) to be changed
+source_dir = r"C:\DCS\Reta\work\41-MAT.usfm"     # file(s) to be changed
 removeS5markers = True
 xlateS5markers = False   # Dubious validity, and not tested for texts that have both kinds of markers already. Translates most \s5 markers to \p markers.
 copy_nb = False
@@ -94,10 +94,14 @@ class State:
     def addFootnote(self):
         State.expectText = True
 
-    # Returns True if a paragraph mark was already recorded for the current verse.
+    # Returns True if a paragraph mark was already recorded for the current or next verse.
     # See addP()
-    def pAlready(self):
-        return State.pVerse == State.verse and State.pChapter == State.chapter
+    def pAlready(self, current):
+        if current:
+            already = State.pVerse == State.verse and State.pChapter == State.chapter
+        else:       # paragraph mark for next verse
+            already = State.pVerse == State.verse + 1 and State.pChapter == State.chapter
+        return already
 
     # Returns the paragraph mark that occurred in the model file at the current location.
     def pmarkInModel(self):
@@ -168,8 +172,9 @@ def takeID(id):
 # Copies paragraph marker to output unless output already has a paragraph there.
 def takePQ(tag, value):
     state = State()
-    state.addP()
-    state.usfmWrite("\n\\" + tag)
+    if not state.pAlready(current=False):
+        state.addP()
+        state.usfmWrite("\n\\" + tag)
     if value:
         state.usfmWrite(value)
 
@@ -188,7 +193,7 @@ def takeV(v):
     global nCopied
     state = State()
     state.addVerse(v)
-    if not state.pAlready():
+    if not state.pAlready(current=True):
         if pmark := state.pmarkInModel():
             state.usfmWrite("\n\\" + pmark)
             nCopied += 1
