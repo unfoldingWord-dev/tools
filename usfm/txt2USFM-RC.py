@@ -8,9 +8,9 @@
 #    Converts multiple books at once if there are multiple books.
 
 # Global variables
-source_dir = r'C:\DCS\Kodi\REG'  # must be a folder
-target_dir = r'C:\DCS\Kodi\work2'
-language_code = "kod"
+source_dir = r'C:\DCS\Ruuli\REG.MAST\Best-we-have'  # must be a folder
+target_dir = r'C:\DCS\Ruuli\work'
+language_code = "ruc"
 mark_chunks = False   # Should be true for GL source text
 
 import usfm_verses
@@ -265,7 +265,7 @@ def combineLines(lines):
     return section
 
 cvExpr = re.compile(r'\\[cv] [0-9]+')
-chapter_re = re.compile(r'\n\\c +[0-9]+[ \n]*', re.UNICODE)
+chapter_re = re.compile(r'\n\\c +([0-9]+)[ \n]*', re.UNICODE)
 # labeledChapter_re = re.compile(r'(\\c +[\d]{1,3}) +(.+?)$', re.UNICODE+re.MULTILINE)
 
 # Adds section marker, chapter label, and paragraph marker as needed.
@@ -282,8 +282,8 @@ def augmentChapter(section, chapterTitle):
 #    else:
     chap = chapter_re.search(section)
     if chap:
-        if chapterTitle:
-            clpstr = "\n\\cl " + chapterTitle + "\n\\p\n"
+        if chapterTitle.strip() != chap.group(1):
+            clpstr = "\n\\cl " + chapterTitle.strip() + "\n\\p\n"
         else:
             clpstr = "\n\\p\n"
         section = section[:chap.end()].rstrip() + clpstr + section[chap.end():].lstrip()
