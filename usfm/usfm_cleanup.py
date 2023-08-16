@@ -7,17 +7,15 @@
 #    to the next line after the \s# marker.
 
 # Set these globals
-source_dir = r"C:\DCS\Kubu\work\63-1JN.usfm"
+source_dir = r"C:\DCS\Talang Mamak\work"
 promote_all_quotes = False      # promote single and double straight quotes to curly quotes, except word-medial
 promote_double_quotes = False   # promote only double quotes
 
 nChanged = 0
 max_changes = 66
 # Customize the behavior of this program by setting these globals:
-enable_move_pq = True
-enable_fix_punctuation = True   # substitutions.py, double periodd, and spacing at beginning of verse
+enable_fix_punctuation = True   # substitutions.py, double period, and spacing at beginning of verse
 enable_add_spaces = True    # Add spaces between commo/period/colon and a letter
-promote_quotes = False       # Promote straight quote to curly quotes. Not recommended until confident of quote placements.
 aligned_usfm = False
 remove_s5 = True
 
@@ -79,7 +77,6 @@ def usfm_remove_s5(str):
     newstr += str
     return newstr
 
-
 spacey3_re = re.compile(r'\\v [0-9]+ ([\(\'"«“‘])[\s]', re.UNICODE)    # verse starts with free floating quote mark
 
 # Replaces substrings from substitutions module
@@ -129,9 +126,8 @@ def convert_wholefile(path):
 
     if remove_s5:
         alltext = usfm_remove_s5(alltext)
-    if enable_move_pq:
-        alltext = usfm_move_pq(alltext)
-        alltext = usfm_remove_pq(alltext)
+    alltext = usfm_move_pq(alltext)
+    alltext = usfm_remove_pq(alltext)
     if enable_fix_punctuation and not aligned_usfm:  # and fileQualifies(path):
         alltext = fix_punctuation(alltext)
     if enable_add_spaces and not aligned_usfm:
