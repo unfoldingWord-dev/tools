@@ -7,9 +7,9 @@
 #    to the next line after the \s# marker.
 
 # Set these globals
-source_dir = r"C:\DCS\Talang Mamak\work"
+source_dir = r"C:\DCS\Talang Mamak\work\48-2CO.usfm"
 promote_all_quotes = False      # promote single and double straight quotes to curly quotes, except word-medial
-promote_double_quotes = False   # promote only double quotes
+promote_double_quotes = True   # promote only double quotes
 
 nChanged = 0
 max_changes = 66
@@ -77,6 +77,24 @@ def usfm_remove_s5(str):
     newstr += str
     return newstr
 
+def fix_booktitles_x(str, compiled_expression):
+    pos = 0
+    title_line = compiled_expression.search(str, pos)
+    while title_line:
+        pos = title_line.start()
+        title = title_line.group(2)
+        if not title.istitle():     # not title case already
+            str = str[:pos] + title_line.group(1) + title.title() + str[title_line.end():]
+        pos += 5
+        title_line = compiled_expression.search(str, pos)
+    return str
+
+def fix_booktitles(str):
+    str = fix_booktitles_x(str, re.compile(r'(\\toc[12] )([^\n]+\n)'))
+    str = fix_booktitles_x(str, re.compile(r'(\\h )([^\n]+\n)'))
+    str = fix_booktitles_x(str, re.compile(r'(\\mt1? )([^\n]+\n)'))
+    return str
+
 spacey3_re = re.compile(r'\\v [0-9]+ ([\(\'"«“‘])[\s]', re.UNICODE)    # verse starts with free floating quote mark
 
 # Replaces substrings from substitutions module
@@ -128,6 +146,7 @@ def convert_wholefile(path):
         alltext = usfm_remove_s5(alltext)
     alltext = usfm_move_pq(alltext)
     alltext = usfm_remove_pq(alltext)
+    alltext = fix_booktitles(alltext)
     if enable_fix_punctuation and not aligned_usfm:  # and fileQualifies(path):
         alltext = fix_punctuation(alltext)
     if enable_add_spaces and not aligned_usfm:
@@ -228,6 +247,8 @@ def convertFile(path):
     global nChanged
     prev_nChanged = nChanged
     tmppath = path + ".tmp"
+    if os.path.exists(tmppath):
+        os.remove(tmppath)
     os.rename(path, tmppath)    # to preserve time stamp
     shutil.copyfile(tmppath, path)
 
