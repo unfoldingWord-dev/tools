@@ -5,9 +5,11 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Reta\ret_reg"
-language_code = "ret"
-std_clabel = "Ejel"    # leave blank if you don't have a standard chapter label
+source_dir = r"C:\DCS\Talang Mamak\work\48-2CO.usfm"
+#source_dir = r"C:\DCS\Talang Mamak\zlm-x-talangmama_reg\41-MAT.usfm"
+language_code = "zlm-x-talangmama"
+std_titles = ["Ejel"]    # Set to empty list [] if you don't have a standard chapter label
+#std_titles = ["Toko", "Faha"]    # Set to empty list [] if you don't have a standard chapter label
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
@@ -15,7 +17,7 @@ suppress3 = False    # Suppress bad punctuation warnings
 suppress4 = False     # Suppress warnings about useless markers before section/title markers
 suppress5 = False     # Suppress checks for verse counts
 suppress6 = False    # Suppress warnings about straight quotes
-suppress7 = True    # Suppress warning about UPPER CASE book titles
+suppress7 = False    # Suppress warning about UPPER CASE book titles
 suppress9 = True     # Suppress warnings about ASCII content
 
 max_chunk_length = 400
@@ -58,6 +60,8 @@ class State:
     usfm_version = 2
     chaptertitles = []
     nChapterLabels = 0
+    nParagraphs = 0
+    nPoetry = 0
     chapter = 0
     verse = 0
     lastVerse = 0
@@ -84,6 +88,8 @@ class State:
         State.titles = []
         State.chaptertitles = []
         State.nChapterLabels = 0
+        State.nParagraphs = 0
+        State.nPoetry = 0
         State.chapter = 0
         State.lastVerse = 0
         State.verse = 0
@@ -139,17 +145,21 @@ class State:
         elif title.startswith(chstart):
             title = title[chlen:]
         title = title.strip()
-        title = re.sub(" +", " ", title)
-        if title not in State.chaptertitles:
-            State.chaptertitles.append(title)
+        bettertitle = re.sub(" +", " ", title)
+        if bettertitle not in State.chaptertitles:
+            State.chaptertitles.append(bettertitle)
         State.nChapterLabels += 1
+        return title    # without chapter number, but spacing unchanged
 
     def addParagraph(self):
+        State.nParagraphs += 1
         State.needPP = False
         State.needQQ = False
         State.textOkayHere = True
         State.currMarker = PP
+
     def addPoetry(self):
+        State.nPoetry += 1
         State.needQQ = False
         State.needPP = False
         State.textOkayHere = True
@@ -354,8 +364,9 @@ def verifyBookTitle():
 
 # Reports inconsistent chapter titling
 def verifyChapterTitles():
+    global std_titles
     state = State()
-    if len(state.chaptertitles) > 1:
+    if len(state.chaptertitles) > 1 and len(state.chaptertitles) != len(std_titles):
         reportError(f"Inconsistent chapter titling: {state.chaptertitles} in {state.ID}", 6)
     if state.nChapterLabels > 1 and state.nChapterLabels != state.chapter:
         reportError(f"Some chapters do not have chapter labels but {state.nChapterLabels} do.", 7)
@@ -431,12 +442,13 @@ def takeC(c):
 
 # Processes a chapter label
 def takeCL(label):
-    global std_clabel
+    global std_titles
     state = State()
     # Report missing text in previous verse
-    state.addChapterLabel(label.rstrip())
-    if std_clabel and not std_clabel in label:
-        reportError(f"Non-standard chapter label at {state.reference}: {label}", 42)
+    title = state.addChapterLabel(label.rstrip())   # gets title without chapter number, but spacing unchanged
+    if len(std_titles) > 0:
+        if title not in std_titles:
+            reportError(f"Non-standard chapter label at {state.reference}: {label}", 42)
 
 # Handles all the footnote and endnote token types
 def takeFootnote(token):
@@ -507,6 +519,8 @@ def takeTitle(token):
     if token.value.isupper() and not state.upperCaseReported and not suppress7:
         reportError("Upper case book title in " + state.reference, 31)
         state.reportedUpperCase()
+    if token.value.startswith("Ii"):
+        reportError(f"Mixed case roman numerals in \\{token.type} field", 31.1)
     if state.currMarker == B:
         reportError("\\b may not be used before or after titles or headings. " + state.reference, 32)
 
@@ -645,15 +659,53 @@ def reportPunctuation(text):
         str = context(text, bad.start(), bad.end())
         reportError(f"Word medial punctuation in {state.reference}: {str}", 52)
 
-period_re = re.compile(r'[\s]*[\.,;:!\?]', re.UNICODE)    # detects phrase-ending punctuation starting a phrase
-numberembed_re = re.compile(r'[^\s,:\.0-9\(\-]+[0-9]+[^\s,;\.0-9\)]+')
-numberprefix_re = re.compile(r'[^\s,\.0-9\(][0-9]+', re.UNICODE)
-numbersuffix_re = re.compile(r'[0-9]+[^\s,;\.0-9\)]', re.UNICODE)
+numberembed_re = re.compile(r'[^\s,:\.0-9\(\[\-]+[0-9]+[^\s,;\.0-9\)\]]+')
+numberprefix_re = re.compile(r'[^\s,\.0-9\(\[][0-9]+', re.UNICODE)
+numbersuffix_re = re.compile(r'[0-9]+[^\s,;\.0-9\)\]]', re.UNICODE)
 unsegmented_re = re.compile(r'[0-9][0-9][0-9][0-9]+')
 numberformat_re = re.compile(r'[0-9]+[\.,]?\s[\.,]?[0-9]+')
 leadingzero_re = re.compile(r'[\s]0[0-9,]*', re.UNICODE)
-number_re = re.compile(r'\s([0-9]+)\s')       # possible verse number in text
+number_re = re.compile(r'[^\d](\d+)[^\d]')       # possible verse number in text
+chapverse_re = re.compile(r'(\d+)([:\-])(\d+)')
 
+def reportNumbers(t, footnote):
+    state = State()
+    verseflag = False
+    if not footnote:
+        if t.startswith(str(state.verse) + " "):
+            reportError("Verse number in text (probable): " + state.reference, 59)
+            verseflag = True
+        elif v := number_re.search(t):
+            while v:
+                if v.group(1) == str(state.verse) or v.group(1) == str(state.verse+1):
+                    reportError(f"Possible verse number ({v.group(1)}) in text at {state.reference}", 59.1)
+                    verseflag = True
+                v = number_re.search(t, v.end()-1)
+        if not verseflag:
+            chapverse = chapverse_re.search(t)
+            while chapverse:
+                if chapverse.group(2) == ":" or int(chapverse.group(3)) > int(chapverse.group(1)):
+                    reportError(f"Likely verse reference ({chapverse.group(0)}) in text at {state.reference}", 59.2)
+                    verseflag = True
+                chapverse = chapverse_re.search(t, chapverse.end())
+    if embed := numberembed_re.search(t):
+        reportError(f"Embedded number in word: {embed.group(0)} at {state.reference}", 60)
+    elif not verseflag:
+        if suffixed := numbersuffix_re.search(t):
+            if not footnote or (suffixed.group(0)[-1] not in {':','-'}):
+                reportError(f"Invalid number suffix: {suffixed.group(0)} at {state.reference}", 60.2)
+        if prefixed := numberprefix_re.search(t):
+            if not footnote or (prefixed.group(0)[0] not in {':','-'}):
+                reportError(f"Invalid number prefix: {prefixed.group(0)} at {state.reference}", 60.1)
+    if unsegmented := unsegmented_re.search(t):
+        if len(unsegmented.group(0)) > 4:
+            reportError(f"Unsegmented number: {unsegmented.group(0)} at {state.reference}", 61.5)
+    if fmt := numberformat_re.search(t):
+        reportError(f"Space in number {fmt.group(0)} at {state.reference}", 61.6)
+    elif leadzero := leadingzero_re.search(t):
+        reportError(f"Invalid leading zero: {leadzero.group(0)} at {state.reference}", 61)
+
+period_re = re.compile(r'[\s]*[\.,;:!\?]', re.UNICODE)    # detects phrase-ending punctuation starting a phrase
 
 def takeText(t, footnote=False):
     global lastToken
@@ -685,27 +737,7 @@ def takeText(t, footnote=False):
             reportError(f"Punctuation on a line by itself at {state.reference}", 58)
         else:
             reportError("Text begins with phrase-ending punctuation in " + state.reference, 58.1)
-    if not footnote and t.startswith(str(state.verse) + " "):
-        reportError("Verse number in text (probable): " + state.reference, 59)
-    elif v := number_re.search(t):
-        if (v.group(1) == str(state.verse) and v.start() == 0) or v.group(1) == str(state.verse+1):
-            reportError(f"Possible verse number in text at {state.reference}", 59.1)
-    if embed := numberembed_re.search(t):
-        reportError(f"Embedded number in word: {embed.group(0)} at {state.reference}", 60)
-    else:
-        if suffixed := numbersuffix_re.search(t):
-            if not footnote or (suffixed.group(0)[-1] not in {':','-'}):
-                reportError(f"Invalid number suffix: {suffixed.group(0)} at {state.reference}", 60.2)
-        if prefixed := numberprefix_re.search(t):
-            if not footnote or (prefixed.group(0)[0] not in {':','-'}):
-                reportError(f"Invalid number prefix: {prefixed.group(0)} at {state.reference}", 60.1)
-    if unsegmented := unsegmented_re.search(t):
-        if len(unsegmented.group(0)) > 4:
-            reportError(f"Unsegmented number: {unsegmented.group(0)} at {state.reference}", 61.5)
-    if fmt := numberformat_re.search(t):
-        reportError(f"Space in number {fmt.group(0)} at {state.reference}", 61.6)
-    elif leadzero := leadingzero_re.search(t):
-        reportError(f"Invalid leading zero: {leadzero.group(0)} at {state.reference}", 61)
+    reportNumbers(t, footnote)
     state.addText(t)
 
 # Returns true if token is part of a footnote
@@ -855,6 +887,11 @@ def verifyChapterAndVerseMarkers(text, path):
 #            str = str[:-1]
         reportError("Missing space after verse number: " + str + " in " + path, 74)
 
+def verifyParagraphCount():
+    state = State()
+    if state.nParagraphs / state.chapter <= 2.5 and state.nPoetry / state.chapter <= 15:
+        reportError(f"Low paragraph count ({state.nParagraphs + state.nPoetry}) for {state.ID}")
+
 orphantext_re = re.compile(r'\n\n[^\\]', re.UNICODE)
 embeddedquotes_re = re.compile(r"\w'\w")
 
@@ -936,6 +973,7 @@ def verifyFile(path):
         verifyChapterCount()
         verifyFootnotes()
         verifyChapterTitles()
+        verifyParagraphCount()
         state.addID("")
         sys.stderr.flush()
 
