@@ -8,9 +8,9 @@
 #    Converts multiple books at once if there are multiple books.
 
 # Global variables
-source_dir = r'C:\DCS\Ruuli\REG.MAST\Best-we-have'  # must be a folder
-target_dir = r'C:\DCS\Ruuli\work'
-language_code = "ruc"
+source_dir = r'C:\DCS\Talang Mamak\REG'  # must be a folder
+target_dir = r'C:\DCS\Talang Mamak\work'
+language_code = "zlm-x-talangmama"
 mark_chunks = False   # Should be true for GL source text
 
 import usfm_verses
@@ -34,12 +34,10 @@ projects = []
 # verserange is a list of verse number strings that should exist in the file.
 # On exit, the named file contains the improved chunk.
 # On exit, XX.txt-orig. contains the original chunk, if different.
-def cleanupChunk(directory, filename, verserange):
-    # dot = filename.find('.')
-    # verse_start = filename[0:dot]
+def cleanupChunk(path, chap, verserange):
     vn_start = int(verserange[0])
     vn_end = int(verserange[-1])
-    path = os.path.join(directory, filename)
+    # path = os.path.join(chapterpath, filename)
     input = io.open(path, "tr", encoding='utf-8-sig')
     origtext = input.read()
     input.close()
@@ -49,7 +47,7 @@ def cleanupChunk(directory, filename, verserange):
 
     missing_chapter = ""
     if vn_start == 1 and lacksChapter(text):
-        missing_chapter = directory.lstrip('0')
+        missing_chapter = chap.lstrip('0')
     missing_verses = lackingVerses(text, verserange, numbers_re)
     missing_markers = lackingVerses(text, verserange, verseMarker_re)
     if missing_chapter or missing_verses or missing_markers:
@@ -442,11 +440,11 @@ def getBookId(folder):
 
 # Locates title.txt in either the front folder or 00 folder.
 # Extracts the first line of that file as the book title.
-def getBookTitle():
+def getBookTitle(folder):
     bookTitle = ""
-    path = os.path.join("front", "title.txt")
+    path = os.path.join(folder, "front/title.txt")
     if not os.path.isfile(path):
-        path = os.path.join("00", "title.txt")
+        path = os.path.join(folder, "00/title.txt")
     if os.path.isfile(path):
         f = io.open(path, "tr", 1, encoding='utf-8-sig')
         bookTitle = f.readline().strip()
@@ -484,13 +482,6 @@ def dumpProjects():
         manifest.write("    categories: " + p['category'] + "\n")
     manifest.close()
 
-# Write the chapter titles to the specified file
-#def dumpChapterTitles(titles, path):
-    #with io.open(path, 'tw', encoding='utf-8', newline='\n') as f:
-        #for name in titles:
-            #if name:
-                #f.write(name + '\n')
-
 def shortname(longpath):
     shortname = longpath
     if source_dir in longpath:
@@ -498,21 +489,11 @@ def shortname(longpath):
     return shortname
 
 def convertFolder(folder):
-    if not folder:
-        folder = os.getcwd()
-    try:
-        os.chdir(folder)
-    except IOError as e:
-        sys.stderr.write("Invalid folder: " + folder + "\n")
-        return
-    except WindowsError as e:
-        sys.stderr.write("Invalid folder: " + folder + "\n")
-        return
-    else:
+    if os.path.basename(folder).startswith(language_code):
         sys.stdout.write("Converting: " + shortname(folder) + "\n")
         sys.stdout.flush()
         bookId = getBookId(folder)
-        bookTitle = getBookTitle()
+        bookTitle = getBookTitle(folder)
         if bookId and bookTitle:
             convertBook(folder, bookId, bookTitle)   # converts the pieces in the current folder
             appendToProjects(bookId, bookTitle)
@@ -523,17 +504,13 @@ def convertFolder(folder):
                 sys.stderr.write("Unable to determine book ID in " + folder + "\n")
             if not bookTitle:
                 sys.stderr.write("Unable to determine book title in " + folder + "\n")
+    else:
+        sys.stderr.write(f"Book folder name ({os.path.basename(folder)}) does not match language code ({language_code})\n")
 
 # Returns file name for usfm file in current folder
 def makeUsfmFilename(bookId):
-    # loadVerseCounts()
-
-    if len(usfm_verses.verseCounts) > 0:
-        num = usfm_verses.verseCounts[bookId]['usfm_number']
-        filename = num + '-' + bookId + '.usfm'
-    else:
-        pathComponents = os.path.split(os.getcwd())   # old method
-        filename = pathComponents[-1] + ".usfm"
+    num = usfm_verses.verseCounts[bookId]['usfm_number']
+    filename = num + '-' + bookId + '.usfm'
     return filename
 
 # Returns path of temporary manifest file block listing projects converted
@@ -604,12 +581,11 @@ def makeVerseRange(chunks, i, bookId, chapter):
 
 # Tries to find front/title.txt or 00/title.txt.
 # Returns the content of that file if it exists, or an empty string.
-def getChapterTitle(folder, chap):
+def getChapterTitle(chapterpath):
     title = ""
-    chapterPath = os.path.join(folder, chap)
-    path = os.path.join( os.path.join(folder, chap), "title.txt")
-    if os.path.isfile(path):
-        titlefile = io.open(path, 'tr', encoding='utf-8-sig')
+    titlepath = os.path.join(chapterpath, "title.txt")
+    if os.path.isfile(titlepath):
+        titlefile = io.open(titlepath, 'tr', encoding='utf-8-sig')
         title = titlefile.read()
         titlefile.close()
     return title
@@ -619,26 +595,24 @@ def convertBook(folder, bookId, bookTitle):
     chapters = listChapters(folder)
     # Open output USFM file for writing.
     usfmPath = os.path.join(target_dir, makeUsfmFilename(bookId))
-    titlesPath = usfmPath.replace(".usfm", "-chapters.txt")
     usfmFile = io.open(usfmPath, "tw", buffering=1, encoding='utf-8', newline='\n')
     writeHeader(usfmFile, bookId, bookTitle)
     #titles = []
 
     for chap in chapters:
-        chapterTitle = getChapterTitle(folder, chap)
+        chapterpath = os.path.join(folder, chap)
+        chapterTitle = getChapterTitle(chapterpath)
         #titles.append(chapterTitle)
-        chunks = listChunks(chap)
+        chunks = listChunks(chapterpath)
         i = 0
         while i < len(chunks):
             filename = chunks[i] + ".txt"
-            txtPath = os.path.join(chap, filename)
-            cleanupChunk(chap, filename, makeVerseRange(chunks, i, bookId, int(chap)))
+            txtPath = os.path.join(chapterpath, filename)
+            cleanupChunk(txtPath, chap, makeVerseRange(chunks, i, bookId, int(chap)))
             section = convertFile(txtPath, chapterTitle) + '\n'
             usfmFile.write(section)
             i += 1
-    # Wrap up
     usfmFile.close()
-    # dumpChapterTitles(titles, titlesPath)
 
 # Converts the book or books contained in the specified folder
 def convert(dir):
