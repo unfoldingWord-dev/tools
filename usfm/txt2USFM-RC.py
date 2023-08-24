@@ -8,9 +8,9 @@
 #    Converts multiple books at once if there are multiple books.
 
 # Global variables
-source_dir = r'C:\DCS\Talang Mamak\REG'  # must be a folder
-target_dir = r'C:\DCS\Talang Mamak\work'
-language_code = "zlm-x-talangmama"
+source_dir = r'C:\DCS\Matengo\REG'  # must be a folder
+target_dir = r'C:\DCS\Matengo\work'
+language_code = "mgv"
 mark_chunks = False   # Should be true for GL source text
 
 import usfm_verses
@@ -440,6 +440,7 @@ def getBookId(folder):
 
 # Locates title.txt in either the front folder or 00 folder.
 # Extracts the first line of that file as the book title.
+# Converts to title case and returns it.
 def getBookTitle(folder):
     bookTitle = ""
     path = os.path.join(folder, "front/title.txt")
@@ -451,7 +452,7 @@ def getBookTitle(folder):
         f.close()
     else:
         sys.stderr.write("   Can't open " + path + "!\n")
-    return bookTitle
+    return bookTitle.title()
 
 # Appends information about the current book to the global projects list.
 def appendToProjects(bookId, bookTitle):
