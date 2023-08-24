@@ -5,19 +5,20 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Talang Mamak\work\48-2CO.usfm"
+source_dir = r"C:\DCS\Matengo\work"
 #source_dir = r"C:\DCS\Talang Mamak\zlm-x-talangmama_reg\41-MAT.usfm"
-language_code = "zlm-x-talangmama"
-std_titles = ["Ejel"]    # Set to empty list [] if you don't have a standard chapter label
-#std_titles = ["Toko", "Faha"]    # Set to empty list [] if you don't have a standard chapter label
+language_code = "mgv"
+std_titles = ["Sura"]    # Set to empty list [] if you don't have a standard chapter label
+#std_titles = ["Toko", "Faha"]
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
 suppress3 = False    # Suppress bad punctuation warnings
 suppress4 = False     # Suppress warnings about useless markers before section/title markers
 suppress5 = False     # Suppress checks for verse counts
-suppress6 = False    # Suppress warnings about straight quotes
-suppress7 = False    # Suppress warning about UPPER CASE book titles
+suppress6 = False    # Suppress warnings about straight double and single quotes
+suppress7 = False    # Suppress warnings about straight single quotes  (report straight double quotes only)
+suppress8 = False    # Suppress warning about UPPER CASE book titles
 suppress9 = True     # Suppress warnings about ASCII content
 
 max_chunk_length = 400
@@ -28,6 +29,8 @@ if language_code in {'as','bn','gu','hi','kn','ml','mr','nag','ne','or','pa','ru
     suppress9 = False
 #if language_code == 'ru':
     #suppress5 = True
+if std_titles == [""]:
+    std_titles = []
 
 lastToken = None
 nextToken = None
@@ -516,7 +519,7 @@ def takeTitle(token):
     state.addTitle(token.value)
     if token.isMT() and token.value.isascii() and not suppress9:
         reportError("mt token has ASCII value in " + state.reference, 30)
-    if token.value.isupper() and not state.upperCaseReported and not suppress7:
+    if token.value.isupper() and not state.upperCaseReported and not suppress8:
         reportError("Upper case book title in " + state.reference, 31)
         state.reportedUpperCase()
     if token.value.startswith("Ii"):
@@ -658,6 +661,10 @@ def reportPunctuation(text):
     if bad and text[bad.end()-1] not in "0123456789":
         str = context(text, bad.start(), bad.end())
         reportError(f"Word medial punctuation in {state.reference}: {str}", 52)
+    if '/' in text:
+        reportError(f"Forward slash in {state.reference}", 52.1)
+    if '\\' in text:
+        reportError(f"Backslash in {state.reference}", 52.2)
 
 numberembed_re = re.compile(r'[^\s,:\.0-9\(\[\-]+[0-9]+[^\s,;\.0-9\)\]]+')
 numberprefix_re = re.compile(r'[^\s,\.0-9\(\[][0-9]+', re.UNICODE)
@@ -890,7 +897,7 @@ def verifyChapterAndVerseMarkers(text, path):
 def verifyParagraphCount():
     state = State()
     if state.nParagraphs / state.chapter <= 2.5 and state.nPoetry / state.chapter <= 15:
-        reportError(f"Low paragraph count ({state.nParagraphs + state.nPoetry}) for {state.ID}")
+        reportError(f"Low paragraph count ({state.nParagraphs + state.nPoetry}) for {state.ID}", 73.5)
 
 orphantext_re = re.compile(r'\n\n[^\\]', re.UNICODE)
 embeddedquotes_re = re.compile(r"\w'\w")
@@ -911,7 +918,7 @@ def verifyWholeFile(str, path):
         nembedded = len(embeddedquotes_re.findall(str))
         nsingle = str.count("'") - nembedded
         ndouble = str.count('"')
-        if nsingle > 0 or ndouble > 0:
+        if (nsingle > 0 and not suppress7) or ndouble > 0:
             reportError(f"Straight quotes found in {shortname(path)}: {ndouble} doubles, {nsingle} singles not counting {nembedded} word-medial.", 75)
 
 
