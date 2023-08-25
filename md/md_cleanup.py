@@ -47,10 +47,10 @@ import codecs
 import stars
 
 # Globals
-source_dir = r'C:\DCS\Farsi\fa_tw.RPP\bible\names'
-language_code = 'fa'
-resource_type = 'tw'
-server = 'WACS'     # DCS or WACS
+source_dir = r'C:\DCS\Arabic-ar\work'
+language_code = 'ar'
+resource_type = 'tq'
+server = 'DCS'     # DCS or WACS
 
 nChanged = 0
 max_files = 11111
@@ -58,7 +58,7 @@ max_files = 11111
 import substitutions    # change substitutions modules as necessary; generic one is just "substitutions"
 
 suppress1 = False       # Suppress hash mark cleanup
-suppress2 = True       # Suppress stdout informational messages
+suppress2 = False       # Suppress stdout informational messages
 suppress3 = False       # Suppress addition of blank lines after lists and removal of blank lines between list items
 suppress4 = False       # Suppress addition of blank lines before lists. (should suppress for newer DCS resources)
 if resource_type == 'ta':
@@ -187,6 +187,22 @@ def markQuestionLines(str):
             line = "# " + line
         text += line + '\n'
         lineno += 1
+    return text
+
+def removeDuplicates(text):
+    lines = text.splitlines()
+    nlines = len(lines)
+    if nlines >= 7:
+        i = 4
+        while i + 2 < nlines:
+            if lines[i-4:i-1] == lines[i:i+3]:
+                del lines[i-1:i+3]
+                nlines = len(lines)
+            else:
+                i += 4
+        text = ""
+        for line in lines:
+            text += line + '\n'
     return text
 
 validlink_re = re.compile(r'/([0-9][0-9])\.md$')
@@ -419,6 +435,8 @@ def substitution(text):
 
     for pair in substitutions.subs:
         text = text.replace(pair[0], pair[1])
+    if resource_type == 'tq':
+        text = text.replace("\n\n\n", "\n\n")
     return text
 
 keystring = []      # These strings are searched to determine files that are candidates for change
@@ -459,6 +477,7 @@ def convertWholeFile(source, target):
             text = fixHeadingLevels(text)
         if resource_type == 'tq':
             text = markQuestionLines(text)
+            text = removeDuplicates(text)
 
     if resource_type in {'tn','tq'} and "intro.md" not in source and server == 'DCS':
         text = foldLists(text)
