@@ -21,17 +21,17 @@
 # To-do -- check for other kinds of links in headings, not just TA links.
 
 # Globals
-source_dir = r'C:\DCS\Farsi\fa_tw.RPP\bible\names'
-language_code = 'fa'
-resource_type = 'tw'
-ta_dir = r'C:\DCS\Oriya\or_ta.STR'    # Target language tA, or English tM for WA
+source_dir = r'C:\DCS\Arabic-ar\work'
+language_code = 'ar'
+resource_type = 'tq'
+ta_dir = r'C:\DCS\Hindi\hi_ta.STR'    # Target language tA, or English tM for WA
 obstn_dir = r'C:\DCS\Hindi\hi_obs-tn.STR'
 en_ta_dir = r'C:\DCS\English\en_ta.v29'
 en_tn_dir = r'C:\DCS\English\en_tn.md-orig'
 en_tq_dir = r'C:\DCS\English\en_tq.v38'
-tn_dir = r'C:\DCS\Farsi\fa_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
-tw_dir = r'C:\DCS\Farsi\fa_tw.RPP\bible'
-en_tw_dir = r'C:\DCS\English-WACS\en_tw.RPP\bible'
+tn_dir = r'C:\DCS\Arabic-ar\ar_tn.RPP'    # Markdown-style tN folder in target language, for note link validation
+tw_dir = r'C:\DCS\Arabic-ar\ar_t2.RPP\bible'
+en_tw_dir = r'C:\DCS\English\en_tw.v36\bible'
 
 nChecked = 0
 nChanged = 0
@@ -96,6 +96,8 @@ class State:
         State.textcount = 0
         State.prevQ = ""
         State.currQ = ""
+        State.prevA = ""
+        State.currA = ""
         State.prevheadinglevel = 0
         State.currheadinglevel = 0
         State.prevlinetype = None
@@ -118,7 +120,9 @@ class State:
         State.prevlinetype = State.currlinetype
         State.linecount += 1
         State.italicized = False
-        if line and (line[0] == '#' or badheading_re.match(line)):
+        if not line or len(line.strip()) == 0:
+            State.currlinetype = BLANKLINE
+        elif line[0] == '#' or badheading_re.match(line):
             State.currlinetype = HEADING
             State.headingcount += 1
             State.prevheadinglevel = State.currheadinglevel
@@ -127,8 +131,6 @@ class State:
             if resource_type == 'tq':
                 State.prevQ = State.currQ
                 State.currQ = line
-        elif not line or len(line.strip()) == 0:
-            State.currlinetype = BLANKLINE
         elif listitem_re.match(line):
             State.currlinetype = LIST_ITEM
             if State.prevlinetype in {HEADING,BLANKLINE}:
@@ -138,6 +140,9 @@ class State:
             if State.prevlinetype in {HEADING,BLANKLINE}:
                 State.textcount += 1
         else:
+            if resource_type == 'tq':
+                State.prevA = State.currA
+                State.currA = line
             State.currlinetype = TEXT
             State.textcount += 1
             State.italicized = (line[0] == '_' and line[-1] == '_') #  or (line[0] == '*' and line[-1] == '*') asterisks don't pass the tx check
@@ -281,8 +286,8 @@ def take(line):
         if state.headingcount == 0 and not suppress1 and not state.reported1:
             reportError("has text before first heading")
             state.report1()
-        if resource_type == 'tq' and state.currQ == state.prevQ and state.currQ != "":
-            reportError("Duplicate questions")
+        if resource_type == 'tq' and state.currQ == state.prevQ and state.prevA != "" and state.currA == state.prevA:
+            reportError("Duplicate question/answer")
     if state.currlinetype == TEXT and not state.reported2 and not suppress19:
         if state.linecount >= 5 and state.prevlinetype == BLANKLINE and state.linetype[state.linecount-3] in {TEXT,LIST_ITEM,ORDEREDLIST_ITEM}:
             if resource_type in {"tn", "tq", "obs-tn", "obs-tq"}:
