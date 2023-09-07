@@ -5,13 +5,12 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Matengo\work"
-#source_dir = r"C:\DCS\Talang Mamak\zlm-x-talangmama_reg\41-MAT.usfm"
-language_code = "mgv"
-std_titles = ["Sura"]    # Set to empty list [] if you don't have a standard chapter label
-#std_titles = ["Toko", "Faha"]
+source_dir = r"C:\DCS\Safwa\work\43-LUK.usfm"
+language_code = "sbk"
+std_titles = ["Ulyango"]    # Set to empty list [] if you don't have a standard chapter label
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
+suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
 suppress3 = False    # Suppress bad punctuation warnings
 suppress4 = False     # Suppress warnings about useless markers before section/title markers
@@ -20,6 +19,7 @@ suppress6 = False    # Suppress warnings about straight double and single quotes
 suppress7 = False    # Suppress warnings about straight single quotes  (report straight double quotes only)
 suppress8 = False    # Suppress warning about UPPER CASE book titles
 suppress9 = True     # Suppress warnings about ASCII content
+suppress10 = False    # Suppress "Sentence not caapitalized" warnings
 
 max_chunk_length = 400
 
@@ -43,6 +43,7 @@ import os
 import sys
 import parseUsfm
 import io
+import operator
 import footnoted_verses
 import usfm_verses
 import re
@@ -74,6 +75,7 @@ class State:
     needVerseText = False
     textLength = 0
     textOkayHere = False
+    sentenceEnd = True
     footnote_starts = 0
     footnote_ends = 0
     endnote_starts = 0
@@ -104,6 +106,7 @@ class State:
         State.needVerseText = False
         State.textLength = 0
         State.textOkayHere = False
+        State.sentenceEnd = True
         State.lastRef = State.reference
         State.startChunkRef = ""
         State.reference = id + " header/intro"
@@ -132,6 +135,7 @@ class State:
         State.verse = 0
         State.needVerseText = False
         State.textOkayHere = False
+        #State.sentenceEnd = True
         State.lastRef = State.reference
         State.reference = State.ID + " " + c
         State.startChunkRef = State.reference + ":1"
@@ -154,26 +158,36 @@ class State:
         State.nChapterLabels += 1
         return title    # without chapter number, but spacing unchanged
 
+    def addNB(self):
+        State.needPP = False
+        State.textOkayHere = True
+        State.currMarker = PP
+
     def addParagraph(self):
         State.nParagraphs += 1
         State.needPP = False
         State.needQQ = False
         State.textOkayHere = True
+        State.sentenceEnd = True
         State.currMarker = PP
 
     def addPoetry(self):
         State.nPoetry += 1
+        State.nParagraphs += 1
         State.needQQ = False
         State.needPP = False
         State.textOkayHere = True
         State.currMarker = QQ
+
     def addSection(self):
         State.currMarker = OTHER
+        # State.sentenceEnd = True
 
     # Records the start of a new chunk
     def addS5(self):
         State.startChunkVerse = State.verse + 1
         State.startChunkRef = State.ID + " " + str(State.chapter) + ":" + str(State.startChunkVerse)
+        # State.sentenceEnd = True
 
     def addUsfmVersion(self, version):
         State.usfm_version = int(version[0])
@@ -202,6 +216,9 @@ class State:
 
     def needText(self):
         return State.needVerseText
+
+    def needCaps(self):
+        return State().sentenceEnd
 
     def getTextLength(self):
         return State.textLength
@@ -248,7 +265,7 @@ class State:
         State.needVerseText = False
         State.textOkayHere = True
 
-           # Adds the specified reference to the set of error references
+    # Adds the specified reference to the set of error references
     # Returns True if reference can be added
     # Returns False if reference was previously added
     def addError(self, ref):
@@ -257,6 +274,10 @@ class State:
             self.errorRefs.add(ref)
             success = True
         return success
+
+    # Specifies whether the current piece of text ends a sentence.
+    def endSentence(self, end):
+        State.sentenceEnd = end
 
     # Returns the number of chapters that the specified book should contain
     def nChapters(self, id):
@@ -333,7 +354,7 @@ def reportIssues():
     global issues
     issuesfile = openIssuesFile()
     issuesfile.write("\nSUMMARY:\n")
-    for issue in issues.items():
+    for issue in sorted(issues.items(), key=lambda kv: kv[1][1], reverse=True):
         issuesfile.write(f"{issue[1][0]} --- {issue[1][1]} occurrence(s).\n")
 
 # Report missing text or all ASCII text, in previous verse
@@ -351,6 +372,7 @@ def longChunkCheck():
     state = State()
     if not aligned_usfm and state.verse - (max_chunk_length-1) > state.startChunkVerse:
         reportError("Long chunk: " + state.startChunkRef + "-" + str(state.verse) + "   (" + str(state.verse-state.startChunkVerse+1) + " verses)", 4)
+
 
 # Verifies that at least one book title is specified, other than the English book title.
 # This method is called just before chapter 1 begins, so there has been every
@@ -483,7 +505,7 @@ def takeID(id):
         reportError("Duplicate ID: " + id, 23)
     state.addID(id)
 
-def takeP(type):
+def reportParagraphMarkerErrors(type):
     state = State()
     if state.currMarker in {QQ,PP} and not suppress4:
         reportError("Warning: back to back paragraph/poetry markers after: " + state.reference, 24)
@@ -491,10 +513,14 @@ def takeP(type):
         reportError("Paragraph marker after verse marker, or empty verse: " + state.reference, 25)
     if type == 'nb' and state.currMarker != C:
         reportError("\\nb marker should follow chapter marker: " + state.reference, 26)
-    state.addParagraph()
+
+def takeP(type):
+    reportParagraphMarkerErrors(type)
+    state = State()
+    state.addParagraph() if type != 'nb' else state.addNB()
 
 def takeQ(type):
-    takeP(type)
+    reportParagraphMarkerErrors(type)
     State().addPoetry()
 
 def takeS5():
@@ -602,7 +628,35 @@ def reportFootnote(trigger):
     elif isOptional(reference) or reference in footnoted_verses.footnotedVerses:
         reportError(f"Bracket or parens found in {reference}, a verse that is often footnoted", 43.1)
     else:
-        reportError(f"Optional text or untagged footnote at {reference}", 44)
+        reportError(f"Optional text or untagged footnote at {reference}", 43.2)
+
+firstword_re = re.compile(r'([\w]+)')
+nextsent_re = re.compile(r'[\.\?\!].*?([\w]+)')
+specialquoted_re = re.compile(r'[\?\!][\'"’”»\-——]')    # exception to sentence ending
+endsentence_re = re.compile(r'[\.\?\!][^\w]*$')
+
+# Returns True if the specified text ends with sentence-ending punctuation.
+def endsSentence(t):
+    ends = False
+    if ending := endsentence_re.search(t):
+        if not specialquoted_re.match(t[ending.start():ending.start()+2]):
+           ends = True
+    return ends
+
+# Warns when the specified string is supposed to start a sentence but the first word is not capitalized.
+# Warns when a sentence later in the string does not start with a capital letter.
+def reportMissingCaps(str):
+    state = State()
+    if state.needCaps():
+        if first := firstword_re.search(str):
+            if first.group(1)[0].islower():
+                reportError(f"First word in paragraph or sentence: ({first.group(1)}) is not capitalized. {state.reference}", 44)
+    next = nextsent_re.search(str)
+    while next:
+        if next.group(1)[0].islower():
+            if not specialquoted_re.match(str[next.start():next.start()+2]):
+                reportError(f"First word in sentence: ({next.group(1)}) is not capitalized. {state.reference}", 44.1)
+        next = nextsent_re.search(str, next.end())
 
 # Returns a string containing text preceding specified start position and following end position
 def context(text, start, end):
@@ -714,6 +768,7 @@ def reportNumbers(t, footnote):
 
 period_re = re.compile(r'[\s]*[\.,;:!\?]', re.UNICODE)    # detects phrase-ending punctuation starting a phrase
 
+# Performs checks on some text, at most a verse in length.
 def takeText(t, footnote=False):
     global lastToken
     state = State()
@@ -745,6 +800,9 @@ def takeText(t, footnote=False):
         else:
             reportError("Text begins with phrase-ending punctuation in " + state.reference, 58.1)
     reportNumbers(t, footnote)
+    if not footnote and not suppress10:
+        reportMissingCaps(t)
+        state.endSentence( endsSentence(t) )
     state.addText(t)
 
 # Returns true if token is part of a footnote
@@ -905,7 +963,6 @@ embeddedquotes_re = re.compile(r"\w'\w")
 # Receives the text of an entire book as input.
 # Verifies things that are better done as a whole file.
 # Can't report verse references because we haven't started to parse the book yet.
-# Returns False if the file is hopelessly invalid.
 def verifyWholeFile(str, path):
     verifyChapterAndVerseMarkers(str, path)
 
