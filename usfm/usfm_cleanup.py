@@ -7,9 +7,10 @@
 #    to the next line after the \s# marker.
 
 # Set these globals
-source_dir = r"C:\DCS\Talang Mamak\work\48-2CO.usfm"
+source_dir = r"C:\DCS\Safwa\work\43-LUK.usfm"
 promote_all_quotes = False      # promote single and double straight quotes to curly quotes, except word-medial
 promote_double_quotes = True   # promote only double quotes
+capitalize = False          # Enforce capitalization of the first word in sentences, disregarding footnotes.
 
 nChanged = 0
 max_changes = 66
@@ -18,6 +19,8 @@ enable_fix_punctuation = True   # substitutions.py, double period, and spacing a
 enable_add_spaces = True    # Add spaces between commo/period/colon and a letter
 aligned_usfm = False
 remove_s5 = True
+needcaps = False
+in_footnote = False
 
 import re       # regular expression module
 import io
@@ -27,6 +30,8 @@ import sys
 import substitutions
 import quotes
 import doublequotes
+import parseUsfm
+import usfmFile
 
 
 def shortname(longpath):
@@ -174,7 +179,8 @@ def matechar(quote):
         mate = leftquote[pos]   # works even if pos is -1
     return mate
 
-# Returns position of the matching quote mark, or -1 if not found
+# Returns position of the matching quote mark, before or after specified quote position.
+# Returns -1 if matching quote is not found.
 def find_mate(quote, pos, line):
     mate = matechar(quote)
     nFollowing = line[pos+1:].count(mate)
@@ -189,6 +195,8 @@ def find_mate(quote, pos, line):
 
 quotemedial_re = re.compile(r'[\w][\.\?!;\:,](["\'«“‘’”»])[\w]', re.UNICODE)    # adjacent punctuation where second char is a quote mark
 
+# Finds sequences of phrase ending punctuation followed by a quote, adjacent to word-forming characters on both sides.
+# Inserts space before or after the quotes, as appropriate.
 def change_quote_medial(line):
     pos = 0
     changed = False
@@ -242,6 +250,83 @@ def convert_by_line(path):
     output.close()
     return changedfile
 
+# Returns true if token is part of a footnote or cross reference
+def isFootnote(token):
+    return token.isF_S() or token.isF_E() or token.isFR() or token.isFT() or token.isFP() or \
+token.isFE_S() or token.isFE_E() or token.isRQS() or token.isRQE()
+
+def takeFootnote(key, value, usfm):
+    global in_footnote
+    if key in {"f", "fr", "ft", "fp", "fe", "rq"}:
+        in_footnote = True
+    elif key in {"f*", "fe*", "rq*"}:
+        in_footnote = False
+    usfm.writeUsfm(key, value)
+
+firstword_re = re.compile(r'[\w]+')
+nextsent_re = re.compile(r'[\.\?\!].*?([\w]+)')
+specialquoted_re = re.compile(r'[\?\!][\'"’”»\-——]')    # exception to sentence ending
+endsentence_re = re.compile(r'[\.\?\!][^\w]*$')
+
+# Returns True if the specified text ends with sentence-ending punctuation.
+def endsSentence(t):
+    ends = False
+    if ending := endsentence_re.search(t):
+        if not specialquoted_re.match(t[ending.start():ending.start()+2]):
+           ends = True
+    return ends
+
+def takeText(str, usfm):
+    global needcaps
+    global in_footnote
+    changed = False
+    if not in_footnote:
+        if needcaps:
+            if first := firstword_re.search(str):
+                i = first.start()
+                if str[i].islower():
+                    str = str[0:i] + str[i].upper() + str[i+1:]
+                    changed = True
+        next = nextsent_re.search(str)
+        while next:
+            i = str.find(next.group(1), next.start())
+            if str[i].islower():
+                if not specialquoted_re.match(str[next.start():next.start()+2]):
+                    str = str[0:i] + str[i].upper() + str[i+1:]
+                    changed = True
+            next = nextsent_re.search(str, next.end())
+        needcaps = endsSentence(str)
+    usfm.writeStr(str)
+    return changed
+
+def take(token, usfm):
+    changed = False
+    if token.isTEXT():
+        changed = takeText(token.value, usfm)
+    elif isFootnote(token):
+        takeFootnote(token.type, token.value, usfm)
+    else:
+        usfm.writeUsfm(token.type, token.value)
+    return 1 if changed else 0
+
+# Parses and rewrites the usfm file with corrections.
+# Returns True if any changes are made.
+def convert_by_token(path):
+    changes = 0
+    with io.open(path, "tr", 1, encoding="utf-8-sig") as input:
+        str = input.read(-1)
+
+    from usfmFile import usfmFile
+    usfm = usfmFile(path)
+    usfm.setInlineTags({"f", "ft", "f*", "rq", "rq*", "fe", "fe*", "fr", "fk", "fq", "fqa", "fqa*"})
+    tokens = parseUsfm.parseString(str)
+    for token in tokens:
+        changes += take(token, usfm)
+    usfm.newline()
+    usfm.close()
+    # sys.stdout.write(f"{changes} strings in {path} were changed by convert_by_token()\n")
+    return (changes > 0)
+
 # Corrects issues in the USFM file
 def convertFile(path):
     global nChanged
@@ -256,10 +341,14 @@ def convertFile(path):
         nChanged += 1
     if convert_by_line(path):
         nChanged += 1
+    if capitalize:
+        if convert_by_token(path):
+            nChanged += 1
 
     if nChanged > prev_nChanged:
         nChanged = prev_nChanged + 1
         sys.stdout.write("Changed " + shortname(path) + "\n")
+        sys.stdout.flush()
         bakpath = path + ".orig"
         if not os.path.isfile(bakpath):
             os.rename(tmppath, bakpath)
