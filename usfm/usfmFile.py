@@ -14,10 +14,12 @@ class usfmFile:
         self._file = io.open(path, "tw", encoding='utf-8', newline='\n')
         self._spaced = True
         self._newlined = True
-        self.inline_tags = {"f", "ft", "f*", "rq", "rq*", "fe", "fe*", "fr", "fk", "fq", "fqa", "fqa*"}
+        self._inline_tags = {"f", "ft", "f*", "rq", "rq*", "fe", "fe*", "fr", "fk", "fq", "fqa", "fqa*"}
 
     def close(self):
         if self._file:
+            if not self._newlined:
+                self._file.write("\n")
             self._file.close()
             self._file = None
 
@@ -39,7 +41,7 @@ class usfmFile:
             self._newlined = (str[-1] == '\n')
 
     # Writes a usfm tagged value, insert newline if needed
-    def writeUsfm(self, key, value):
+    def writeUsfm(self, key, value=None):
         if key in self._inline_tags:
             intro = "\\" if (self._newlined or self._spaced) else " \\"
         else:
