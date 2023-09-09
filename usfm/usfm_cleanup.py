@@ -7,9 +7,9 @@
 #    to the next line after the \s# marker.
 
 # Set these globals
-source_dir = r"C:\DCS\Safwa\work\43-LUK.usfm"
+source_dir = r"C:\DCS\Safwa\work2.temp\45-ACT.usfm"
 promote_all_quotes = False      # promote single and double straight quotes to curly quotes, except word-medial
-promote_double_quotes = True   # promote only double quotes
+promote_double_quotes = False   # promote only double quotes
 capitalize = False          # Enforce capitalization of the first word in sentences, disregarding footnotes.
 
 nChanged = 0
@@ -19,7 +19,7 @@ enable_fix_punctuation = True   # substitutions.py, double period, and spacing a
 enable_add_spaces = True    # Add spaces between commo/period/colon and a letter
 aligned_usfm = False
 remove_s5 = True
-needcaps = False
+needcaps = True
 in_footnote = False
 
 import re       # regular expression module
@@ -31,6 +31,7 @@ import substitutions
 import quotes
 import doublequotes
 import parseUsfm
+import sentences
 import usfmFile
 
 
@@ -263,41 +264,19 @@ def takeFootnote(key, value, usfm):
         in_footnote = False
     usfm.writeUsfm(key, value)
 
-firstword_re = re.compile(r'[\w]+')
-nextsent_re = re.compile(r'[\.\?\!].*?([\w]+)')
-specialquoted_re = re.compile(r'[\?\!][\'"’”»\-——]')    # exception to sentence ending
-endsentence_re = re.compile(r'[\.\?\!][^\w]*$')
-
-# Returns True if the specified text ends with sentence-ending punctuation.
-def endsSentence(t):
-    ends = False
-    if ending := endsentence_re.search(t):
-        if not specialquoted_re.match(t[ending.start():ending.start()+2]):
-           ends = True
-    return ends
+def capitalizeAsNeeded(str):
+    global needcaps
+    str = sentences.capitalize(str, needcaps)
+    needcaps = sentences.endsSentence(str)
+    return str
 
 def takeText(str, usfm):
-    global needcaps
+    origstr = str
     global in_footnote
-    changed = False
     if not in_footnote:
-        if needcaps:
-            if first := firstword_re.search(str):
-                i = first.start()
-                if str[i].islower():
-                    str = str[0:i] + str[i].upper() + str[i+1:]
-                    changed = True
-        next = nextsent_re.search(str)
-        while next:
-            i = str.find(next.group(1), next.start())
-            if str[i].islower():
-                if not specialquoted_re.match(str[next.start():next.start()+2]):
-                    str = str[0:i] + str[i].upper() + str[i+1:]
-                    changed = True
-            next = nextsent_re.search(str, next.end())
-        needcaps = endsSentence(str)
+        str = capitalizeAsNeeded(str)
     usfm.writeStr(str)
-    return changed
+    return (str != origstr)
 
 def take(token, usfm):
     changed = False
@@ -319,10 +298,11 @@ def convert_by_token(path):
     from usfmFile import usfmFile
     usfm = usfmFile(path)
     usfm.setInlineTags({"f", "ft", "f*", "rq", "rq*", "fe", "fe*", "fr", "fk", "fq", "fqa", "fqa*"})
+    global needcaps
+    needcaps = True
     tokens = parseUsfm.parseString(str)
     for token in tokens:
         changes += take(token, usfm)
-    usfm.newline()
     usfm.close()
     # sys.stdout.write(f"{changes} strings in {path} were changed by convert_by_token()\n")
     return (changes > 0)

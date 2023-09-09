@@ -5,7 +5,7 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Safwa\work\43-LUK.usfm"
+source_dir = r"C:\DCS\Safwa\sbk_reg"
 language_code = "sbk"
 std_titles = ["Ulyango"]    # Set to empty list [] if you don't have a standard chapter label
 
@@ -48,6 +48,7 @@ import footnoted_verses
 import usfm_verses
 import re
 import usfm_utils
+import sentences
 from datetime import date
 
 # Marker types
@@ -85,6 +86,7 @@ class State:
     startChunkRef = ""
     errorRefs = set()
     currMarker = OTHER
+    prevMarker = OTHER
 
     # Resets state data for a new book
     def addID(self, id):
@@ -111,6 +113,7 @@ class State:
         State.startChunkRef = ""
         State.reference = id + " header/intro"
         State.currMarker = OTHER
+        State.prevMarker = OTHER
         State.toc3 = None
         State.upperCaseReported = False
 
@@ -119,12 +122,14 @@ class State:
 
     def addTitle(self, bookTitle):
         State.titles.append(bookTitle)
+        State.prevMarker = State.currMarker
         State.currMarker = OTHER
 
     def addToc3(self, toc3):
         State.toc3 = toc3
 
     def addB(self):
+        State.prevMarker = State.currMarker
         State.currMarker = B
 
     def addChapter(self, c):
@@ -139,6 +144,7 @@ class State:
         State.lastRef = State.reference
         State.reference = State.ID + " " + c
         State.startChunkRef = State.reference + ":1"
+        State.prevMarker = State.currMarker
         State.currMarker = C
 
     def addChapterLabel(self, title):
@@ -161,6 +167,7 @@ class State:
     def addNB(self):
         State.needPP = False
         State.textOkayHere = True
+        State.prevMarker = State.currMarker
         State.currMarker = PP
 
     def addParagraph(self):
@@ -169,6 +176,7 @@ class State:
         State.needQQ = False
         State.textOkayHere = True
         State.sentenceEnd = True
+        State.prevMarker = State.currMarker
         State.currMarker = PP
 
     def addPoetry(self):
@@ -177,9 +185,11 @@ class State:
         State.needQQ = False
         State.needPP = False
         State.textOkayHere = True
+        State.prevMarker = State.currMarker
         State.currMarker = QQ
 
     def addSection(self):
+        State.prevMarker = State.currMarker
         State.currMarker = OTHER
         # State.sentenceEnd = True
 
@@ -200,6 +210,7 @@ class State:
         State.textOkayHere = True
         State.lastRef = State.reference
         State.reference = State.ID + " " + str(State.chapter) + ":" + v
+        State.prevMarker = State.currMarker
         State.currMarker = OTHER
         State.asciiVerse = True   # until proven False
 
@@ -224,6 +235,7 @@ class State:
         return State.textLength
 
     def addText(self, text):
+        State.prevMarker = State.currMarker
         State.currMarker = OTHER
         State.needVerseText = False
         State.textLength += len(text)
@@ -242,6 +254,7 @@ class State:
     # Increments \f counter
     def addFootnoteStart(self):
         State.footnote_starts += 1
+        State.prevMarker = State.currMarker
         State.currMarker = OTHER
         State.needVerseText = False
         State.textOkayHere = True
@@ -255,6 +268,7 @@ class State:
     # Increments \fe counter
     def addEndnoteStart(self):
         State.endnote_starts += 1
+        State.prevMarker = State.currMarker
         State.currMarker = OTHER
         State.needVerseText = False
         State.textOkayHere = True
@@ -630,33 +644,21 @@ def reportFootnote(trigger):
     else:
         reportError(f"Optional text or untagged footnote at {reference}", 43.2)
 
-firstword_re = re.compile(r'([\w]+)')
-nextsent_re = re.compile(r'[\.\?\!].*?([\w]+)')
-specialquoted_re = re.compile(r'[\?\!][\'"’”»\-——]')    # exception to sentence ending
-endsentence_re = re.compile(r'[\.\?\!][^\w]*$')
-
-# Returns True if the specified text ends with sentence-ending punctuation.
-def endsSentence(t):
-    ends = False
-    if ending := endsentence_re.search(t):
-        if not specialquoted_re.match(t[ending.start():ending.start()+2]):
-           ends = True
-    return ends
-
+# Warns when a paragraph break appears in what seems to be the middle of a sentence.
 # Warns when the specified string is supposed to start a sentence but the first word is not capitalized.
 # Warns when a sentence later in the string does not start with a capital letter.
-def reportMissingCaps(str):
+def reportCaps(str):
     state = State()
     if state.needCaps():
-        if first := firstword_re.search(str):
-            if first.group(1)[0].islower():
-                reportError(f"First word in paragraph or sentence: ({first.group(1)}) is not capitalized. {state.reference}", 44)
-    next = nextsent_re.search(str)
-    while next:
-        if next.group(1)[0].islower():
-            if not specialquoted_re.match(str[next.start():next.start()+2]):
-                reportError(f"First word in sentence: ({next.group(1)}) is not capitalized. {state.reference}", 44.1)
-        next = nextsent_re.search(str, next.end())
+        word = sentences.firstword(str)
+        if word and word[0].islower():
+            if state.currMarker == PP or state.prevMarker == PP:
+                reportError(f"First word of paragraph not capitalized near {state.reference}", 44)
+            else:
+                reportError(f"First word in sentence: ({word}) is not capitalized. {state.reference}", 44.1)
+    for word in sentences.nextfirstwords(str):
+        if word[0].islower():
+            reportError(f"First word in sentence: ({word}) is not capitalized. {state.reference}", 44.1)
 
 # Returns a string containing text preceding specified start position and following end position
 def context(text, start, end):
@@ -801,8 +803,8 @@ def takeText(t, footnote=False):
             reportError("Text begins with phrase-ending punctuation in " + state.reference, 58.1)
     reportNumbers(t, footnote)
     if not footnote and not suppress10:
-        reportMissingCaps(t)
-        state.endSentence( endsSentence(t) )
+        reportCaps(t)
+        state.endSentence( sentences.endsSentence(t) )
     state.addText(t)
 
 # Returns true if token is part of a footnote
