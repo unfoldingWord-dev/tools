@@ -6,9 +6,9 @@
 # The input file(s) should be verified, correct USFM, except for unmarked text which may become section headings.
 
 # Global variables
-#model_dir = r'C:\DCS\English\en_udb.paragraphs'
-model_dir = r'C:\DCS\Indonesian\id_ayt.TA'
-source_dir = r"C:\DCS\Reta\work\41-MAT.usfm"     # file(s) to be changed
+model_dir = r'C:\DCS\English\en_udb.paragraphs'
+#model_dir = r'C:\DCS\Indonesian\id_ayt.TA'
+source_dir = r"C:\DCS\Safwa\work2.temp\45-ACT.usfm"     # file(s) to be changed
 removeS5markers = True
 xlateS5markers = False   # Dubious validity, and not tested for texts that have both kinds of markers already. Translates most \s5 markers to \p markers.
 copy_nb = False
@@ -24,6 +24,7 @@ import io
 import re
 import shutil
 import usfm_verses
+from usfmFile import usfmFile
 
 # Marker types
 TEXT = 1
@@ -54,10 +55,9 @@ class State:
         State.paragraphs_model = []
         State.sections_model = []
         State.expectText = False
-        # Open output USFM file for writing.
+        ## Open output USFM file for writing.
         tmpPath = os.path.join(source_dir, fname + ".tmp")
-        State.__usfmFile = io.open(tmpPath, "tw", buffering=1, encoding='utf-8', newline='\n')
-        State.__spaced = True   # no space wanted at top of file
+        State.usfm = usfmFile(tmpPath)
 
     def addID(self, id):
         State.ID = id
@@ -129,37 +129,22 @@ class State:
         chaps = usfm_verses.verseCounts[State.ID]['verses']
         return (State.verse >= chaps[State.chapter-1])
 
-    # Writes specified string to the usfm file, inserting spaces where needed.
-    def usfmWrite(self, str):
-        if not State.__spaced and str[0] != '\n':
-            str = " " + str
-        State.__usfmFile.write(str)
-        State.__spaced = (str[-1] == ' ')
-
     def usfmClose(self):
-        State.__usfmFile.close()
+        State.usfm.close()
 
 
 # Write to the file with or without a newline as appropriate
 def takeStyle(key):
-    State().usfmWrite("\n\\" + key)
+    State().usfm.writeUsfm(key, None)
 
 # Write to the file with or without a newline as appropriate
 def takeAsIs(key, value):
-    state = State()
-    state.usfmWrite("\n\\" + key)
-    if value:
-        state.usfmWrite(value)
+    State().usfm.writeUsfm(key, value)
 
 def takeFootnote(key, value):
     state = State()
     state.addFootnote()
-    if key in {"f", "fe", "rq"}:
-        state.usfmWrite("\n\\" + key)
-    else:
-        state.usfmWrite("\\" + key)
-    if value:           # or key in {"f*", "fp"}
-        state.usfmWrite(value)
+    state.usfm.writeUsfm(key, value)
 
 def takeID(id):
     state = State()
@@ -167,21 +152,21 @@ def takeID(id):
         reportError("Invalid ID: " + id)
     id = id[0:3].upper()
     state.addID(id)
-    state.usfmWrite("\\id " + id)
+    state.usfm.writeUsfm("id", id)
 
 # Copies paragraph marker to output unless output already has a paragraph there.
 def takePQ(tag, value):
     state = State()
     if not state.pAlready(current=False):
         state.addP()
-        state.usfmWrite("\n\\" + tag)
+        state.usfm.writeUsfm(tag)
     if value:
-        state.usfmWrite(value)
+        state.usfm.writeStr(value)
 
 def takeS5():
     state = State()
     if not removeS5markers:
-        state.usfmWrite("\n\\s5")
+        state.usfm.writeUsfm("s5", None)
     elif xlateS5markers and state.chapter > 0 and not state.isEndOfChapter():
         global nCopied
         nCopied += 1
@@ -195,28 +180,28 @@ def takeV(v):
     state.addVerse(v)
     if not state.pAlready(current=True):
         if pmark := state.pmarkInModel():
-            state.usfmWrite("\n\\" + pmark)
+            state.usfm.writeUsfm(pmark)
             nCopied += 1
-    state.usfmWrite("\n\\v " + v)
+    state.usfm.writeUsfm("v", v)
 
 def takeText(t):
     global nCopied
     state = State()
     smark = None if state.expectingText() else state.smarkInModel()
     if smark:
-        state.usfmWrite(f"\n\\{smark} {t}")
+        state.usfm.writeUsfm(smark, t)
         nCopied += 1
         state.addP()           # PTXprint wants a paragraph or poetry mark after section heading
-        state.usfmWrite("\n\\p")
+        state.usfm.writeUsfm("p")
     else:
-        state.usfmWrite(t)
+        state.usfm.writeStr(t)
         state.addText()
 
 # Output chapter
 def takeC(c):
     state = State()
     state.addChapter(c)
-    state.usfmWrite("\n\\c " + c)
+    state.usfm.writeUsfm("c", c)
 
 # Handles the specified token from the input file.
 # Inserts paragraph and section markers where needed from model.
@@ -306,7 +291,7 @@ def convertFile(usfmpath, fname):
         tokens = parseUsfm.parseString(str)
         for token in tokens:
             take(token)
-        state.usfmWrite("\n")
+        #state.usfmWrite("\n")
         state.usfmClose()
         if nCopied > startn:
             renameUsfmFiles(usfmpath)
