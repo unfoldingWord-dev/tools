@@ -77,6 +77,7 @@ class State:
     textLength = 0
     textOkayHere = False
     sentenceEnd = True
+    quotedSentenceEnd = False
     footnote_starts = 0
     footnote_ends = 0
     endnote_starts = 0
@@ -109,6 +110,7 @@ class State:
         State.textLength = 0
         State.textOkayHere = False
         State.sentenceEnd = True
+        State.quotedSentenceEnd = False
         State.lastRef = State.reference
         State.startChunkRef = ""
         State.reference = id + " header/intro"
@@ -140,7 +142,6 @@ class State:
         State.verse = 0
         State.needVerseText = False
         State.textOkayHere = False
-        #State.sentenceEnd = True
         State.lastRef = State.reference
         State.reference = State.ID + " " + c
         State.startChunkRef = State.reference + ":1"
@@ -191,13 +192,11 @@ class State:
     def addSection(self):
         State.prevMarker = State.currMarker
         State.currMarker = OTHER
-        # State.sentenceEnd = True
 
     # Records the start of a new chunk
     def addS5(self):
         State.startChunkVerse = State.verse + 1
         State.startChunkRef = State.ID + " " + str(State.chapter) + ":" + str(State.startChunkVerse)
-        # State.sentenceEnd = True
 
     def addUsfmVersion(self, version):
         State.usfm_version = int(version[0])
@@ -229,7 +228,10 @@ class State:
         return State.needVerseText
 
     def needCaps(self):
-        return State().sentenceEnd
+        return State.sentenceEnd and not State.quotedSentenceEnd
+
+    def sentenceEnded(self):
+        return State.sentenceEnd
 
     def getTextLength(self):
         return State.textLength
@@ -292,6 +294,9 @@ class State:
     # Specifies whether the current piece of text ends a sentence.
     def endSentence(self, end):
         State.sentenceEnd = end
+    def endQuotedSentence(self, end):
+        State.sentenceEnd = end
+        State.quotedSentenceEnd = end
 
     # Returns the number of chapters that the specified book should contain
     def nChapters(self, id):
@@ -526,11 +531,16 @@ def reportParagraphMarkerErrors(type):
     if state.needText() and not isOptional(state.reference):
         reportError("Paragraph marker after verse marker, or empty verse: " + state.reference, 25)
     if type == 'nb' and state.currMarker != C:
-        reportError("\\nb marker should follow chapter marker: " + state.reference, 26)
+        reportError("\\nb marker should follow chapter marker: " + state.reference, 25.1)
 
 def takeP(type):
     reportParagraphMarkerErrors(type)
     state = State()
+    if not state.sentenceEnded():
+        if state.verse > 0:
+            reportError(f"Punctuation missing at end of paragraph: {state.reference}", 26)
+        else:
+            reportError(f"Punctuation missing at end of paragraph before {state.reference}", 26.1)
     state.addParagraph() if type != 'nb' else state.addNB()
 
 def takeQ(type):
