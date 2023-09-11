@@ -10,9 +10,12 @@ endsentence_re = re.compile(r'[\.\?\!][^\w]*$')
 
 # Returns True if the specified text ends with sentence-ending punctuation: period, question mark, or exclamation mark.
 def endsSentence(str):
+    return endsentence_re.search(str)
+
+def endsQuotedSentence(str):
     ends = False
     if ending := endsentence_re.search(str):
-        if not specialquoted_re.match(str[ending.start():ending.start()+2]):
+        if specialquoted_re.match(str[ending.start():ending.start()+2]):
            ends = True
     return ends
 
