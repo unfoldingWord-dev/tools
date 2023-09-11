@@ -5,6 +5,8 @@
 #
 # Moves standalone \p \m and \q markers which occur just before an \s# marker
 #    to the next line after the \s# marker.
+# Promote straight quotes to open and closed quotes. (optional)
+# Capitalizes first word in sentences. (optional)
 
 # Set these globals
 source_dir = r"C:\DCS\Safwa\work2.temp\45-ACT.usfm"
@@ -267,7 +269,7 @@ def takeFootnote(key, value, usfm):
 def capitalizeAsNeeded(str):
     global needcaps
     str = sentences.capitalize(str, needcaps)
-    needcaps = sentences.endsSentence(str)
+    needcaps = (sentences.endsSentence(str) and not sentences.endsQuotedSentence(str))
     return str
 
 def takeText(str, usfm):
