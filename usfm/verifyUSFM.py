@@ -5,12 +5,11 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Safwa\sbk_reg"
-language_code = "sbk"
-std_titles = ["Ulyango"]    # Set to empty list [] if you don't have a standard chapter label
+source_dir = r"C:\DCS\Hindi\hi_gst"
+language_code = "hi"
+std_titles = []    # Set to empty list [] if you don't have a standard chapter label
 
 suppress1 = False     # Suppress warnings about empty verses and verse fragments
-suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
 suppress3 = False    # Suppress bad punctuation warnings
 suppress4 = False     # Suppress warnings about useless markers before section/title markers
@@ -18,8 +17,9 @@ suppress5 = False     # Suppress checks for verse counts
 suppress6 = False    # Suppress warnings about straight double and single quotes
 suppress7 = False    # Suppress warnings about straight single quotes  (report straight double quotes only)
 suppress8 = False    # Suppress warning about UPPER CASE book titles
-suppress9 = True     # Suppress warnings about ASCII content
-suppress10 = False    # Suppress "Sentence not caapitalized" warnings
+suppress9 = False     # Suppress warnings about ASCII content
+suppress10 = False    # Suppress "First word not capitalized" warnings
+suppress11 = False    # Suppress Punctuation missing at end of paragraph" warnings; report totals only
 
 max_chunk_length = 400
 
@@ -349,14 +349,15 @@ def long_substring(s1, s2):
 
 # Writes error message to stderr and to issues.txt.
 # Keeps track of how many errors of each type.
-def reportError(msg, errorId = 0):
-    try:
-        sys.stderr.write(msg + "\n")
-    except UnicodeEncodeError as e:
-        state = State()
-        sys.stderr.write(state.reference + ": (Unicode...)\n")
-    issuesfile = openIssuesFile()
-    issuesfile.write(msg + "\n")
+def reportError(msg, errorId=0, summarize_only=False):
+    if not summarize_only:
+        try:
+            sys.stderr.write(msg + "\n")
+        except UnicodeEncodeError as e:
+            state = State()
+            sys.stderr.write(state.reference + ": (Unicode...)\n")
+        issuesfile = openIssuesFile()
+        issuesfile.write(msg + "\n")
 
     if errorId > 0:
         global issues
@@ -536,11 +537,11 @@ def reportParagraphMarkerErrors(type):
 def takeP(type):
     reportParagraphMarkerErrors(type)
     state = State()
-    if not state.sentenceEnded():
+    if not aligned_usfm and not state.sentenceEnded():
         if state.verse > 0:
-            reportError(f"Punctuation missing at end of paragraph: {state.reference}", 26)
+            reportError(f"Punctuation missing at end of paragraph: {state.reference}", 26, suppress11)
         else:
-            reportError(f"Punctuation missing at end of paragraph before {state.reference}", 26.1)
+            reportError(f"Punctuation missing at end of paragraph before {state.reference}", 26.1, suppress11)
     state.addParagraph() if type != 'nb' else state.addNB()
 
 def takeQ(type):
@@ -593,11 +594,13 @@ def takeV(vstr):
     if vstr.find('-') > 0:
         vv_range = vv_re.search(vstr)
         if vv_range:
-            vn = int(vv_range.group(1))
+            vnStart = int(vv_range.group(1))
             vnEnd = int(vv_range.group(2))
-            while vn <= vnEnd:
+            # while vn <= vnEnd:
+            #     vlist.append(vn)
+            #     vn += 1
+            for vn in range(vnStart, vnEnd + 1):
                 vlist.append(vn)
-                vn += 1
         else:
             reportError("Problem in verse range near " + State.reference, 34)
     else:
@@ -663,12 +666,12 @@ def reportCaps(str):
         word = sentences.firstword(str)
         if word and word[0].islower():
             if state.currMarker == PP or state.prevMarker == PP:
-                reportError(f"First word of paragraph not capitalized near {state.reference}", 44)
+                reportError(f"First word of paragraph not capitalized near {state.reference}", 44, suppress10)
             else:
-                reportError(f"First word in sentence: ({word}) is not capitalized. {state.reference}", 44.1)
+                reportError(f"First word in sentence: ({word}) is not capitalized. {state.reference}", 44.1, suppress10)
     for word in sentences.nextfirstwords(str):
         if word[0].islower():
-            reportError(f"First word in sentence: ({word}) is not capitalized. {state.reference}", 44.1)
+            reportError(f"First word in sentence: ({word}) is not capitalized. {state.reference}", 44.1, suppress10)
 
 # Returns a string containing text preceding specified start position and following end position
 def context(text, start, end):
@@ -812,7 +815,7 @@ def takeText(t, footnote=False):
         else:
             reportError("Text begins with phrase-ending punctuation in " + state.reference, 58.1)
     reportNumbers(t, footnote)
-    if not footnote and not suppress10:
+    if not footnote:
         reportCaps(t)
         state.endSentence( sentences.endsSentence(t) )
     state.addText(t)
@@ -872,11 +875,6 @@ def take(token):
     global lastToken
 
     state = State()
-    # if state.needText() and not isTextCarryingToken(token) and not suppress1 and not isOptional(state.reference):
-    #     if not token.isTEXT():
-    #         reportError("Empty verse: " + state.reference)
-    #     elif len(token.value) < 14 and not isPoetry(nextToken):      # Text follows verse marker but is very short
-    #         reportError("Verse fragment: " + state.reference)
     if token.isID():
         takeID(token.value)
     elif token.isC():
