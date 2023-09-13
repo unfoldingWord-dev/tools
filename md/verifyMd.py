@@ -21,8 +21,8 @@
 # To-do -- check for other kinds of links in headings, not just TA links.
 
 # Globals
-source_dir = r'C:\DCS\Arabic-ar\work'
-language_code = 'ar'
+source_dir = r'C:\DCS\Telugu\work'
+language_code = 'te'
 resource_type = 'tq'
 ta_dir = r'C:\DCS\Hindi\hi_ta.STR'    # Target language tA, or English tM for WA
 obstn_dir = r'C:\DCS\Hindi\hi_obs-tn.STR'
@@ -265,9 +265,6 @@ def verifyNotEmpty(mdPath):
 
 blankheading_re = re.compile(r'#+$')
 heading_re = re.compile(r'#+[ \t]')
-multiHash_re = re.compile(r'#+[ \t].+#', re.UNICODE)
-closedHeading_re = re.compile(r'#+[ \t].*#+[ \t]*$', re.UNICODE)
-badclosedHeading_re = re.compile(r'#+[ \t].*[^# \t]#+[ \t]*$', re.UNICODE)  # closing hash without preceding space
 
 def take(line):
     global current_file
@@ -295,33 +292,7 @@ def take(line):
                     reportError("should be a header here, or there is some other formatting problem")
                     state.report2()
     if state.currlinetype == HEADING:
-        if state.linecount > 1 and state.prevlinetype != BLANKLINE:
-            reportError("missing blank line before heading")
-        if badheading_re.match(line):
-            reportError("space(s) before heading")
-        elif multiHash_re.match(line):
-            if closedHeading_re.match(line):
-                if not suppress4:
-                    reportError("closed heading")
-                if badclosedHeading_re.match(line):
-                    reportError("no space before closing hash mark")
-            else:
-                reportError("multiple hash groups on one line")
-        elif not suppress2 and blankheading_re.match(line):
-            reportError("blank heading")
-        elif len(line) > 1 and not heading_re.match(line):
-            reportError("missing space after hash symbol(s)")
-        if not suppress10:
-            if resource_type in {"tn", "tq"} and state.currheadinglevel > 1:
-                if resource_type == 'tq' or current_file != "intro.md":
-                    reportError("excessive heading level: " + "#" * state.currheadinglevel)
-            elif resource_type not in {"ta","tw"} and state.currheadinglevel > 2:
-                reportError("excessive heading level")
-            elif resource_type == 'tw' and state.linecount > 1 and state.currheadinglevel == 1 and state.headingcount > 1:
-                reportError("Incorrect tW file, must have only one H1 heading")
-            elif state.currheadinglevel > state.prevheadinglevel + 1:
-                if resource_type != "ta" or state.prevheadinglevel > 0:
-                    reportError("heading level incremented by more than one level")
+        checkHeading(line)
 
     if resource_type == 'tw' and state.linecount == 1 and (state.currlinetype != HEADING or state.currheadinglevel != 1):
         reportError("Incorrect tW file, must have H1 heading on line 1")
@@ -353,11 +324,41 @@ def take(line):
             if state.prevlinetype in { TEXT, HEADING }:
                 reportError("missing blank line before ordered list")
             i = state.linecount - 1
-# At least in the English tA, there are numerous violations of this rule, and yet
-# the lists render beautifully. I am commenting out this rule check, 1/29/19.
-#            if i > 1 and state.linetype[i-1] == BLANKLINE and state.linetype[i-2] == ORDEREDLIST_ITEM:
-#                reportError("invalid ordered list style")
     checkLineContents(line)
+
+multiHash_re = re.compile(r'#+[ \t].+#')
+closedHeading_re = re.compile(r'#+[ \t].*#+[ \t]*$')
+badclosedHeading_re = re.compile(r'#+[ \t].*[^# \t]#+[ \t]*$')  # closing hash without preceding space
+
+def checkHeading(line):
+    state = State()
+    if state.linecount > 1 and state.prevlinetype != BLANKLINE:
+        reportError("missing blank line before heading")
+    if badheading_re.match(line):
+        reportError("space(s) before heading")
+    elif multiHash_re.match(line):
+        if closedHeading_re.match(line):
+            if not suppress4:
+                reportError("closed heading")
+            if badclosedHeading_re.match(line):
+                reportError("no space before closing hash mark")
+        else:
+            reportError("multiple hash groups on one line")
+    elif not suppress2 and blankheading_re.match(line):
+        reportError("blank heading")
+    elif len(line) > 1 and not heading_re.match(line):
+        reportError("missing space after hash symbol(s)")
+    if not suppress10:
+        if resource_type in {"tn", "tq"} and state.currheadinglevel > 1:
+            if resource_type == 'tq' or current_file != "intro.md":
+                reportError("excessive heading level: " + "#" * state.currheadinglevel)
+        elif resource_type not in {"ta","tw"} and state.currheadinglevel > 2:
+            reportError("excessive heading level")
+        elif resource_type == 'tw' and state.linecount > 1 and state.currheadinglevel == 1 and state.headingcount > 1:
+            reportError("Incorrect tW file, must have only one H1 heading")
+        elif state.currheadinglevel > state.prevheadinglevel + 1:
+            if resource_type != "ta" or state.prevheadinglevel > 0:
+                reportError("heading level incremented by more than one level")
 
 #toobold_re = re.compile(r'#+[ \t]+.*[\*_]', re.UNICODE)        # unwanted formatting in headings
 unexpected_re = re.compile(r'\([^\)\[]*\]', re.UNICODE)         # ']' after left paren
@@ -366,6 +367,8 @@ unexpected3_re = re.compile(r'^[^\[]*\]', re.UNICODE)            # ']' before '[
 unexpected4_re = re.compile(r'\[[^\]]*$', re.UNICODE)            # '[' without following ']'
 
 def checkLineContents(line):
+    if not suppress9 and line.isascii():
+        reportError("No non-Ascii content in line")
     if line.find('# #') != -1:
         reportError('heading syntax error')
     if line.startswith("% ") or line.startswith("%​ "):  # invisible character in second comparison
