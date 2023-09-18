@@ -18,7 +18,7 @@
 # Untranslates SupportReference values that were mistakenly translated.
 # Untranslates translated tA links that are otherwise properly formatted, in note fields.
 # Supplies 0 for missing Occurrence values
-# Removes trailing right parentheses if note contains no left parens.
+# Removes right parentheses when a note contains no left parens.
 # Add trailing right paren if note contain one unmatched left paren near end of line.
 #
 # This script was written for TSV notes files.
@@ -30,28 +30,23 @@
 # before converting the files with tsv2rc.py.
 ######################################################
 
-import re       # regular expression module
-import io
-import os
-import sys
-sys.path.append("../")
-from md import stars
-import tsv
-import substitutions    # this module specifies the string substitutions to apply
-
 # Globals
-source_dir = r'C:\DCS\Kannada\TN'  # Where are the files located
-language_code = 'kn'
+source_dir = r'C:\DCS\Hindi\work\hi_tn_42-MRK.tsv'  # Where are the files located
+language_code = 'hi'
 english_dir = r'C:\DCS\English\en_tn.v66'    # latest English tN from https://git.door43.org/Door43-Catalog/en_tn
 max_files = 111     # How many files do you want to process
 nProcessed = 0
 
+import re       # regular expression module
+import io
+import os
+import sys
+from filecmp import cmp
+sys.path.append(r"C:\DCS\tools\md") # TODO: make package and load from package
+import stars
+import tsv
+import substitutions    # this module specifies the string substitutions to apply
 
-def shortname(longpath):
-    shortname = longpath
-    if source_dir in longpath:
-        shortname = longpath[len(source_dir)+1:]
-    return shortname
 
 # Calculates and returns the new header level.
 # Updates the truelevel list.
@@ -99,10 +94,10 @@ def fixManLinks(note, english_note):
         enlink = entalink_re.search(english_note)
         if enlink:
             note = note[:link.start()] + "[[rc://" + language_code + "/ta/man/" + enlink.group(1) + link.group(2)
-            print(note[len(note)-100:])
+            print(f"{link.group(1)} --> {enlink.group(1)}")    # debugging information
     return note
 
-mdlink_re = re.compile(r'(\( *)([^\(]+\. ?md)', flags=re.UNICODE)   # apparent md file link following a left paren
+mdlink_re = re.compile(r'(\( *)([^\[\]\(]+\. ?md ?\))', flags=re.UNICODE)   # apparent md file link following a left paren
 
 # Removes erroneous spaces in md file links
 def fixMdLinks(note):
@@ -127,6 +122,7 @@ blanklines_re = re.compile(r'[^\>]\<br\>#')     # less than two lines breaks bef
 # Ensures at least one space after heading marks.
 def fixSpacing(note):
     note = re.sub(r'\<br\> +#', "<br>#", note, 0)
+    note = re.sub(r'\\[nN]', "<br>", note, 0)
     note = note.replace("# #", "##")
     while sub := hash_re.search(note):              # Add space after # where missing
         note = note[0:sub.start()] + "# " + sub.group(1)  # + u'\n'
@@ -147,7 +143,6 @@ def fixID(row):
         col4 = row[3][4:]
         row.insert(4, col4)
         row[3] = row[3][0:4]
-    return row
 
 closed_re = re.compile(r'#+ *<br>')
 
@@ -184,12 +179,18 @@ def cleanAsterisks(note):
     #     note = note.replace("** ", "**", 1)
     return note
 
+rightparen_re = re.compile(r'[^0-9०-९]\)', re.UNICODE)  # right paren not preceded by a number
+
 # Makes corrections on the vernacular note field.
 # Trailing spaces have already been removed.
 def cleanNote(note, english_note):
     note = note.rstrip(" #[\\\(")
-    if note.count("(") == 0:
-        note = note.rstrip(")")
+    note = note.lstrip(" )]")
+    if note.count("(") == 0 and note.count(")") > 0:
+        par = rightparen_re.search(note)
+        while par:
+            note = note[:par.start()+1] + note[par.end():]
+            par = rightparen_re.search(note, par.end()-2)
     if note.count("(") - 1 == note.count(")"):
         lastleft = note.rfind("(")
         if lastleft > len(note) - 100 and lastleft > note.rfind(")"):
@@ -243,15 +244,11 @@ def mergeRows(data):
 # Strips paired quotes surrounding each field.
 def strip_quotes(data):
     for row in data:
-        i = 0
-        while i < len(row):
+        for i in range(0, len(row)):
             str = row[i].strip(' ')     # remove leading and trailing spaces
-            if len(str) > 1 and str[0] == '"' and str[-1] == '"':
-                str = str[1:-1]
-            if len(str) > 1 and str[0] == '"' and str[-1] == '"':   # do it again to fix double double quotes
+            while len(str) > 1 and str[0] == '"' and str[-1] == '"':
                 str = str[1:-1]
             row[i] = str
-            i += 1
 
 # Detects and repairs a few common ways in which one column is missing from the row.
 # Makes a few fixes to the note column using cleanNote().
@@ -259,7 +256,7 @@ def strip_quotes(data):
 def cleanRow(row, english_row):
     if len(row) == 8:
         if len(row[3]) > 4: # A common problem, where the ID column is merged with the next column.
-            row = fixID(row)
+            fixID(row)
         elif not row[4].isascii():   # another common problem where the SupportReference column is omitted
             row.insert(4, "")
         elif len(row[4]) == 0 and row[5] in {'0','1'}:
@@ -271,7 +268,6 @@ def cleanRow(row, english_row):
         row[4] = cleanSupportRef(row[4], row[8])
         if len(row[6].strip()) == 0:
             row[6] = "0"
-    return row
 
 tapage_re = re.compile(r'\[\[.*?/ta/man/[\w]+/(.*?)]]', flags=re.UNICODE)
 
@@ -297,11 +293,14 @@ def rowValue(row):
 
 def cleanFile(folder, fname):
     path = os.path.join(folder, fname)
-    sys.stdout.write(shortname(path) + '\n')
+    sys.stdout.write(os.path.relpath(path, source_dir) + '\n')
     sys.stdout.flush()
     data = tsv.tsvRead(path)  # The entire file is returned as a list (rows) of lists of strings (columns)
     strip_quotes(data)
     englishPath = os.path.join(english_dir, fname.replace(language_code, "en", 1))
+    if not os.path.isfile(englishPath):
+        sys.stderr.write(f"Corresponding file does not exist in English: {fname}\n")
+        return
     english_data = tsv.tsvRead(englishPath)
     strip_quotes(english_data)
     english = tsv.list2Dict(english_data, [3,2,1])       # dictionary of rows in English
@@ -313,18 +312,24 @@ def cleanFile(folder, fname):
         for row in origdata:
             if len(row) > 1:
                 key = tsv.make_key(row, [3,2,1])
-                row = cleanRow(row, english[key] if key in english else None)
+                cleanRow(row, english[key] if key in english else None)
             data.append(row)
         data.sort(key=rowValue)
-
         bakpath = path.replace(".tsv", ".tsvorig")
         if not os.path.isfile(bakpath):
             os.rename(path, bakpath)
         if fname.startswith("en_"):
             path = os.path.join(folder, language_code + fname[2:])
         tsv.tsvWrite(data, path)
+        manage_files(path, bakpath)
     else:
         sys.stderr.write(f"Data in {fname} does not look right. Abort\n")
+
+# Remove (rename, etc.) the backup file if it is identical to the current version.
+def manage_files(path, bakpath):
+    if cmp(path, bakpath, shallow=False):
+        os.remove(path)
+        os.rename(bakpath, path)
 
 # Recursive routine to convert all files under the specified folder
 def cleanFolder(folder):
@@ -356,4 +361,4 @@ if __name__ == "__main__":
         cleanFile(source_dir, os.path.basename(path))
         sys.stdout.write("Done. Processed 1 file.\n")
     else:
-        sys.stderr.write("Usage: python tsv_cleanup.py <folder>\n  Use . for current folder.\n")
+        sys.stderr.write("Usage: python tn_tsv_cleanup.py <folder>\n  Use . for current folder.\n")
