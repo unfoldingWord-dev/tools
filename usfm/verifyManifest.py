@@ -50,8 +50,8 @@
 #   verifies config.yaml files for tA or tW projects
 
 # Globals
-manifestDir = r'C:\DCS\Dayak Bajare\knx-x-bajare_reg'
-expectAsciiTitles = True     # Suppress warnings about ASCII content
+manifestDir = r'C:\DCS\Hindi\hi_tn.STR'
+expectAsciiTitles = False      # Suppress errors/warnings about ASCII tit:l
 
 nIssues = 0
 projtype = ''
@@ -166,11 +166,11 @@ def verifyAcademyProject(project):
 # Verifies that all chapters exist for the given folder.
 def verifyBook(book, bookpath):
     if not book.islower():
-        reportError("Upper case book folder: " + shortname(bookpath))
+        reportError("Upper case book folder: " + os.path.relpath(bookpath, manifestDir))
     nchapters = usfm_verses.verseCounts[book.upper()]['chapters']
     subdirs = os.listdir(bookpath)
     if len(subdirs) < nchapters or ("front" in subdirs and len(subdirs) <= nchapters):
-        reportError("Missing chapters in: " + shortname(bookpath))
+        reportError("Missing chapters in: " + os.path.relpath(bookpath, manifestDir))
     for chapter in subdirs:
         path = os.path.join(bookpath, chapter)
         if os.path.isdir(path):
@@ -186,7 +186,7 @@ def verifyBooks(path):
             if len(book) == 3 and os.path.isdir(bookpath) and book.upper() in usfm_verses.verseCounts:
                 verifyBook(book, bookpath)
             elif not book.startswith("issues"):
-                reportError("Invalid(?) file or folder: " + shortname(bookpath))
+                reportError("Invalid(?) file or folder: " + os.path.relpath(bookpath, manifestDir))
 
 fname2_re = re.compile(r'[0-8][0-9]\.md$')
 fname3_re = re.compile(r'[0-1][0-9][0-9]\.md$')
@@ -200,18 +200,18 @@ def verifyChapter(path):
         fname_re = fname3_re
     for fname in os.listdir(path):
         if not skip and not fname_re.match(fname) and fname != "intro.md":
-            reportError("Invalid file name: " + fname + " in " + shortname(path))
+            reportError("Invalid file name: " + fname + " in " + os.path.relpath(path, manifestDir))
 
 # Verifies the checking section of the manifest.
 def verifyChecking(checking):
     verifyKeys('checking', checking, ['checking_entity', 'checking_level'])
-    if 'checking_entity' in list(checking.keys()):      # would this work: 'checking_entity' in checking
+    if 'checking_entity' in checking:
         if len(checking['checking_entity']) < 1:
             reportError("Missing checking_entity.")
         for c in checking['checking_entity']:
             if not isinstance(c, str) or len(c) < 3:
                 reportError("Invalid checking_entity: " + str(c))
-    if 'checking_level' in list(checking.keys()):      # would this work: 'checking_level' in checking
+    if 'checking_level' in checking:
         if not isinstance(checking['checking_level'], str):
             reportError('checking_level must be a string')
         elif checking['checking_level'] != '3' and projtype not in {'reg','tq'}:
@@ -225,24 +225,24 @@ def verifyCleanDir(dirpath):
     for fname in os.listdir(dirpath):
         path = os.path.join(dirpath, fname)
         if projtype == 'ta' and fname == 'media.yaml':
-            reportError("Unwanted media.yaml file: " + shortname(path))
+            reportError("Unwanted media.yaml file: " + os.path.relpath(path, manifestDir))
         if "manifest" in fname and fname != "manifest.yaml":
-            reportError("Extra manifest file: " + shortname(path))
+            reportError("Extra manifest file: " + os.path.relpath(path, manifestDir))
         if "temp" in fname or "tmp" in fname or "orig" in fname or "bak" in fname or \
           "Copy" in fname or "txt" in fname or "projects" in fname or fname.endswith(".field"):
             if issuesfile_re.match(fname):
                 reportWarning(f"{fname} file may be extraneous")
             elif fname not in {"translate-original", "temple.md", "tempt.md", "contempt.md", "habakkuk.md", "issues.txt"}:
-                reportError("Extraneous file: " + shortname(path))
+                reportError("Extraneous file: " + os.path.relpath(path, manifestDir))
 
         elif badname_re.match(fname):
-            reportError("Likely misnamed file: " + shortname(path))
+            reportError("Likely misnamed file: " + os.path.relpath(path, manifestDir))
         if os.path.isdir(path) and fname != ".git":
             verifyCleanDir(path)
 
 # Verifies the contributors list
 def verifyContributors(core):
-    if 'contributor' in list(core.keys()):      # would this work: 'contributor' in core
+    if 'contributor' in core:
         if len(core['contributor']) < 1:
             reportError("Missing contributors!")
         for c in core['contributor']:
@@ -257,7 +257,7 @@ def verifyCore(core):
 
     # Check project identifier first because it is used to validate some other fields
     verifyIdentifier(core)  # Sets the projtype global
-    if 'conformsto' in list(core.keys()) and core['conformsto'] != 'rc0.2':     # would this work: 'conforms_to' in core
+    if 'conformsto' in core and core['conformsto'] != 'rc0.2':
         reportError("Invalid value for conformsto: " + core['conformsto'])
     verifyContributors(core)
     verifyStringField(core, 'creator', 3)
@@ -274,7 +274,7 @@ def verifyCore(core):
     elif core['language']['identifier'] in {'as','bn','gu','hi','kn','ml','mr','nag','or','pa','ta','te','ur-deva'} and pub != 'BCS':
         reportError("Publisher name should be 'BCS' for BCS resources.")
     verifyRelations(core['relation'])
-    if 'rights' in core and core['rights'] != 'CC BY-SA 4.0':  # was 'rights' in list(core.keys()) and ...
+    if 'rights' in core and core['rights'] != 'CC BY-SA 4.0':
         reportError("Invalid value for rights: " + core['rights'])
     verifySource(core['source'])
     verifySubject(core['subject'])
@@ -374,7 +374,7 @@ def verifyKeys(group, dict, keys):
 # Validate the language field and its subfields.
 def verifyLanguage(language):
     verifyKeys("language", language, ['direction', 'identifier', 'title'])
-    if 'direction' in list(language.keys()):      # would this work: 'direction' in language
+    if 'direction' in language:
         if language['direction'] != 'ltr' and language['direction'] != 'rtl':
             reportError("Incorrect language direction: " + language['direction'])
     if 'identifier' in language:
@@ -635,7 +635,7 @@ def verifySource(source):
 # Returns False if there is a problem.
 def verifyStringField(dict, key, minlength):
     success = True
-    if key in list(dict.keys()):      # would this work: key in dict
+    if key in dict:
         if not isinstance(dict[key], str):
             reportError("Value must be a string: " + key + ": " + str(dict[key]))
             success = False
@@ -702,7 +702,7 @@ def verifyTitleFiles(folder):
                 for fname in ["01.md", "title.md", "sub-title.md"]:
                     path = os.path.join(articlePath, fname)
                     if not os.path.isfile(path):
-                        reportError("Missing file: " + shortname(path))
+                        reportError("Missing file: " + os.path.relpath(path, manifestDir))
 
 def verifyTWfiles(path):
     parseYaml( os.path.join(os.path.join(path, "bible"), "config.yaml") )
@@ -734,11 +734,11 @@ def parseYaml(path):
             try:
                 contents = yaml.safe_load(file)
             except yaml.scanner.ScannerError as e:
-                reportError(f"Yaml syntax error at or before line {e.problem_mark.line} in: {shortname(path)}")
+                reportError(f"Yaml syntax error at or before line {e.problem_mark.line} in: {os.path.relpath(path, manifestDir)}")
             except yaml.parser.ParserError as e:
-                reportError(f"Yaml parsing error at or before line {e.problem_mark.line} in: {shortname(path)}")
+                reportError(f"Yaml parsing error at or before line {e.problem_mark.line} in: {os.path.relpath(path, manifestDir)}")
     else:
-        reportError(f"File missing: {shortname(path)}")
+        reportError(f"File missing: {os.path.relpath(path, manifestDir)}")
     return contents
 
 # For tA projects, verify that each folder has a valid toc.yaml and config.yaml file.
@@ -746,9 +746,9 @@ def verifyYamls(folderpath):
     parseYaml( os.path.join(folderpath, "config.yaml") )
     tocpath = os.path.join(folderpath, "toc.yaml")
     if contents := parseYaml(tocpath):
-        nAsciiTitles = verifyTocYaml(contents, shortname(tocpath))
+        nAsciiTitles = verifyTocYaml(contents, os.path.relpath(tocpath, manifestDir))
         if nAsciiTitles > 0 and not expectAscii(getLanguageId()):
-            reportWarning(f"{nAsciiTitles} likely untranslated titles in {shortname(tocpath)}")
+            reportWarning(f"{nAsciiTitles} likely untranslated titles in {os.path.relpath(tocpath, manifestDir)}")
 
 def verifyType(type):
     failure = False
@@ -785,13 +785,6 @@ def has_bom(path):
         if raw.startswith(bom):
             return True
     return False
-
-def shortname(longpath):
-    shortname = longpath
-    if manifestDir in longpath:
-        shortname = longpath[len(manifestDir)+1:]
-    return shortname
-
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
