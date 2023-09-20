@@ -50,7 +50,7 @@
 #   verifies config.yaml files for tA or tW projects
 
 # Globals
-manifestDir = r'C:\DCS\Hindi\hi_tn.STR'
+manifestDir = r'C:\DCS\Hindi\hi_obs.STR'
 expectAsciiTitles = False      # Suppress errors/warnings about ASCII tit:l
 
 nIssues = 0
@@ -315,10 +315,15 @@ def verifyDir(dirpath):
 # Manifest file verification
 def verifyFile(path):
     manifest = parseYaml(path)
-    verifyKeys("", manifest, ['dublin_core', 'checking', 'projects'])
-    verifyCore(manifest['dublin_core'])
-    verifyChecking(manifest['checking'])
-    verifyProjects(manifest['projects'], manifest['dublin_core']['language']['identifier'])
+    try:
+        verifyKeys("", manifest, ['dublin_core', 'checking', 'projects'])
+        verifyCore(manifest['dublin_core'])
+        verifyChecking(manifest['checking'])
+        verifyProjects(manifest['projects'], manifest['dublin_core']['language']['identifier'])
+    except TypeError as e:
+        reportError(f"Syntax error in {os.path.relpath(path, manifestDir)}: \"{str(e)}.\"")
+        reportError("    -- If you can't find the mistake, use an online yaml checker, like yamllint.com.")
+
 
 # Verifies format field is a valid string, depending on project type.
 # Done with iev, irv, isv, obs, obs-tn, obs-tq, obs-sn, obs-sq, reg, ta, tq, tn, tw, tsv, ulb, udb, ust
@@ -389,8 +394,12 @@ def verifyLanguage(language):
 def verifyMediaYaml(dirpath):
     yamlpath = os.path.join(dirpath, "media.yaml")
     if contents := parseYaml(yamlpath):
-        verifyKeys("", contents, ['projects'])
-        verifyProjectsOBS(contents['projects'])
+        try:
+            verifyKeys("", contents, ['projects'])
+            verifyProjectsOBS(contents['projects'])
+        except TypeError as e:
+            reportError(f"Syntax error in media.yaml: \"{str(e)}.\"")
+
 
 # Verify media entry from OBS media.yaml file
 def verifyMedium(medium):
@@ -743,12 +752,15 @@ def parseYaml(path):
 
 # For tA projects, verify that each folder has a valid toc.yaml and config.yaml file.
 def verifyYamls(folderpath):
-    parseYaml( os.path.join(folderpath, "config.yaml") )
+    parseYaml( os.path.join(folderpath, "config.yaml") )    # just to check for yaml errors
     tocpath = os.path.join(folderpath, "toc.yaml")
     if contents := parseYaml(tocpath):
-        nAsciiTitles = verifyTocYaml(contents, os.path.relpath(tocpath, manifestDir))
-        if nAsciiTitles > 0 and not expectAscii(getLanguageId()):
-            reportWarning(f"{nAsciiTitles} likely untranslated titles in {os.path.relpath(tocpath, manifestDir)}")
+        try:
+            nAsciiTitles = verifyTocYaml(contents, os.path.relpath(tocpath, manifestDir))
+            if nAsciiTitles > 0 and not expectAscii(getLanguageId()):
+                reportWarning(f"{nAsciiTitles} likely untranslated titles in {os.path.relpath(tocpath, manifestDir)}")
+        except TypeError as e:
+            reportError(f"Syntax error in {os.path.relpath(tocpath, folderpath)}: \"{str(e)}.\"")
 
 def verifyType(type):
     failure = False
