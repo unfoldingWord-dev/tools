@@ -26,7 +26,8 @@
 #   Assures newline at the end of the file.
 #   Removes gratutious formatting asterisks from header lines.
 #   For OBS files:
-#       Underlines last nonblank line in OBS files.
+#       Corrects alt image text.
+#       Underlines last nonblank line.
 #       Remove ? options at the end of the URL for any images.
 #
 # Also expands incomplete references to tA articles.
@@ -47,9 +48,9 @@ import codecs
 import stars
 
 # Globals
-source_dir = r'C:\DCS\Arabic-ar\work'
-language_code = 'ar'
-resource_type = 'tq'
+source_dir = r'C:\DCS\Oʻzbek\uz_obs\content'
+language_code = 'uz'
+resource_type = 'obs'
 server = 'DCS'     # DCS or WACS
 
 nChanged = 0
@@ -68,12 +69,6 @@ filename_re = re.compile(r'.*\.md$')
 current_dir = ""
 if resource_type == 'obs':
     filename_re = re.compile(r'\d+\.md$')
-
-def shortname(longpath):
-    shortname = longpath
-    if source_dir in longpath:
-        shortname = longpath[len(source_dir)+1:]
-    return shortname
 
 olistitem_re = re.compile(r'(\n[^#\n]*)\n+[ ]*?([1-6][\.\)] )', re.UNICODE)
 
@@ -189,6 +184,7 @@ def markQuestionLines(str):
         lineno += 1
     return text
 
+# Removes duplicate Q/A pairs in tQ files.
 def removeDuplicates(text):
     lines = text.splitlines()
     nlines = len(lines)
@@ -468,7 +464,7 @@ def convertWholeFile(source, target):
 
     if not text.startswith("# "):
         if not suppress2:
-            sys.stdout.write(shortname(source) + " does not begin with level 1 heading, so no headings will be touched.\n")
+            sys.stdout.write(os.path.relpath(source, source_dir)) + " does not begin with level 1 heading, so no headings will be touched.\n")
         fixHeadings = False
 
     # Do the hash level fixes and TA references
@@ -505,7 +501,7 @@ def convertWholeFile(source, target):
     changed = (text != origtext)
     if changed:
         if len(text) < 3:
-            sys.stderr.write("Empty or almost empty file: " + shortname(source) + '\n')
+            sys.stderr.write("Empty or almost empty file: " + os.path.relpath(source, source_dir) + '\n')
 #        elif len(origtext) - len(text) > 4 and len(text) < len(origtext) * 0.95:
 #            sys.stderr.write("Error processing (>5% size reduction): " + shortname(source) + '\n')
 #            changed = False
@@ -555,13 +551,26 @@ def cleanupLine(line):
     line = balanceUnderscores(line)
     return line
 
+altimage_re = re.compile(r'!\[.*?\]')
+
+# Underlines last nonblank line.
+def convertOBSline(line, lastline):
+    found = altimage_re.match(line)
+    if found:
+        line = line.replace(found.group(), "![OBS Image]")
+    if lastline:
+        if line[0] != '_':
+            line = '_' + line
+        if line[-1] != '_':
+            line += '_'
+    return line
+
 blankheading_re = re.compile(r'#+$')
 listjam_re = re.compile(r'( *\*)([^\* ][^\*]+)$', re.UNICODE)     # asterisk not followed by space or another asterisk
 tripleasterisk_re = re.compile(r'( *)\*\*\*([^\*]+\*\*.*)', re.UNICODE)     # line starts with triple asterisk and there is a double asterisk later in line
 
 # Adds blank lines where needed before and after heading lines
 # Supply placeholder heading if needed.
-# Underlines last nonblank line in OBS files.
 # Always writes target file, even if no changes.
 def convertByLine(source, target):
     input = io.open(source, "tr", 1, encoding="utf-8-sig")
@@ -592,8 +601,8 @@ def convertByLine(source, target):
                 line = found.group(1) + " " + found.group(2)
             if found := tripleasterisk_re.match(line):
                 line = found.group(1) + "* **" + found.group(2)
-            if resource_type == 'obs' and lineno + 1 >= len(lines):
-                line = underline(line)
+            if resource_type == 'obs':
+                line = convertOBSline(line, lineno+1 >= len(lines))
         if (linetype == HEADER and prevlinetype != BLANK) or (linetype == TEXT and prevlinetype == HEADER):
             output.write('\n')
         if not (linetype == BLANK and prevlinetype == BLANK):
@@ -619,14 +628,6 @@ def removeBOM(path):
         with open(path, 'wb') as f:
             f.write(raw)
 
-def underline(line):
-    line.strip()
-    if line[0] != '_':
-        line = '_' + line
-    if line[-1] != '_':
-        line += '_'
-    return line
-
 def convertFile(path):
     removeBOM(path)
     tmppath = path + ".tmp"
@@ -642,7 +643,7 @@ def convertFile(path):
     if changed:
         global nChanged
         nChanged += 1
-        sys.stdout.write("Changed " + shortname(path) + "\n")
+        sys.stdout.write("Changed " + os.path.relpath(path, source_dir) + "\n")
         bakpath = path + ".orig"
         if not os.path.isfile(bakpath):
             os.rename(path, bakpath)
@@ -662,7 +663,7 @@ def convertFolder(folder):
     current_dir = folder
     if nChanged >= max_files:
         return
-    sys.stdout.write("Processing " + shortname(folder) + "\n")
+    sys.stdout.write("Processing " + os.path.relpath(folder, source_dir) + "\n")
     for entry in os.listdir(folder):
         path = os.path.join(folder, entry)
         if os.path.isdir(path) and entry[0] != '.':
