@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
-# This program removes files from one location that have identical counterparts in another location.
-# The occasion for it is that BCS frequently requests publishing of a resource that has been
-# only partially updated. I don't want to have to redo the cleanup of files that have already
-# been cleaned up and not updated from the field. So I developed this script to eliminate the
-# unchanged files from the source.
+# This program considers a pair of folders. It removes files from the first folder that are
+# identical to the corresponding files in the second folder.
+# If the files are identical, one is removed.
 
-
-updated_dir = r'C:\DCS\Nepali\TQ'    # new source folder, from which files will be removed
-older_dir = r'C:\DCS\Nepali\TQ.Aug-22'  # make both of these paths as low level as possible to avoid removing too many files
+updated_dir = r'C:\DCS\Telugu\TW'    # new source folder, from which files will be removed
+older_dir = r'C:\DCS\Telugu\TW.Feb-23'  # make both of these paths as low level as possible to avoid removing too many files
 nRemoved = 0
 nLeft = 0
 
