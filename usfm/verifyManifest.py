@@ -50,8 +50,8 @@
 #   verifies config.yaml files for tA or tW projects
 
 # Globals
-manifestDir = r'C:\DCS\Hindi\hi_obs.STR'
-expectAsciiTitles = False      # Suppress errors/warnings about ASCII tit:l
+manifestDir = r'C:\DCS\Shubi\suj_reg'
+expectAsciiTitles = True      # Suppress errors/warnings about ASCII titles
 
 nIssues = 0
 projtype = ''
@@ -112,11 +112,11 @@ def countBookDirs():
             n += 1
     return n
 
-# Returns the number of .usfm files in the manifest directory.
-def countUsfmFiles():
+# Returns the number of files with the specified extension in the manifest directory.
+def countFiles(ext):
     n = 0
     for fname in os.listdir(manifestDir):
-        if fname.endswith(".usfm"):
+        if fname.endswith(ext):
             n += 1
     return n
 
@@ -512,9 +512,11 @@ def verifyProjects(projects, language_code):
         nprojects = len(projects)
         if nprojects < 1:
             reportError('Empty projects list')
-        if isBibleType(projtype) and nprojects != countUsfmFiles():
-            reportError("Number of projects listed " + str(nprojects) + " does not match number of usfm files: " + str(countUsfmFiles()))
-        if projtype in {'tn', 'tq'} and nprojects != countBookDirs():
+        if isBibleType(projtype) and nprojects != countFiles(".usfm"):
+            reportError("Number of projects listed " + str(nprojects) + " does not match number of usfm files: " + str(countFiles(".usfm")))
+        elif projtype in {'tn-tsv'} and nprojects != countFiles(".tsv"):
+            reportError("Number of projects listed " + str(nprojects) + " does not match number of tsv files: " + str(countFiles(".tsv")))
+        elif projtype in {'tn', 'tq'} and nprojects != countBookDirs():
             reportError("Number of projects listed " + str(nprojects) + " does not match number of book folders: " + str(countBookDirs()))
         if projtype in ['obs','obs-tn','obs-tq','obs-sn','obs-sq', 'tw'] and nprojects != 1:
             reportError("There should be exactly 1 project listed under projects.")
