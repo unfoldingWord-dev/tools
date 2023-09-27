@@ -20,11 +20,11 @@
 # A lot of these checks are done by tsv2rc.py as well.
 
 # Globals
-source_dir = r'C:\DCS\Kannada\TN'
+source_dir = r'C:\DCS\Kannada\work'
 language_code = 'kn'
 source_language = 'en'         # The language that the notes are translated from, usually en
-ta_dir = r'C:\DCS\Telugu\te_ta.STR'    # Use Target language tA if available
-obs_dir = r'C:\DCS\Kannada\kn_obs\content'
+ta_dir = r'C:\DCS\Kannada\kn_ta.STR'    # Use Target language tA if available
+obs_dir = r'C:\DCS\Hindi\hi_obs.STR\content'
 
 suppress1 = False    # Suppress warnings about text before first heading and TA page references in headings
 suppress2 = False    # Suppress warnings about blank headings
@@ -37,11 +37,10 @@ suppress9 = False    # Suppress warnings about ASCII content in note.
 suppress10 = False   # Suppress warnings about heading levels
 suppress11 = False    # Suppress warnings about unbalanced parentheses
 suppress12 = False    # Suppress warnings about markdown syntax in 1-line notes
-suppress13 = False    # Suppress warnings about multiple lines in non-intro notes
+suppress13 = True    # Suppress warnings about multiple lines in non-intro notes (this has become standard in BCS notes)
 suppress14 = True    # Suppress warnings about mismatched SupportReference and TA page references
 suppress15 = False   # Suppress warning for each and every blank note (Only report number of blank notes.)
-#pass_pages = ['translate-blessing', 'grammar-collectivenouns']
-pass_pages = []
+suppress16 = True    # Suppress "Invalid SupportReference value" and "invalid tA page reference" warnings
 
 if language_code in {'hr','id','nag','pmy','sw','en','es-419'}:    # Expect ASCII content with these languages
     suppress9 = True
@@ -243,8 +242,8 @@ def reportSuppressions():
         reportSuppression("Warnings about multiple lines in non-intro notes were suppressed")
     if suppress14:
         reportSuppression("Warnings about mismatched SupportReference and TA page references were suppressed")
-    if len(pass_pages) > 0:
-        reportSuppression("Certain TA page names were not checked for validity. See pass_pages in code.")
+    if suppress16:
+        reportSuppression("TA page references were not checked for validity")
 
 # This function, instead of takeSplit(), checks simple verse notes.
 # Most notes consist of a single line with no headings or lists.
@@ -357,15 +356,6 @@ def checkAsterisks(note):
     if note.count("__") % 2 == 1:
         reportError("Note seems to have mismatched '__'")
 
-# Compares specified page name to a list of page namss that are not to be checked.
-def passpage(manpage):
-    passthispage = False
-    for name in pass_pages:
-        if manpage.endswith(name):
-            passthispage = True
-            break
-    return passthispage
-
 tapage_re = re.compile(r'\[\[.*?/ta/man/(.*?)]](.*)', flags=re.UNICODE)
 talink_re = re.compile(r'(\(rc://[\*\w\-]+/ta/man/)(.+?/.+?)(\).*)', flags=re.UNICODE)
 
@@ -379,7 +369,7 @@ def checkTALinks(line):
         if line and line[0] == '#' and not suppress1:
             reportError("tA page reference in heading")
         manpage = page.group(1)
-        if not passpage(manpage):
+        if not suppress16:
             path = os.path.join(ta_dir, manpage)
             if not os.path.isdir(path):
                 reportError("invalid tA page reference: " + manpage)
@@ -433,7 +423,7 @@ def checkMdLinks(line):
     mdnamelink = mdnamelink_re.search(line)
     while mdnamelink:
         digits = mdnamelink.group(1)
-        if digits[0] not in '0123456789/.' or digits[1] not in '0123456789':
+        if digits[0] not in '0123456789/.' or digits[1] not in '0123456789o':
             reportError("Corrupted md filename link: " + digits + ".md")
         line = line[mdnamelink.end():]
         mdnamelink = mdnamelink_re.search(line)
@@ -533,7 +523,7 @@ def checkColHeader(value, expected, col):
         reportError("Invalid column " + str(col) + " header: \"" + value + "\"")
 
 def verifySupportRef(supportref, note):
-    if not passpage(supportref):
+    if not suppress14 or not suppress16:
         parts = supportref.split('/')
         if len(parts) == 1:
             folder = "translate"
@@ -541,8 +531,8 @@ def verifySupportRef(supportref, note):
         else:
             folder = parts[0]
             article = parts[-1]
-        path = os.path.join(ta_dir, folder + "/" + article)
-        if not os.path.isdir(path):
+        path = os.path.join(ta_dir, os.path.join(folder, article))
+        if not suppress16 and not os.path.isdir(path):
             reportError("Invalid SupportReference value: " + supportref)
         elif not suppress14 and "rc://" in note and not supportref in note:
             reportError("SupportReference value does not match any tA articles mentioned in note")
