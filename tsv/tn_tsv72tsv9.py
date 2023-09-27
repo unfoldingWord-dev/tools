@@ -18,9 +18,9 @@ TSV7 column             TSV7 example                        TSV9
 """
 
 # Global variables
-source_dir = r'C:\DCS\Hindi\TN\tn_MRK.tsv'
-output_dir = r'C:\DCS\Hindi\work'
-language_code = "hi"
+source_dir = r'C:\DCS\Kannada\TN'
+output_dir = r'C:\DCS\Kannada\work'
+language_code = "kn"
 
 import io
 import langdetect
@@ -70,6 +70,16 @@ def row9column(quote):
             x = 1   # handle the exception by doing nothing
     return row9column.n
 
+# Strips leading and trailing spaces from each field in the data.
+# Strips paired quotes surrounding each field.
+def strip_quotes(data):
+    for row in data:
+        for i in range(0, len(row)):
+            str = row[i].strip(' ')     # remove leading and trailing spaces
+            while len(str) > 1 and str[0] == '"' and str[-1] == '"':
+                str = str[1:-1]
+            row[i] = str
+
 # Maps values from TSV7 row to TSV9
 # Converts \n to <br> in the Note column
 def convertRow(bookId, row7):
@@ -90,6 +100,7 @@ def convertFile(path, fname):
     sys.stdout.write(f"Converting {fname}\n")
     sys.stdout.flush()
     data7 = tsv.tsvRead(path)
+    strip_quotes(data7)
     data9 = []
     bookId = getBookId(fname)
     rowno = 1
