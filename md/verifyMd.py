@@ -21,9 +21,9 @@
 # To-do -- check for other kinds of links in headings, not just TA links.
 
 # Globals
-source_dir = r'C:\DCS\Telugu\work'
-language_code = 'te'
-resource_type = 'tq'
+source_dir = r'C:\DCS\Oʻzbek\uz_obs\content'
+language_code = 'uz'
+resource_type = 'obs'
 ta_dir = r'C:\DCS\Hindi\hi_ta.STR'    # Target language tA, or English tM for WA
 obstn_dir = r'C:\DCS\Hindi\hi_obs-tn.STR'
 en_ta_dir = r'C:\DCS\English\en_ta.v29'
@@ -82,7 +82,7 @@ import codecs
 import re
 import usfm_verses
 
-listitem_re = re.compile(r'[ \t]*[\*\-][ \t]')
+listitem_re = re.compile(r'[ \t]*[\*-][ \t]')
 olistitem_re = re.compile(r'[ \t]*[0-9]+\. ')
 badolistitem_re = re.compile(r'[ \t]*[0-9]+[\)]')
 badheading_re = re.compile(r' +#')
@@ -209,7 +209,7 @@ def reportError(msg, report_lineno=True, path=None):
     if msg[-1] != '\n':
         msg += '\n'
     if not path:
-        path = shortname(state.path)
+        path = os.path.relpath(state.path, source_dir)
     if report_lineno and state.linecount > 0:
         try:
             sys.stderr.write(path + " line " + str(state.linecount) + ": " + msg)
@@ -218,7 +218,7 @@ def reportError(msg, report_lineno=True, path=None):
         issues.write(path + " line " + str(state.linecount) + ": " + msg)
     else:
         sys.stderr.write(path +  ": " + msg)
-        issues.write(shortname(state.path) + ": " + msg)
+        issues.write(os.path.relpath(state.path, source_dir) + ": " + msg)
     state.reportedError()
 
 def checkForBOM(path):
@@ -326,9 +326,15 @@ def take(line):
             i = state.linecount - 1
     checkLineContents(line)
 
+def checkAsciiContent(line):
+    if not suppress9 and line.isascii():
+        if not line.startswith("![OBS Image]"):
+            reportError("No non-Ascii content in line")
+
 multiHash_re = re.compile(r'#+[ \t].+#')
 closedHeading_re = re.compile(r'#+[ \t].*#+[ \t]*$')
 badclosedHeading_re = re.compile(r'#+[ \t].*[^# \t]#+[ \t]*$')  # closing hash without preceding space
+obsheading_re = re.compile(r'(# +\d\d?\. +)|(# [^\d]+ \d\d?$)')  #  lrt | rtl version
 
 def checkHeading(line):
     state = State()
@@ -359,6 +365,8 @@ def checkHeading(line):
         elif state.currheadinglevel > state.prevheadinglevel + 1:
             if resource_type != "ta" or state.prevheadinglevel > 0:
                 reportError("heading level incremented by more than one level")
+    if resource_type == 'obs' and not obsheading_re.match(line):
+        reportError("OBS heading is incorrectly formatted")
 
 #toobold_re = re.compile(r'#+[ \t]+.*[\*_]', re.UNICODE)        # unwanted formatting in headings
 unexpected_re = re.compile(r'\([^\)\[]*\]', re.UNICODE)         # ']' after left paren
@@ -367,8 +375,7 @@ unexpected3_re = re.compile(r'^[^\[]*\]', re.UNICODE)            # ']' before '[
 unexpected4_re = re.compile(r'\[[^\]]*$', re.UNICODE)            # '[' without following ']'
 
 def checkLineContents(line):
-    if not suppress9 and line.isascii():
-        reportError("No non-Ascii content in line")
+    checkAsciiContent(line)
     if line.find('# #') != -1:
         reportError('heading syntax error')
     if line.startswith("% ") or line.startswith("%​ "):  # invisible character in second comparison
@@ -386,12 +393,6 @@ def checkLineContents(line):
             reportError("Incorrect markdown syntax, space after first double asterisk '**'")
         if '****' in line:
             reportError("Line contains quadruple asterisks, ****")
-        #elif '***' in line:
-            #reportError("Line contains triple asterisks, ***")
-        #if "**_" in line:
-            #reportError("Line contains **_")
-        #if "_**" in line:
-            #reportError("Line contains _**")
     if not suppress13 and line.count("__") % 2 == 1:
         reportError("Line seems to have mismatched '__'")
     if "____" in line:
@@ -411,7 +412,7 @@ def checkLineContents(line):
     if not suppress11:
         nRight = reportParensInLine(line, count_numbered=False)
 
-rclink2_re = re.compile(r'rc:[a-z0-9\-\.\*/]+(.*?)[\)\]]')
+rclink2_re = re.compile(r'rc:[a-z0-9\-.*/]+(.*?)[\)\]]')
 
 # Reports an error if the line contains any corrupted RC links (containing non-ASCII characters).
 def checkTranslatedLinks(line):
@@ -448,8 +449,7 @@ def checkUnconvertedLinks(line):
 
 
 tapage_re = re.compile(r'\[\[.*?/ta/man/(.*?)]](.*)', flags=re.UNICODE)
-talink_re = re.compile(r'(\(rc://[\*\w\-]+/ta/man/)(.+?/.+?)(\).*)', flags=re.UNICODE)
-obsJpg_re = re.compile(r'https://cdn.door43.org/obs/jpg/360px/obs-en-[0-9]+\-[0-9]+\.jpg$', re.UNICODE)
+talink_re = re.compile(r'(\(rc://[*\w-]+/ta/man/)(.+?/.+?)(\).*)', flags=re.UNICODE)
 
 # Parse tA manual page names from the line.
 # Verifies the existence of the referenced page.
@@ -572,6 +572,7 @@ def checkOBSTNLink(link):
             reportError("invalid OBS story link: " + link)
 
 passagelink_re = re.compile(r'] *\(([^\)]*?)\)(.*)', flags=re.UNICODE)  # ](some-kind-of-link)...
+obsJpg_re = re.compile(r'https://cdn.door43.org/obs/jpg/360px/obs-en-[0-9]+\-[0-9]+\.jpg$', re.UNICODE)
 
 # If there is a match to passageLink_re, passage.group(1) is the URL or other text between
 # the parentheses,
@@ -628,12 +629,6 @@ def reportParensInLine(line, count_numbered=False):
         reportError("Unbalanced parens within this line: " + str(left) + ":" + str(right))
         State().reported_parens_inline = True
 
-def shortname(longpath):
-    shortname = longpath
-    if source_dir in longpath and source_dir != longpath:
-        shortname = longpath[len(source_dir)+1:]
-    return shortname
-
 punctuation_re = re.compile(r'([\?!;\:,][^ \n\)\]\'"’”»›\*]_)', re.UNICODE)
 spacey_re = re.compile(r'[\s]([\.\?!;\:,\)’”»›])', re.UNICODE)
 spacey2_re = re.compile(r'[\s]([\(\'"])[\s]', re.UNICODE)
@@ -663,7 +658,7 @@ def verifyTWfname(path):
     endir = os.path.join(en_tw_dir, os.path.basename(dir))
     enpath = os.path.join(endir, fname)
     if not os.path.isfile(enpath):
-        reportError(f"File does not exist in English tW: {shortname(path)}")
+        reportError(f"File does not exist in English tW: {os.path.relpath(path, source_dir)}")
 
 # Markdown file verification
 def verifyFile(path):
@@ -741,7 +736,7 @@ def verifyChapter(path, chapter, book):
     if resource_type == 'tn' and not suppress17:
         intropath = os.path.join(path, "intro.md")
         if not os.path.isfile(intropath):
-            reportError("Chapter is missing an intro.md file: " + shortname(path))
+            reportError("Chapter is missing an intro.md file: " + os.path.relpath(path, source_dir))
 
     if resource_type == 'tn':
         enpath = os.path.join(en_tn_dir, book)
@@ -762,13 +757,13 @@ def verifyChapter(path, chapter, book):
         en_files = os.listdir(enpath)
         reportedMissing = False
         if not os.path.isfile(path01) and os.path.isfile(path01en) and os.stat(path01en).st_size > 4:
-            reportError("Missing file(s) in: " + shortname(path))
+            reportError("Missing file(s) in: " + os.path.relpath(path, source_dir))
             reportedMissing = True
         elif len(files) * 4 < len(en_files):
-            reportError("Missing some files in: " + shortname(path))
+            reportError("Missing some files in: " + os.path.relpath(path, source_dir))
             reportedMissing = True
         elif len(files) > nverses + 1:
-            reportError("Too many files in: " + shortname(path))
+            reportError("Too many files in: " + os.path.relpath(path, source_dir))
 #        else:
         topverse = 0
         for fname in files:
@@ -783,7 +778,7 @@ def verifyChapter(path, chapter, book):
             verifyFilename(path, fname)
         if not reportedMissing and topverse + 5 < nverses and len(files) * 3 < len(en_files):
             state.setPath(path)
-            reportError("Likely missing some files in: " + shortname(path))
+            reportError("Likely missing some files in: " + os.path.relpath(path, source_dir))
 
 def verifyChapterName(book, path, chapter):
     ok = True
@@ -827,9 +822,10 @@ def verifyBook(path, book):
     state = State()
     state.setPath(path)
     if nchapters_found < nchapters:
-        reportError("There are only " + str(nchapters_found) + " chapter folders in: " + shortname(path) + ". Need " + str(nchapters) + " chapters.")
+        reportError("There are only " + str(nchapters_found) + " chapter folders in: " + os.path.relpath(path, source_dir) + \
+                    ". Need " + str(nchapters) + " chapters.")
     elif nchapters_found > nchapters:
-        reportError("Extraneous chapter folder(s) in: " + shortname(path))
+        reportError("Extraneous chapter folder(s) in: " + os.path.relpath(path, source_dir))
 
 fname2_re = re.compile(r'[0-8][0-9]\.md$')
 fname3_re = re.compile(r'[0-1][0-9][0-9]\.md$')
@@ -851,7 +847,7 @@ def verify_ta_article(dirpath):
     if os.path.isfile(path):
         verifyFile(path)
     else:
-        reportError("Missing 01.md file in: " + shortname(dirpath), False)
+        reportError("Missing 01.md file in: " + os.path.relpath(dirpath, source_dir), False)
 
     for fname in ["title.md", "sub-title.md"]:
         path = os.path.join(dirpath, fname)
@@ -863,7 +859,7 @@ def verify_ta_article(dirpath):
             checkForBOM(path)
             verifyTitleFile(dirpath, fname)
     if len(os.listdir(dirpath)) > 3:
-        reportError("has extraneous file(s)", False, shortname(dirpath))
+        reportError("has extraneous file(s)", False, os.path.relpath(dirpath, source_dir))
 
 def verifyDir(dirpath):
     state = State()
