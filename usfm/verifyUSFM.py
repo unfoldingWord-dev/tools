@@ -5,11 +5,10 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Hindi\hi_gst"
-language_code = "hi"
+source_dir = r"C:\DCS\Shubi\suj_reg\45-ACT.usfm"
+language_code = "suj"
 std_titles = []    # Set to empty list [] if you don't have a standard chapter label
 
-suppress1 = False     # Suppress warnings about empty verses and verse fragments
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
 suppress3 = False    # Suppress bad punctuation warnings
 suppress4 = False     # Suppress warnings about useless markers before section/title markers
@@ -17,8 +16,8 @@ suppress5 = False     # Suppress checks for verse counts
 suppress6 = False    # Suppress warnings about straight double and single quotes
 suppress7 = False    # Suppress warnings about straight single quotes  (report straight double quotes only)
 suppress8 = False    # Suppress warning about UPPER CASE book titles
-suppress9 = False     # Suppress warnings about ASCII content
-suppress10 = False    # Suppress "First word not capitalized" warnings
+suppress9 = True     # Suppress warnings about ASCII content
+suppress10 = False    # Suppress "First word not capitalized" warnings; report totals only
 suppress11 = False    # Suppress Punctuation missing at end of paragraph" warnings; report totals only
 
 max_chunk_length = 400
@@ -40,6 +39,7 @@ issues = dict()
 
 # Set Path for files in support
 import os
+from pathlib import Path
 import sys
 import parseUsfm
 import io
@@ -316,9 +316,9 @@ class State:
         State.upperCaseReported = True
 
 def shortname(longpath):
-    shortname = longpath
-    if source_dir in longpath:
-        shortname = longpath[len(source_dir)+1:]
+    shortname = str(longpath)
+    if str(source_dir) in shortname:
+        shortname = os.path.relpath(shortname, source_dir)  # shortname[len(source_dir)+1:]
     return shortname
 
 # If issues.txt file is not already open, opens it for writing.
@@ -380,7 +380,8 @@ def reportIssues():
 # Report missing text or all ASCII text, in previous verse
 def previousVerseCheck():
     state = State()
-    if not suppress1 and not isOptional(state.reference) and state.getTextLength() < 10 and state.verse != 0:
+    # if not suppress1 and not isOptional(state.reference) and state.getTextLength() < 10 and state.verse != 0:
+    if not isOptional(state.reference) and state.getTextLength() < 10 and state.verse != 0:
         if state.getTextLength() == 0:
             reportError("Empty verse: " + state.reference, 1)
         elif not isShortVerse(state.reference):
@@ -734,6 +735,8 @@ def reportPunctuation(text):
         reportError(f"Forward slash in {state.reference}", 52.1)
     if '\\' in text:
         reportError(f"Backslash in {state.reference}", 52.2)
+    if '=' in text:
+        reportError(f"Equals sign (=) in {state.reference}", 52.3)
 
 numberembed_re = re.compile(r'[^\s,:\.0-9\(\[\-]+[0-9]+[^\s,;\.0-9\)\]]+')
 numberprefix_re = re.compile(r'[^\s,\.0-9\(\[][0-9]+', re.UNICODE)
@@ -1052,25 +1055,26 @@ def verifyFile(path):
         sys.stderr.flush()
 
 # Verifies all .usfm files under the specified folder.
-def verifyDir(dirpath):
-    for f in os.listdir(dirpath):
-        if f[0] != '.':         # ignore hidden files
-            path = os.path.join(dirpath, f)
-            if os.path.isdir(path):
+def verifyDir(dir):
+    dirpath = Path(dir)
+    for path in dirpath.iterdir():
+        if path.name[0] != '.':         # ignore hidden files
+            if path.is_dir():
                 # It's a directory, recurse into it
                 verifyDir(path)
-            elif os.path.isfile(path) and path[-3:].lower() == 'sfm':
+            elif path.is_file() and path.name[-3:].lower() == 'sfm':
                 verifyFile(path)
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         source_dir = sys.argv[1]
 
-    if os.path.isdir(source_dir):
+    sourcePath = Path(source_dir)
+    if sourcePath.is_dir():
         verifyDir(source_dir)
-    elif os.path.isfile(source_dir):
+    elif sourcePath.is_file():
         path = source_dir
-        source_dir = os.path.dirname(path)
+        source_dir = str(sourcePath.parent)
         verifyFile(path)
     else:
         sys.stderr.write("No such folder or file: " + source_dir)
