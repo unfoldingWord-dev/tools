@@ -9,7 +9,7 @@
 # Capitalizes first word in sentences. (optional)
 
 # Set these globals
-source_dir = r"C:\DCS\Safwa\work2.temp\45-ACT.usfm"
+source_dir = r"C:\DCS\Swahili\work\38-ZEC.usfm"
 promote_all_quotes = False      # promote single and double straight quotes to curly quotes, except word-medial
 promote_double_quotes = False   # promote only double quotes
 capitalize = False          # Enforce capitalization of the first word in sentences, disregarding footnotes.
@@ -18,9 +18,9 @@ nChanged = 0
 max_changes = 66
 # Customize the behavior of this program by setting these globals:
 enable_fix_punctuation = True   # substitutions.py, double period, and spacing at beginning of verse
-enable_add_spaces = True    # Add spaces between commo/period/colon and a letter
+enable_add_spaces = True    # Add spaces between comma/period/colon and a letter
 aligned_usfm = False
-remove_s5 = True
+remove_s5 = False
 needcaps = True
 in_footnote = False
 
@@ -104,6 +104,7 @@ def fix_booktitles(str):
     return str
 
 spacey3_re = re.compile(r'\\v [0-9]+ ([\(\'"«“‘])[\s]', re.UNICODE)    # verse starts with free floating quote mark
+jammedparen_re = re.compile(r'[^\s]\(')
 
 # Replaces substrings from substitutions module
 # Reduces double periods to single periods
@@ -117,11 +118,17 @@ def fix_punctuation(str):
             str = str[:pos] + str[pos+1:]
         pos = str.find("..", pos+2)
     pos = 0
-    bad = spacey3_re.search(str)
-    while bad:
-        pos += bad.end()
+    #bad = spacey3_re.search(str)
+    #while bad:
+        #pos += bad.end()
+        #str = str[:pos-1] + str[pos:]
+        #bad = spacey3_re.search(str[pos:])
+    if bad := spacey3_re.search(str):
+        pos = bad.end()
         str = str[:pos-1] + str[pos:]
-        bad = spacey3_re.search(str[pos:])
+    if bad := jammedparen_re.search(str):
+        pos = bad.start() + 1
+        str = str[:pos] + ' ' + str[pos:]
     return str
 
 # spacing_list is a list of compiled expressions where a space needs to be inserted

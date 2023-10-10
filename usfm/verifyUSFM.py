@@ -5,10 +5,11 @@
 # Detects whether files are aligned USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Shubi\suj_reg\45-ACT.usfm"
-language_code = "suj"
-std_titles = []    # Set to empty list [] if you don't have a standard chapter label
+source_dir = r"C:\DCS\Swahili\work\39-MAL.usfm"
+language_code = "sw"
+std_titles = ["Sura"]    # Set to empty list [] if you don't have a standard chapter label
 
+suppress1 = True     # Suppress "Space in number" messages
 suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
 suppress3 = False    # Suppress bad punctuation warnings
 suppress4 = False     # Suppress warnings about useless markers before section/title markers
@@ -17,7 +18,7 @@ suppress6 = False    # Suppress warnings about straight double and single quotes
 suppress7 = False    # Suppress warnings about straight single quotes  (report straight double quotes only)
 suppress8 = False    # Suppress warning about UPPER CASE book titles
 suppress9 = True     # Suppress warnings about ASCII content
-suppress10 = False    # Suppress "First word not capitalized" warnings; report totals only
+suppress10 = True    # Suppress "First word not capitalized" warnings; report totals only
 suppress11 = False    # Suppress Punctuation missing at end of paragraph" warnings; report totals only
 
 max_chunk_length = 400
@@ -688,7 +689,7 @@ spacey2_re = re.compile(r'[\s][\[\]\(\'"«“‘’”»›][\s]', re.UNICODE)  
 spacey3_re = re.compile(r'[\(\'"«“‘’”»›][\s]', re.UNICODE)       # quote-space at beginning of verse
 spacey4_re = re.compile(r'[\s][\(\'"«“‘’”»›]$', re.UNICODE)       # quote-space at end of verse
 #wordmedial_punct_re = re.compile(r'[\w][\.\?!;\:,\(\)\[\]"«“‘’”»›][\.\?!;\:,\(\)\[\]\'"«“‘’”»›]*[\w]', re.UNICODE)
-wordmedial_punct_re = re.compile(r'[\w][\.\?!;\:,\(\)\[\]"«“‘”»›][\.\?!;\:,\(\)\[\]\'"«“‘’”»›]*[\w]', re.UNICODE)
+wordmedial_punct_re = re.compile(r'[\w][.?!;:,()\[\]"«“‘”»›][.?!;:,()\[\]\'"«“‘’”»›]*[\w]')
 outsidequote_re = re.compile(r'([\'"’”»›][\.!])', re.UNICODE)   # Period or exclamation outside closing quote.
 
 def reportPunctuation(text):
@@ -740,11 +741,11 @@ def reportPunctuation(text):
 
 numberembed_re = re.compile(r'[^\s,:\.0-9\(\[\-]+[0-9]+[^\s,;\.0-9\)\]]+')
 numberprefix_re = re.compile(r'[^\s,\.0-9\(\[][0-9]+', re.UNICODE)
-numbersuffix_re = re.compile(r'[0-9]+[^\s,;\.0-9\)\]]', re.UNICODE)
+numbersuffix_re = re.compile(r'[0-9]+[^\s,;:.?!"z0-9\)\]]', re.UNICODE)
 unsegmented_re = re.compile(r'[0-9][0-9][0-9][0-9]+')
 numberformat_re = re.compile(r'[0-9]+[\.,]?\s[\.,]?[0-9]+')
 leadingzero_re = re.compile(r'[\s]0[0-9,]*', re.UNICODE)
-number_re = re.compile(r'[^\d](\d+)[^\d]')       # possible verse number in text
+number_re = re.compile(r'[^\d](\d+)[^\d,]')       # possible verse number in text
 chapverse_re = re.compile(r'(\d+)([:\-])(\d+)')
 
 def reportNumbers(t, footnote):
@@ -779,10 +780,11 @@ def reportNumbers(t, footnote):
     if unsegmented := unsegmented_re.search(t):
         if len(unsegmented.group(0)) > 4:
             reportError(f"Unsegmented number: {unsegmented.group(0)} at {state.reference}", 61.5)
-    if fmt := numberformat_re.search(t):
-        reportError(f"Space in number {fmt.group(0)} at {state.reference}", 61.6)
-    elif leadzero := leadingzero_re.search(t):
-        reportError(f"Invalid leading zero: {leadzero.group(0)} at {state.reference}", 61)
+    if not suppress1:
+        if fmt := numberformat_re.search(t):
+            reportError(f"Space in number {fmt.group(0)} at {state.reference}", 61.6)
+        elif leadzero := leadingzero_re.search(t):
+            reportError(f"Invalid leading zero: {leadzero.group(0)} at {state.reference}", 61)
 
 period_re = re.compile(r'[\s]*[\.,;:!\?]', re.UNICODE)    # detects phrase-ending punctuation starting a phrase
 
@@ -814,7 +816,7 @@ def takeText(t, footnote=False):
         reportFootnotes(t)
     if period := period_re.match(t):
         if len(t) <= period.end() + 1:
-            reportError(f"Punctuation on a line by itself at {state.reference}", 58)
+            reportError(f"Orphaned punctuation at {state.reference}", 58)
         else:
             reportError("Text begins with phrase-ending punctuation in " + state.reference, 58.1)
     reportNumbers(t, footnote)
