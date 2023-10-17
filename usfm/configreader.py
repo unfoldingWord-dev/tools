@@ -37,4 +37,4 @@ def get_config(argv, section):
         sys.stderr.write(f"No {section} section is found in your config file, or no value is found there for source_dir!\n")
         config = None
 
-    return config[section]
+    return config[section] if config else None
