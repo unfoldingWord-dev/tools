@@ -8,22 +8,7 @@
 # Promote straight quotes to open and closed quotes. (optional)
 # Capitalizes first word in sentences. (optional)
 
-# Set these globals
-source_dir = r"C:\DCS\Swahili\work\38-ZEC.usfm"
-promote_all_quotes = False      # promote single and double straight quotes to curly quotes, except word-medial
-promote_double_quotes = False   # promote only double quotes
-capitalize = False          # Enforce capitalization of the first word in sentences, disregarding footnotes.
-
-nChanged = 0
-max_changes = 66
-# Customize the behavior of this program by setting these globals:
-enable_fix_punctuation = True   # substitutions.py, double period, and spacing at beginning of verse
-enable_add_spaces = True    # Add spaces between comma/period/colon and a letter
-aligned_usfm = False
-remove_s5 = False
-needcaps = True
-in_footnote = False
-
+import configreader
 import re       # regular expression module
 import io
 import os
@@ -36,11 +21,17 @@ import parseUsfm
 import sentences
 import usfmFile
 
+config = None
+nChanged = 0
+aligned_usfm = False
+needcaps = True
+in_footnote = False
 
 def shortname(longpath):
-    shortname = longpath
-    if source_dir in longpath:
-        shortname = longpath[len(source_dir)+1:]
+    source_dir = config['source_dir']
+    shortname = str(longpath)
+    if shortname.startswith(source_dir):
+        shortname = os.path.relpath(shortname, source_dir)
     return shortname
 
 #  Move paragraph marker before section marker to follow the section marker
@@ -157,19 +148,20 @@ def convert_wholefile(path):
     aligned_usfm = ("lemma=" in alltext)
     changed = False
 
-    if remove_s5:
+    if config.getboolean('remove_s5', fallback=True):
         alltext = usfm_remove_s5(alltext)
     alltext = usfm_move_pq(alltext)
     alltext = usfm_remove_pq(alltext)
     alltext = fix_booktitles(alltext)
-    if enable_fix_punctuation and not aligned_usfm:  # and fileQualifies(path):
-        alltext = fix_punctuation(alltext)
-    if enable_add_spaces and not aligned_usfm:
-        alltext = add_spaces(alltext)
-    if promote_all_quotes and not aligned_usfm:
-        alltext = quotes.promoteQuotes(alltext)
-    elif promote_double_quotes and not aligned_usfm:
-        alltext = doublequotes.promoteQuotes(alltext)
+    if not aligned_usfm:
+        if config.getboolean('enable_fix_punctuation', fallback=True):
+            alltext = fix_punctuation(alltext)
+        if config.getboolean('enable_add_spaces', fallback=True):
+            alltext = add_spaces(alltext)
+        if config.getboolean('promote_all_quotes', fallback=False):
+            alltext = quotes.promoteQuotes(alltext)
+        elif config.getboolean('promote_double_quotes', fallback=False):
+            alltext = doublequotes.promoteQuotes(alltext)
     if alltext != origtext:
         output = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
         output.write(alltext)
@@ -330,7 +322,7 @@ def convertFile(path):
         nChanged += 1
     if convert_by_line(path):
         nChanged += 1
-    if capitalize:
+    if config.getboolean('capitalize', fallback=False):
         if convert_by_token(path):
             nChanged += 1
 
@@ -350,10 +342,10 @@ def convertFile(path):
 # Recursive routine to convert all files under the specified folder
 def convertFolder(folder):
     global nChanged
-    global max_changes
+    max_changes = config.getint('max_changes', fallback=66)
     if nChanged >= max_changes or aligned_usfm:
         return
-    sys.stdout.write(shortname(folder) + '\n')
+    #sys.stdout.write(shortname(folder) + '\n')
     for entry in os.listdir(folder):
         if entry[0] != '.':
             path = os.path.join(folder, entry)
@@ -366,20 +358,19 @@ def convertFolder(folder):
 
 # Processes all .usfm files in specified directory, one at a time
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
-        source_dir = sys.argv[1]
-
-    if source_dir and os.path.isdir(source_dir):
-        convertFolder(source_dir)
-        sys.stdout.write("Done. Changed " + str(nChanged) + " files.\n")
-    elif os.path.isfile(source_dir):
-        path = source_dir
-        source_dir = os.path.dirname(path)
-        convertFile(path)
-        sys.stdout.write("Done. Changed " + str(nChanged) + " files.\n")
-    else:
-        sys.stderr.write("Source file(s) not found: " + source_dir)
-        sys.stderr.write("\nUsage: python usfm_cleanup.py <folder>\n  Use . for current folder.\n")
+    config = configreader.get_config(sys.argv, 'usfm_cleanup')
+    if config:
+        source_dir = config['source_dir']
+        file = config['file']
+        if file:
+            path = os.path.join(source_dir, file)
+            if os.path.isfile(path):
+                convertFile(path)
+            else:
+                sys.stderr.write(f"No such file: {path}\n")
+        else:
+            convertFolder(source_dir)
+        print("Done. Changed " + str(nChanged) + " files.")
 
     if aligned_usfm:
-        sys.stderr.write("Cannot cleanup aligned USFM.\n")
+        sys.stderr.write("Cannot clean up aligned USFM.\n")

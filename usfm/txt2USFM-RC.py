@@ -7,12 +7,9 @@
 #    Standardizes the names of .usfm files. For example 41-MAT.usfm and 42-MRK.usfm.
 #    Converts multiple books at once if there are multiple books.
 
-# Global variables
-source_dir = r'C:\DCS\Matengo\REG'  # must be a folder
-target_dir = r'C:\DCS\Matengo\work'
-language_code = "mgv"
-mark_chunks = False   # Should be true for GL source text
 
+import configreader
+from pathlib import Path
 import usfm_verses
 import re
 import operator
@@ -26,6 +23,7 @@ numberstart_re = re.compile(r'([\d]{1,3})[ \n]', re.UNICODE)
 chapMarker_re = re.compile(r'\\c *[\d]{1,3}', re.UNICODE)
 chaplabel_re = re.compile(r'\\cl', re.UNICODE)
 
+config = None
 contributors = []
 projects = []
 
@@ -56,8 +54,8 @@ def cleanupChunk(path, chap, verserange):
                 text = ensureNumbers(text, missing_verses)
                 missing_verses = lackingVerses(text, verserange, numbers_re)
         text = ensureMarkers(text, missing_chapter, vn_start, vn_end, missing_verses, missing_markers)
-    if language_code == "ior":
-        text = fixInorMarkers(text, verserange)
+    #if language_code == "ior":
+        #text = fixInorMarkers(text, verserange)
 
     if text != origtext:
         bakpath = path + ".orig"
@@ -269,6 +267,7 @@ chapter_re = re.compile(r'\n\\c +([0-9]+)[ \n]*', re.UNICODE)
 # Adds section marker, chapter label, and paragraph marker as needed.
 # Returns modified section.
 def augmentChapter(section, chapterTitle):
+    mark_chunks = config.getboolean('mark_chunks', fallback=False)
     if mark_chunks:
         # section = addSectionMarker(section)
         if marker := cvExpr.search(section):
@@ -287,8 +286,8 @@ def augmentChapter(section, chapterTitle):
         section = section[:chap.end()].rstrip() + clpstr + section[chap.end():].lstrip()
     return section
 
-spacedot_re = re.compile(r'[^0-9] [\.\?!;\:,][^\.]')    # space before clause-ending punctuation
-jammed = re.compile(r'[\.\?!;:,)][\w]', re.UNICODE)     # no space between clause-ending punctuation and next word -- but \w matches digits also
+spacedot_re = re.compile(r'[^0-9] [.?!;:,][^\.]')    # space before clause-ending punctuation
+jammed = re.compile(r'[.?!;:,)][\w]', re.UNICODE)     # no space between clause-ending punctuation and next word -- but \w matches digits also
 
 # Removes extraneous space before clause ending punctuation and adds space after
 # sentence/clause end if needed.
@@ -433,6 +432,7 @@ def getBookId(folder):
             if os.path.isfile(path):
                 bookId = parseManifest(path)
     if not bookId:
+        language_code = config['language_code']
         matchstr = language_code + "_([a-zA-Z1-3][a-zA-Z][a-zA-Z])_"
         if okname := re.match(matchstr, os.path.basename(folder)):
             bookId = okname.group(1).upper()
@@ -464,10 +464,10 @@ def appendToProjects(bookId, bookTitle):
                 "path": "./" + makeUsfmFilename(bookId), "category": "[ 'bible-" + testament + "' ]" }
     projects.append(project)
 
-def dumpProjects():
+def dumpProjects(target_dir):
     projects.sort(key=operator.itemgetter('sort'))
 
-    path = makeManifestPath()
+    path = makeManifestPath(target_dir)
     manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
     manifest.write("projects:\n")
     for p in projects:
@@ -490,9 +490,8 @@ def shortname(longpath):
     return shortname
 
 def convertFolder(folder):
+    language_code = config['language_code']
     if os.path.basename(folder).startswith(language_code):
-        sys.stdout.write("Converting: " + shortname(folder) + "\n")
-        sys.stdout.flush()
         bookId = getBookId(folder)
         bookTitle = getBookTitle(folder)
         if bookId and bookTitle:
@@ -515,7 +514,7 @@ def makeUsfmFilename(bookId):
     return filename
 
 # Returns path of temporary manifest file block listing projects converted
-def makeManifestPath():
+def makeManifestPath(target_dir):
     return os.path.join(target_dir, "projects.yaml")
 
 def writeHeader(usfmfile, bookId, bookTitle):
@@ -528,7 +527,7 @@ def writeHeader(usfmfile, bookId, bookTitle):
 
 # Eliminates duplicates from contributors list and sorts it.
 # Outputs list to contributors.txt.
-def dumpContributors():
+def dumpContributors(target_dir):
     global contributors
     contribs = list(set(contributors))
     contribs.sort()
@@ -593,6 +592,9 @@ def getChapterTitle(chapterpath):
 
 # This method is called to convert the chapters in the current folder to USFM
 def convertBook(folder, bookId, bookTitle):
+    sys.stdout.write("Converting: " + shortname(folder) + "\n")
+    sys.stdout.flush()
+    target_dir = config['target_dir']
     chapters = listChapters(folder)
     # Open output USFM file for writing.
     usfmPath = os.path.join(target_dir, makeUsfmFilename(bookId))
@@ -616,11 +618,9 @@ def convertBook(folder, bookId, bookTitle):
     usfmFile.close()
 
 # Converts the book or books contained in the specified folder
-def convert(dir):
-    if not os.path.isdir(target_dir):
-        os.mkdir(target_dir)
-    if os.path.isfile( makeManifestPath() ):
-        os.remove( makeManifestPath() )
+def convert(dir, target_dir):
+    if os.path.isfile( makeManifestPath(target_dir) ):
+        os.remove( makeManifestPath(target_dir) )
     if isBookFolder(dir):
         convertFolder(dir)
     else:       # presumed to be a folder containing multiple books
@@ -628,16 +628,16 @@ def convert(dir):
             folder = os.path.join(dir, directory)
             if isBookFolder(folder):
                 convertFolder(folder)
-    dumpContributors()
-    dumpProjects()
+    dumpContributors(target_dir)
+    dumpProjects(target_dir)
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
-        source_dir = sys.argv[1]
+    config = configreader.get_config(sys.argv, 'txt2USFM')
+    if config:
+        source_dir = config['source_dir']
+        target_dir = config['target_dir']
 
-    if os.path.isdir(source_dir):
-        convert(source_dir)
+        Path(target_dir).mkdir(exist_ok=True)
+        convert(source_dir, target_dir)
         print("\nDone.")
-    else:
-        print("Not a valid folder: " + source_dir + '\n')

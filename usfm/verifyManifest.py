@@ -32,7 +32,8 @@
 #   subject is one of the predefined strings and corresponds to project type identifier
 #   title is a non-empty string
 #   type corresponds to subject
-#   version is a string that starts with source.version followed by a period followed by a number
+#   version numbers have no white spaces
+#   version numbers consistent in manifest.yaml and front/intro.md
 #   checking has no extraneous fields
 #   checking.checking_entity is a list of at least one string
 #   checking.checking_level is '3'
@@ -49,14 +50,12 @@
 #   verifies presence of media.yaml file for OBS projects.
 #   verifies config.yaml files for tA or tW projects
 
-# Globals
-manifestDir = r'C:\DCS\Shubi\suj_reg'
-expectAsciiTitles = True      # Suppress errors/warnings about ASCII titles
-
 nIssues = 0
 projtype = ''
 issuesFile = None
+manifestDir = None
 
+import configreader
 from datetime import datetime
 from datetime import date
 from datetime import timedelta
@@ -77,7 +76,8 @@ def getLanguageId():
     return parts[0]
 
 def expectAscii(language_id):
-    return (expectAsciiTitles or language_id in {'ceb','dan','en','es','es-419','fr','gl','ha','hr','id','ilo','kvb','lko','ngp','plt','pmy','pt-br','ruc','sw','tl','tpi'})
+    expectAsciiTitles = config.getboolean('expectAsciiTitles', fallback=False)
+    return (expectAsciiTitles or language_id in {'ceb','dan','en','es','es-419','fr','gl','ha','hr','id','ilo','kvb','lko','ngp','plt','pmy','pt-br','ruc','tl','tpi'})
 
 # If manifest-issues.txt file is not already open, opens it for writing.
 # Returns file pointer, which is also a global.
@@ -232,7 +232,7 @@ def verifyCleanDir(dirpath):
           "Copy" in fname or "txt" in fname or "projects" in fname or fname.endswith(".field"):
             if issuesfile_re.match(fname):
                 reportWarning(f"{fname} file may be extraneous")
-            elif fname not in {"translate-original", "temple.md", "tempt.md", "contempt.md", "habakkuk.md", "issues.txt"}:
+            elif fname not in {"translate-original", "temple.md", "tempt.md", "contempt.md", "habakkuk.md", "issues.txt", "issues-extra.txt"}:
                 reportError("Extraneous file: " + os.path.relpath(path, manifestDir))
 
         elif badname_re.match(fname):
@@ -781,13 +781,13 @@ def verifyType(type):
     if failure:
         reportError("Invalid type: " + type)
 
+spaced_re = re.compile(r'[\s]')
+
 def verifyVersion(version, sourceversion):
-    # The rules seem to be optional, so may comment out most of this code if necessary.
-    parts = version.rsplit('.', 1)
-#    if int(sourceversion) < 100 and (len(parts) < 2 or parts[0] != sourceversion or int(parts[-1]) < 1):
-#        reportError("Invalid version: " + version + "; Source version is " + sourceversion)
-#    if int(sourceversion) >= 100 and (len(parts) > 1 or int(parts[0]) > 99):
-#        reportError("Invalid version: " + version + ". Source version is " + sourceversion)
+    if spaced_re.search(version):
+        reportError("White space in version number")
+    if spaced_re.search(sourceversion):
+        reportError("White space in source:version")
     if projtype == 'obs':
         sys.stdout.write("Verify that the version number listed in front/intro.md is: " + version + "\n")
 
@@ -801,17 +801,14 @@ def has_bom(path):
     return False
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
-        manifestDir = sys.argv[1]
-
-    if os.path.isdir(manifestDir):
+    config = configreader.get_config(sys.argv, 'verifyManifest')
+    if config:
+        manifestDir = config['source_dir']
         verifyDir(manifestDir)
-    else:
-        reportError("Invalid directory: " + manifestDir + '\n')
 
-    if issuesFile:
-        issuesFile.close()
-    if nIssues == 0:
-        print("Done, no errors found.\n")
-    else:
-        print("Finished checking, found " + str(nIssues) + " issues.\n")
+        if issuesFile:
+            issuesFile.close()
+        if nIssues == 0:
+            print("Done, no errors found.\n")
+        else:
+            print("Finished checking, found " + str(nIssues) + " issues.\n")

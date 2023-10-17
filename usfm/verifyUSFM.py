@@ -1,36 +1,32 @@
 # -*- coding: utf-8 -*-
 # Script for verifying proper USFM.
 # Reports errors to stderr and issues.txt.
-# Set source_dir and language_code to run.
+# Uses these config values:
+#   source_dir
+#   file  (optional)
+#   language_code
+#   standard_chapter_title (optional)
+#   suppress1 thru suppress11 (optional)
 # Detects whether files are aligned USFM.
 
-# Global variables
-source_dir = r"C:\DCS\Swahili\work\39-MAL.usfm"
-language_code = "sw"
-std_titles = ["Sura"]    # Set to empty list [] if you don't have a standard chapter label
 
-suppress1 = True     # Suppress "Space in number" messages
-suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
-suppress3 = False    # Suppress bad punctuation warnings
-suppress4 = False     # Suppress warnings about useless markers before section/title markers
-suppress5 = False     # Suppress checks for verse counts
-suppress6 = False    # Suppress warnings about straight double and single quotes
-suppress7 = False    # Suppress warnings about straight single quotes  (report straight double quotes only)
-suppress8 = False    # Suppress warning about UPPER CASE book titles
-suppress9 = True     # Suppress warnings about ASCII content
-suppress10 = True    # Suppress "First word not capitalized" warnings; report totals only
-suppress11 = False    # Suppress Punctuation missing at end of paragraph" warnings; report totals only
+#suppress1 = True     # Suppress "Space in number" messages
+#suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
+#suppress3 = False    # Suppress bad punctuation warnings
+#suppress4 = False     # Suppress warnings about useless markers before section/title markers
+#suppress5 = False     # Suppress checks for verse counts
+#suppress6 = True    # Suppress warnings about straight double and single quotes
+#suppress7 = False    # Suppress warnings about straight single quotes  (report straight double quotes only)
+#suppress8 = False    # Suppress warning about UPPER CASE book titles
+#suppress9 = True     # Suppress warnings about ASCII content
+#suppress10 = False    # Suppress "First word not capitalized" warnings; report totals only
+#suppress11 = True    # Suppress Punctuation missing at end of paragraph" warnings; report totals only
 
+config = None
+suppress = [False]*12
+language_code = None
 max_chunk_length = 400
-
-if language_code in {'diu','en','es','es-419','gl','ha','hr','id','kcn','kpj','nag','plt','pmy','pt-br','sw','tl','tpi'}:    # ASCII content
-    suppress9 = True
-if language_code in {'as','bn','gu','hi','kn','ml','mr','nag','ne','or','pa','ru','ta','te','zh'}:    # ASCII content
-    suppress9 = False
-#if language_code == 'ru':
-    #suppress5 = True
-if std_titles == [""]:
-    std_titles = []
+std_titles = None
 
 lastToken = None
 nextToken = None
@@ -38,7 +34,7 @@ aligned_usfm = False
 issuesFile = None
 issues = dict()
 
-# Set Path for files in support
+import configreader
 import os
 from pathlib import Path
 import sys
@@ -317,9 +313,10 @@ class State:
         State.upperCaseReported = True
 
 def shortname(longpath):
+    source_dir = config['source_dir']
     shortname = str(longpath)
-    if str(source_dir) in shortname:
-        shortname = os.path.relpath(shortname, source_dir)  # shortname[len(source_dir)+1:]
+    if shortname.startswith(source_dir):
+        shortname = os.path.relpath(shortname, source_dir)
     return shortname
 
 # If issues.txt file is not already open, opens it for writing.
@@ -329,7 +326,7 @@ def shortname(longpath):
 def openIssuesFile():
     global issuesFile
     if not issuesFile:
-        global source_dir
+        source_dir = config['source_dir']
         path = os.path.join(source_dir, "issues.txt")
         if os.path.exists(path):
             bakpath = os.path.join(source_dir, "issues-oldest.txt")
@@ -373,10 +370,13 @@ def reportError(msg, errorId=0, summarize_only=False):
 # Write summary of issues to issuesFile
 def reportIssues():
     global issues
+    total = 0
     issuesfile = openIssuesFile()
     issuesfile.write("\nSUMMARY:\n")
     for issue in sorted(issues.items(), key=lambda kv: kv[1][1], reverse=True):
+        total += issue[1][1]
         issuesfile.write(f"{issue[1][0]} --- {issue[1][1]} occurrence(s).\n")
+    issuesfile.write(f"\n{total} issues found.")
 
 # Report missing text or all ASCII text, in previous verse
 def previousVerseCheck():
@@ -387,7 +387,7 @@ def previousVerseCheck():
             reportError("Empty verse: " + state.reference, 1)
         elif not isShortVerse(state.reference):
             reportError("Verse fragment: " + state.reference, 2)
-    if not suppress9 and state.asciiVerse and state.getTextLength() > 0:
+    if not suppress[9] and state.asciiVerse and state.getTextLength() > 0:
         reportError("Verse is entirely ASCII: " + state.reference, 3)
 
 def longChunkCheck():
@@ -529,7 +529,7 @@ def takeID(id):
 
 def reportParagraphMarkerErrors(type):
     state = State()
-    if state.currMarker in {QQ,PP} and not suppress4:
+    if state.currMarker in {QQ,PP} and not suppress[4]:
         reportError("Warning: back to back paragraph/poetry markers after: " + state.reference, 24)
     if state.needText() and not isOptional(state.reference):
         reportError("Paragraph marker after verse marker, or empty verse: " + state.reference, 25)
@@ -541,9 +541,9 @@ def takeP(type):
     state = State()
     if not aligned_usfm and not state.sentenceEnded():
         if state.verse > 0:
-            reportError(f"Punctuation missing at end of paragraph: {state.reference}", 26, suppress11)
+            reportError(f"Punctuation missing at end of paragraph: {state.reference}", 26, suppress[11])
         else:
-            reportError(f"Punctuation missing at end of paragraph before {state.reference}", 26.1, suppress11)
+            reportError(f"Punctuation missing at end of paragraph before {state.reference}", 26.1, suppress[11])
     state.addParagraph() if type != 'nb' else state.addNB()
 
 def takeQ(type):
@@ -557,7 +557,7 @@ def takeS5():
 
 def takeSection(tag):
     state = State()
-    if not suppress4:
+    if not suppress[4]:
         state = State()
         if state.currMarker == PP:
             reportError(f"Warning: useless paragraph (p,m,nb) marker before \\{tag} marker at: {state.reference}", 27)
@@ -570,9 +570,9 @@ def takeSection(tag):
 def takeTitle(token):
     state = State()
     state.addTitle(token.value)
-    if token.isMT() and token.value.isascii() and not suppress9:
+    if token.isMT() and token.value.isascii() and not suppress[9]:
         reportError("mt token has ASCII value in " + state.reference, 30)
-    if token.value.isupper() and not state.upperCaseReported and not suppress8:
+    if token.value.isupper() and not state.upperCaseReported and not suppress[8]:
         reportError("Upper case book title in " + state.reference, 31)
         state.reportedUpperCase()
     if token.value.startswith("Ii"):
@@ -615,7 +615,7 @@ def takeV(vstr):
             reportError("Missing ID before verse: " + v, 35)
         if state.chapter == 0:
             reportError("Missing chapter tag: " + state.reference, 36)
-        if state.verse == 1 and state.needPP and not suppress2:
+        if state.verse == 1 and state.needPP and not suppress[2]:
             reportError("Need paragraph marker before: " + state.reference, 37)
         if state.needQQ:
             reportError("Need \\q or \\p after acrostic heading before: " + state.reference, 38)
@@ -668,12 +668,12 @@ def reportCaps(str):
         word = sentences.firstword(str)
         if word and word[0].islower():
             if state.currMarker == PP or state.prevMarker == PP:
-                reportError(f"First word of paragraph not capitalized near {state.reference}", 44, suppress10)
+                reportError(f"First word of paragraph not capitalized near {state.reference}", 44, suppress[10])
             else:
-                reportError(f"First word in sentence: ({word}) is not capitalized. {state.reference}", 44.1, suppress10)
+                reportError(f"First word in sentence: ({word}) is not capitalized. {state.reference}", 44.1, suppress[10])
     for word in sentences.nextfirstwords(str):
         if word[0].islower():
-            reportError(f"First word in sentence: ({word}) is not capitalized. {state.reference}", 44.1, suppress10)
+            reportError(f"First word in sentence: ({word}) is not capitalized. {state.reference}", 44.1, suppress[10])
 
 # Returns a string containing text preceding specified start position and following end position
 def context(text, start, end):
@@ -682,7 +682,7 @@ def context(text, start, end):
     return text[start:end] if end > start else text[start:]
 
 #adjacent_re = re.compile(r'([\.\?!;\:,][\.\?!;\:,])', re.UNICODE)
-punctuation_re = re.compile(r'([\.\?!;\:,][^\s\u200b\)\]\'"’”»›])', re.UNICODE)     # phrase ending punctuation that doesn't actually end
+punctuation_re = re.compile(r'([.?!;:,][^\s\u200b\)\]\'"’”»›])', re.UNICODE)     # phrase ending punctuation that doesn't actually end
 # note: \u200b indicates word boundaries in scripts that do not use explicit spacing, but is used (seemingly incorrectly) like a space in Laotian
 spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’”»›])', re.UNICODE)    # space before phrase-ending mark
 spacey2_re = re.compile(r'[\s][\[\]\(\'"«“‘’”»›][\s]', re.UNICODE)    # free floating marks
@@ -780,7 +780,7 @@ def reportNumbers(t, footnote):
     if unsegmented := unsegmented_re.search(t):
         if len(unsegmented.group(0)) > 4:
             reportError(f"Unsegmented number: {unsegmented.group(0)} at {state.reference}", 61.5)
-    if not suppress1:
+    if not suppress[1]:
         if fmt := numberformat_re.search(t):
             reportError(f"Space in number {fmt.group(0)} at {state.reference}", 61.6)
         elif leadzero := leadingzero_re.search(t):
@@ -810,7 +810,7 @@ def takeText(t, footnote=False):
             reportError("Angle bracket not closed at " + state.reference, 56)
     if "Conflict Parsing Error" in t:
         reportError("BTT Writer artifact in " + state.reference, 57)
-    if not suppress3 and not aligned_usfm:
+    if not suppress[3] and not aligned_usfm:
         reportPunctuation(t)
     if lastToken.isV() and not aligned_usfm:
         reportFootnotes(t)
@@ -883,7 +883,7 @@ def take(token):
     if token.isID():
         takeID(token.value)
     elif token.isC():
-        if not suppress5:
+        if not suppress[5]:
             verifyVerseCount()  # for the preceding chapter
         if not state.ID:
             reportError("Missing book ID: " + state.reference, 62)
@@ -986,11 +986,11 @@ def verifyWholeFile(str, path):
     if orphans:
         reportOrphans(lines, path)
 
-    if not suppress6:
+    if not suppress[6]:
         nembedded = len(embeddedquotes_re.findall(str))
         nsingle = str.count("'") - nembedded
         ndouble = str.count('"')
-        if (nsingle > 0 and not suppress7) or ndouble > 0:
+        if (nsingle > 0 and not suppress[7]) or ndouble > 0:
             reportError(f"Straight quotes found in {shortname(path)}: {ndouble} doubles, {nsingle} singles not counting {nembedded} word-medial.", 75)
 
 
@@ -1047,7 +1047,7 @@ def verifyFile(path):
             reportError("No \\toc3 tag in " + shortname(path), 81)
         previousVerseCheck()       # checks last verse in the file
         verifyNotEmpty(path)
-        if not suppress5:
+        if not suppress[5]:
             verifyVerseCount()      # for the last chapter
         verifyChapterCount()
         verifyFootnotes()
@@ -1068,23 +1068,35 @@ def verifyDir(dir):
                 verifyFile(path)
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
-        source_dir = sys.argv[1]
+    config = configreader.get_config(sys.argv, 'verifyUSFM')
+    if config:
+        source_dir = config['source_dir']
+        for i in range(0, len(suppress)):
+            suppress[i] = config.getboolean('suppress'+str(i), fallback = False)
+        language_code = config['language_code']
+        if language_code in {'diu','en','es','es-419','gl','ha','hr','id','kcn','kpj','nag','plt','pmy','pt-br','sw','tl','tpi'}:    # ASCII content
+            suppress[9] = True
+        if language_code in {'as','bn','gu','hi','kn','ml','mr','nag','ne','or','pa','ru','ta','te','zh'}:    # ASCII content
+            suppress[9] = False
+        std_titles = [ config['standard_chapter_title'] ]
+        if std_titles == ['']:
+            std_titles = []
 
-    sourcePath = Path(source_dir)
-    if sourcePath.is_dir():
-        verifyDir(source_dir)
-    elif sourcePath.is_file():
-        path = source_dir
-        source_dir = str(sourcePath.parent)
-        verifyFile(path)
-    else:
-        sys.stderr.write("No such folder or file: " + source_dir)
-        exit(-1)
+        file = config['file']
+        if file:
+            path = os.path.join(source_dir, file)
+            if os.path.isfile(path):
+                verifyFile(path)
+            else:
+                reportError(f"No such file: {path}")
+        else:
+            verifyDir(source_dir)
 
-    if issuesFile:
-        reportIssues()
-        issuesFile.close()
-    else:
-        print("No issues found!")
-    print("Done.\n")
+        if issuesFile:
+            reportIssues()
+            issuesFile.close()
+        else:
+            print("No issues found!")
+        print("Done. Press Enter to exit.")
+        input()
+        print("Done.\n")
