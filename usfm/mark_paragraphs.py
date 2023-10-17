@@ -5,26 +5,21 @@
 # Marks unmarked text as section headings where present in model.
 # The input file(s) should be verified, correct USFM, except for unmarked text which may become section headings.
 
-# Global variables
-model_dir = r'C:\DCS\English\en_udb.paragraphs'
-#model_dir = r'C:\DCS\Indonesian\id_ayt.TA'
-source_dir = r"C:\DCS\Safwa\work2.temp\45-ACT.usfm"     # file(s) to be changed
-removeS5markers = True
-xlateS5markers = False   # Dubious validity, and not tested for texts that have both kinds of markers already. Translates most \s5 markers to \p markers.
-copy_nb = False
-
-nCopied = 0     # number of paragraphs and sections copied from model
-issuesFile = None
-reportFile = None
-
+import configreader
 import sys
 import os
 import parseUsfm
 import io
 import re
 import shutil
+import sentences
 import usfm_verses
 from usfmFile import usfmFile
+
+nCopied = 0     # number of paragraphs and sections copied from model
+issuesFile = None
+reportFile = None
+config = None
 
 # Marker types
 TEXT = 1
@@ -39,7 +34,6 @@ class State:
     sChapter = 0    # location of latest section heading already in input text
     sVerse = 0      # location of latest section heading already in input text
     reference = ""
-    __usfmFile = 0
     paragraphs_model = []   # list of {mark, chapter, verse, located}
     sections_model = []
     expectText = False
@@ -65,6 +59,7 @@ class State:
         State.verse = 0
         State.bridge = 0
         State.expectText = False
+        State.midSentence = False
 
     def addChapter(self, c):
         State.lastChapter = State.chapter
@@ -80,8 +75,9 @@ class State:
         State.pVerse = State.bridge + 1
         State.expectText = True
 
-    def addText(self):
+    def addText(self, endsSentence):
         State.expectText = False
+        State.midSentence = not endsSentence
 
     def addVerse(self, v):
         v1 = v.split('-')[0]
@@ -112,6 +108,7 @@ class State:
                 break
         return pmark
 
+    # Returns True immediately after a verse or paragraph marker or footnote.
     def expectingText(self):
         return State.verse > 0 and State.expectText
 
@@ -128,6 +125,10 @@ class State:
     def isEndOfChapter(self):
         chaps = usfm_verses.verseCounts[State.ID]['verses']
         return (State.verse >= chaps[State.chapter-1])
+
+    # Returns True if the most recent text does not end a sentence.
+    def isMidSentence(self):
+        return State.midSentence
 
     def usfmClose(self):
         State.usfm.close()
@@ -165,12 +166,12 @@ def takePQ(tag, value):
 
 def takeS5():
     state = State()
-    if not removeS5markers:
+    if not config.getboolean('removeS5markers', fallback=True):
         state.usfm.writeUsfm("s5", None)
-    elif xlateS5markers and state.chapter > 0 and not state.isEndOfChapter():
-        global nCopied
-        nCopied += 1
-        takePQ("p", None)      # this adds \p before \c, so must run usfm_cleanup afterwards
+    # elif xlateS5markers and state.chapter > 0 and not state.isEndOfChapter():
+    #     global nCopied
+    #     nCopied += 1
+    #     takePQ("p", None)      # this adds \p before \c, so must run usfm_cleanup afterwards
 
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
@@ -178,7 +179,7 @@ def takeV(v):
     global nCopied
     state = State()
     state.addVerse(v)
-    if not state.pAlready(current=True):
+    if not state.pAlready(current=True) and not state.isMidSentence():
         if pmark := state.pmarkInModel():
             state.usfm.writeUsfm(pmark)
             nCopied += 1
@@ -187,7 +188,9 @@ def takeV(v):
 def takeText(t):
     global nCopied
     state = State()
-    smark = None if state.expectingText() else state.smarkInModel()
+    smark = None
+    if not state.expectingText() and not state.isMidSentence():
+        smark = state.smarkInModel()
     if smark:
         state.usfm.writeUsfm(smark, t)
         nCopied += 1
@@ -195,7 +198,7 @@ def takeText(t):
         state.usfm.writeUsfm("p")
     else:
         state.usfm.writeStr(t)
-        state.addText()
+        state.addText( sentences.endsSentence(t) )
 
 # Output chapter
 def takeC(c):
@@ -242,7 +245,7 @@ or token.isADDS() or token.isADDE() or token.isPNS() or token.isPNE()
 def isParagraph(token):
     pmark = token.isP() or token.isM() or token.isPI() or token.isPC() or token.isNB() or token.isB() \
         or token.is_ip() or token.is_iot() or token.is_io() or token.is_io2()
-    if (token.isNB() or token.isB() or token.isM()) and not copy_nb:
+    if (token.isNB() or token.isB() or token.isM()) and not config.getboolean('copy_nb', fallback=False):
         pmark = False
     return pmark
 
@@ -504,16 +507,17 @@ def processFile(path):
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
-        source_dir = sys.argv[1]
-    if os.path.isdir(source_dir):
-        convertFolder(source_dir)
-    elif os.path.isfile(source_dir) and source_dir.endswith("sfm"):
-        path = source_dir
-        source_dir = os.path.dirname(path)
-        processFile(path)
-    else:
-        sys.stderr.write("Invalid folder or file: " + source_dir)
-        exit(-1)
+    config = configreader.get_config(sys.argv, 'mark_paragraphs')
+    if config:
+        model_dir = config['model_dir']
+        source_dir = config['source_dir']
+        file = config['file']
+        if file:
+            path = os.path.join(source_dir, file)
+            if os.path.isfile(path):
+                processFile(path)
+        else:
+            convertFolder(source_dir)
+
     closeIssuesFiles()
     print(f"\nDone. Introduced {nCopied} paragraphs / sections")
