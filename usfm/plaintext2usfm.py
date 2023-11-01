@@ -12,13 +12,9 @@
 #    Standardizes the names of .usfm files. For example 41-MAT.usfm and 42-MRK.usfm.
 #    Converts multiple books at once if there are multiple books.
 #    Reports failure when chapter 1 is not found, and other errors.
-# The scritpt does not mark chunks. If that is desired. run usfm2rc.py later.
-# This script did not work well for Karajá.
+# The script does not mark chunks. If that is desired. run usfm2rc.py later.
 
-# Global variables
-source_dir = r'C:\DCS\Karajá\work'   # must be a folder
-target_dir = r'C:\DCS\Karajá\work'
-
+import configreader
 import usfm_verses
 import re
 import operator
@@ -26,6 +22,7 @@ import io
 import os
 import sys
 import json
+from pathlib import Path
 
 numberstart_re = re.compile(r'([\d]{1,3})[ \n]', re.UNICODE)
 projects = []
@@ -92,6 +89,11 @@ class State:
     def missingChapter(self, nchap):
         State.missing_chapters.append(nchap)
 
+    # Adds the line of text as is without touching any other state
+    # Supports texts where chapter labels or section headings are tagged: \cl or \s
+    def addMarkedLine(self, text):
+        State.data += "\n" + text
+
     def addVerse(self, vstr):
         State.data = ""
         State.verse = int(vstr)
@@ -147,7 +149,6 @@ def takeChapter(cstr, nchap):
     state.usfm_file.write("\\c " + str(nchap) + "\n")
     if len(cstr) > len(str(nchap)):
         state.usfm_file.write("\\cl " + cstr + "\n")
-    state.usfm_file.write("\\p\n")
     state.addChapter(nchap)
 
 vrange_re = re.compile(r'([0-9])+-([0-9]+)')
@@ -157,12 +158,21 @@ def takeVerse(vstr):
     state = State()
     if state.data:
         state.usfm_file.write(re.sub(" +", " ", state.data) + "\n")
+    if state.verse == 0:
+        state.usfm_file.write("\\p\n")
     state.usfm_file.write("\\v " + vstr + " ")
     if range := vrange_re.search(vstr):
         state.addVerse(range.group(1))
         state.addVerse(range.group(2))
     else:
         state.addVerse(vstr)
+
+def takeLine(line, lineno):
+    state = State()
+    if line.startswith(r'\cl ') or line.startswith(r'\s '):
+        state.addMarkedLine(line)
+    else:
+        take(line, lineno)
 
 # Handles the next bit of text, which may be a line or part of a line.
 # Uses recursion to handle complex lines.
@@ -272,7 +282,7 @@ def hasnumber(s, n):
 def isolateNumbers(s):
     t = ""
     for i in range(0,len(s)):
-        if s[i].isdigit():
+        if s[i] in "0123456789,.":
             t += s[i]
         else:
             t += ' '
@@ -309,8 +319,10 @@ def openIssuesFile():
 def getBookId(filename):
     bookId = None
     (id, ext) = os.path.splitext(filename)
-    if ext == ".txt" and len(id) == 3 and id.upper() in usfm_verses.verseCounts.keys():
+    if ext == ".txt" and len(id) == 3 and id.upper() in usfm_verses.verseCounts:
         bookId = id.upper()
+    else:
+        reportError(f"Cannot identify book from file name: {filename}. Use XXX.txt where XXX is book ID.")
     return bookId
 
 # Appends information about the current book to the global projects list.
@@ -323,11 +335,12 @@ def appendToProjects(bookId, bookTitle):
                 "path": "./" + makeUsfmFilename(bookId), "category": "[ 'bible-" + testament + "' ]" }
     projects.append(project)
 
-def dumpProjects():
+# Writes list of projects converted to the specified file.
+# The resulting file can be used as the projects section of manifest.yaml.
+def dumpProjects(path):
     projects.sort(key=operator.itemgetter('sort'))
 
-    path = makeManifestPath()
-    manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
+    manifest = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
     manifest.write("projects:\n")
     for p in projects:
         manifest.write("  -\n")
@@ -355,10 +368,6 @@ def makeUsfmFilename(bookId):
     num = usfm_verses.verseCounts[bookId]['usfm_number']
     return num + '-' + bookId + '.usfm'
 
-# Returns path of temporary manifest file block listing projects converted
-def makeManifestPath():
-    return os.path.join(target_dir, "projects.yaml")
-
 def writeHeader(usfmfile, bookId, bookTitle):
     usfmfile.write("\\id " + bookId + "\n\\ide UTF-8")
     usfmfile.write("\n\\h " + bookTitle)
@@ -382,7 +391,7 @@ def convertBook(path, bookId):
         lineno += 1
         line = line.strip()
         if len(line) > 0:
-            take(line, lineno)
+            takeLine(line, lineno)
     if state.data and state.chapter > 0:
         state.usfm_file.write(re.sub(" +", " ", state.data) + '\n')
     state.addEOF()
@@ -403,30 +412,32 @@ def convertFolder(folder):
                 appendToProjects(bookId, title)
             else:
                 if not bookId:
-                    sys.stderr.write("Unable to identify " + shortname(path) + " as a Bible book.\n")
+                    reportError("Unable to identify " + shortname(path) + " as a Bible book.")
                 elif not title:
-                    sys.stderr.write("Invalid file: " + shortname(path) + "\n")
-
-# Creates the target directory if needed
-# Creates a projects.yaml (manifest) file there.
-# Program will crash ungracefully if target_dir is invalid.
-def setup():
-    if not os.path.isdir(target_dir):
-        os.mkdir(target_dir)
-    if os.path.isfile( makeManifestPath() ):
-        os.remove( makeManifestPath() )
+                    reportError("Invalid file: " + shortname(path))
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
-        source_dir = sys.argv[1]
+    config = configreader.get_config(sys.argv, 'plaintext2usfm')
+    if config:
+        source_dir = config['source_dir']
+        file = config['file']
+        target_dir = config['target_dir']
+        Path(target_dir).mkdir(exist_ok=True)
 
-    setup()
-    if os.path.isdir(source_dir):
-        convertFolder(source_dir)
-        if projects:
-            dumpProjects()
+        if file:
+            path = os.path.join(source_dir, file)
+            if os.path.isfile(path):
+                bookId = getBookId(file)
+                if bookId:
+                    title = convertBook(path, bookId)
+                if not title:
+                    reportError(f"Invalid file, cannot convert: {path}")
+            else:
+                reportError(f"No such file: {path}")
+        else:
+            convertFolder(source_dir)
+            if projects:
+                dumpProjects( os.path.join(target_dir, "projects.yaml") )
+
         print("\nDone.")
-    else:
-        sys.stderr.write("Invalid folder: " + source_dir + "\n")
-        sys.stderr.write("Usage: python plaintext2usfm.py <folder>\n  Use . for current folder.\n")
