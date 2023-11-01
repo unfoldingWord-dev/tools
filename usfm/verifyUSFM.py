@@ -31,6 +31,7 @@ std_titles = None
 lastToken = None
 nextToken = None
 aligned_usfm = False
+usfm_version = 2
 issuesFile = None
 issues = dict()
 
@@ -59,7 +60,6 @@ class State:
     IDs = []
     ID = ""
     titles = []
-    usfm_version = 2
     chaptertitles = []
     nChapterLabels = 0
     nParagraphs = 0
@@ -90,7 +90,7 @@ class State:
     def addID(self, id):
         State.IDs.append(id)
         State.ID = id
-        State.titles = []
+        State.booktitles = []
         State.chaptertitles = []
         State.nChapterLabels = 0
         State.nParagraphs = 0
@@ -120,7 +120,7 @@ class State:
         return State.IDs
 
     def addTitle(self, bookTitle):
-        State.titles.append(bookTitle)
+        State.booktitles.append(bookTitle)
         State.prevMarker = State.currMarker
         State.currMarker = OTHER
 
@@ -194,9 +194,6 @@ class State:
     def addS5(self):
         State.startChunkVerse = State.verse + 1
         State.startChunkRef = State.ID + " " + str(State.chapter) + ":" + str(State.startChunkVerse)
-
-    def addUsfmVersion(self, version):
-        State.usfm_version = int(version[0])
 
     def addVerse(self, v):
         State.lastVerse = State.verse
@@ -403,7 +400,7 @@ def verifyBookTitle():
     title_ok = False
     state = State()
     en_name = state.bookTitleEnglish(state.ID)
-    for title in state.titles:
+    for title in state.booktitles:
         if title and title != en_name:
             title_ok = True
     if not title_ok:
@@ -539,7 +536,7 @@ def reportParagraphMarkerErrors(type):
 def takeP(type):
     reportParagraphMarkerErrors(type)
     state = State()
-    if not aligned_usfm and not state.sentenceEnded():
+    if not aligned_usfm and not suppress[11] and not state.sentenceEnded():
         if state.verse > 0:
             reportError(f"Punctuation missing at end of paragraph: {state.reference}", 26, suppress[11])
         else:
@@ -569,7 +566,16 @@ def takeSection(tag):
 
 def takeTitle(token):
     state = State()
-    state.addTitle(token.value)
+    if token.isTOC3():
+        state.addToc3(token.value)
+        global usfm_version
+        if usfm_version == 2:
+            if (len(token.value) != 3 or not token.value.isascii()):
+                reportError("Invalid toc3 value in " + state.reference, 64)
+            elif token.value.upper() != state.ID:
+                reportError(f"toc3 value ({token.value}) not the same as book ID in {state.reference}", 64.5)
+    else:
+        state.addTitle(token.value)
     if token.isMT() and token.value.isascii() and not suppress[9]:
         reportError("mt token has ASCII value in " + state.reference, 30)
     if token.value.isupper() and not state.upperCaseReported and not suppress[8]:
@@ -741,7 +747,7 @@ def reportPunctuation(text):
 
 numberembed_re = re.compile(r'[^\s,:\.0-9\(\[\-]+[0-9]+[^\s,;\.0-9\)\]]+')
 numberprefix_re = re.compile(r'[^\s,\.0-9\(\[][0-9]+', re.UNICODE)
-numbersuffix_re = re.compile(r'[0-9]+[^\s,;:.?!"z0-9\)\]]', re.UNICODE)
+numbersuffix_re = re.compile(r'[0-9]+[^\s,;:.\-?!"z0-9\)\]]', re.UNICODE)
 unsegmented_re = re.compile(r'[0-9][0-9][0-9][0-9]+')
 numberformat_re = re.compile(r'[0-9]+[\.,]?\s[\.,]?[0-9]+')
 leadingzero_re = re.compile(r'[\s]0[0-9,]*', re.UNICODE)
@@ -772,7 +778,7 @@ def reportNumbers(t, footnote):
         reportError(f"Embedded number in word: {embed.group(0)} at {state.reference}", 60)
     elif not verseflag:
         if suffixed := numbersuffix_re.search(t):
-            if not footnote or (suffixed.group(0)[-1] not in {':','-'}):
+            if not footnote:
                 reportError(f"Invalid number suffix: {suffixed.group(0)} at {state.reference}", 60.2)
         if prefixed := numberprefix_re.search(t):
             if not footnote or (prefixed.group(0)[0] not in {':','-'}):
@@ -786,7 +792,7 @@ def reportNumbers(t, footnote):
         elif leadzero := leadingzero_re.search(t):
             reportError(f"Invalid leading zero: {leadzero.group(0)} at {state.reference}", 61)
 
-period_re = re.compile(r'[\s]*[\.,;:!\?]', re.UNICODE)    # detects phrase-ending punctuation starting a phrase
+period_re = re.compile(r'[\s]*[\.,;:!\?]', re.UNICODE)  # detects phrase-ending punctuation standing alone or starting a phrase
 
 # Performs checks on some text, at most a verse in length.
 def takeText(t, footnote=False):
@@ -814,7 +820,8 @@ def takeText(t, footnote=False):
         reportPunctuation(t)
     if lastToken.isV() and not aligned_usfm:
         reportFootnotes(t)
-    if period := period_re.match(t):
+    if not suppress[3]:
+        period = period_re.match(t)
         if len(t) <= period.end() + 1:
             reportError(f"Orphaned punctuation at {state.reference}", 58)
         else:
@@ -870,7 +877,7 @@ def isTextCarryingToken(token):
            isFootnote(token) or isCrossRef(token) or isPoetry(token) or isIntro(token)
 
 def isTitleToken(token):
-    return token.isH() or token.isTOC1() or token.isTOC2() or token.isMT() or token.is_imt()
+    return token.isH() or token.isTOC1() or token.isTOC2() or token.isTOC3() or token.isMT() or token.is_imt()
 
 # Returns True if the token value should be checked for Arabic numerals
 def isNumericCandidate(token):
@@ -878,6 +885,7 @@ def isNumericCandidate(token):
 
 def take(token):
     global lastToken
+    global usfm_version
 
     state = State()
     if token.isID():
@@ -916,20 +924,14 @@ def take(token):
         takeB()
     elif isTitleToken(token):
         takeTitle(token)
-    elif token.isTOC3():
-        state.addToc3(token.value)
-        if (len(token.value) != 3 or not token.value.isascii()):
-            reportError("Invalid toc3 value in " + state.reference, 64)
-        elif token.value.upper() != state.ID:
-            reportError(f"toc3 value ({token.value}) not the same as book ID in {state.reference}", 64.5)
-    elif token.isUSFM():
-        state.addUsfmVersion(token.value)
+    elif token.isUSFM():    # non-standard USFM token but is used by UnfoldingWord software
+        usfm_version = int(token.value[0])
     elif token.isUnknown():
         if token.value == "p":
             reportError("Orphaned paragraph marker after " + state.reference, 65)
         elif token.value == "v":
             reportError("Unnumbered verse after " + state.reference, 66)
-        elif state.usfm_version == 2:
+        elif usfm_version == 2:
             reportError("Invalid USFM token (\\" + token.value + ") near " + state.reference, 67)
 
     if language_code in {"ur"} and isNumericCandidate(token) and re.search(r'[0-9]', token.value, re.UNICODE):
@@ -1043,7 +1045,7 @@ def verifyFile(path):
             take(token)
             n += 1
         state = State()
-        if not state.toc3:
+        if (usfm_version == 2 or aligned_usfm) and not state.toc3:
             reportError("No \\toc3 tag in " + shortname(path), 81)
         previousVerseCheck()       # checks last verse in the file
         verifyNotEmpty(path)
@@ -1081,6 +1083,8 @@ if __name__ == "__main__":
         std_titles = [ config['standard_chapter_title'] ]
         if std_titles == ['']:
             std_titles = []
+        uv = config.get('usfm_version', fallback = "2")
+        usfm_version = int(uv[0])
 
         file = config['file']
         if file:
@@ -1096,7 +1100,7 @@ if __name__ == "__main__":
             reportIssues()
             issuesFile.close()
         else:
-            print("No issues found!")
+            print("No issues to report.")
         print("Done. Press Enter to exit.")
         input()
         print("Done.\n")
