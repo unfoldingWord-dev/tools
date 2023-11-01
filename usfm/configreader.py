@@ -23,7 +23,7 @@ def get_config(argv, section):
         config_path = input("Enter the full path of your configuration file: ")
 
     config = configparser.ConfigParser()
-    config.read(config_path)
+    config.read(config_path, encoding='utf-8')
 
     try:
         source_dir = config[section]['source_dir']
