@@ -10,18 +10,6 @@
 # Detects whether files are aligned USFM.
 
 
-#suppress1 = True     # Suppress "Space in number" messages
-#suppress2 = False     # Suppress warnings about needing paragraph marker before \v1 (because tS doesn't care)
-#suppress3 = False    # Suppress bad punctuation warnings
-#suppress4 = False     # Suppress warnings about useless markers before section/title markers
-#suppress5 = False     # Suppress checks for verse counts
-#suppress6 = True    # Suppress warnings about straight double and single quotes
-#suppress7 = False    # Suppress warnings about straight single quotes  (report straight double quotes only)
-#suppress8 = False    # Suppress warning about UPPER CASE book titles
-#suppress9 = True     # Suppress warnings about ASCII content
-#suppress10 = False    # Suppress "First word not capitalized" warnings; report totals only
-#suppress11 = True    # Suppress Punctuation missing at end of paragraph" warnings; report totals only
-
 config = None
 suppress = [False]*12
 language_code = None
@@ -378,7 +366,6 @@ def reportIssues():
 # Report missing text or all ASCII text, in previous verse
 def previousVerseCheck():
     state = State()
-    # if not suppress1 and not isOptional(state.reference) and state.getTextLength() < 10 and state.verse != 0:
     if not isOptional(state.reference) and state.getTextLength() < 10 and state.verse != 0:
         if state.getTextLength() == 0:
             reportError("Empty verse: " + state.reference, 1)
@@ -786,11 +773,10 @@ def reportNumbers(t, footnote):
     if unsegmented := unsegmented_re.search(t):
         if len(unsegmented.group(0)) > 4:
             reportError(f"Unsegmented number: {unsegmented.group(0)} at {state.reference}", 61.5)
-    if not suppress[1]:
-        if fmt := numberformat_re.search(t):
-            reportError(f"Space in number {fmt.group(0)} at {state.reference}", 61.6)
-        elif leadzero := leadingzero_re.search(t):
-            reportError(f"Invalid leading zero: {leadzero.group(0)} at {state.reference}", 61)
+    if fmt := numberformat_re.search(t):
+        reportError(f"Space in number {fmt.group(0)} at {state.reference}", 61.6)
+    elif leadzero := leadingzero_re.search(t):
+        reportError(f"Invalid leading zero: {leadzero.group(0)} at {state.reference}", 61)
 
 period_re = re.compile(r'[\s]*[\.,;:!\?]', re.UNICODE)  # detects phrase-ending punctuation standing alone or starting a phrase
 
@@ -826,7 +812,8 @@ def takeText(t, footnote=False):
             reportError(f"Orphaned punctuation at {state.reference}", 58)
         else:
             reportError("Text begins with phrase-ending punctuation in " + state.reference, 58.1)
-    reportNumbers(t, footnote)
+    if not suppress[1]:
+        reportNumbers(t, footnote)
     if not footnote:
         reportCaps(t)
         state.endSentence( sentences.endsSentence(t) )
@@ -1080,7 +1067,7 @@ if __name__ == "__main__":
             suppress[9] = True
         if language_code in {'as','bn','gu','hi','kn','ml','mr','nag','ne','or','pa','ru','ta','te','zh'}:    # ASCII content
             suppress[9] = False
-        std_titles = [ config['standard_chapter_title'] ]
+        std_titles = [ config.get('standard_chapter_title', fallback = '') ]
         if std_titles == ['']:
             std_titles = []
         uv = config.get('usfm_version', fallback = "2")
