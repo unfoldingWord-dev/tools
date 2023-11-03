@@ -169,7 +169,10 @@ def takeVerse(vstr):
 
 def takeLine(line, lineno):
     state = State()
-    if line.startswith(r'\cl ') or line.startswith(r'\s '):
+    if line.startswith(r'\c '):
+        cstr = line[3:]
+        takeChapter(cstr, int(cstr))
+    elif line.startswith(r'\s'):
         state.addMarkedLine(line)
     else:
         take(line, lineno)
