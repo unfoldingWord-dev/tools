@@ -1,33 +1,33 @@
 # -*- coding: utf-8 -*-
 # This script produces one or more .usfm files in resource container format from valid USFM source text.
 # Chunk division and paragraph locations are based on pre-existing usfm files in chunk_model_dir.
-# Inserts paragraph marker after each chapter marker if needed, before verse 1.
-# The model to be used for marking chunks is in chunk_model_dir.
+# Inserts paragraph marker before verse 1 in each chapter.
 # The input file(s) should be verified, correct USFM.
+#
+# Set these configuration values in your config file before running script:
+#    source_dir
+#    target_dir
+#    file           Leave blank to process all files in source_dir
+#    mark_chunks      True or False, to mark chunks in output USFM files
+#    chunk_model_dir   Folder containing model text for placement of \s5 chunk markers
 
-# Global variables
-source_dir = r'C:\DCS\PapuanMalay\pmy_ulb.TA'
-target_dir = r'C:\DCS\PapuanMalay\work'
-#en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
-chunk_model_dir = r'C:\DCS\English\en_ulb'
-mark_chunks = False
-max_chunk_size = 4
+import configreader
+import sys
+import os
+import operator
+from pathlib import Path
+import usfm_verses
+import parseUsfm
+import io
+import re
+import yaml
 
 projects = []
 translators = []
 source_versions = []
 lastToken = None
 issuesFile = None
-
-import sys
-import os
-import operator
-import usfm_verses
-import parseUsfm
-import io
-import codecs
-import re
-import yaml
+max_chunk_size = 8
 
 class State:
     ID = ""
@@ -108,8 +108,8 @@ class State:
         State.title = getDefaultName(id)
         State.needVerseText = False
         # Open output USFM file for writing.
-        usfmPath = os.path.join(target_dir, makeUsfmFilename(id))
-        State.usfmFile = io.open(usfmPath, "tw", buffering=1, encoding='utf-8', newline='\n')
+        usfmPath = makeUsfmPath(id)
+        State.usfmFile = io.open(usfmPath, "tw", encoding='utf-8', newline='\n')
 
     def addChapter(self, c):
         State.lastChapter = State.chapter
@@ -177,20 +177,6 @@ class State:
         State.reference = ""
 
 chunk_re = re.compile(r'([0-9]{2,3}).usx')
-
-# Makes an ordered list of the verse numbers that start the chunks in the specified book and chapter
-#def loadChunksUsx(id, chap):
-    #dir = os.path.join(en_rc_dir, "en_" + id + "_ulb")
-    #dir = os.path.join(dir, "content")
-    #dir = os.path.join(dir, chap)
-    #allnames = os.listdir(dir)
-    #chunks = []
-    #for name in allnames:
-        #match = chunk_re.match(name)
-        #if match:
-            #chunks.append( int(match.group(1)) )
-    #chunks.sort()
-    #return chunks
 
 usfmchapter_re = re.compile(r'\\c +([0-9]+)')
 usfmverse_re = re.compile(r'\\v +([0-9]+)')
@@ -271,14 +257,15 @@ def settleChapterChunks():
         (start, next, pos) = longchunk(output, pos)
     state.recordChapterChunks(output)
 
+# Generates name for usfm file
+def makeUsfmPath(bookId):
+    global target_dir
+    return os.path.join(target_dir, makeUsfmFilename(bookId))
+
 # Returns path name for usfm file
 def makeUsfmFilename(id):
     num = usfm_verses.verseCounts[id]['usfm_number']
     return str(num) + "-" + id + ".usfm"
-
-# Returns path of temporary manifest file block listing projects converted
-def makeProjectsPath():
-    return os.path.join(target_dir, "projects.yaml")
 
 # Looks up the English book name, for use when book name is not defined in the file
 def getDefaultName(id):
@@ -567,8 +554,6 @@ def convertFolder(folder):
     if not os.path.isdir(folder):
         reportError("Invalid folder path given: " + folder)
         return
-    if not os.path.isdir(target_dir):
-        os.mkdir(target_dir)
     for fname in os.listdir(folder):
         path = os.path.join(folder, fname)
         if fname[0] != '.' and os.path.isdir(path):
@@ -594,13 +579,12 @@ def getContributors(folder):
             source_versions += manifest['dublin_core']['source'][0]['version']
         translators += manifest['dublin_core']['contributor']
 
-def dumpContributors():
+def dumpContributors(path):
     global translators
     global source_versions
     if len(translators) > 0 or len(source_versions) > 0:
         contribs = list(set(translators))
         contribs.sort()
-        path = os.path.join(target_dir, "translators.txt")
         f = io.open(path, 'tw', encoding='utf-8', newline='\n')
         for name in contribs:
             f.write('    - "' + name + '"\n')
@@ -627,12 +611,11 @@ def appendToProjects():
     projects.append(project)
 
 # Sort the list of projects and write to projects.yaml
-def dumpProjects():
+def dumpProjects(path):
     global projects
-
     projects.sort(key=operator.itemgetter('sort'))
-    path = makeProjectsPath()
-    manifest = io.open(path, "ta", buffering=1, encoding='utf-8', newline='\n')
+
+    manifest = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
     manifest.write("projects:\n")
     for p in projects:
         manifest.write("  -\n")
@@ -648,13 +631,12 @@ def dumpProjects():
 # First renames existing issues.txt file to issues-oldest.txt unless
 # issues-oldest.txt already exists.
 # Returns new file pointer.
-def openIssuesFile():
+def openIssuesFile(dirpath):
     global issuesFile
     if not issuesFile:
-        global source_dir
-        path = os.path.join(source_dir, "issues.txt")
+        path = os.path.join(dirpath, "issues.txt")
         if os.path.exists(path):
-            bakpath = os.path.join(source_dir, "issues-oldest.txt")
+            bakpath = os.path.join(dirpath, "issues-oldest.txt")
             if not os.path.exists(bakpath):
                 os.rename(path, bakpath)
         issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
@@ -671,24 +653,35 @@ def reportError(msg):
     except UnicodeEncodeError as e:
         state = State()
         sys.stderr.write(state.reference + ": (Unicode...)\n")
-    issues = openIssuesFile()
     issues.write(msg + "\n")
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
-    if os.path.isfile( makeProjectsPath() ):
-        os.remove( makeProjectsPath() )
+    config = configreader.get_config(sys.argv, 'usfm2rc')
+    if config:
+        source_dir = config['source_dir']
+        file = config['file']
+        target_dir = config['target_dir']
+        chunk_model_dir = config['chunk_model_dir']
+        mark_chunks = config.getboolean('mark_chunks', fallback=False)
+        Path(target_dir).mkdir(exist_ok=True)
+        issues = openIssuesFile(source_dir)
+        if mark_chunks and not os.path.isdir(chunk_model_dir):
+            reportError(f"chunk_model_dir: ({chunk_model_dir}) is not a valid folder.")
+            sys.exit(-1)
 
-    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
-        source_dir = sys.argv[1]
-    if os.path.isfile(source_dir):
-        path = source_dir
-        source_dir = os.path.dirname(path)
-        if convertFile(path, os.path.basename(path)):
-            appendToProjects()
-    else:
-        convertFolder(source_dir)
-    dumpProjects()
-    dumpContributors()
-    closeIssuesFile()
-    print("\nDone.")
+        if file:
+            path = os.path.join(source_dir, file)
+            if os.path.isfile(path):
+                if convertFile(path, file):
+                    appendToProjects()
+            else:
+                reportError(f"No such file: {path}")
+        else:
+            convertFolder(source_dir)
+            if projects:
+                dumpProjects( os.path.join(target_dir, "projects.yaml") )
+                dumpContributors( os.path.join(target_dir, "translators.txt") )
+
+        closeIssuesFile()
+        print("\nDone.")
