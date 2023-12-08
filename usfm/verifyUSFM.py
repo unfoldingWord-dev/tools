@@ -807,11 +807,11 @@ def takeText(t, footnote=False):
     if lastToken.isV() and not aligned_usfm:
         reportFootnotes(t)
     if not suppress[3]:
-        period = period_re.match(t)
-        if len(t) <= period.end() + 1:
-            reportError(f"Orphaned punctuation at {state.reference}", 58)
-        else:
-            reportError("Text begins with phrase-ending punctuation in " + state.reference, 58.1)
+        if period := period_re.match(t):
+            if len(t) <= period.end() + 1:
+                reportError(f"Orphaned punctuation at {state.reference}", 58)
+            else:
+                reportError("Text begins with phrase-ending punctuation in " + state.reference, 58.1)
     if not suppress[1]:
         reportNumbers(t, footnote)
     if not footnote:
