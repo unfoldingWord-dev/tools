@@ -2,6 +2,7 @@
 # This script converts one or more valid .usfm files by adding paragraph marks.
 # The model used for marking paragraphs are the USFM files in model_dir.
 # Inserts paragraph marker after each chapter marker if needed, before verse 1.
+# Does not insert paragraph marks in the middle of sentences, unless the sentence_sensitivity config setting is False.
 # Marks unmarked text as section headings where present in model.
 # The input file(s) should be verified, correct USFM, except for unmarked text which may become section headings.
 
@@ -20,6 +21,7 @@ nCopied = 0     # number of paragraphs and sections copied from model
 issuesFile = None
 reportFile = None
 config = None
+state = None
 
 # Marker types
 TEXT = 1
@@ -39,116 +41,114 @@ class State:
     expectText = False
 
     def addFile(self, fname):
-        State.fname = fname
-        State.chapter = 0
-        State.verse = 0
-        State.bridge = 0
-        State.pChapter = 0
-        State.pVerse = 0
-        State.reference = fname
-        State.paragraphs_model = []
-        State.sections_model = []
-        State.expectText = False
+        self.fname = fname
+        self.chapter = 0
+        self.verse = 0
+        self.bridge = 0
+        self.pChapter = 0
+        self.pVerse = 0
+        self.reference = fname
+        self.paragraphs_model = []
+        self.sections_model = []
+        self.expectText = False
         ## Open output USFM file for writing.
         tmpPath = os.path.join(source_dir, fname + ".tmp")
-        State.usfm = usfmFile(tmpPath)
+        self.usfm = usfmFile(tmpPath)
 
     def addID(self, id):
-        State.ID = id
-        State.chapter = 0
-        State.verse = 0
-        State.bridge = 0
-        State.expectText = False
-        State.midSentence = False
+        self.ID = id
+        self.chapter = 0
+        self.verse = 0
+        self.bridge = 0
+        self.expectText = False
+        self.midSentence = False
 
     def addChapter(self, c):
-        State.lastChapter = State.chapter
-        State.chapter = int(c)
-        State.verse = 0
-        State.bridge = 0
-        State.reference = State.ID[0:3].upper() + " chapter " + c
-        State.expectText = False
+        self.lastChapter = self.chapter
+        self.chapter = int(c)
+        self.verse = 0
+        self.bridge = 0
+        self.reference = self.ID[0:3].upper() + " chapter " + c
+        self.expectText = False
 
     # Records the location of a paragraph marker found in the input text.
     def addP(self):
-        State.pChapter = State.chapter
-        State.pVerse = State.bridge + 1
-        State.expectText = True
+        self.pChapter = self.chapter
+        self.pVerse = self.bridge + 1
+        self.expectText = True
 
     def addText(self, endsSentence):
-        State.expectText = False
-        State.midSentence = not endsSentence
+        self.expectText = False
+        self.midSentence = not endsSentence
 
     def addVerse(self, v):
         v1 = v.split('-')[0]
         v2 = v.split('-')[-1]
-        State.verse = int(v1)
-        State.bridge = int(v2)
-        State.reference = State.ID[0:3].upper() + " " + str(State.chapter) + ":" + v
-        State.expectText = True
+        self.verse = int(v1)
+        self.bridge = int(v2)
+        self.reference = self.ID[0:3].upper() + " " + str(self.chapter) + ":" + v
+        self.expectText = True
 
     def addFootnote(self):
-        State.expectText = True
+        self.expectText = True
 
     # Returns True if a paragraph mark was already recorded for the current or next verse.
     # See addP()
     def pAlready(self, current):
         if current:
-            already = State.pVerse == State.verse and State.pChapter == State.chapter
+            already = self.pVerse == self.verse and self.pChapter == self.chapter
         else:       # paragraph mark for next verse
-            already = State.pVerse == State.verse + 1 and State.pChapter == State.chapter
+            already = self.pVerse == self.verse + 1 and self.pChapter == self.chapter
         return already
 
     # Returns the paragraph mark that occurred in the model file at the current location.
     def pmarkInModel(self):
         pmark = None
-        for pp in State.paragraphs_model:
-            if pp['chapter'] == State.chapter and pp['verse'] == State.verse and pp['located']:
+        for pp in self.paragraphs_model:
+            if pp['chapter'] == self.chapter and pp['verse'] == self.verse and pp['located']:
                 pmark = pp['mark']
                 break
         return pmark
 
     # Returns True immediately after a verse or paragraph marker or footnote.
     def expectingText(self):
-        return State.verse > 0 and State.expectText
+        return self.verse > 0 and self.expectText
 
     # Returns the section mark that occurred in the model file at the current location.
     def smarkInModel(self):
         smark = None
-        for s in State.sections_model:
-            if s['chapter'] == State.chapter and s['verse'] == State.verse and s['located']:
+        for s in self.sections_model:
+            if s['chapter'] == self.chapter and s['verse'] == self.verse and s['located']:
                 smark = s['mark']
                 break
         return smark
 
     # Returns True if current verse is the last verse in a chapter
     def isEndOfChapter(self):
-        chaps = usfm_verses.verseCounts[State.ID]['verses']
-        return (State.verse >= chaps[State.chapter-1])
+        chaps = usfm_verses.verseCounts[self.ID]['verses']
+        return (self.verse >= chaps[self.chapter-1])
 
     # Returns True if the most recent text does not end a sentence.
     def isMidSentence(self):
-        return State.midSentence
+        return self.midSentence
 
     def usfmClose(self):
-        State.usfm.close()
+        self.usfm.close()
 
 
 # Write to the file with or without a newline as appropriate
 def takeStyle(key):
-    State().usfm.writeUsfm(key, None)
+    state.usfm.writeUsfm(key, None)
 
 # Write to the file with or without a newline as appropriate
 def takeAsIs(key, value):
-    State().usfm.writeUsfm(key, value)
+    state.usfm.writeUsfm(key, value)
 
 def takeFootnote(key, value):
-    state = State()
     state.addFootnote()
     state.usfm.writeUsfm(key, value)
 
 def takeID(id):
-    state = State()
     if len(id) < 3:
         reportError("Invalid ID: " + id)
     id = id[0:3].upper()
@@ -157,7 +157,6 @@ def takeID(id):
 
 # Copies paragraph marker to output unless output already has a paragraph there.
 def takePQ(tag, value):
-    state = State()
     if not state.pAlready(current=False):
         state.addP()
         state.usfm.writeUsfm(tag)
@@ -165,7 +164,6 @@ def takePQ(tag, value):
         state.usfm.writeStr(value)
 
 def takeS5():
-    state = State()
     if not config.getboolean('removeS5markers', fallback=True):
         state.usfm.writeUsfm("s5", None)
     # elif xlateS5markers and state.chapter > 0 and not state.isEndOfChapter():
@@ -177,9 +175,8 @@ vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
 def takeV(v):
     global nCopied
-    state = State()
     state.addVerse(v)
-    if not state.pAlready(current=True) and not state.isMidSentence():
+    if not state.pAlready(current=True) and (not state.isMidSentence() or not config.getboolean('sentence_sensitivity', fallback=True)):
         if pmark := state.pmarkInModel():
             state.usfm.writeUsfm(pmark)
             nCopied += 1
@@ -187,9 +184,8 @@ def takeV(v):
 
 def takeText(t):
     global nCopied
-    state = State()
     smark = None
-    if not state.expectingText() and not state.isMidSentence():
+    if not state.expectingText() and (not state.isMidSentence() or not config.getboolean('sentence_sensitivity', fallback=True)):
         smark = state.smarkInModel()
     if smark:
         state.usfm.writeUsfm(smark, t)
@@ -202,14 +198,12 @@ def takeText(t):
 
 # Output chapter
 def takeC(c):
-    state = State()
     state.addChapter(c)
     state.usfm.writeUsfm("c", c)
 
 # Handles the specified token from the input file.
 # Inserts paragraph and section markers where needed from model.
 def take(token):
-    state = State()
     if token.isV():
         takeV(token.value)
     elif token.isTEXT():
@@ -266,7 +260,6 @@ def isParseable(str, fname):
     parseable = True
     if backslash_re.search(str):
         reportError(f"{fname} contains stranded backslash(es) followed by space or newline")
-#        parseable = False
     if bad := jammed_re.search(str):
         reportError(f"{fname} contains verse number(s) not followed by space: {bad.group(1)}")
         parseable = True   # let it convert because the bad spots are easier to locate in the converted USFM
@@ -279,7 +272,6 @@ def isParseable(str, fname):
 def convertFile(usfmpath, fname):
     global nCopied
     startn = nCopied
-    state = State()
     if not state.fname:
         reportError("Internal error: State is not initialized")  # first pass (scan) sets the state
         sys.exit(-1)
@@ -373,7 +365,6 @@ def reportError(msg, realIssue=True):
         try:
             sys.stderr.write(msg + "\n")
         except UnicodeEncodeError as e:
-            state = State()
             sys.stderr.write(state.reference + ": (Unicode...)\n")
         issues = openIssuesFile()
         issues.write(msg + "\n")
@@ -384,7 +375,6 @@ def reportError(msg, realIssue=True):
 # Sets the chapter number in the state object
 # If there is still a tentative paragraph mark, remove it.
 def scanC(c):
-    state = State()
     state.addChapter(c)
     if len(state.paragraphs_model) > 0:
         pp = state.paragraphs_model[-1]
@@ -395,7 +385,6 @@ def scanC(c):
 # Save the paragraph mark and its tentative location
 # If the previous paragraph mark is still tentative, it is invalid, overwrite it in the state.
 def scanPQ(type):
-    state = State()
     p = {}
     p['mark'] = type
     p['chapter'] = state.chapter
@@ -410,7 +399,6 @@ def scanPQ(type):
 # Save the section mark and its location.
 # Unlike paragraph marks, sections marks take the previous verse number as their location.
 def scanS(type):
-    state = State()
     section = {}
     section['mark'] = type
     section['chapter'] = state.chapter
@@ -421,7 +409,6 @@ def scanS(type):
 # If there is a paragraph mark not assigned to a verse yet,
 # report it because it apparently occurs in the middle of a verse.
 def scanText(value):
-    state = State()
     if len(state.paragraphs_model) > 0:
         pp = state.paragraphs_model[-1]
         if not pp['located']:
@@ -432,7 +419,6 @@ def scanText(value):
 # Assign the verse number to the preceding paragraph mark, if any.
 # Unlike sections, paragraphs take the location of the following verse.
 def scanV(v):
-    state = State()
     state.addVerse(v)
     v1 = v.split('-')[0]
     if len(state.paragraphs_model) > 0:
@@ -444,7 +430,6 @@ def scanV(v):
 # Analyzes the specified token in the model file.
 # Only cares about locations of paragraphs.
 def scan(token):
-    state = State()
     if token.isC():
         scanC(token.value)
     elif token.isV():
@@ -460,6 +445,7 @@ def scan(token):
 
 # Gathers the location and type of all paragraph marks in the model USFM file.
 def scanModelFile(modelpath, fname):
+    success = False
     if os.path.isfile(modelpath):
         input = io.open(modelpath, "tr", 1, encoding="utf-8-sig")
         str = input.read(-1)
@@ -467,16 +453,12 @@ def scanModelFile(modelpath, fname):
         sys.stdout.flush()
         success = isParseable(str, os.path.basename(modelpath))
         if success:
-            state = State()
             sys.stdout.write(f"Parsing model file: {fname}\n")
             sys.stdout.flush()
             state.addFile(fname)
             tokens = parseUsfm.parseString(str)
             for token in tokens:
                 scan(token)
-    else:
-        reportError("Model file does not exist: " + modelpath)
-        success = False
     return success
 
 def countParagraphs(path):
@@ -494,21 +476,21 @@ def processFile(path):
 
     #if nParagraphs / nChapters < 2.5 and nPoetry / nChapters < 15:
     model_path = os.path.join(model_dir, fname)
-    if scanModelFile(model_path, fname):
-        backupUsfmFile(path)
-        if not convertFile(path, fname):
-            reportError("File cannot be converted: " + fname)
+    if os.path.isfile(model_path):
+        if scanModelFile(model_path, fname):
+            backupUsfmFile(path)
+            if not convertFile(path, fname):
+                reportError("File cannot be converted: " + fname)
+        else:
+            reportError("Model file is unusable; file cannot be processed " + fname)
     else:
-        reportError("Model file is unusable: " + model_path)
-    #else:
-        #reportError(f"{fname} has {nParagraphs} paragraphs and {nPoetry} poetry marks in {nChapters} chapters. No need to mark additional paragraphs.", False)
-        #reportError(f"  p/c = {nParagraphs / nChapters}", False)
-        #reportError(f"  q/c = {nPoetry / nChapters}", False)
+        reportError("Model file not found; file cannot be processed: " + fname)
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
     config = configreader.get_config(sys.argv, 'mark_paragraphs')
     if config:
+        state = State()
         model_dir = config['model_dir']
         source_dir = config['source_dir']
         file = config['file']
