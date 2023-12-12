@@ -28,17 +28,21 @@ TEXT = 1
 OTHER = 9
 
 class State:
-    fname = ""
-    chapter = 0
-    verse = 0
-    pChapter = 0    # location of latest paragraph mark already in input text
-    pVerse = 0      # location of latest paragraph mark already in input text
-    sChapter = 0    # location of latest section heading already in input text
-    sVerse = 0      # location of latest section heading already in input text
-    reference = ""
-    paragraphs_model = []   # list of {mark, chapter, verse, located}
-    sections_model = []
-    expectText = False
+    def __init__(self):
+        self.fname = ""
+        self.chapter = 0
+        self.verse = 0
+        self.pChapter = 0    # location of latest paragraph mark already in input text
+        self.pVerse = 0      # location of latest paragraph mark already in input text
+        self.sChapter = 0    # location of latest section heading already in input text
+        self.sVerse = 0      # location of latest section heading already in input text
+        self.reference = ""
+        self.paragraphs_model = []   # list of {mark, chapter, verse, located}
+        self.sections_model = []
+        self.expectText = False
+
+    def __repr__(self):
+        return f'State({self.reference})'
 
     def addFile(self, fname):
         self.fname = fname
