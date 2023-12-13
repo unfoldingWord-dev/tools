@@ -9,7 +9,6 @@
 #   suppress1 thru suppress11 (optional)
 # Detects whether files are aligned USFM.
 
-
 config = None
 suppress = [False]*12
 language_code = None
@@ -25,6 +24,7 @@ issuesFile = None
 issues = dict()
 
 import configreader
+# import configmanager
 import os
 from pathlib import Path
 import sys
@@ -34,6 +34,7 @@ import operator
 import footnoted_verses
 import usfm_verses
 import re
+import unicodedata
 import usfm_utils
 import sentences
 from datetime import date
@@ -138,20 +139,17 @@ class State:
         self.prevMarker = self.currMarker
         self.currMarker = C
 
+    # Isolate the word/phrase for "chapter" from the given string.
+    # Add it to the list of chapter titles.
     def addChapterLabel(self, title):
-        # first strip the chapter number and extraneous characters
-        chend = " " + str(self.chapter)
-        chstart = str(self.chapter) + " "
-        chlen = len(chend)
-        title.strip()
-        if title.endswith(chend):
-            title = title[:-chlen]
-        elif title.startswith(chstart):
-            title = title[chlen:]
-        title = title.strip()
-        bettertitle = re.sub(" +", " ", title)
-        if bettertitle not in self.chaptertitles:
-            self.chaptertitles.append(bettertitle)
+        tokens = title.split()
+        for token in tokens:
+            if decimal_value(token) == state.chapter:
+                pos = title.find(token)
+                title = (title[:pos] + title[pos+len(token):]).strip()
+                if title not in self.chaptertitles:
+                    self.chaptertitles.append(title)
+                    break
         self.nChapterLabels += 1
         return title    # without chapter number, but spacing unchanged
 
@@ -287,6 +285,19 @@ class State:
 
     def reportedUpperCase(self):
         self.upperCaseReported = True
+
+# Tries to interpret the specified string as an integer, regardless of language.
+# Returns 0 if unable to interpret.
+def decimal_value(s):
+    value = 0
+    for i in range(len(s)):
+        d = unicodedata.digit(s[i], -1)
+        if d >= 0:
+            value = value * 10 + d
+        else:
+            value = 0
+            break
+    return value
 
 # Returns the number of chapters that the specified book should contain
 def nChapters(id):
@@ -610,7 +621,7 @@ def takeV(vstr):
         elif state.verse > state.lastVerse + 2 and state.addError(state.lastRef):
             reportError("Missing verses between: " + state.lastRef + " and " + state.reference, 41.1)
 
-reference_re = re.compile(r'[0-9]+\: *[0-9]+', re.UNICODE)
+reference_re = re.compile(r'[\d]+\: *[\d]+', re.UNICODE)
 bracketed_re = re.compile(r'\[ *([^\]]+) *\]', re.UNICODE)
 
 # Looks for possible verse references and square brackets in the text, not preceded by a footnote marker.
@@ -1032,8 +1043,11 @@ def verifyDir(dir):
             elif path.is_file() and path.name[-3:].lower() == 'sfm':
                 verifyFile(path)
 
-if __name__ == "__main__":
-    config = configreader.get_config(sys.argv, 'verifyUSFM')
+def verifyUSFM(gui):
+    global config
+    config = configreader.get_config(sys.argv, 'verifyUSFM')    # configreader version
+    # config = configmanager.ToolsConfigManager().get_section('VerifyUSFM')   # configmanager version
+
     if config:
         source_dir = config['source_dir']
         for i in range(0, len(suppress)):
@@ -1043,14 +1057,19 @@ if __name__ == "__main__":
             suppress[9] = True
         if language_code in {'as','bn','gu','hi','kn','ml','mr','nag','ne','or','pa','ru','ta','te','zh'}:    # ASCII content
             suppress[9] = False
+        global std_titles
         std_titles = [ config.get('standard_chapter_title', fallback = '') ]
         if std_titles == ['']:
             std_titles = []
         uv = config.get('usfm_version', fallback = "2")
         usfm_version = int(uv[0])
 
+        global state
         state = State()
-        file = config['file']
+
+        file = config['file']       # configreader version
+        # file = config['filename']    # configmanager version
+
         if file:
             path = os.path.join(source_dir, file)
             if os.path.isfile(path):
@@ -1066,3 +1085,6 @@ if __name__ == "__main__":
         else:
             print("No issues to report.")
         print("Done.\n")
+
+if __name__ == "__main__":
+    verifyUSFM(gui=None)
