@@ -725,11 +725,11 @@ def reportPunctuation(text):
     if '=' in text:
         reportError(f"Equals sign (=) in {state.reference}", 52.3)
 
-numberembed_re = re.compile(r'[^\s,:\.0-9\(\[\-]+[0-9]+[^\s,;\.0-9\)\]]+')
-numberprefix_re = re.compile(r'[^\s,\.0-9\(\[][0-9]+', re.UNICODE)
-numbersuffix_re = re.compile(r'[0-9]+[^\s,;:.\-?!"z0-9\)\]]', re.UNICODE)
-unsegmented_re = re.compile(r'[0-9][0-9][0-9][0-9]+')
-numberformat_re = re.compile(r'[0-9]+[\.,]?\s[\.,]?[0-9]+')
+numberembed_re = re.compile(r'[^\s,:\.\d\(\[\-]+[\d]+[^\s,;\.\d\)\]]+')
+numberprefix_re = re.compile(r'[^\s,\.\d\(\[][\d]+', re.UNICODE)
+numbersuffix_re = re.compile(r'[\d]+[^\s,;:.\-?!"\d\)\]]', re.UNICODE)
+unsegmented_re = re.compile(r'[\d][\d][\d][\d]+')
+numberformat_re = re.compile(r'[\d]+[.,]?\s[.,]?[\d]+')    # space between digits
 leadingzero_re = re.compile(r'[\s]0[0-9,]*', re.UNICODE)
 number_re = re.compile(r'[^\d](\d+)[^\d,]')       # possible verse number in text
 chapverse_re = re.compile(r'(\d+)([:\-])(\d+)')
