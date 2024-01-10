@@ -1,40 +1,111 @@
 # -*- coding: utf-8 -*-
-# Script initialization via config file.
+# Config file manager
 
-import configparser
+from configparser import ConfigParser
 import os
-import sys
+import io
 
-# Gets location of config file from argv.
-# Prompts for location of config file if necessary.
-# Ensures that specified section exists.
-# Validates source_dir in specified section.
-# Returns configparser config object, or None if any errors.
-def get_config(argv, section):
-    if len(argv) > 1:
-        config_path = argv[1]
-    else:
-        # -------------------------------------------------------
-        # ----- Hard code a permanent config file path here -----
-        # -------------------------------------------------------
-        config_path = r'C:\DCS\config.ini'
+class ToolsConfigManager:
+    def __init__(self):
+        # self.configpath = os.path.expanduser("~/Documents/tools_config.ini")
+        path = os.path.expanduser("~/AppData/Local/usfm_wizard")
+        if not os.path.exists(path):
+            os.mkdir(path)
+        self.configpath = os.path.join(path, "tools_config.ini")
+        self.config = ConfigParser()
+        self._init_config()
 
-    while not os.path.exists(config_path):
-        config_path = input("Enter the full path of your configuration file: ")
+    def __repr__(self):
+        return f'ToolsConfigManager({self.configpath})'
 
-    config = configparser.ConfigParser()
-    config.read(config_path, encoding='utf-8')
+    # Creates default config file if it is empty or doesn't exist.
+    # Reads the config file.
+    def _init_config(self):
+        self.config.read(self.configpath, encoding='utf-8')
+        if not self.config.sections():
+            self._make_default_config()
+            self.config.read(self.configpath, encoding='utf-8')
 
-    try:
-        source_dir = config[section]['source_dir']
-        if not os.path.isdir(source_dir):
-            sys.stderr.write(f"{source_dir} is not a valid directory name.\n")
-            config = None
-        elif not os.listdir(source_dir):
-            sys.stderr.write(f"{source_dir} is an empty folder!\n")
-            config = None
-    except KeyError as e:
-        sys.stderr.write(f"No {section} section is found in your config file, or no value is found there for source_dir!\n")
-        config = None
+    def _make_default_config(self):
+        for section in ['MarkParagraphs','Plaintext2Usfm','RenameParatextFiles','RevertChanges',
+                        'Txt2USFM','UsfmCleanup','Usfm2RC','VerifyManifest','VerifyUSFM']:
+            self.config.add_section(section)
+            self.config[section] = self.default_section(section)
+        with io.open(self.configpath, "tw", encoding='utf-8', newline='\n') as file:
+            self.config.write(file)
 
-    return config[section] if config else None
+    # Sets config file path to a new value, if one is specified.
+    # Returns the (possibly new) config path.
+    def config_path(self, newpath = None):
+        if newpath and newpath != self.configpath:
+            self.configpath = newpath
+            self._init_config()
+        return self.configpath
+
+    def get_section(self, sectionname):
+        section = self.config[sectionname]
+        if len(section) == 0:
+            values = self.default_section(sectionname)
+            self.write_section(sectionname, values)
+        return self.config[sectionname]     # returning local variable values is wrong
+    
+    def write_section(self, sectionname, sec):
+        self.config[sectionname] = sec
+        with io.open(self.configpath, "tw", encoding='utf-8', newline='\n') as file:
+            self.config.write(file)
+
+    def default_section(self, sectionname):
+        match sectionname:
+            case 'MarkParagraphs':
+                sec = {'model_dir': "",
+                    'source_dir': "",
+                    'filename': "",
+                    'copy_nb': False,
+                    'removeS5markers': True }
+            case 'Plaintext2Usfm':
+                sec = {}
+            case 'RenameParatextFiles':
+                sec = {}
+            case 'RevertChanges':
+                sec = {'source_dir': "",
+                    'backupExt': "",
+                    'correctExt': ".usfm" }
+            case 'UsfmCleanup':
+                sec = {'source_dir': "",
+                    'filename': "",
+                    'language_code': "",
+                    'enable1': True,
+                    'enable2': True,
+                    'enable3': False,
+                    'enable4': False,
+                    'enable5': False,
+                    'enable6': True }
+            case 'Usfm2RC':
+                sec = {}
+            case 'VerifyManifest':
+                sec = {'source_dir': "" }
+            case 'Txt2USFM':
+                sec = {'source_dir': "",
+                       'target_dir': "",
+                       'mark_chunks': False,
+                       'language_code': "" }
+            case 'VerifyUSFM':
+                sec = {'source_dir': "",
+                       'filename': "",
+                       'language_code': "",
+                       'standard_chapter_title': "",
+                       'usfm_version': "2.0",
+                       'suppress1': False,
+                       'suppress2': False,
+                       'suppress3': False,
+                       'suppress4': False,
+                       'suppress5': False,
+                       'suppress6': False,
+                       'suppress7': False,
+                       'suppress8': False,
+                       'suppress9': False,
+                       'suppress10': False,
+                       'suppress11': False }
+            case _:
+                sec = {}
+        return sec
