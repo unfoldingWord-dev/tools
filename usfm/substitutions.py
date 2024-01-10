@@ -8,7 +8,33 @@
 # E2 80 8D = \u200d - zero width joiner
 
 subs = [
-# Remove \u200b and \u200c where they have no effect or don't belong.
+    # Temporary subs
+    #("Ye sus", "Yesus"),
+    #("Yes us", "Yesus"),
+    #("Yesu s", "Yesus"),
+    #("Pet rus", "Petrus"),
+    #("Petr us", "Petrus"),
+    #("Patrus", "Petrus"),
+    #("Kris tus", "Kristus"),
+    #("Krist us", "Kristus"),
+    #("Kristu s", "Kristus"),
+    #("Yeru salem", "Yerusalem"),
+    #("Yerusa lem", "Yerusalem"),
+    #("Ma ria", "Maria"),
+    #("Mar ia", "Maria"),
+    #("Mari a", "Maria"),
+    #("Tuha n", "Tuhan"),
+    #("Yohani s", "Yohanis"),
+    #("Pau lus", "Paulus"),
+    #("Paul us", "Paulus"),
+    #("Paulu s", "Paulus"),
+    #("Sau lus", "Saulus"),
+    #("Saul us", "Saulus"),
+    #("Saulu s", "Saulus"),
+    #("Is rael", "Israel"),
+    #("", ""),
+
+    # Remove \u200b and \u200c where they have no effect or don't belong.
     (" \u200b", " "),   # next to a space
     ("\u200b ", " "),
     (" \u200c", " "),
@@ -31,6 +57,8 @@ subs = [
     ("''''", "'\""),
     ("'''", "'\""),
     ("''", "\""),
+    ("’’", "”"),
+    ("‘‘", "“"),
     ("´", "'"),
     (" <<", " «"),
     (":<<", ": «"),
