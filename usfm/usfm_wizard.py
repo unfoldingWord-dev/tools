@@ -93,6 +93,7 @@ class UsfmWizard(tkinter.Tk):
         if copyparms:
             for parm in copyparms:
                 section[parm] = copyparms[parm]
+            self.config.write_section(stepname, section)
         self.current_step.show(section)
 
     # Called by one of the GUI modules.
@@ -142,4 +143,5 @@ def exit_wizard(*args):
 if __name__ == "__main__":
     wizard = UsfmWizard()
     create_menu(wizard)
+    wizard.attributes("-topmost", 1)
     wizard.mainloop()
