@@ -11,20 +11,17 @@
 
 config = None
 suppress = [False]*12
-language_code = None
-max_chunk_length = 400
 std_titles = None
 state = None
+gui = None
 
 lastToken = None
-nextToken = None
 aligned_usfm = False
 usfm_version = 2
 issuesFile = None
-issues = dict()
+issues: dict = dict()
 
-import configreader
-# import configmanager
+import configmanager
 import os
 from pathlib import Path
 import sys
@@ -333,7 +330,7 @@ def openIssuesFile():
             bakpath = os.path.join(source_dir, "issues-oldest.txt")
             if not os.path.exists(bakpath):
                 os.rename(path, bakpath)
-        issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
+        issuesFile = io.open(path, "tw", encoding='utf-8', newline='\n')
         issuesFile.write(f"Issues generated {date.today()} from {source_dir}\n------------\n")
     return issuesFile
 
@@ -350,6 +347,7 @@ def long_substring(s1, s2):
 # Keeps track of how many errors of each type.
 def reportError(msg, errorId=0, summarize_only=False):
     if not summarize_only:
+        reportProgress(msg)     # message to gui
         try:
             sys.stderr.write(msg + "\n")
         except UnicodeEncodeError as e:
@@ -367,6 +365,14 @@ def reportError(msg, errorId=0, summarize_only=False):
             newcount = 1
         issues[errorId] = (newmsg, newcount)
 
+# Sends a progress report to the GUI, and to stdout.
+def reportProgress(msg):
+    if gui:
+        with gui.progress_lock:
+            gui.progress = msg
+        gui.event_generate('<<ScriptProgress>>', when="tail")
+    print(msg)
+
 # Write summary of issues to issuesFile
 def reportIssues():
     global issues
@@ -375,7 +381,7 @@ def reportIssues():
     issuesfile.write("\nSUMMARY:\n")
     for issue in sorted(issues.items(), key=lambda kv: kv[1][1], reverse=True):
         total += issue[1][1]
-        issuesfile.write(f"{issue[1][0]} --- {issue[1][1]} occurrence(s).\n")
+        issuesfile.write(f"{issue[1][0]}...:  {issue[1][1]} occurrence(s).\n")
     issuesfile.write(f"\n{total} issues found.")
 
 # Report missing text or all ASCII text, in previous verse
@@ -389,6 +395,7 @@ def previousVerseCheck():
         reportError("Verse is entirely ASCII: " + state.reference, 3)
 
 def longChunkCheck():
+    max_chunk_length = 400  # set lower if this is ever needed again
     if not aligned_usfm and state.verse - (max_chunk_length-1) > state.startChunkVerse:
         reportError("Long chunk: " + state.startChunkRef + "-" + str(state.verse) + "   (" + str(state.verse-state.startChunkVerse+1) + " verses)", 4)
 
@@ -423,7 +430,7 @@ def verifyVerseCount():
         # Revelation 12 may have 17 or 18 verses, normally 17.
         if state.reference != 'REV 12:18' and state.reference != '3JN 1:15' and state.reference != '2CO 13:13' \
             and state.reference != 'ACT 19:40':
-            reportError(f"Chapter {state.chapter} normally has {nVerses(state.ID, state.chapter)} verses: {state.reference}", 8)
+            reportError(f"Chapter normally has {nVerses(state.ID, state.chapter)} verses: {state.reference}", 8)
 
 def verifyFootnotes():
     if state.footnote_starts != state.footnote_ends:
@@ -441,18 +448,6 @@ def verifyChapterCount():
     if state.ID and state.chapter != nChapters(state.ID):
         reportError("There should be " + str(nChapters(state.ID)) + " chapters in " + state.ID + " but " + str(state.chapter) + " chapters are found.", 12)
 
-def printToken(token):
-    if token.isV():
-        print("Verse number " + token.value)
-    elif token.isC():
-        print("Chapter " + token.value)
-    elif token.isP():
-        print("Paragraph " + token.value)
-    elif token.isTEXT():
-        print("Text: <" + token.value + ">")
-    else:
-        print(token)
-
 # \b is used to indicate additional white space between paragraphs.
 # No text or verse marker should follow this marker
 # and it should not be used before or after titles to indicate white space.
@@ -464,7 +459,7 @@ def takeC(c):
     # Report missing text in previous verse
     if c != "1":
         previousVerseCheck()
-        longChunkCheck()
+        # longChunkCheck()
     state.addChapter(c)
     if len(state.IDs) == 0:
         reportError("Missing ID before chapter: " + c, 13)
@@ -536,7 +531,7 @@ def takeQ(type):
     state.addPoetry()
 
 def takeS5():
-    longChunkCheck()
+    # longChunkCheck()
     state.addS5()
     takeSection('s5')
 
@@ -911,7 +906,7 @@ def take(token):
         elif usfm_version == 2:
             reportError("Invalid USFM token (\\" + token.value + ") near " + state.reference, 67)
 
-    if language_code in {"ur"} and isNumericCandidate(token) and re.search(r'[0-9]', token.value, re.UNICODE):
+    if config['language_code'] in {"ur"} and isNumericCandidate(token) and re.search(r'[0-9]', token.value):
         reportError("Arabic numerals in footnote at " + state.reference, 68)
 
     lastToken = token
@@ -1005,20 +1000,15 @@ def verifyFile(path):
     if aligned_usfm:
         contents = usfm_utils.unalign_usfm(contents)
 
-    print("CHECKING " + shortname(path))
+    reportProgress(f"CHECKING {shortname(path)}")
     sys.stdout.flush()
     if len(contents) < 100:
         reportError("Incomplete file: " + shortname(path), 80)
     else:
         verifyWholeFile(contents, shortname(path))
         tokens = parseUsfm.parseString(contents)
-        n = 0
-        global nextToken
         for token in tokens:
-            if n + 1 < len(tokens):
-                nextToken = tokens[n+1]
             take(token)
-            n += 1
         if (usfm_version == 2 or aligned_usfm) and not state.toc3:
             reportError("No \\toc3 tag in " + shortname(path), 81)
         previousVerseCheck()       # checks last verse in the file
@@ -1043,11 +1033,14 @@ def verifyDir(dir):
             elif path.is_file() and path.name[-3:].lower() == 'sfm':
                 verifyFile(path)
 
-def verifyUSFM(gui):
+def main(app=None):
     global config
-    config = configreader.get_config(sys.argv, 'verifyUSFM')    # configreader version
-    # config = configmanager.ToolsConfigManager().get_section('VerifyUSFM')   # configmanager version
+    global suppress
+    global language_code
+    global gui
 
+    gui = app
+    config = configmanager.ToolsConfigManager().get_section('VerifyUSFM')   # configmanager version
     if config:
         source_dir = config['source_dir']
         for i in range(0, len(suppress)):
@@ -1066,9 +1059,10 @@ def verifyUSFM(gui):
 
         global state
         state = State()
+        global issues
+        issues = dict()
 
-        file = config['file']       # configreader version
-        # file = config['filename']    # configmanager version
+        file = config['filename']    # configmanager version
 
         if file:
             path = os.path.join(source_dir, file)
@@ -1079,12 +1073,16 @@ def verifyUSFM(gui):
         else:
             verifyDir(source_dir)
 
+        global issuesFile
         if issuesFile:
             reportIssues()
             issuesFile.close()
+            issuesFile = None
         else:
-            print("No issues to report.")
-        print("Done.\n")
+            reportProgress("No issues to report.")
+        reportProgress("Done.")
+    if gui:
+        gui.event_generate('<<ScriptEnd>>', when="tail")
 
 if __name__ == "__main__":
-    verifyUSFM(gui=None)
+    main()

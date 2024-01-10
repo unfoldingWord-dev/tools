@@ -8,7 +8,7 @@
 # Promote straight quotes to open and closed quotes. (optional)
 # Capitalizes first word in sentences. (optional)
 
-import configreader
+import configmanager
 import re       # regular expression module
 import io
 import os
@@ -21,11 +21,13 @@ import parseUsfm
 import sentences
 import usfmFile
 
+gui = None
 config = None
 nChanged = 0
 aligned_usfm = False
 needcaps = True
 in_footnote = False
+issuesFile = None
 
 def shortname(longpath):
     source_dir = config['source_dir']
@@ -33,6 +35,35 @@ def shortname(longpath):
     if shortname.startswith(source_dir):
         shortname = os.path.relpath(shortname, source_dir)
     return shortname
+
+# Writes message to gui, stderr, and issues.txt.
+def reportError(msg):
+    reportProgress(msg)     # message to gui
+    sys.stderr.write(msg + "\n")
+    if issues := openIssuesFile():
+        issues.write(msg + "\n")
+
+# Sends a progress report to the GUI, and to stdout.
+# To be called only if the gui is set.
+def reportProgress(msg):
+    global gui
+    if gui:
+        with gui.progress_lock:
+            gui.progress = msg
+        gui.event_generate('<<ScriptProgress>>', when="tail")
+    print(msg)
+
+# If issues.txt file is not already open, opens it for writing.
+# Overwrites existing issues.txt file, if any.
+# Returns new file pointer.
+def openIssuesFile():
+    global issuesFile
+    if not issuesFile:
+        global config
+        if os.path.isdir(config['source_dir']):
+            path = os.path.join(config['source_dir'], "issues.txt")
+            issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
+    return issuesFile
 
 #  Move paragraph marker before section marker to follow the section marker
 movepq_re = re.compile(r'\n(\\[pqm][i1-9]*?)\n+(\\s[1-9 ].*?)\n', flags=re.UNICODE+re.DOTALL)
@@ -109,11 +140,6 @@ def fix_punctuation(str):
             str = str[:pos] + str[pos+1:]
         pos = str.find("..", pos+2)
     pos = 0
-    #bad = spacey3_re.search(str)
-    #while bad:
-        #pos += bad.end()
-        #str = str[:pos-1] + str[pos:]
-        #bad = spacey3_re.search(str[pos:])
     if bad := spacey3_re.search(str):
         pos = bad.end()
         str = str[:pos-1] + str[pos:]
@@ -311,6 +337,8 @@ def convert_by_token(path):
 # Corrects issues in the USFM file
 def convertFile(path):
     global nChanged
+    reportProgress(f"Checking {shortname(path)}")
+
     prev_nChanged = nChanged
     tmppath = path + ".tmp"
     if os.path.exists(tmppath):
@@ -328,7 +356,7 @@ def convertFile(path):
 
     if nChanged > prev_nChanged:
         nChanged = prev_nChanged + 1
-        sys.stdout.write("Changed " + shortname(path) + "\n")
+        reportProgress(f"Changed {shortname(path)}")
         sys.stdout.flush()
         bakpath = path + ".orig"
         if not os.path.isfile(bakpath):
@@ -341,11 +369,8 @@ def convertFile(path):
 
 # Recursive routine to convert all files under the specified folder
 def convertFolder(folder):
-    global nChanged
-    max_changes = config.getint('max_changes', fallback=66)
-    if nChanged >= max_changes or aligned_usfm:
+    if aligned_usfm:
         return
-    #sys.stdout.write(shortname(folder) + '\n')
     for entry in os.listdir(folder):
         if entry[0] != '.':
             path = os.path.join(folder, entry)
@@ -353,24 +378,31 @@ def convertFolder(folder):
                 convertFolder(path)
             elif entry.lower().endswith("sfm"):
                 convertFile(path)
-            if nChanged >= max_changes:
-                break
 
-# Processes all .usfm files in specified directory, one at a time
-if __name__ == "__main__":
-    config = configreader.get_config(sys.argv, 'usfm_cleanup')
+def main(app = None):
+    global gui
+    global config
+
+    gui = app
+    config = configmanager.ToolsConfigManager().get_section('UsfmCleanup')   # configmanager version
     if config:
         source_dir = config['source_dir']
-        file = config['file']
+        file = config['filename']  # configmanager version
         if file:
             path = os.path.join(source_dir, file)
             if os.path.isfile(path):
                 convertFile(path)
             else:
-                sys.stderr.write(f"No such file: {path}\n")
+                reportError(f"No such file: {path}")
         else:
             convertFolder(source_dir)
-        print("Done. Changed " + str(nChanged) + " files.")
+        reportProgress("Done. Changed " + str(nChanged) + " files.")
 
     if aligned_usfm:
-        sys.stderr.write("Cannot clean up aligned USFM.\n")
+        reportError("Cannot deal with aligned USFM.")
+    if gui:
+        gui.event_generate('<<ScriptEnd>>', when="tail")
+
+# Processes all .usfm files in specified directory, one at a time
+if __name__ == "__main__":
+    main()

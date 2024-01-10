@@ -6,7 +6,7 @@
 # Marks unmarked text as section headings where present in model.
 # The input file(s) should be verified, correct USFM, except for unmarked text which may become section headings.
 
-import configreader
+import configmanager
 import sys
 import os
 import parseUsfm
@@ -17,10 +17,10 @@ import sentences
 import usfm_verses
 from usfmFile import usfmFile
 
+gui = None
+config = None
 nCopied = 0     # number of paragraphs and sections copied from model
 issuesFile = None
-reportFile = None
-config = None
 state = None
 
 # Marker types
@@ -56,7 +56,8 @@ class State:
         self.sections_model = []
         self.expectText = False
         ## Open output USFM file for writing.
-        tmpPath = os.path.join(source_dir, fname + ".tmp")
+        global config
+        tmpPath = os.path.join(config['source_dir'], fname + ".tmp")
         self.usfm = usfmFile(tmpPath)
 
     def addID(self, id):
@@ -285,18 +286,20 @@ def convertFile(usfmpath, fname):
     sys.stdout.flush()
     success = isParseable(str, fname)
     if success:
-        sys.stdout.write(f"Converting {fname}\n")
+        reportProgress(f"Converting {fname}")
         sys.stdout.flush()
         tokens = parseUsfm.parseString(str)
         for token in tokens:
             take(token)
-        #state.usfmWrite("\n")
         state.usfmClose()
         if nCopied > startn:
             renameUsfmFiles(usfmpath)
         else:
-            removeTempFiles(usfmpath)
             sys.stdout.write(f"  No changes to {fname}\n")
+            removeTempFiles(usfmpath)
+    else:
+        state.usfmClose()
+        removeTempFiles(usfmpath)
     return success
 
 # Converts the book or books contained in the specified folder
@@ -339,9 +342,10 @@ def renameUsfmFiles(usfmpath):
 def openIssuesFile():
     global issuesFile
     if not issuesFile:
-        global source_dir
-        path = os.path.join(source_dir, "issues.txt")
-        issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
+        global config
+        if os.path.isdir(config['source_dir']):
+            path = os.path.join(config['source_dir'], "issues.txt")
+            issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
     return issuesFile
 
 #def openReportFile():
@@ -354,27 +358,34 @@ def openIssuesFile():
 
 def closeIssuesFiles():
     global issuesFile
-    global reportFile
     if issuesFile:
         issuesFile.close()
         issuesFile = None
-    if reportFile:
-        reportFile.close()
-        reportFile = None
 
 # Writes message to stderr and to issues.txt.
 # If it is not a real issue, writes message to report file.
 def reportError(msg, realIssue=True):
     if realIssue:
+        reportProgress(msg)     # message to gui
         try:
             sys.stderr.write(msg + "\n")
         except UnicodeEncodeError as e:
             sys.stderr.write(state.reference + ": (Unicode...)\n")
-        issues = openIssuesFile()
-        issues.write(msg + "\n")
+        if issues := openIssuesFile():
+            issues.write(msg + "\n")
     #else:
         #report = openReportFile()
         #report.write(msg + "\n")
+
+# Sends a progress report to the GUI, and to stdout.
+# To be called only if the gui is set.
+def reportProgress(msg):
+    global gui
+    if gui:
+        with gui.progress_lock:
+            gui.progress = msg
+        gui.event_generate('<<ScriptProgress>>', when="tail")
+    print(msg)
 
 # Sets the chapter number in the state object
 # If there is still a tentative paragraph mark, remove it.
@@ -457,7 +468,7 @@ def scanModelFile(modelpath, fname):
         sys.stdout.flush()
         success = isParseable(str, os.path.basename(modelpath))
         if success:
-            sys.stdout.write(f"Parsing model file: {fname}\n")
+            reportProgress(f"Parsing model file: {fname}")
             sys.stdout.flush()
             state.addFile(fname)
             tokens = parseUsfm.parseString(str)
@@ -474,12 +485,12 @@ def countParagraphs(path):
     return (nchapters, nparagraphs, npoetry)
 
 def processFile(path):
-    global model_dir
+    global config
     fname = os.path.basename(path)
     (nChapters, nParagraphs, nPoetry) = countParagraphs(path)
 
     #if nParagraphs / nChapters < 2.5 and nPoetry / nChapters < 15:
-    model_path = os.path.join(model_dir, fname)
+    model_path = os.path.join(config['model_dir'], fname)
     if os.path.isfile(model_path):
         if scanModelFile(model_path, fname):
             backupUsfmFile(path)
@@ -491,19 +502,30 @@ def processFile(path):
         reportError("Model file not found; file cannot be processed: " + fname)
 
 # Processes each directory and its files one at a time
-if __name__ == "__main__":
-    config = configreader.get_config(sys.argv, 'mark_paragraphs')
+def main(app = None):
+    global gui
+    gui = app
+    global nCopied
+    nCopied = 0
+    global config
+    config = configmanager.ToolsConfigManager().get_section('MarkParagraphs')   # configmanager version
     if config:
+        global state
         state = State()
-        model_dir = config['model_dir']
         source_dir = config['source_dir']
-        file = config['file']
+        file = config['filename']    # configmanager version
         if file:
             path = os.path.join(source_dir, file)
             if os.path.isfile(path):
                 processFile(path)
+            else:
+                reportError(f"File does not exist: {path}")
         else:
             convertFolder(source_dir)
 
     closeIssuesFiles()
-    print(f"\nDone. Introduced {nCopied} paragraphs / sections")
+    reportProgress(f"\nDone. Introduced {nCopied} paragraphs / sections")
+    gui.event_generate('<<ScriptEnd>>', when="tail")
+
+if __name__ == "__main__":
+    main()
