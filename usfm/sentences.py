@@ -4,15 +4,17 @@
 import re
 
 firstword_re = re.compile(r'([\w]+)')
-nextsent_re = re.compile(r'[\.\?\!\u0964].*?([\w]+)')
+nextsent_re = re.compile(r'[.?!\u0964].*?([\w]+)')
 specialquoted_re = re.compile(r'[\?\!\u0964][\'"’”»\-——]')    # exception to sentence ending
-endsentence_re = re.compile(r'[\.\?\!\u0964][^\w]*$')
+endsentence_re = re.compile(r'[.?!\u0964][^\w]*$')
 
 # Returns True if the specified text ends with sentence-ending punctuation:
 #    period, question mark, exclamation mark, or the Indian character । (\u0964)
 def endsSentence(str):
     return endsentence_re.search(str)
 
+# Returns True if the specified text ends with sentence-ending punctuation
+# followed by a closed quote or straight quote or dash.
 def endsQuotedSentence(str):
     ends = False
     if ending := endsentence_re.search(str):
