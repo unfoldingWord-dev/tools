@@ -52,10 +52,9 @@
 
 nIssues = 0
 projtype = ''
-issuesFile = None
 manifestDir = None
 
-import configreader
+import configmanager
 from datetime import datetime
 from datetime import date
 from datetime import timedelta
@@ -79,18 +78,9 @@ def expectAscii(language_id):
     expectAsciiTitles = config.getboolean('expectAsciiTitles', fallback=False)
     return (expectAsciiTitles or language_id in {'ceb','dan','en','es','es-419','fr','gl','ha','hr','id','ilo','kvb','lko','ngp','plt','pmy','pt-br','ruc','tl','tpi'})
 
-# If manifest-issues.txt file is not already open, opens it for writing.
-# Returns file pointer, which is also a global.
-def openIssuesFile():
-    global issuesFile
-    if not issuesFile:
-        global manifestDir
-        path = os.path.join(manifestDir, "manifest-issues.txt")
-        issuesFile = io.open(path, "tw", encoding='utf-8', newline='\n')
-    return issuesFile
-
 # Writes error message to stderr.
 def reportError(msg):
+    reportProgress(msg)     # message to gui
     global nIssues
     try:
         sys.stderr.write(msg + '\n')
@@ -102,6 +92,14 @@ def reportError(msg):
 # Writes warnings message to stderr.
 def reportWarning(msg):
     reportError("Possible error (please check): " + msg)
+
+def reportProgress(msg):
+    global gui
+    if gui:
+        with gui.progress_lock:
+            gui.progress = msg
+        gui.event_generate('<<ScriptProgress>>', when="tail")
+    print(msg)
 
 # Returns the number of .usfm files in the manifest directory.
 def countBookDirs():
@@ -122,13 +120,13 @@ def countFiles(ext):
 
 # Returns True if the specified string is a recognized Bible type of project type
 def isBibleType(id):
-    return (isAlignedBibleType(id) or id in {'ulb','udb','reg', 'ayt', 'blv','cuv','nav','det','juds'})
+    return (isAlignedBibleType(id) or id in {'ulb','udb','reg', 'ayt', 'blv','cuv','nav','det','juds','opcb'})
 
 # Returns True if the specified string is a recognized Aligned Bible type of project type
 # Preliminary implementation - list needs refinement (6/21/21)
 def isAlignedBibleType(id):
-    return (id in {'ust', 'ult', 'iev','irv','isv','glt','gnt','gst','ocb', \
-                   'rhb','rlb','rlv','rob','rlob','rsb','rsob', \
+    return (id in {'ust', 'ult', 'iev','irv','isv','glt','gnt','gst','ocb',
+                   'rhb','rlb','rlv','rob','rlob','rsob',
                    'stv','tlob','trs'})
 
 # This function validates the project entries for a tA project.
@@ -324,7 +322,6 @@ def verifyFile(path):
         reportError(f"Syntax error in {os.path.relpath(path, manifestDir)}: \"{str(e)}.\"")
         reportError("    -- If you can't find the mistake, use an online yaml checker, like yamllint.com.")
 
-
 # Verifies format field is a valid string, depending on project type.
 # Done with iev, irv, isv, obs, obs-tn, obs-tq, obs-sn, obs-sq, reg, ta, tq, tn, tw, tsv, ulb, udb, ust
 def verifyFormat(core):
@@ -334,7 +331,7 @@ def verifyFormat(core):
         if projtype in {'tn'}:
             if format == 'text/tsv':
                 projtype = 'tn-tsv'
-                print("projtype = " + projtype)
+                reportProgress("projtype = " + projtype)
             elif format != 'text/markdown':
                 reportError("Invalid format: " + format)
         elif projtype in {'ta', 'tq', 'tw', 'obs', 'obs-tn', 'obs-tq', 'obs-sn', 'obs-sq'}:
@@ -360,7 +357,7 @@ def verifyIdentifier(core):
             reportError("Invalid id: " + id)
         else:
             projtype = id
-            print("projtype = " + projtype)
+            reportProgress("projtype = " + projtype)
         parts = manifestDir.rsplit('_', 1)
         lastpart = parts[-1].lower()
         if lastpart != id.lower() and not lastpart.startswith(id.lower() + '.'):
@@ -410,9 +407,9 @@ def verifyMedium(medium):
     if medium['identifier'] != 'door43' and medium['url'].count(version) != 2:
         reportError("Correct the version numbers in media.yaml url's")
     if medium['identifier'] == 'pdf':
-        sys.stdout.write("Verify all language codes and {latest} version in media.yaml.\n")
+        reportProgress("Verify all language codes and {latest} version in media.yaml.\n")
     else:
-        sys.stdout.write("Review the " + medium['identifier'] + " media entry in media.yaml.\n")
+        reportProgress("Review the " + medium['identifier'] + " media entry in media.yaml.\n")
 
 # Confirms the existence of a LICENSE file
 def verifyOtherFiles():
@@ -499,7 +496,7 @@ def verifyProject(project, language_code):
             if project['title'] != 'Open Bible Stories Study Questions':
                 reportError("Invalid project:title: " + project['title'])
     else:
-        sys.stdout.write("Verify each project entry manually.\n")   # temp until all projtypes are supported
+        reportWarning("Verify each project entry manually.")   # temp until all projtypes are supported
 
 # For most project types, the projects:identifier is really a part identifier, like book id (ULB, tQ, etc.), or section id (tA)
 
@@ -568,7 +565,7 @@ def verifyReadme(dirpath):
         if modtime.date() != date.today():
             reportWarning("README file was not updated today")
         else:
-            print("Remember to update README file.")
+            reportProgress("Remember to update README file.")
 
 # NOT DONE - need to support UHG-type entries
 def verifyRelation(rel):
@@ -686,7 +683,7 @@ def verifySubject(subject):
     elif projtype == 'obs-sn':
         expected_subject = 'OBS Study Notes'
     else:
-        sys.stdout.write("Verify subject manually.\n")
+        reportProgress("Verify subject manually.")
         expected_subject = subject
     if subject != expected_subject:
         reportError("Invalid subject: " + subject + " (expected '" + expected_subject + "')")
@@ -777,7 +774,7 @@ def verifyType(type):
     elif projtype == 'obs':
         failure = (type != 'book')
     else:
-        sys.stdout.write("Verify type manually.\n")
+        reportProgress("Verify project type {projtype} manually.")
     if failure:
         reportError("Invalid type: " + type)
 
@@ -789,7 +786,7 @@ def verifyVersion(version, sourceversion):
     if spaced_re.search(sourceversion):
         reportError("White space in source:version")
     if projtype == 'obs':
-        sys.stdout.write("Verify that the version number listed in front/intro.md is: " + version + "\n")
+        reportProgress("Verify that the version number listed in front/intro.md is: " + version + "\n")
 
 # Returns True if the file has a BOM
 def has_bom(path):
@@ -800,15 +797,25 @@ def has_bom(path):
             return True
     return False
 
-if __name__ == "__main__":
-    config = configreader.get_config(sys.argv, 'verifyManifest')
+def verifyManifest():
+    global config
+    config = configmanager.ToolsConfigManager().get_section('VerifyManifest')   # configmanager version
     if config:
+        global manifestDir
         manifestDir = config['source_dir']
         verifyDir(manifestDir)
 
-        if issuesFile:
-            issuesFile.close()
         if nIssues == 0:
-            print("Done, no errors found.\n")
+            reportProgress("Done, no errors found.")
         else:
-            print("Finished checking, found " + str(nIssues) + " issues.\n")
+            reportProgress("Finished checking, found " + str(nIssues) + " issue(s).")
+
+def main(app = None):
+    global gui
+    gui = app
+    verifyManifest()
+    if gui:
+        gui.event_generate('<<ScriptEnd>>', when="tail")
+
+if __name__ == "__main__":
+    main()
