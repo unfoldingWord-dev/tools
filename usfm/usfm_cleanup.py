@@ -38,19 +38,27 @@ def shortname(longpath):
 
 # Writes message to gui, stderr, and issues.txt.
 def reportError(msg):
-    reportProgress(msg)     # message to gui
+    reportStatus(msg)     # message to gui
     sys.stderr.write(msg + "\n")
     if issues := openIssuesFile():
         issues.write(msg + "\n")
 
 # Sends a progress report to the GUI, and to stdout.
-# To be called only if the gui is set.
 def reportProgress(msg):
     global gui
     if gui:
         with gui.progress_lock:
-            gui.progress = msg
+            gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
         gui.event_generate('<<ScriptProgress>>', when="tail")
+    print(msg)
+
+# Sends a status message to the GUI, and to stdout.
+def reportStatus(msg):
+    global gui
+    if gui:
+        with gui.progress_lock:
+            gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
+        gui.event_generate('<<ScriptMessage>>', when="tail")
     print(msg)
 
 # If issues.txt file is not already open, opens it for writing.
@@ -356,7 +364,7 @@ def convertFile(path):
 
     if nChanged > prev_nChanged:
         nChanged = prev_nChanged + 1
-        reportProgress(f"Changed {shortname(path)}")
+        reportStatus(f"Changed {shortname(path)}")
         sys.stdout.flush()
         bakpath = path + ".orig"
         if not os.path.isfile(bakpath):
@@ -396,7 +404,7 @@ def main(app = None):
                 reportError(f"No such file: {path}")
         else:
             convertFolder(source_dir)
-        reportProgress("Done. Changed " + str(nChanged) + " files.")
+        reportStatus("Done. Changed " + str(nChanged) + " files.")
 
     if aligned_usfm:
         reportError("Cannot deal with aligned USFM.")

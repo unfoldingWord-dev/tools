@@ -366,7 +366,7 @@ def closeIssuesFiles():
 # If it is not a real issue, writes message to report file.
 def reportError(msg, realIssue=True):
     if realIssue:
-        reportProgress(msg)     # message to gui
+        reportStatus(msg)     # message to gui
         try:
             sys.stderr.write(msg + "\n")
         except UnicodeEncodeError as e:
@@ -378,14 +378,22 @@ def reportError(msg, realIssue=True):
         #report.write(msg + "\n")
 
 # Sends a progress report to the GUI, and to stdout.
-# To be called only if the gui is set.
 def reportProgress(msg):
     global gui
     if gui:
         with gui.progress_lock:
-            gui.progress = msg
+            gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
         gui.event_generate('<<ScriptProgress>>', when="tail")
     print(msg)
+
+def reportStatus(msg):
+    global gui
+    if gui:
+        with gui.progress_lock:
+            gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
+        gui.event_generate('<<ScriptMessage>>', when="tail")
+    print(msg)
+
 
 # Sets the chapter number in the state object
 # If there is still a tentative paragraph mark, remove it.
@@ -524,7 +532,7 @@ def main(app = None):
             convertFolder(source_dir)
 
     closeIssuesFiles()
-    reportProgress(f"\nDone. Introduced {nCopied} paragraphs / sections")
+    reportStatus(f"\nDone. Introduced {nCopied} paragraphs / sections")
     gui.event_generate('<<ScriptEnd>>', when="tail")
 
 if __name__ == "__main__":

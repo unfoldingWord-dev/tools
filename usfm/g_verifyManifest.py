@@ -37,7 +37,7 @@ class VerifyManifest:
 
     # Called by the mainapp.
     # Displays the specified string in the message area.
-    def onScriptProgress(self, progress):
+    def onScriptMessage(self, progress):
         self.frame.show_progress(progress)
 
     # Called by the mainapp.

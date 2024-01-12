@@ -43,7 +43,7 @@ class VerifyUSFM:
 
     # Called by the main app.
     # Displays the specified string in the message area.
-    def onScriptProgress(self, progress: str):
+    def onScriptMessage(self, progress: str):
         self.frame.show_progress(progress)
 
     # Called by the main app.

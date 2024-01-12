@@ -80,7 +80,7 @@ def expectAscii(language_id):
 
 # Writes error message to stderr.
 def reportError(msg):
-    reportProgress(msg)     # message to gui
+    reportStatus(msg)     # message to gui
     global nIssues
     try:
         sys.stderr.write(msg + '\n')
@@ -93,12 +93,12 @@ def reportError(msg):
 def reportWarning(msg):
     reportError("Possible error (please check): " + msg)
 
-def reportProgress(msg):
+def reportStatus(msg):
     global gui
     if gui:
         with gui.progress_lock:
-            gui.progress = msg
-        gui.event_generate('<<ScriptProgress>>', when="tail")
+            gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
+        gui.event_generate('<<ScriptMessage>>', when="tail")
     print(msg)
 
 # Returns the number of .usfm files in the manifest directory.
@@ -331,7 +331,7 @@ def verifyFormat(core):
         if projtype in {'tn'}:
             if format == 'text/tsv':
                 projtype = 'tn-tsv'
-                reportProgress("projtype = " + projtype)
+                reportStatus("projtype = " + projtype)
             elif format != 'text/markdown':
                 reportError("Invalid format: " + format)
         elif projtype in {'ta', 'tq', 'tw', 'obs', 'obs-tn', 'obs-tq', 'obs-sn', 'obs-sq'}:
@@ -357,7 +357,7 @@ def verifyIdentifier(core):
             reportError("Invalid id: " + id)
         else:
             projtype = id
-            reportProgress("projtype = " + projtype)
+            reportStatus("projtype = " + projtype)
         parts = manifestDir.rsplit('_', 1)
         lastpart = parts[-1].lower()
         if lastpart != id.lower() and not lastpart.startswith(id.lower() + '.'):
@@ -407,9 +407,9 @@ def verifyMedium(medium):
     if medium['identifier'] != 'door43' and medium['url'].count(version) != 2:
         reportError("Correct the version numbers in media.yaml url's")
     if medium['identifier'] == 'pdf':
-        reportProgress("Verify all language codes and {latest} version in media.yaml.\n")
+        reportStatus("Verify all language codes and {latest} version in media.yaml.\n")
     else:
-        reportProgress("Review the " + medium['identifier'] + " media entry in media.yaml.\n")
+        reportStatus("Review the " + medium['identifier'] + " media entry in media.yaml.\n")
 
 # Confirms the existence of a LICENSE file
 def verifyOtherFiles():
@@ -565,7 +565,7 @@ def verifyReadme(dirpath):
         if modtime.date() != date.today():
             reportWarning("README file was not updated today")
         else:
-            reportProgress("Remember to update README file.")
+            reportStatus("Remember to update README file.")
 
 # NOT DONE - need to support UHG-type entries
 def verifyRelation(rel):
@@ -683,7 +683,7 @@ def verifySubject(subject):
     elif projtype == 'obs-sn':
         expected_subject = 'OBS Study Notes'
     else:
-        reportProgress("Verify subject manually.")
+        reportStatus("Verify subject manually.")
         expected_subject = subject
     if subject != expected_subject:
         reportError("Invalid subject: " + subject + " (expected '" + expected_subject + "')")
@@ -774,7 +774,7 @@ def verifyType(type):
     elif projtype == 'obs':
         failure = (type != 'book')
     else:
-        reportProgress("Verify project type {projtype} manually.")
+        reportStatus("Verify project type {projtype} manually.")
     if failure:
         reportError("Invalid type: " + type)
 
@@ -786,7 +786,7 @@ def verifyVersion(version, sourceversion):
     if spaced_re.search(sourceversion):
         reportError("White space in source:version")
     if projtype == 'obs':
-        reportProgress("Verify that the version number listed in front/intro.md is: " + version + "\n")
+        reportStatus("Verify that the version number listed in front/intro.md is: " + version + "\n")
 
 # Returns True if the file has a BOM
 def has_bom(path):
@@ -806,9 +806,9 @@ def verifyManifest():
         verifyDir(manifestDir)
 
         if nIssues == 0:
-            reportProgress("Done, no errors found.")
+            reportStatus("Done, no errors found.")
         else:
-            reportProgress("Finished checking, found " + str(nIssues) + " issue(s).")
+            reportStatus("Finished checking, found " + str(nIssues) + " issue(s).")
 
 def main(app = None):
     global gui

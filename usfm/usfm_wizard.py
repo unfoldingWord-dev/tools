@@ -25,7 +25,7 @@ from mark_paragraphs import main
 from revertChanges import main
 from verifyManifest import main
 
-app_version = "1.0"
+app_version = "1.0.1"
 
 class UsfmWizard(tkinter.Tk):
     # def __init_for_when_UsfmWizard_isnt_derived_from_Tk(self, parent):
@@ -46,6 +46,7 @@ class UsfmWizard(tkinter.Tk):
         self.titleframe.grid(row=0, column=0, sticky="nsew")
         self._build_steps(mainframe)
         self.activate_step('Txt2USFM')
+        self.bind('<<ScriptMessage>>', self.onScriptMessage)
         self.bind('<<ScriptProgress>>', self.onScriptProgress)
         self.bind('<<ScriptEnd>>', self.onScriptEnd)
         self.progress_lock = threading.Lock()
@@ -70,11 +71,15 @@ class UsfmWizard(tkinter.Tk):
         self.thread.start()
         self.titleframe.increment_progress(0)
 
-    def onScriptProgress(self, event):
+    def onScriptMessage(self, event):
         with self.progress_lock:
             copystr = self.progress
             self.progress = ""
-        self.current_step.onScriptProgress(copystr)
+        if copystr:
+            self.current_step.onScriptMessage(copystr)
+
+    def onScriptProgress(self, event):
+        self.onScriptMessage(event)
         self.titleframe.increment_progress()
 
     def onScriptEnd(self, event):
@@ -143,5 +148,5 @@ def exit_wizard(*args):
 if __name__ == "__main__":
     wizard = UsfmWizard()
     create_menu(wizard)
-    wizard.attributes("-topmost", 1)
+    # wizard.attributes("-topmost", 1)
     wizard.mainloop()

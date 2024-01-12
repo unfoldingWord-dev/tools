@@ -51,8 +51,8 @@ class MarkParagraphs:
 
     # Called by the mainapp.
     # Displays the specified string in the message area.
-    def onScriptProgress(self, progress):
-        self.frame.show_progress(progress)
+    def onScriptMessage(self, progress):
+        self.frame.show_message(progress)
 
     # Called by the mainapp.
     def onScriptEnd(self, status):

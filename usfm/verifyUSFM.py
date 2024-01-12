@@ -347,7 +347,7 @@ def long_substring(s1, s2):
 # Keeps track of how many errors of each type.
 def reportError(msg, errorId=0, summarize_only=False):
     if not summarize_only:
-        reportProgress(msg)     # message to gui
+        reportStatus(msg)     # message to gui
         try:
             sys.stderr.write(msg + "\n")
         except UnicodeEncodeError as e:
@@ -365,12 +365,20 @@ def reportError(msg, errorId=0, summarize_only=False):
             newcount = 1
         issues[errorId] = (newmsg, newcount)
 
-# Sends a progress report to the GUI, and to stdout.
+# Sends a progress message to the GUI, and to stdout.
 def reportProgress(msg):
     if gui:
         with gui.progress_lock:
-            gui.progress = msg
+            gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
         gui.event_generate('<<ScriptProgress>>', when="tail")
+    print(msg)
+
+# Sends a status message to the GUI, and to stdout.
+def reportStatus(msg):
+    if gui:
+        with gui.progress_lock:
+            gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
+        gui.event_generate('<<ScriptMessage>>', when="tail")
     print(msg)
 
 # Write summary of issues to issuesFile
@@ -1079,8 +1087,8 @@ def main(app=None):
             issuesFile.close()
             issuesFile = None
         else:
-            reportProgress("No issues to report.")
-        reportProgress("Done.")
+            reportStatus("No issues to report.")
+        reportStatus("Done.")
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
 

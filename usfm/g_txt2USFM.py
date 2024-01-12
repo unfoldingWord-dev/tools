@@ -27,19 +27,20 @@ class Txt2USFM:
     def title(self):
         return "Step 1: Convert text files to USFM"
 
-    def onNext(self, *args):
-        copyparms = {'language_code': self.values['language_code'],
-                     'source_dir': self.values['target_dir']}
-        self.mainapp.activate_step("VerifyUSFM", copyparms)
     def onExecute(self, values):
         self.values = values
         count = g_util.count_folders(values['source_dir'], f"{values['language_code']}_[\w][\w][\w].*_reg|_ulb$")
         self.mainapp.execute_script("txt2USFM", count)
         self.frame.clear_status()
+    def onNext(self):
+        copyparms = {'language_code': self.values['language_code'], 'source_dir': self.values['target_dir']}
+        self.mainapp.activate_step("VerifyUSFM", copyparms)
+    def onSkip(self):
+        self.mainapp.activate_step("VerifyUSFM")
 
     # Called by the main app.
     # Displays the specified string in the message area.
-    def onScriptProgress(self, progress):
+    def onScriptMessage(self, progress):
         self.frame.show_progress(progress)
 
     # Called by the main app.
@@ -95,13 +96,14 @@ class Text2USFM_Frame(ttk.Frame):
         self.opentarget_button= ttk.Button(self, text="Open usfm folder", command=self._onOpenTargetDir)
         self.opentarget_button.grid(row=99, column=3, sticky=(W,N,S))  # padx=10, pady=5
 
-        self.next_button = ttk.Button(self, text="Skip this step", command=self._onNext, padding=10)
+        self.next_button = ttk.Button(self, text="Skip this step", command=self._onSkip, padding=10)
         self.next_button.grid(row=99, column=4, sticky=(N,S,E)) # , padx=0, pady=5)
 
         # for child in parent.winfo_children():
         #     child.grid_configure(padx=25, pady=5)
         self.language_code_entry.focus()
 
+    # Called when the frame is first activated. Populate the initial values.
     def show_values(self, values):
         self.values = values
         self.language_code.set(values['language_code'])
@@ -125,6 +127,7 @@ class Text2USFM_Frame(ttk.Frame):
         self.message_area['state'] = NORMAL   # enables insertions to message area
         self.message_area.delete('1.0', 'end')
 
+    # Caches the current parameters in self.values and calls the mainapp to save them in the config file.
     def _save_values(self):
         self.values['language_code'] = self.language_code.get()
         self.values['source_dir'] = self.source_dir.get()
@@ -134,13 +137,17 @@ class Text2USFM_Frame(ttk.Frame):
 
     def _onExecute(self, *args):
         self._save_values()
-        self.next_button['text'] = "Next step"
         self.controller.onExecute(self.values)
+        self.next_button['text'] = "Next step"
+        self.next_button['command'] = self._onNext
     def _onChangeEntry(self, *args):
         self._set_button_status()
     def _onOpenTargetDir(self, *args):
         self._save_values()
         os.startfile(self.values['target_dir'])
+    def _onSkip(self, *args):
+        self._save_values()
+        self.controller.onSkip()
     def _onNext(self, *args):
         self._save_values()
         self.controller.onNext()
