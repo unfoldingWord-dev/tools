@@ -115,6 +115,7 @@ def usfm_remove_s5(str):
     newstr += str
     return newstr
 
+# Finds \toc, \h and \mt lines, and changes the title on those lines to title case.
 def fix_booktitles_x(str, compiled_expression):
     pos = 0
     title_line = compiled_expression.search(str, pos)
@@ -122,11 +123,14 @@ def fix_booktitles_x(str, compiled_expression):
         pos = title_line.start()
         title = title_line.group(2)
         if not title.istitle():     # not title case already
-            str = str[:pos] + title_line.group(1) + title.title() + str[title_line.end():]
+            title = title.title().replace("Iii", 'III')
+            title = title.replace("Ii", 'II')
+            str = str[:pos] + title_line.group(1) + title + str[title_line.end():]
         pos += 5
         title_line = compiled_expression.search(str, pos)
     return str
 
+# Finds \toc, \h and \mt lines, and changes the title on those lines to title case.
 def fix_booktitles(str):
     str = fix_booktitles_x(str, re.compile(r'(\\toc[12] )([^\n]+\n)'))
     str = fix_booktitles_x(str, re.compile(r'(\\h )([^\n]+\n)'))

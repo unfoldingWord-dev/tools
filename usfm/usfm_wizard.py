@@ -25,7 +25,7 @@ from mark_paragraphs import main
 from revertChanges import main
 from verifyManifest import main
 
-app_version = "1.0.1"
+app_version = "1.0.2"
 
 class UsfmWizard(tkinter.Tk):
     # def __init_for_when_UsfmWizard_isnt_derived_from_Tk(self, parent):
@@ -116,16 +116,15 @@ class Title_Frame(Frame):
     def start_progress(self, n):
         self.progressbar['maximum'] = n
         self.progressbar.grid(row=1, column=2, sticky="ew")
-        self.update()   # this may be unnecessary after I get the threads going
+        # self.update()   # this may be unnecessary after I get the threads going
     def increment_progress(self, delta=1):
         self.progressbar['value'] += delta
-        # self.update()   # this may be unnecessary after I get the threads going
     def stop_progress(self):
         self.progressbar.stop()
         self.progressbar.grid_forget()
 
 def create_menu(wizard):
-    wizard.option_add('*tearoff', FALSE)  # essential to have a normal menu
+    wizard.option_add('*tearOff', FALSE)  # essential to have a normal menu
     menubar = Menu(wizard)
     menu_file = Menu(menubar)
     menubar.add_cascade(menu=menu_file, label='File')
@@ -144,6 +143,7 @@ def about(*args):
                         detail=f"Config file: {configpath}")
 def exit_wizard(*args):
     wizard.destroy()
+    # It would be nice if I killed any threads that are still running here.
 
 if __name__ == "__main__":
     wizard = UsfmWizard()
