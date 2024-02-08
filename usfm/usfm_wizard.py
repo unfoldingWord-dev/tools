@@ -13,39 +13,37 @@ import re
 import sys
 import time
 import threading
+import g_selectProcess
 import g_txt2USFM
 import g_verifyUSFM
 import g_UsfmCleanup
 import g_MarkParagraphs
 import g_verifyManifest
+import g_usfm2usx
 from txt2USFM import main
 from verifyUSFM import main
 from usfm_cleanup import main
 from mark_paragraphs import main
 from revertChanges import main
+from usfm2usx import main
 from verifyManifest import main
 
-app_version = "1.0.2"
+app_version = "1.1.0"
 
 class UsfmWizard(tkinter.Tk):
-    # def __init_for_when_UsfmWizard_isnt_derived_from_Tk(self, parent):
-    #     parent.title('USFM Wizard')
-    #     self.config = configmanager.ToolsConfigManager()
-    #     mainframe = Frame(self, height=480, width=720)
-    #     mainframe.grid(column=0, row=0, sticky="nsew")
-
     def __init__(self):
         super().__init__()
 
         self.title('USFM Wizard')
         self.config = configmanager.ToolsConfigManager()
-        mainframe = Frame(self, height=480, width=720)
+        mainframe = Frame(self, height=600, width=1040)
         mainframe.grid(column=0, row=0, sticky="nsew")
         
         self.titleframe = Title_Frame(parent=mainframe, controller=self, height=25)
         self.titleframe.grid(row=0, column=0, sticky="nsew")
         self._build_steps(mainframe)
-        self.activate_step('Txt2USFM')
+        self.process = 'SelectProcess'
+        self.activate_step('SelectProcess')
         self.bind('<<ScriptMessage>>', self.onScriptMessage)
         self.bind('<<ScriptProgress>>', self.onScriptProgress)
         self.bind('<<ScriptEnd>>', self.onScriptEnd)
@@ -53,11 +51,12 @@ class UsfmWizard(tkinter.Tk):
 
     def _build_steps(self, mainframe):
         self.steps = {}
-        for S in (g_txt2USFM, g_verifyUSFM, g_UsfmCleanup, g_MarkParagraphs, g_verifyManifest):
-            stepname = S.stepname
-            stepclass = getattr(sys.modules[S.__name__], stepname)
-            step = stepclass(mainframe, mainapp=self)
-            self.steps[stepname] = step
+        for S in (g_selectProcess, g_txt2USFM, g_verifyUSFM, g_UsfmCleanup, g_MarkParagraphs, g_verifyManifest,
+                   g_usfm2usx):
+            # stepname = S.stepname
+            stepclass = getattr(sys.modules[S.__name__], S.stepname)
+            step = stepclass(mainframe, mainapp=self)   # create an instance of the class
+            self.steps[S.stepname] = step
         for child in self.winfo_children():
             child.grid_configure(padx=25, pady=5)
 
@@ -91,6 +90,55 @@ class UsfmWizard(tkinter.Tk):
         self.current_step.onScriptEnd(copystr)
         self.titleframe.stop_progress()
 
+    def set_process(self, selection):
+        self.process = selection
+
+    # Activates the previous step
+    def step_back(self):
+        gotostep = None
+        match self.current_step.name():
+            case 'MarkParagraphs':
+                gotostep = 'UsfmCleanup'
+            case 'Txt2USFM':
+                gotostep = 'SelectProcess'
+            case 'Usfm2Usx':
+                gotostep = 'VerifyUSFM'
+            case 'UsfmCleanup':
+                gotostep = 'VerifyUSFM'
+            case 'VerifyManifest':
+                gotostep = 'MarkParagraphs'
+            case 'VerifyUSFM':
+                if self.process in {'Usfm2Usx', 'VerifyUSFM'}:
+                    gotostep = 'SelectProcess'
+                else:
+                    gotostep = 'Txt2USFM'
+        if gotostep:
+            self.activate_step(gotostep)
+
+    # Activates the next step, based the current process and what step we just finished.
+    def step_next(self, copyparms=None):
+        gotostep = None
+        match self.current_step.name():
+            case 'MarkParagraphs':
+                gotostep = 'VerifyManifest'
+            case 'SelectProcess':
+                if self.process == 'Usfm2Usx':
+                    gotostep = 'VerifyUSFM'
+                else:
+                    gotostep = self.process
+            case 'Txt2USFM':
+                gotostep = 'VerifyUSFM'
+            case 'UsfmCleanup':
+                gotostep = 'MarkParagraphs'
+            case 'VerifyUSFM':
+                if self.process == 'Usfm2Usx':
+                    gotostep = 'Usfm2Usx'
+                else:
+                    gotostep = 'UsfmCleanup'
+        if gotostep:
+            self.activate_step(gotostep, copyparms)
+
+    # I intend to bypass the stepname indirection at some point.
     def activate_step(self, stepname, copyparms=None):
         self.current_step = self.steps[stepname]
         self.titleframe.step_label['text'] = self.current_step.title()
