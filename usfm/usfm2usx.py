@@ -6,24 +6,28 @@
 # Uses parseUsfm module to parse the usfm files.
 # This script was originally written for converting the Spanish Reina-Valera 1909 Bible
 # so that Bible could be used as a source text in BTT-Writer.
+# It has also been used for the Danish 'Hellig Bibel'.
 # The input file(s) should be verified, correct USFM.
 # Before running the script, set the global variables below.
 
 # Global variables
-source_dir = r'C:\DCS\Danish\dan_det.WA'
-target_dir = r'C:\DCS\Danish\dan_det_rc'
-en_rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
+# source_dir = r'C:\DCS\Persian\pes_opcb'
+config = None
+gui = None
+# rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
 
 # Values to be written into each of the package.json files
-language_code = 'dan'
-language_name = 'Dansk'
-bible_id = 'det'      # lowercase 'ulb' or other bible identifier
-bible_name = 'Hellig Bibel'
-direction = "ltr"
-pub_date = "2022-06-29"
-license = "Public Domain (NT)"
-version = "1"
+# language_code = 'dan'
+# language_name = 'Dansk'
+# bible_id = 'det'      # lowercase 'ulb' or other bible identifier
+# bible_name = 'Hellig Bibel'
+# direction = "ltr"
+# pub_date = "2022-06-29"
+# license = "Public Domain (NT)"
+# version = "1"
 
+import configmanager
+from pathlib import Path
 import sys
 import os
 import parseUsfm
@@ -67,8 +71,9 @@ class State:
         State.needingVerseText = False
         State.lastRef = State.reference
         State.reference = id
-        State.en_content_dir = os.path.join( os.path.join(en_rc_dir, "en_" + id.lower() + "_ulb"), "content")
-        State.target_content_dir = os.path.join( os.path.join(target_dir, language_code + "_" + id.lower() + "_" + bible_id), "content")
+        rc_dir = config['rc_dir']
+        State.en_content_dir = os.path.join( os.path.join(rc_dir, "en_" + id.lower() + "_ulb"), "content")
+        State.target_content_dir = os.path.join( os.path.join(rc_dir, config['language_code'] + "_" + id.lower() + "_" + config['bible_id']), "content")
 
     def addTitle(self, bookTitle, mt):
         if not State.title:
@@ -129,17 +134,17 @@ class State:
     def saveSection(self, s):
         State.sectionPending = s
 
-def printToken(token):
-    if token.isV():
-        print("Verse number " + token.value)
-    elif token.isC():
-        print("Chapter " + token.value)
-    elif token.isS():
-        sys.stdout.write("Section heading: " + token.value)
-    elif token.isTEXT():
-        print("Text: <" + token.value + ">")
-    else:
-        print(token)
+# def printToken(token):
+#     if token.isV():
+#         print("Verse number " + token.value)
+#     elif token.isC():
+#         print("Chapter " + token.value)
+#     elif token.isS():
+#         sys.stdout.write("Section heading: " + token.value)
+#     elif token.isTEXT():
+#         print("Text: <" + token.value + ">")
+#     else:
+#         print(token)
 
 # Removes UTF-8 Byte Order Marks (BOM) from specified file if it has one or more.
 def removeBOM(path):
@@ -168,12 +173,12 @@ def takeC(c):
     closeUsx()
     state.addChapter(c)
     makeChapterDir(state.chapterPad)
-    path = os.path.join(state.target_chapter_dir, "title.usx")
-    usxOutput = io.open(path, "tw", encoding="utf-8", newline='\n')
-    usxOutput.write( str(state.chapter) )
-    usxOutput.close()
+    createChapterTitleFile(str(state.chapter))  # default, in case \cl does not follow
     path = os.path.join(state.target_chapter_dir, "01.usx")
     state.setUsxOutput( io.open(path, "tw", encoding="utf-8", newline='\n') )
+
+def takeCL(value):
+    createChapterTitleFile(value)
 
 def takeF(value):
     State().usxOutput.write('<note style="f" caller="+"> ')
@@ -229,6 +234,8 @@ def take(token):
         state.addTitle(token.value, token.isMT())
     elif token.isC():
         takeC(token.value)
+    elif token.isCL():
+        takeCL(token.value)
     # elif token.isS():     # section headings are ignored currently
         # printToken(token)
         # takeS(token.value)
@@ -262,7 +269,25 @@ def closeUsx():
         state.setUsxOutput(None)
 
 def reportError(msg):
-    sys.stderr.write(msg + "\n")
+    reportToGui(msg, '<<ScriptMessage>>')
+    sys.stderr.write(msg + '\n')
+    # sys.stderr.flush()
+
+# Sends a progress report to the GUI.
+# To be called only if the gui is set.
+def reportStatus(msg):
+    reportToGui(msg, '<<ScriptMessage>>')
+    print(msg)
+
+def reportProgress(msg):
+    reportToGui(msg, '<<ScriptProgress>>')
+    print(msg)
+
+def reportToGui(msg, event):
+    if gui:
+        with gui.progress_lock:
+            gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
+        gui.event_generate(event, when="tail")
 
 # Creates the specified folder and a "content" folder under it
 def makeTargetDirs(target_book_dir):
@@ -301,9 +326,9 @@ def createManifest(en_book_dir, target_book_dir):
     today = date.today()
     s = '%(year)d%(month)02d%(day)02d' % {'year':today.year, 'month':today.month, 'day':today.day}
     package['modified_at'] = int(s)
-    package['language']['slug'] = language_code
-    package['language']['name'] = language_name
-    package['language']['direction'] = direction
+    package['language']['slug'] = config['language_code']
+    package['language']['name'] = config['language_name']
+    package['language']['direction'] = config['direction']
     state = State()
     package['project']['slug'] = state.ID.lower()
     package['project']['name'] = state.title
@@ -314,11 +339,11 @@ def createManifest(en_book_dir, target_book_dir):
         category = "bible-ot"
     package['project']['category_slug'] = category
     package['project']['categories'] = [category]
-    package['resource']['slug'] = bible_id
-    package['resource']['name'] = bible_name
-    package['resource']['status']['pub_date'] = pub_date
-    package['resource']['status']['license'] = license
-    package['resource']['status']['version'] = version
+    package['resource']['slug'] = config['bible_id']
+    package['resource']['name'] = config['bible_name']
+    package['resource']['status']['pub_date'] = config['pub_date']
+    package['resource']['status']['license'] = config['license']
+    package['resource']['status']['version'] = config['version']
 
     path = os.path.join(target_book_dir, "package.json")
     jsonFile = io.open(path, "tw", encoding='utf-8', newline='\n')
@@ -326,8 +351,15 @@ def createManifest(en_book_dir, target_book_dir):
     jsonFile.close()
     removeBOM(path)     # because tStudio/BTTW chokes on BOM
 
+# Creates or overwrites chapter title file.
+def createChapterTitleFile(title):
+    state = State()
+    path = os.path.join(state.target_chapter_dir, "title.usx")
+    with io.open(path, "tw", encoding="utf-8", newline='\n') as usxOutput:
+        usxOutput.write( title )
+
 # Adds front folder with title.usx, if the book title is known.
-def createTitleFile():
+def createBookTitleFile():
     state = State()
     frontFolder = os.path.join(state.target_content_dir, 'front')
     if not os.path.isdir(frontFolder):
@@ -346,16 +378,17 @@ def createToc(en_content_dir, content_dir):
 
 # Converts a single usfm file to a usx resource container.
 def convertFile(usfmpath, bookId):
-    en_book_dir = os.path.join(en_rc_dir, "en_" + bookId.lower() + "_ulb")
-    target_book_dir = os.path.join(target_dir, language_code + "_" + bookId.lower() + "_" + bible_id)
+    rc_dir = config['rc_dir']
+    en_book_dir = os.path.join(rc_dir, "en_" + bookId.lower() + "_ulb")
+    target_book_dir = os.path.join(rc_dir, config['language_code'] + "_" + bookId.lower() + "_" + config['bible_id'])
     if not os.path.isdir(en_book_dir):
         reportError("English book folder not found: " + en_book_dir)
     else:
         makeTargetDirs(target_book_dir)
         en_content_dir = os.path.join(en_book_dir, "content")
 
-        sys.stdout.write("CONVERTING " + usfmpath + "\n")
-        sys.stdout.flush()
+        reportProgress("CONVERTING " + usfmpath)
+        # sys.stdout.flush()
         input = io.open(usfmpath, "tr", encoding="utf-8-sig")
         str = input.read()
         input.close()
@@ -367,7 +400,7 @@ def convertFile(usfmpath, bookId):
         createManifest(en_book_dir, target_book_dir)
         copy(os.path.join(en_content_dir, 'config.yml'), state.target_content_dir)    # copy() is from shutil
         createToc(en_content_dir, state.target_content_dir)
-        createTitleFile()
+        createBookTitleFile()
 
 # Parses entire usfm file and writes to .usx files by chunk.
 def processFile(usfmpath):
@@ -386,29 +419,43 @@ def convertDir(dir):
         elif entry.endswith("sfm") and os.path.isfile(path):
             processFile(path)
 
-# Creates the target_dir folder if necessary.
+# Creates the specified folder if necessary.
+# Fails if the parent folder does not exist.
 # Returns False if not possible.
-def ensure_target_dir():
-    global target_dir
-    if not os.path.isdir(target_dir):
-        dir = os.path.dirname(target_dir)
-        if os.path.isdir(dir):
-            os.mkdir(target_dir)
-    return os.path.isdir(target_dir)
+def make_dir(folder):
+    if not os.path.isdir(folder):
+        parent = os.path.dirname(folder)
+        if os.path.isdir(parent):
+            os.mkdir(folder)
+    return os.path.isdir(folder)
+ 
+def main(app = None):
+    global gui
+    global config
+    gui = app
+    config = configmanager.ToolsConfigManager().get_section('Usfm2Usx')   # configmanager version
+    if config:
+        source_dir = config['source_dir']
+        rc_dir = config['rc_dir']
+    if not make_dir(rc_dir):
+        reportError("Invalid resource_containers folder: " + rc_dir)
+    elif not os.path.isdir(source_dir):
+        reportError("Invalid source folder: " + source_dir)
+    else:
+        file = config['filename']
+        if file:
+            path = os.path.join(source_dir, file)
+            if os.path.isfile(path):
+                processFile(path)
+                reportStatus("\nDone.")
+            else:
+                reportError(f"No such file: {path}")
+        else:
+            convertDir(source_dir)
+            reportStatus("\nDone.")
+    sys.stdout.flush()
+    if gui:
+        gui.event_generate('<<ScriptEnd>>', when="tail")
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
-        source_dir = sys.argv[1]
-    if not ensure_target_dir():
-        reportError("Invalid target_dir: " + target_dir)
-    elif source_dir and os.path.isdir(source_dir):
-        convertDir(source_dir)
-        sys.stdout.write("Done.\n")
-    elif os.path.isfile(source_dir):
-        path = source_dir
-        source_dir = os.path.dirname(path)
-        processFile(path)
-        sys.stdout.write("Done.\n")
-    else:
-        reportError("Invalid folder: " + source_dir)
-        reportError("Usage: python usfm2usx.py <folder>\n  Use . for current folder.")
+    main()
