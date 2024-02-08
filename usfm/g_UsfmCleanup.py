@@ -5,33 +5,23 @@
 from tkinter import *
 from tkinter import ttk
 from tkinter import font
+from tkinter import filedialog
 from idlelib.tooltip import Hovertip
 import g_util
+import g_step
 import os
 import time
 
 stepname = 'UsfmCleanup'   # equals the main class name in this module
 
-class UsfmCleanup:
+class UsfmCleanup(g_step.Step):
     def __init__(self, mainframe, mainapp):
-        self.main_frame = mainframe
-        self.mainapp = mainapp
-        self.frame = UsfmCleanup_Frame(self.main_frame, self)
+        super().__init__(mainframe, mainapp, stepname, "USFM Cleanup")
+        self.frame = UsfmCleanup_Frame(mainframe, self)
         self.frame.grid(row=1, column=0, sticky="nsew")
 
-    def title(self):
-        return "Step 3: USFM Cleanup"
-
-    def show(self, values):
-        self.values = values
-        self.frame.show_values(values)
-        self.frame.tkraise()
-
-    def onBack(self):
-        self.mainapp.activate_step('VerifyUSFM')
     def onNext(self):
-        copyparms = {'source_dir': self.values['source_dir']}
-        self.mainapp.activate_step("MarkParagraphs", copyparms)
+        super().onNext('source_dir', 'filename')
     
     def onExecute(self, values):
         self.values = values    # redundant, they were the same dict to begin with
@@ -50,16 +40,6 @@ class UsfmCleanup:
         self.mainapp.execute_script("revertChanges", 1)
         self.frame.clear_status()
 
-    # Called by the mainapp.
-    # Displays the specified string in the message area.
-    def onScriptProgress(self, progress: str):
-        self.frame.show_progress(progress)
-
-    # Called by the mainapp.
-    def onScriptEnd(self, status: str):
-        self.frame.show_progress(status)
-        self.frame.onScriptEnd()
-
 class UsfmCleanup_Frame(ttk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
@@ -76,14 +56,19 @@ class UsfmCleanup_Frame(ttk.Frame):
 
         source_dir_label = ttk.Label(self, text="Location of .usfm files:", width=20)
         source_dir_label.grid(row=4, column=1, sticky=W, pady=2)
-        self.source_dir_entry = ttk.Entry(self, width=40, textvariable=self.source_dir)
+        self.source_dir_entry = ttk.Entry(self, width=43, textvariable=self.source_dir)
         self.source_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
+        src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
+        src_dir_find.grid(row=4, column=4, sticky=W)
+
         file_label = ttk.Label(self, text="File name:", width=20)
         file_label.grid(row=5, column=1, sticky=W, pady=2)
-        self.file_entry = ttk.Entry(self, width=20, textvariable=self.filename)
-        self.file_entry.grid(row=5, column=2, columnspan=3, sticky=W)
+        self.file_entry = ttk.Entry(self, width=21, textvariable=self.filename)
+        self.file_entry.grid(row=5, column=2, sticky=W)
         file_Tip = Hovertip(self.file_entry, hover_delay=500,
              text="Leave filename blank to clean all .usfm files in the folder.")
+        file_find = ttk.Button(self, text="...", width=2, command=self._onFindFile)
+        file_find.grid(row=5, column=3, sticky=W)
         
         subheadingFont = font.Font(size=10, slant='italic')     # normal size is 9
         enable_label = ttk.Label(self, text="Enable these fixes?", font=subheadingFont)
@@ -152,9 +137,6 @@ class UsfmCleanup_Frame(ttk.Frame):
         next_button.grid(row=99, column=4, sticky=(N,S,E))  #, padx=0, pady=5)
         next_button_Tip = Hovertip(next_button, hover_delay=500, text="Mark paragraphs")
 
-        # for child in parent.winfo_children():
-            # child.grid_configure(padx=25, pady=5)
-
     def show_values(self, values):
         self.values = values
         self.source_dir.set(values.get('source_dir', fallback=""))
@@ -198,9 +180,13 @@ class UsfmCleanup_Frame(ttk.Frame):
         self.controller.mainapp.save_values(stepname, self.values)
         self._set_button_status()
 
-    def _onExecute(self, *args):
-        self._save_values()
-        self.controller.onExecute(self.values)
+    def _onFindSrcDir(self, *args):
+        self.controller.askdir(self.source_dir)
+    def _onFindFile(self, *args):
+        path = filedialog.askopenfilename(initialdir=self.source_dir.get(), title = "Select usfm file",
+                                           filetypes=[('Usfm file', '*.usfm')])
+        if path:
+            self.filename.set(os.path.basename(path))
     def _onChangeEntry(self, *args):
         self._set_button_status()
     def _onBack(self, *args):
@@ -213,6 +199,9 @@ class UsfmCleanup_Frame(ttk.Frame):
         self._save_values()
         self.controller.onNext()
 
+    def _onExecute(self, *args):
+        self._save_values()
+        self.controller.onExecute(self.values)
     def _onOpenIssues(self, *args):
         self._save_values()
         path = os.path.join(self.values['source_dir'], "issues.txt")

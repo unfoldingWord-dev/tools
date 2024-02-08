@@ -6,26 +6,22 @@
 from tkinter import *
 from tkinter import ttk
 from tkinter import font
+from tkinter import filedialog
 from idlelib.tooltip import Hovertip
 import os
 import g_util
+import g_step
 
 stepname = 'Txt2USFM'   # equals the main class name in this module
 
-class Txt2USFM:
+class Txt2USFM(g_step.Step):
     def __init__(self, mainframe, mainapp):
-        self.main_frame = mainframe
-        self.mainapp = mainapp
+        super().__init__(mainframe, mainapp, stepname, "Convert text files to USFM")
+        # self.main_frame = mainframe
+        # self.mainapp = mainapp
+        # self.stepname = 'Txt2USFM'
         self.frame = Text2USFM_Frame(mainframe, self)
         self.frame.grid(row=1, column=0, sticky="nsew")
-
-    def show(self, values):
-        self.values = values
-        self.frame.show_values(values)
-        self.frame.tkraise()
-
-    def title(self):
-        return "Step 1: Convert text files to USFM"
 
     def onExecute(self, values):
         self.values = values
@@ -34,14 +30,9 @@ class Txt2USFM:
         self.frame.clear_status()
     def onNext(self):
         copyparms = {'language_code': self.values['language_code'], 'source_dir': self.values['target_dir']}
-        self.mainapp.activate_step("VerifyUSFM", copyparms)
+        self.mainapp.step_next(copyparms)
     def onSkip(self):
-        self.mainapp.activate_step("VerifyUSFM")
-
-    # Called by the main app.
-    # Displays the specified string in the message area.
-    def onScriptMessage(self, progress):
-        self.frame.show_progress(progress)
+        self.mainapp.step_next()
 
     # Called by the main app.
     def onScriptEnd(self, status: str):
@@ -70,12 +61,18 @@ class Text2USFM_Frame(ttk.Frame):
         self.language_code_entry.grid(row=3, column=2, sticky=W)
         self.source_dir_label = ttk.Label(self, text="Location of text files:", width=20)
         self.source_dir_label.grid(row=4, column=1, sticky=(W,E), pady=2)
-        self.source_dir_entry = ttk.Entry(self, width=40, textvariable=self.source_dir)
+        self.source_dir_entry = ttk.Entry(self, width=42, textvariable=self.source_dir)
         self.source_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
-        self.target_dir_label = ttk.Label(self, text="Location for .usfm files:", width=20)
-        self.target_dir_label.grid(row=5, column=1, sticky=(W,E), pady=2)
-        self.target_dir_entry = ttk.Entry(self, width=40, textvariable=self.target_dir)
-        self.target_dir_entry.grid(row=5, column=2, columnspan=3, sticky=W)
+        src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
+        src_dir_find.grid(row=4, column=4, sticky=W)
+        target_dir_label = ttk.Label(self, text="Location for .usfm files:", width=21)
+        target_dir_label.grid(row=5, column=1, sticky=(W,E), pady=2)
+        target_dir_entry = ttk.Entry(self, width=42, textvariable=self.target_dir)
+        target_dir_entry.grid(row=5, column=2, columnspan=3, sticky=W)
+        target_dir_find = ttk.Label(self, text="(may be new)")
+        target_dir_find.grid(row=5, column=4, sticky=W)
+        target_dir_Tip = Hovertip(target_dir_entry, hover_delay=1000,
+                text="Folder for the new usfm files. The folder will be created if it doesn't exist.")
 
         self.message_area = Text(self, height=10, width=30, wrap="none")
         self.message_area['borderwidth'] = 2
@@ -85,6 +82,9 @@ class Text2USFM_Frame(ttk.Frame):
         ys = ttk.Scrollbar(self, orient = 'vertical', command = self.message_area.yview)
         ys.grid(column = 5, row = 88, sticky = 'ns')
         self.message_area['yscrollcommand'] = ys.set
+
+        prev_button = ttk.Button(self, text="Previous step", command=self._onBack)
+        prev_button.grid(row=99, column=1, sticky=(W,N,S))  #, pady=5)
 
         self.execute_button = ttk.Button(self, text="CONVERT",
                                           command=self._onExecute, padding=5)
@@ -135,16 +135,16 @@ class Text2USFM_Frame(ttk.Frame):
         self.controller.mainapp.save_values(stepname, self.values)
         self._set_button_status()
 
-    def _onExecute(self, *args):
-        self._save_values()
-        self.controller.onExecute(self.values)
-        self.next_button['text'] = "Next step"
-        self.next_button['command'] = self._onNext
+    def _onFindSrcDir(self, *args):
+        self.controller.askdir(self.source_dir)
     def _onChangeEntry(self, *args):
         self._set_button_status()
     def _onOpenTargetDir(self, *args):
         self._save_values()
         os.startfile(self.values['target_dir'])
+    def _onBack(self, *args):
+        self._save_values()
+        self.controller.onBack()
     def _onSkip(self, *args):
         self._save_values()
         self.controller.onSkip()
@@ -155,3 +155,9 @@ class Text2USFM_Frame(ttk.Frame):
         good_sourcedir = os.path.isdir(self.source_dir.get())
         self.execute_button['state'] = NORMAL if self.language_code.get() and good_sourcedir and self.target_dir.get() else DISABLED
         self.opentarget_button['state'] = NORMAL if os.path.isdir(self.target_dir.get()) else DISABLED
+
+    def _onExecute(self, *args):
+        self._save_values()
+        self.controller.onExecute(self.values)
+        self.next_button['text'] = "Next step"
+        self.next_button['command'] = self._onNext

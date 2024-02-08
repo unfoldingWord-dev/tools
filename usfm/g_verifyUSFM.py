@@ -5,33 +5,23 @@
 from tkinter import *
 from tkinter import ttk
 from tkinter import font
+from tkinter import filedialog
 from idlelib.tooltip import Hovertip
 import g_util
+import g_step
 import os
 import time
 
 stepname = 'VerifyUSFM'   # equals the main class name in this module
 
-class VerifyUSFM:
+class VerifyUSFM(g_step.Step):
     def __init__(self, mainframe, mainapp):
-        self.main_frame = mainframe
-        self.mainapp = mainapp
-        self.frame = VerifyUSFM_Frame(self.main_frame, self)
+        super().__init__(mainframe, mainapp, stepname, "Verify USFM")
+        self.frame = VerifyUSFM_Frame(mainframe, self)
         self.frame.grid(row=1, column=0, sticky="nsew")
 
-    def title(self):
-        return "Step 2: Verify USFM"
-
-    def show(self, values):
-        self.values = values
-        self.frame.show_values(values)
-        self.frame.tkraise()
-
-    def onBack(self):
-        self.mainapp.activate_step('Txt2USFM')
     def onNext(self):
-        copyparms = {'source_dir': self.values['source_dir']}
-        self.mainapp.activate_step("UsfmCleanup", copyparms)
+        super().onNext('source_dir', 'filename')
 
     def onExecute(self, values):
         self.values = values    # redundant, they were the same dict to begin with
@@ -40,16 +30,6 @@ class VerifyUSFM:
             count = g_util.count_files(values['source_dir'], ".*sfm$")
         self.mainapp.execute_script("verifyUSFM", count)
         self.frame.clear_status()
-
-    # Called by the main app.
-    # Displays the specified string in the message area.
-    def onScriptMessage(self, progress: str):
-        self.frame.show_progress(progress)
-
-    # Called by the main app.
-    def onScriptEnd(self, status: str):
-        self.frame.show_progress(status)
-        self.frame.onScriptEnd()
 
 class VerifyUSFM_Frame(ttk.Frame):
     def __init__(self, parent, controller):
@@ -70,14 +50,19 @@ class VerifyUSFM_Frame(ttk.Frame):
         language_code_entry.grid(row=3, column=2, sticky=W)
         source_dir_label = ttk.Label(self, text="Location of .usfm files:", width=20)
         source_dir_label.grid(row=4, column=1, sticky=W, pady=2)
-        source_dir_entry = ttk.Entry(self, width=40, textvariable=self.source_dir)
+        source_dir_entry = ttk.Entry(self, width=43, textvariable=self.source_dir)
         source_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
+        src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
+        src_dir_find.grid(row=4, column=4, sticky=W, padx=0)
         file_label = ttk.Label(self, text="File name:", width=20)
         file_label.grid(row=5, column=1, sticky=W, pady=2)
         file_entry = ttk.Entry(self, width=20, textvariable=self.filename)
         file_entry.grid(row=5, column=2, columnspan=3, sticky=W)
         file_Tip = Hovertip(file_entry, hover_delay=500,
              text="Leave filename blank to verify all .usfm files in the folder.")
+        file_find = ttk.Button(self, text="...", width=2, command=self._onFindFile)
+        file_find.grid(row=5, column=3, sticky=W, padx=5)
+
         std_titles_label = ttk.Label(self, text="Standard chapter title:", width=20)
         std_titles_label.grid(row=6, column=1, sticky=W, pady=2)
         std_titles_entry = ttk.Entry(self, width=20, textvariable=self.std_titles)
@@ -222,6 +207,14 @@ class VerifyUSFM_Frame(ttk.Frame):
             self.values[configvalue] = str(self.suppress[si].get())
         self.controller.mainapp.save_values(stepname, self.values)
         self._set_button_status()
+
+    def _onFindSrcDir(self, *args):
+        self.controller.askdir(self.source_dir)
+    def _onFindFile(self, *args):
+        path = filedialog.askopenfilename(initialdir=self.source_dir.get(), title = "Select usfm file",
+                                           filetypes=[('Usfm file', '*.usfm')])
+        if path:
+            self.filename.set(os.path.basename(path))
 
     def _onExecute(self, *args):
         self._save_values()
