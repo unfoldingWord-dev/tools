@@ -28,7 +28,7 @@ class ToolsConfigManager:
 
     def _make_default_config(self):
         for section in ['MarkParagraphs','Plaintext2Usfm','RenameParatextFiles','RevertChanges',
-                        'Txt2USFM','UsfmCleanup','Usfm2RC','VerifyManifest','VerifyUSFM']:
+                        'Txt2USFM','Usfm2Usx','UsfmCleanup','VerifyManifest','VerifyUSFM']:
             self.config.add_section(section)
             self.config[section] = self.default_section(section)
         with io.open(self.configpath, "tw", encoding='utf-8', newline='\n') as file:
@@ -43,8 +43,7 @@ class ToolsConfigManager:
         return self.configpath
 
     def get_section(self, sectionname):
-        section = self.config[sectionname]
-        if len(section) == 0:
+        if sectionname not in self.config or len(self.config[sectionname]) == 0:
             values = self.default_section(sectionname)
             self.write_section(sectionname, values)
         return self.config[sectionname]     # returning local variable values is wrong
@@ -70,6 +69,13 @@ class ToolsConfigManager:
                 sec = {'source_dir': "",
                     'backupExt': "",
                     'correctExt': ".usfm" }
+            case 'SelectProcess':
+                sec = {'selection': 'Txt2USFM'}
+            case 'Txt2USFM':
+                sec = {'source_dir': "",
+                       'target_dir': "",
+                       'mark_chunks': False,
+                       'language_code': "" }
             case 'UsfmCleanup':
                 sec = {'source_dir': "",
                     'filename': "",
@@ -80,15 +86,19 @@ class ToolsConfigManager:
                     'enable4': False,
                     'enable5': False,
                     'enable6': True }
-            case 'Usfm2RC':
-                sec = {}
+            case 'Usfm2Usx':
+                sec = {'source_dir': "",
+                       'rc_dir': "",
+                       'language_name': "",
+                       'language_code': "",
+                       'bible_name': "",
+                       'bible_id': "",
+                       'direction': "ltr",
+                       'pub_date': "",
+                       'license': "",
+                       'version': "" }
             case 'VerifyManifest':
                 sec = {'source_dir': "" }
-            case 'Txt2USFM':
-                sec = {'source_dir': "",
-                       'target_dir': "",
-                       'mark_chunks': False,
-                       'language_code': "" }
             case 'VerifyUSFM':
                 sec = {'source_dir': "",
                        'filename': "",
