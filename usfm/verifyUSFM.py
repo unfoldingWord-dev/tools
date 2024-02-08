@@ -331,7 +331,7 @@ def openIssuesFile():
             if not os.path.exists(bakpath):
                 os.rename(path, bakpath)
         issuesFile = io.open(path, "tw", encoding='utf-8', newline='\n')
-        issuesFile.write(f"Issues generated {date.today()} from {source_dir}\n------------\n")
+        issuesFile.write(f"Issues detected by verifyUSFM, {date.today()}, {source_dir}\n-------------------\n")
     return issuesFile
 
 # Returns the longest common substring at the start of s1 and s2
@@ -348,10 +348,7 @@ def long_substring(s1, s2):
 def reportError(msg, errorId=0, summarize_only=False):
     if not summarize_only:
         reportStatus(msg)     # message to gui
-        try:
-            sys.stderr.write(msg + "\n")
-        except UnicodeEncodeError as e:
-            sys.stderr.write(state.reference + ": (Unicode...)\n")
+        write(msg, sys.stderr)
         issuesfile = openIssuesFile()
         issuesfile.write(msg + "\n")
 
@@ -371,7 +368,7 @@ def reportProgress(msg):
         with gui.progress_lock:
             gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
         gui.event_generate('<<ScriptProgress>>', when="tail")
-    print(msg)
+    write(msg, sys.stdout)
 
 # Sends a status message to the GUI, and to stdout.
 def reportStatus(msg):
@@ -379,7 +376,15 @@ def reportStatus(msg):
         with gui.progress_lock:
             gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
         gui.event_generate('<<ScriptMessage>>', when="tail")
-    print(msg)
+    write(msg, sys.stdout)
+
+# This little function streams the specified message and handles UnicodeEncodeError
+# exceptions, which are common in Indian language texts. 2/5/24.
+def write(msg, stream):
+    try:
+        stream.write(msg + "\n")
+    except UnicodeEncodeError as e:
+        stream.write(state.reference + ": (Unicode...)\n")
 
 # Write summary of issues to issuesFile
 def reportIssues():
@@ -527,7 +532,7 @@ def reportParagraphMarkerErrors(type):
 
 def takeP(type):
     reportParagraphMarkerErrors(type)
-    if not aligned_usfm and not suppress[11] and not state.sentenceEnded():
+    if not aligned_usfm and not suppress[3] and not state.sentenceEnded():
         if state.verse > 0:
             reportError(f"Punctuation missing at end of paragraph: {state.reference}", 26, suppress[11])
         else:
@@ -1089,6 +1094,7 @@ def main(app=None):
         else:
             reportStatus("No issues to report.")
         reportStatus("Done.")
+        sys.stdout.flush()
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
 
