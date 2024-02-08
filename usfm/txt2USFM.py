@@ -28,17 +28,26 @@ numberstart_re = re.compile(r'([\d]{1,3})[ \n]', re.UNICODE)
 chapMarker_re = re.compile(r'\\c *[\d]{1,3}', re.UNICODE)
 
 def reportError(msg):
-    if gui:
-        reportProgress(msg)
+    reportToGui(msg, '<<ScriptMessage>>')
     sys.stderr.write(msg + '\n')
     sys.stderr.flush()
 
 # Sends a progress report to the GUI.
 # To be called only if the gui is set.
+def reportStatus(msg):
+    reportToGui(msg, '<<ScriptMessage>>')
+    print(msg)
+
 def reportProgress(msg):
-    with gui.progress_lock:
-        gui.progress = msg
-    gui.event_generate('<<ScriptProgress>>', when="tail")
+    reportToGui(msg, '<<ScriptProgress>>')
+    print(msg)
+
+def reportToGui(msg, event):
+    if gui:
+        with gui.progress_lock:
+            gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
+        gui.event_generate(event, when="tail")
+
 
 # Calls ensureMarkers() to put in missing chapter and verse markers.
 # Inserts chapter title where appropriate.
@@ -598,9 +607,7 @@ def getChapterTitle(chapterpath):
 # This method is called to convert the chapters in the current folder to USFM
 def convertBook(folder, bookId, bookTitle):
     msg = f"CONVERTING {shortname(folder)}"
-    if gui:
-        reportProgress(msg)
-    print(msg)
+    reportProgress(msg)
     sys.stdout.flush()
 
     target_dir = config['target_dir']
@@ -650,10 +657,8 @@ def main(app = None):
 
         Path(target_dir).mkdir(exist_ok=True)
         convert(source_dir, target_dir)
-        print("\nDone.")
+    reportStatus("\nDone.")
     if gui:
-        with gui.progress_lock:
-            gui.progress = "\nDone."
         gui.event_generate('<<ScriptEnd>>', when="tail")
 
 if __name__ == "__main__":
