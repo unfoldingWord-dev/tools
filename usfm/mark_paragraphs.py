@@ -346,6 +346,7 @@ def openIssuesFile():
         if os.path.isdir(config['source_dir']):
             path = os.path.join(config['source_dir'], "issues.txt")
             issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
+            issuesFile.write("Issues detected by MarkParagraphs:\n------------------------------------\n")
     return issuesFile
 
 #def openReportFile():
