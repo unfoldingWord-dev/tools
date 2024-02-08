@@ -80,13 +80,10 @@ def expectAscii(language_id):
 
 # Writes error message to stderr.
 def reportError(msg):
-    reportStatus(msg)     # message to gui
+    reportToGui(msg)
+    stream(msg, "Error", sys.stderr)
+    sys.stderr.flush()
     global nIssues
-    try:
-        sys.stderr.write(msg + '\n')
-    except UnicodeEncodeError as e:
-        sys.stderr.write("Error message not shown, contains Unicode.\n")
-        #    issues = openIssuesFile().write(msg + '\n')
     nIssues += 1
 
 # Writes warnings message to stderr.
@@ -94,13 +91,23 @@ def reportWarning(msg):
     reportError("Possible error (please check): " + msg)
 
 def reportStatus(msg):
-    global gui
+    reportToGui(msg)
+    stream(msg, "Status", sys.stdout)
+
+def reportToGui(msg):
     if gui:
         with gui.progress_lock:
             gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
         gui.event_generate('<<ScriptMessage>>', when="tail")
-    print(msg)
 
+# This little function streams the specified message and handles UnicodeEncodeError
+# exceptions, which are common in Indian language texts. 2/5/24.
+def stream(msg, msgtype, stream):
+    try:
+        stream.write(msg + "\n")
+    except UnicodeEncodeError as e:
+        stream.write(f"{msgtype} message not shown, contains Unicode.\n")
+    
 # Returns the number of .usfm files in the manifest directory.
 def countBookDirs():
     n = 0
@@ -294,21 +301,21 @@ def verifyDir(dirpath):
     if os.path.isfile(path):
         verifyFile(path)
         verifyOtherFiles()
+        verifyCleanDir(dirpath)
+        if projtype == 'ta':
+            for folder in ['checking', 'intro', 'process', 'translate']:
+                path = os.path.join(dirpath, folder)
+                verifyYamls(path)
+                verifyTitleFiles(path)
+        if projtype.startswith('obs'):
+            verifyMediaYaml(dirpath)
+        if projtype == 'tw':
+            verifyTWfiles(dirpath)
+        if projtype in {'tn','tq'}:
+            verifyBooks(dirpath)
+        verifyReadme(dirpath)
     else:
-        reportError("No manifest.yaml file in: " + dirpath)
-    verifyCleanDir(dirpath)
-    if projtype == 'ta':
-        for folder in ['checking', 'intro', 'process', 'translate']:
-            path = os.path.join(dirpath, folder)
-            verifyYamls(path)
-            verifyTitleFiles(path)
-    if projtype.startswith('obs'):
-        verifyMediaYaml(dirpath)
-    if projtype == 'tw':
-        verifyTWfiles(dirpath)
-    if projtype in {'tn','tq'}:
-        verifyBooks(dirpath)
-    verifyReadme(dirpath)
+        reportError(f"There is no manifest.yaml file in: {dirpath}.\nCancelled further checking.")
 
 # Manifest file verification
 def verifyFile(path):
@@ -814,6 +821,7 @@ def main(app = None):
     global gui
     gui = app
     verifyManifest()
+    sys.stdout.flush()
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
 
