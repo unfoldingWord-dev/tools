@@ -20,6 +20,7 @@ import doublequotes
 import parseUsfm
 import sentences
 import usfmFile
+from datetime import date
 
 gui = None
 config = None
@@ -67,10 +68,11 @@ def reportStatus(msg):
 def openIssuesFile():
     global issuesFile
     if not issuesFile:
-        global config
-        if os.path.isdir(config['source_dir']):
-            path = os.path.join(config['source_dir'], "issues.txt")
+        source_dir = config['source_dir']
+        if os.path.isdir(source_dir):
+            path = os.path.join(source_dir, "issues.txt")
             issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
+            issuesFile.write(f"Issues detected by usfmCleanup, {date.today()}, {source_dir}\n-------------------\n")
     return issuesFile
 
 #  Move paragraph marker before section marker to follow the section marker
