@@ -311,11 +311,11 @@ def bookTitleEnglish(id):
     return usfm_verses.verseCounts[id]['en_name']
 
 def shortname(longpath):
-    source_dir = config['source_dir']
-    shortname = str(longpath)
-    if shortname.startswith(source_dir):
-        shortname = os.path.relpath(shortname, source_dir)
-    return shortname
+    source_dir = Path(config['source_dir'])
+    shortname = Path(longpath)
+    if shortname.is_relative_to(source_dir):
+        shortname = shortname.relative_to(source_dir)
+    return str(shortname)
 
 # If issues.txt file is not already open, opens it for writing.
 # First renames existing issues.txt file to issues-oldest.txt unless
@@ -975,8 +975,13 @@ def verifyWholeFile(contents, path):
         nembedded = len(embeddedquotes_re.findall(contents))
         nsingle = contents.count("'") - nembedded
         ndouble = contents.count('"')
-        if (nsingle > 0 and not suppress[7]) or ndouble > 0:
-            reportError(f"Straight quotes found in {shortname(path)}: {ndouble} doubles, {nsingle} singles not counting {nembedded} word-medial.", 75)
+        if ndouble > 0:
+            if nsingle == 0 or suppress[7]:
+                reportError(f"Straight quotes in {shortname(path)}: {ndouble} doubles.", 75)
+            else:
+                reportError(f"Straight quotes in {shortname(path)}: {ndouble} doubles, {nsingle} singles not counting {nembedded} word-medial.", 75)
+        elif nsingle > 0 and not suppress[7]:
+            reportError(f"Straight quotes in {shortname(path)}: {nsingle} singles not counting {nembedded} word-medial.", 75)
 
 
 conflict_re = re.compile(r'<+ HEAD', re.UNICODE)   # conflict resolution tag
@@ -1013,13 +1018,13 @@ def verifyFile(path):
     if aligned_usfm:
         contents = usfm_utils.unalign_usfm(contents)
 
-    reportProgress(f"CHECKING {shortname(path)}")
-    sys.stdout.flush()
     if len(contents) < 100:
         reportError("Incomplete file: " + shortname(path), 80)
     else:
-        verifyWholeFile(contents, shortname(path))
-        tokens = parseUsfm.parseString(contents)
+        reportProgress(f"CHECKING {shortname(path)}...")
+        sys.stdout.flush()
+        tokens = parseUsfm.parseString(contents)    # Slow!
+        verifyWholeFile(contents, shortname(path))  # placed after parseUsfm so that its error messages come after the long parsing time pause
         for token in tokens:
             take(token)
         if (usfm_version == 2 or aligned_usfm) and not state.toc3:
