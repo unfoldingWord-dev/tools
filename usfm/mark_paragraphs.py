@@ -2,7 +2,7 @@
 # This script converts one or more valid .usfm files by adding paragraph marks.
 # The model used for marking paragraphs are the USFM files in model_dir.
 # Inserts paragraph marker after each chapter marker if needed, before verse 1.
-# Does not insert paragraph marks in the middle of sentences, unless the sentence_sensitivity config setting is False.
+# Does not insert paragraph marks in the middle of sentences, unless the sentence_sensitive config setting is False.
 # Marks unmarked text as section headings where present in model.
 # The input file(s) should be verified, correct USFM, except for unmarked text which may become section headings.
 
@@ -181,7 +181,7 @@ vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 def takeV(v):
     global nCopied
     state.addVerse(v)
-    if not state.pAlready(current=True) and (not state.isMidSentence() or not config.getboolean('sentence_sensitivity', fallback=True)):
+    if not state.pAlready(current=True) and (not state.isMidSentence() or not config.getboolean('sentence_sensitive', fallback=True)):
         if pmark := state.pmarkInModel():
             state.usfm.writeUsfm(pmark)
             nCopied += 1
@@ -190,7 +190,7 @@ def takeV(v):
 def takeText(t):
     global nCopied
     smark = None
-    if not state.expectingText() and (not state.isMidSentence() or not config.getboolean('sentence_sensitivity', fallback=True)):
+    if not state.expectingText() and (not state.isMidSentence() or not config.getboolean('sentence_sensitive', fallback=True)):
         smark = state.smarkInModel()
     if smark:
         state.usfm.writeUsfm(smark, t)
@@ -534,7 +534,8 @@ def main(app = None):
 
     closeIssuesFiles()
     reportStatus(f"\nDone. Introduced {nCopied} paragraphs / sections")
-    gui.event_generate('<<ScriptEnd>>', when="tail")
+    if gui:
+        gui.event_generate('<<ScriptEnd>>', when="tail")
 
 if __name__ == "__main__":
     main()
