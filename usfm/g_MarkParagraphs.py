@@ -50,7 +50,7 @@ class MarkParagraphs(g_step.Step):
             if time.time() - os.path.getmtime(issuespath) < 10:     # issues.txt is recent
                 nIssues = 1
             else:
-                msg = "Done. No issues reported. This is a good time to reverify the USFM files. (Previous Previous Step)"
+                msg = "No issues reported. This is a good time to reverify the USFM files."
                 self.frame.show_progress(msg)
         self.frame.onScriptEnd(nIssues)
 
@@ -64,6 +64,7 @@ class MarkParagraphs_Frame(ttk.Frame):
         self.filename = StringVar()
         self.copy_nb = BooleanVar(value = False)
         self.remove_s5 = BooleanVar(value = True)
+        self.sentence_sensitive = BooleanVar(value = True)
         for var in (self.model_dir, self.source_dir, self.filename):
             var.trace_add("write", self._onChangeEntry)
         self.columnconfigure(2, weight=1)   # keep column 1 from expanding
@@ -71,19 +72,19 @@ class MarkParagraphs_Frame(ttk.Frame):
 
         model_dir_label = ttk.Label(self, text="Location of model files:", width=21)
         model_dir_label.grid(row=3, column=1, sticky=(W,E), pady=2)
-        self.model_dir_entry = ttk.Entry(self, width=42, textvariable=self.model_dir)
+        self.model_dir_entry = ttk.Entry(self, width=43, textvariable=self.model_dir)
         self.model_dir_entry.grid(row=3, column=2, columnspan=3, sticky=W)
         model_dir__Tip = Hovertip(self.model_dir_entry, hover_delay=500,
              text="Folder containing USFM files with well marked paragraphs, e.g. English UDB folder")
         model_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindModelDir)
-        model_dir_find.grid(row=3, column=4, sticky=E, padx=0)
+        model_dir_find.grid(row=3, column=4)
 
         source_dir_label = ttk.Label(self, text="Location of files\n to be marked:", width=15)
         source_dir_label.grid(row=4, column=1, sticky=W, pady=2)
-        self.source_dir_entry = ttk.Entry(self, width=42, textvariable=self.source_dir)
+        self.source_dir_entry = ttk.Entry(self, width=43, textvariable=self.source_dir)
         self.source_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
         src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
-        src_dir_find.grid(row=4, column=4, sticky=E)
+        src_dir_find.grid(row=4, column=4)
 
         file_label = ttk.Label(self, text="File name:", width=20)
         file_label.grid(row=5, column=1, sticky=W, pady=2)
@@ -94,16 +95,26 @@ class MarkParagraphs_Frame(ttk.Frame):
         file_find = ttk.Button(self, text="...", width=2, command=self._onFindFile)
         file_find.grid(row=5, column=3, sticky=W, padx=5)
 
-        copy_nb_checkbox = ttk.Checkbutton(self, text=r'Copy \m, \nb and \b markers', variable=self.copy_nb,
+        subheadingFont = font.Font(size=10, slant='italic')     # normal size is 9
+        enable_label = ttk.Label(self, text="Options:", font=subheadingFont)
+        enable_label.grid(row=6, column=1, sticky=W, pady=(4,2))
+
+        copy_nb_checkbox = ttk.Checkbutton(self, text=r'Copy \m, nb and b', variable=self.copy_nb,
                                              onvalue=True, offvalue=False)
-        copy_nb_checkbox.grid(row=6, column=1, columnspan=2, sticky=W)
+        copy_nb_checkbox.grid(row=7, column=1, sticky=W)
         copy_nb_Tip = Hovertip(copy_nb_checkbox, hover_delay=500,
              text=r"Copy \m, \nb and \b markers from model text? (Not usually recommended)")
-        remove_s5_checkbox = ttk.Checkbutton(self, text='Eliminate \s5 markers', variable=self.remove_s5,
+        remove_s5_checkbox = ttk.Checkbutton(self, text='Eliminate \s5', variable=self.remove_s5,
                                              onvalue=True, offvalue=False)
-        remove_s5_checkbox.grid(row=7, column=1, columnspan=2, sticky=W)
+        remove_s5_checkbox.grid(row=7, column=2, sticky=W)
         remove_s5_Tip = Hovertip(remove_s5_checkbox, hover_delay=500,
-             text="Recommended except for GL source texts")
+             text="Always recommended except for GL source texts")
+
+        sentence_sensitive_checkbox = ttk.Checkbutton(self, text='Sentence sensitive',
+                                                      variable=self.sentence_sensitive, onvalue=True, offvalue=False)
+        sentence_sensitive_checkbox.grid(row=7, column=3, sticky=W)
+        sentence_sensitive_Tip = Hovertip(sentence_sensitive_checkbox, hover_delay=500,
+             text="Only insert \p marks *between punctuated sentences. (Recommended)")
 
         self.message_area = Text(self, height=10, width=30, wrap="word")
         self.message_area['borderwidth'] = 2
@@ -114,8 +125,9 @@ class MarkParagraphs_Frame(ttk.Frame):
         ys.grid(column = 6, row = 88, sticky = 'ns')
         self.message_area['yscrollcommand'] = ys.set
 
-        prev_button = ttk.Button(self, text="Previous step", command=self._onBack)
+        prev_button = ttk.Button(self, text="<<<", command=self._onBack)
         prev_button.grid(row=99, column=1, sticky=(W,N,S))  #, pady=5)
+        prev_button_Tip = Hovertip(prev_button, hover_delay=500, text="Previous step")
 
         self.execute_button = ttk.Button(self, text="MARK",
                                           command=self._onExecute, padding=5)
@@ -135,8 +147,9 @@ class MarkParagraphs_Frame(ttk.Frame):
         self.undo_button_Tip = Hovertip(self.issues_button, hover_delay=500,
                 text=f"Open the issues file, which may be from the previous step!")
 
-        self.next_button = ttk.Button(self, text="Next step", command=self._onNext, padding=10)
-        self.next_button.grid(row=99, column=5, sticky=(N,S,E)) #, padx=0, pady=5)
+        next_button = ttk.Button(self, text=">>>", command=self._onNext, padding=10)
+        next_button.grid(row=99, column=5, sticky=(N,S,E)) #, padx=0, pady=5)
+        next_button_Tip = Hovertip(next_button, hover_delay=500, text="Verify manifest")
 
         # for child in parent.winfo_children():
         #     child.grid_configure(padx=25, pady=5)
@@ -144,9 +157,12 @@ class MarkParagraphs_Frame(ttk.Frame):
 
     def show_values(self, values):
         self.values = values
-        self.source_dir.set(values['source_dir'])
-        self.model_dir.set(values['model_dir'])
-        self.filename.set(values['filename'])
+        self.source_dir.set(values.get('source_dir', fallback=""))
+        self.model_dir.set(values.get('model_dir', fallback=""))
+        self.filename.set(values.get('filename', fallback=""))
+        self.copy_nb.set(values.get('copy_nb', fallback=False))
+        self.remove_s5.set(values.get('removes5markers', fallback=True))
+        self.sentence_sensitive.set(values.get('sentence_sensitive', fallback=True))
         self._set_button_status()
 
     # Displays status messages from the running script.
@@ -178,6 +194,7 @@ class MarkParagraphs_Frame(ttk.Frame):
         self.values['filename'] = self.filename.get()
         self.values['copy_nb'] = str(self.copy_nb.get())
         self.values['removeS5markers'] = str(self.remove_s5.get())
+        self.values['sentence_sensitive'] = str(self.sentence_sensitive.get())
         self.controller.mainapp.save_values(stepname, self.values)
         self._set_button_status()
 
