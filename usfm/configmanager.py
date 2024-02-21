@@ -60,7 +60,8 @@ class ToolsConfigManager:
                     'source_dir': "",
                     'filename': "",
                     'copy_nb': False,
-                    'removeS5markers': True }
+                    'removeS5markers': True,
+                    'sentence_sensitive': True }
             case 'Plaintext2Usfm':
                 sec = {}
             case 'RenameParatextFiles':
@@ -79,13 +80,14 @@ class ToolsConfigManager:
             case 'UsfmCleanup':
                 sec = {'source_dir': "",
                     'filename': "",
-                    'language_code': "",
                     'enable1': True,
                     'enable2': True,
                     'enable3': False,
                     'enable4': False,
                     'enable5': False,
-                    'enable6': True }
+                    'enable6': True,
+                    'enable7': False,
+                    'sourcetext_dir': "" }
             case 'Usfm2Usx':
                 sec = {'source_dir': "",
                        'rc_dir': "",
@@ -98,7 +100,8 @@ class ToolsConfigManager:
                        'license': "",
                        'version': "" }
             case 'VerifyManifest':
-                sec = {'source_dir': "" }
+                sec = {'source_dir': "",
+                       'expectascii': "" }
             case 'VerifyUSFM':
                 sec = {'source_dir': "",
                        'filename': "",
