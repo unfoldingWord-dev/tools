@@ -75,7 +75,7 @@ def getLanguageId():
     return parts[0]
 
 def expectAscii(language_id):
-    expectAsciiTitles = config.getboolean('expectAscii')
+    expectAsciiTitles = config.getboolean('expectascii')
     if expectAsciiTitles == None:
         expectAsciiTitles = (language_id in {'ceb','dan','en','es','es-419','fr','gl','ha','hr','id','ilo','kvb','lko','ngp','plt','pmy','pt-br','ruc','tl','tpi'})
     return expectAsciiTitles
