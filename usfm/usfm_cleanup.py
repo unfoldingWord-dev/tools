@@ -24,6 +24,7 @@ from datetime import date
 
 gui = None
 config = None
+enable = [True]*8
 nChanged = 0
 aligned_usfm = False
 needcaps = True
@@ -188,19 +189,19 @@ def convert_wholefile(path):
     aligned_usfm = ("lemma=" in alltext)
     changed = False
 
-    if config.getboolean('remove_s5', fallback=True):
+    if enable[6]:
         alltext = usfm_remove_s5(alltext)
     alltext = usfm_move_pq(alltext)
     alltext = usfm_remove_pq(alltext)
     alltext = fix_booktitles(alltext)
     if not aligned_usfm:
-        if config.getboolean('enable_fix_punctuation', fallback=True):
+        if enable[2]:
             alltext = fix_punctuation(alltext)
-        if config.getboolean('enable_add_spaces', fallback=True):
+        if enable[1]:
             alltext = add_spaces(alltext)
-        if config.getboolean('promote_all_quotes', fallback=False):
+        if enable[4]:
             alltext = quotes.promoteQuotes(alltext)
-        elif config.getboolean('promote_double_quotes', fallback=False):
+        elif enable[3]:
             alltext = doublequotes.promoteQuotes(alltext)
     if alltext != origtext:
         output = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
@@ -237,7 +238,8 @@ def find_mate(quote, pos, line):
 
 quotemedial_re = re.compile(r'[\w][\.\?!;\:,](["\'«“‘’”»])[\w]', re.UNICODE)    # adjacent punctuation where second char is a quote mark
 
-# Finds sequences of phrase ending punctuation followed by a quote, adjacent to word-forming characters on both sides.
+# Finds sequences of phrase-ending punctuation followed by a quote,
+#   adjacent to word-forming characters on both sides.
 # Inserts space before or after the quotes, as appropriate.
 def change_quote_medial(line):
     pos = 0
@@ -258,6 +260,8 @@ def change_quote_medial(line):
 
 quotefloat_re = re.compile(r' (["\'«“‘’”»])[\s]', re.UNICODE)
 
+# Deals with quotes surrounded by white space on both sides.
+# Removes one of the spaces if a matching quote is found in the same line.
 def change_floating_quotes(line):
     pos = 0
     changed = False
@@ -275,7 +279,28 @@ def change_floating_quotes(line):
             break
     return (changed, line)
 
-# Rewrites the file, making changes to individual lines
+verse_re = re.compile(r'\\v +(0-9)+')
+textstart_re = re.compile(r' *[^\\<\n]')
+# Returns True if the specified line is unmarked text.
+def mark_sections(line):
+    if not hasattr(mark_sections, "prevline"):
+        mark_sections.prevline = "xx"
+        mark_sections.verse = "0"
+
+    if line.find("\\c ") >= 0:
+        mark_sections.verse = "0"
+    if v := verse_re.search(line):
+        mark_sections.verse = v.group(1)
+
+    changed = False
+    if textstart_re.match(line):    # line starts with text
+        if mark_sections.verse == "0" or not prevline:
+            line = "\\s " + line.lstrip()
+            changed = True
+    prevline = line
+    return (changed, line)
+
+# Rewrites the file line by line, making changes to individual lines
 # Returns True if any changes are made
 def convert_by_line(path):
     with io.open(path, "tr", encoding="utf-8-sig") as input:
@@ -286,11 +311,12 @@ def convert_by_line(path):
     for line in lines:
         (changed1, line) = change_quote_medial(line)
         (changed2, line) = change_floating_quotes(line)
-        if changed1 or changed2:
+        (changed3, line) = mark_sections(line)
+        if changed1 or changed2 or changed3:
             changedfile = True
         output.write(line)
     output.close()
-    return changedfile
+    return (changedfile)
 
 # Returns true if token is part of a footnote or cross reference
 def isFootnote(token):
@@ -329,7 +355,7 @@ def take(token, usfm):
         usfm.writeUsfm(token.type, token.value)
     return 1 if changed else 0
 
-# Parses and rewrites the usfm file with corrections.
+# Parses and rewrites the usfm file with corrections to capitalization.
 # Returns True if any changes are made.
 def convert_by_token(path):
     changes = 0
@@ -364,7 +390,7 @@ def convertFile(path):
         nChanged += 1
     if convert_by_line(path):
         nChanged += 1
-    if config.getboolean('capitalize', fallback=False):
+    if enable[5]:   # capitalization
         if convert_by_token(path):
             nChanged += 1
 
@@ -401,6 +427,8 @@ def main(app = None):
     config = configmanager.ToolsConfigManager().get_section('UsfmCleanup')   # configmanager version
     if config:
         source_dir = config['source_dir']
+        for i in range(1, len(enable)):
+            enable[i] = config.getboolean('enable'+str(i), fallback = True)
         file = config['filename']  # configmanager version
         if file:
             path = os.path.join(source_dir, file)
@@ -410,10 +438,10 @@ def main(app = None):
                 reportError(f"No such file: {path}")
         else:
             convertFolder(source_dir)
-        reportStatus("Done. Changed " + str(nChanged) + " files.")
+        reportStatus("\nDone. Changed " + str(nChanged) + " files.")
 
     if aligned_usfm:
-        reportError("Cannot deal with aligned USFM.")
+        reportError("Sorry, cannot deal with aligned USFM.")
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
 
