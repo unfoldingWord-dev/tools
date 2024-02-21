@@ -68,7 +68,7 @@ class Select_Frame(ttk.Frame):
         ys.grid(column = 5, row = 88, sticky = 'ns')
         self.message_area['yscrollcommand'] = ys.set
 
-        self.next_button = ttk.Button(self, text="BEGIN", command=self._onNext, padding=10)
+        self.next_button = ttk.Button(self, text=">>>", command=self._onNext, padding=10)
         self.next_button.grid(row=99, column=4, sticky=(N,S,E)) # , padx=0, pady=5)
         self.next_button_Tip = Hovertip(self.next_button, hover_delay=500, text="Begin the process you selected above.")
 
