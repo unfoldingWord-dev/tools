@@ -135,7 +135,7 @@ class Usfm2Usx_Frame(ttk.Frame):
         ys.grid(column = 5, row = 88, sticky = 'ns')
         self.message_area['yscrollcommand'] = ys.set
 
-        prev_button = ttk.Button(self, text="Previous Step", command=self._onBack)
+        prev_button = ttk.Button(self, text="<<<", command=self._onBack)
         prev_button.grid(row=99, column=1, sticky=(W,N,S))  #, pady=5)
         prev_button_Tip = Hovertip(prev_button, hover_delay=500, text="Verify USFM")
 
