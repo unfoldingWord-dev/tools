@@ -75,8 +75,10 @@ def getLanguageId():
     return parts[0]
 
 def expectAscii(language_id):
-    expectAsciiTitles = config.getboolean('expectAsciiTitles', fallback=False)
-    return (expectAsciiTitles or language_id in {'ceb','dan','en','es','es-419','fr','gl','ha','hr','id','ilo','kvb','lko','ngp','plt','pmy','pt-br','ruc','tl','tpi'})
+    expectAsciiTitles = config.getboolean('expectAscii')
+    if expectAsciiTitles == None:
+        expectAsciiTitles = (language_id in {'ceb','dan','en','es','es-419','fr','gl','ha','hr','id','ilo','kvb','lko','ngp','plt','pmy','pt-br','ruc','tl','tpi'})
+    return expectAsciiTitles
 
 # Writes error message to stderr.
 def reportError(msg):
@@ -815,11 +817,13 @@ def verifyManifest():
         if nIssues == 0:
             reportStatus("Done, no errors found.")
         else:
-            reportStatus("Finished checking, found " + str(nIssues) + " issue(s).")
+            reportStatus("\nFinished checking, found " + str(nIssues) + " issue(s).")
 
 def main(app = None):
     global gui
     gui = app
+    global nIssues
+    nIssues = 0
     verifyManifest()
     sys.stdout.flush()
     if gui:
