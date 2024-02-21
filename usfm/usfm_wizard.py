@@ -28,7 +28,7 @@ from revertChanges import main
 from usfm2usx import main
 from verifyManifest import main
 
-app_version = "1.1.0"
+app_version = "1.1.1"
 
 class UsfmWizard(tkinter.Tk):
     def __init__(self):
@@ -48,6 +48,8 @@ class UsfmWizard(tkinter.Tk):
         self.bind('<<ScriptProgress>>', self.onScriptProgress)
         self.bind('<<ScriptEnd>>', self.onScriptEnd)
         self.progress_lock = threading.Lock()
+        self.bind('<Enter>', self.normalize_window)
+        self.n = 0
 
     def _build_steps(self, mainframe):
         self.steps = {}
@@ -59,6 +61,11 @@ class UsfmWizard(tkinter.Tk):
             self.steps[S.stepname] = step
         for child in self.winfo_children():
             child.grid_configure(padx=25, pady=5)
+
+    # This function turns off the -topmost attribute so that other windows can overlay this one.
+    def normalize_window(self, *args):
+        self.attributes("-topmost", False)
+        self.unbind("<Enter>")
 
     def execute_script(self, module, count):
         self.titleframe.start_progress(count)
@@ -117,6 +124,7 @@ class UsfmWizard(tkinter.Tk):
 
     # Activates the next step, based the current process and what step we just finished.
     def step_next(self, copyparms=None):
+        # self.attributes("-topmost", False)    # this keeps the window permanently on top
         gotostep = None
         match self.current_step.name():
             case 'MarkParagraphs':
@@ -181,10 +189,13 @@ def create_menu(wizard):
     menubar.add_cascade(menu=menu_help, label='Help')
     menu_help.add_command(label='Documentation', command=read_the_docs)
     menu_help.add_command(label='About', command=about)
+    menu_help.add_command(label='Version history', command=version_history)
     wizard['menu'] = menubar
 
 def read_the_docs(*args):
     os.startfile(r'https://wycliffeassociatesinc-my.sharepoint.com/:w:/g/personal/larry_versaw_wycliffeassociates_org/EVOk8ijgv-hOkdNo2T--mmsBhlNzHiwDd2v3JQ44XN_Ciw?e=y6ww9j')
+def version_history(*args):
+    os.startfile(r'https://wycliffeassociatesinc-my.sharepoint.com/:t:/g/personal/larry_versaw_wycliffeassociates_org/ETt0OZay-m9Pj8OkJkGzd_UB0KxRq3Qi0Ee2YQjkIlftxg?e=Ti44XS')
 def about(*args):
     configpath = wizard.config.config_path()
     messagebox.showinfo(title='About USFM Wizard', message=f"Version {app_version}",
@@ -196,5 +207,5 @@ def exit_wizard(*args):
 if __name__ == "__main__":
     wizard = UsfmWizard()
     create_menu(wizard)
-    # wizard.attributes("-topmost", 1)
+    wizard.attributes("-topmost", True)    # works around issue where wizard comes up behind cmd window
     wizard.mainloop()
