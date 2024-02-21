@@ -50,25 +50,25 @@ class UsfmCleanup_Frame(ttk.Frame):
         self.std_titles = StringVar()
         for var in (self.filename, self.source_dir):
             var.trace_add("write", self._onChangeEntry)
-        self.enable = [BooleanVar(value = False) for i in range(7)]
+        self.enable = [BooleanVar(value = False) for i in range(8)]
         self.enable[3].trace_add("write", self._onChangeQuotes)
         self.enable[4].trace_add("write", self._onChangeQuotes)
 
         source_dir_label = ttk.Label(self, text="Location of .usfm files:", width=20)
         source_dir_label.grid(row=4, column=1, sticky=W, pady=2)
-        self.source_dir_entry = ttk.Entry(self, width=43, textvariable=self.source_dir)
+        self.source_dir_entry = ttk.Entry(self, width=45, textvariable=self.source_dir)
         self.source_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
         src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
-        src_dir_find.grid(row=4, column=4, sticky=W)
+        src_dir_find.grid(row=4, column=3, sticky=E)
 
         file_label = ttk.Label(self, text="File name:", width=20)
         file_label.grid(row=5, column=1, sticky=W, pady=2)
-        self.file_entry = ttk.Entry(self, width=21, textvariable=self.filename)
+        self.file_entry = ttk.Entry(self, width=24, textvariable=self.filename)
         self.file_entry.grid(row=5, column=2, sticky=W)
         file_Tip = Hovertip(self.file_entry, hover_delay=500,
              text="Leave filename blank to clean all .usfm files in the folder.")
         file_find = ttk.Button(self, text="...", width=2, command=self._onFindFile)
-        file_find.grid(row=5, column=3, sticky=W)
+        file_find.grid(row=5, column=2, sticky=E)
         
         subheadingFont = font.Font(size=10, slant='italic')     # normal size is 9
         enable_label = ttk.Label(self, text="Enable these fixes?", font=subheadingFont)
@@ -111,6 +111,12 @@ class UsfmCleanup_Frame(ttk.Frame):
         enable6_Tip = Hovertip(enable6_checkbox, hover_delay=500,
              text="Remove \s5 markers (recommended for all text except GLs).")
 
+        enable7_checkbox = ttk.Checkbutton(self, text='Section titles', variable=self.enable[7],
+                                             onvalue=True, offvalue=False)
+        enable7_checkbox.grid(row=12, column=3, sticky=W)
+        enable7_Tip = Hovertip(enable7_checkbox, hover_delay=500,
+             text="Mark obvious section titles with \s")
+
         self.message_area = Text(self, height=14, width=30, wrap="none")
         self.message_area['borderwidth'] = 2
         self.message_area['relief'] = 'sunken'
@@ -120,8 +126,9 @@ class UsfmCleanup_Frame(ttk.Frame):
         ys.grid(column = 5, row = 88, sticky = 'ns')
         self.message_area['yscrollcommand'] = ys.set
 
-        prev_button = ttk.Button(self, text="Previous step", command=self._onBack)
+        prev_button = ttk.Button(self, text="<<<", command=self._onBack)
         prev_button.grid(row=99, column=1, sticky=(W,N,S))  #, pady=5)
+        prev_button_Tip = Hovertip(prev_button, hover_delay=500, text="Verify usfm")
 
         self.execute_button = ttk.Button(self, text="CLEAN", command=self._onExecute)
         self.execute_button.grid(row=99, column=2, sticky=(W,N,S))  #, padx=0, pady=5)
@@ -133,7 +140,7 @@ class UsfmCleanup_Frame(ttk.Frame):
         self.undo_button_Tip = Hovertip(self.undo_button, hover_delay=500,
                 text=f"Restore any and all .usfm.orig backup files.")
 
-        next_button = ttk.Button(self, text="Next Step", command=self._onNext)
+        next_button = ttk.Button(self, text=">>>", command=self._onNext)
         next_button.grid(row=99, column=4, sticky=(N,S,E))  #, padx=0, pady=5)
         next_button_Tip = Hovertip(next_button, hover_delay=500, text="Mark paragraphs")
 
