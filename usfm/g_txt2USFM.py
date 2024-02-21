@@ -61,13 +61,14 @@ class Text2USFM_Frame(ttk.Frame):
         self.language_code_entry.grid(row=3, column=2, sticky=W)
         self.source_dir_label = ttk.Label(self, text="Location of text files:", width=20)
         self.source_dir_label.grid(row=4, column=1, sticky=(W,E), pady=2)
-        self.source_dir_entry = ttk.Entry(self, width=42, textvariable=self.source_dir)
+        self.source_dir_entry = ttk.Entry(self, width=47, textvariable=self.source_dir)
         self.source_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
         src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
         src_dir_find.grid(row=4, column=4, sticky=W)
+
         target_dir_label = ttk.Label(self, text="Location for .usfm files:", width=21)
         target_dir_label.grid(row=5, column=1, sticky=(W,E), pady=2)
-        target_dir_entry = ttk.Entry(self, width=42, textvariable=self.target_dir)
+        target_dir_entry = ttk.Entry(self, width=47, textvariable=self.target_dir)
         target_dir_entry.grid(row=5, column=2, columnspan=3, sticky=W)
         target_dir_find = ttk.Label(self, text="(may be new)")
         target_dir_find.grid(row=5, column=4, sticky=W)
@@ -83,7 +84,7 @@ class Text2USFM_Frame(ttk.Frame):
         ys.grid(column = 5, row = 88, sticky = 'ns')
         self.message_area['yscrollcommand'] = ys.set
 
-        prev_button = ttk.Button(self, text="Previous step", command=self._onBack)
+        prev_button = ttk.Button(self, text="<<<", command=self._onBack)
         prev_button.grid(row=99, column=1, sticky=(W,N,S))  #, pady=5)
 
         self.execute_button = ttk.Button(self, text="CONVERT",
@@ -96,8 +97,9 @@ class Text2USFM_Frame(ttk.Frame):
         self.opentarget_button= ttk.Button(self, text="Open usfm folder", command=self._onOpenTargetDir)
         self.opentarget_button.grid(row=99, column=3, sticky=(W,N,S))  # padx=10, pady=5
 
-        self.next_button = ttk.Button(self, text="Skip this step", command=self._onSkip, padding=10)
+        self.next_button = ttk.Button(self, text=">>>", command=self._onSkip, padding=10)
         self.next_button.grid(row=99, column=4, sticky=(N,S,E)) # , padx=0, pady=5)
+        next_button_Tip = Hovertip(self.next_button, hover_delay=500, text="Verify USFM")
 
         # for child in parent.winfo_children():
         #     child.grid_configure(padx=25, pady=5)
@@ -159,5 +161,4 @@ class Text2USFM_Frame(ttk.Frame):
     def _onExecute(self, *args):
         self._save_values()
         self.controller.onExecute(self.values)
-        self.next_button['text'] = "Next step"
         self.next_button['command'] = self._onNext
