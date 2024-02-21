@@ -43,14 +43,21 @@ class VerifyUSFM_Frame(ttk.Frame):
         for var in (self.language_code, self.source_dir, self.filename):
             var.trace_add("write", self._onChangeEntry)
         self.suppress = [BooleanVar(value = False) for i in range(12)]
+        self.suppress[6].trace_add("write", self._onChangeQuotes)
+        self.suppress[7].trace_add("write", self._onChangeQuotes)
 
         language_code_label = ttk.Label(self, text="Language code:", width=20)
         language_code_label.grid(row=3, column=1, sticky=(W,E,N), pady=2)
-        language_code_entry = ttk.Entry(self, width=20, textvariable=self.language_code)
+        language_code_entry = ttk.Entry(self, width=18, textvariable=self.language_code)
         language_code_entry.grid(row=3, column=2, sticky=W)
+        std_titles_label = ttk.Label(self, text="Standard chapter title:", width=20)
+        std_titles_label.grid(row=3, column=3, sticky=E)
+        std_titles_entry = ttk.Entry(self, width=18, textvariable=self.std_titles)
+        std_titles_entry.grid(row=3, column=4, sticky=W)
+        
         source_dir_label = ttk.Label(self, text="Location of .usfm files:", width=20)
         source_dir_label.grid(row=4, column=1, sticky=W, pady=2)
-        source_dir_entry = ttk.Entry(self, width=43, textvariable=self.source_dir)
+        source_dir_entry = ttk.Entry(self, width=41, textvariable=self.source_dir)
         source_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
         src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
         src_dir_find.grid(row=4, column=4, sticky=W, padx=0)
@@ -61,13 +68,8 @@ class VerifyUSFM_Frame(ttk.Frame):
         file_Tip = Hovertip(file_entry, hover_delay=500,
              text="Leave filename blank to verify all .usfm files in the folder.")
         file_find = ttk.Button(self, text="...", width=2, command=self._onFindFile)
-        file_find.grid(row=5, column=3, sticky=W, padx=5)
+        file_find.grid(row=5, column=3, sticky=W, padx=15)
 
-        std_titles_label = ttk.Label(self, text="Standard chapter title:", width=20)
-        std_titles_label.grid(row=6, column=1, sticky=W, pady=2)
-        std_titles_entry = ttk.Entry(self, width=20, textvariable=self.std_titles)
-        std_titles_entry.grid(row=6, column=2, columnspan=3, sticky=W)
-        
         subheadingFont = font.Font(size=10, slant='italic')     # normal size is 9
         suppressions_label = ttk.Label(self, text="Suppress these warnings?", font=subheadingFont)
         suppressions_label.grid(row=10, column=1, columnspan=2, sticky=W, pady=(4,2))
@@ -86,7 +88,7 @@ class VerifyUSFM_Frame(ttk.Frame):
                                              onvalue=True, offvalue=False)
         suppress3_checkbox.grid(row=11, column=3, sticky=W)
         suppress3_Tip = Hovertip(suppress3_checkbox, hover_delay=500,
-             text=r"Suppress warnings about punctuation")
+             text=r"Suppress most warnings about punctuation")
         suppress4_checkbox = ttk.Checkbutton(self, text=r'Useless markers', variable=self.suppress[4],
                                              onvalue=True, offvalue=False)
         suppress4_checkbox.grid(row=11, column=4, sticky=W)
@@ -103,10 +105,10 @@ class VerifyUSFM_Frame(ttk.Frame):
         suppress6_Tip = Hovertip(suppress6_checkbox, hover_delay=500,
              text=r"Suppress warnings about straight double and single quotes")
 
-        suppress7_checkbox = ttk.Checkbutton(self, text=r'Straight single quotes', variable=self.suppress[7],
+        self.suppress7_checkbox = ttk.Checkbutton(self, text=r'Straight single quotes', variable=self.suppress[7],
                                              onvalue=True, offvalue=False)
-        suppress7_checkbox.grid(row=12, column=3, sticky=W)
-        suppress7_Tip = Hovertip(suppress4_checkbox, hover_delay=500,
+        self.suppress7_checkbox.grid(row=12, column=3, sticky=W)
+        suppress7_Tip = Hovertip(self.suppress7_checkbox, hover_delay=500,
              text=r"Suppress warnings about straight single quotes  (report straight double quotes only)")
         
         suppress8_checkbox = ttk.Checkbutton(self, text=r'Book titles', variable=self.suppress[8],
@@ -141,10 +143,13 @@ class VerifyUSFM_Frame(ttk.Frame):
         ys = ttk.Scrollbar(self, orient = 'vertical', command = self.message_area.yview)
         ys.grid(column = 5, row = 88, sticky = 'ns')
         self.message_area['yscrollcommand'] = ys.set
+        xs = ttk.Scrollbar(self, orient = 'horizontal', command = self.message_area.xview)
+        xs.grid(row=89, column = 1, columnspan=4, sticky = 'ew')
+        self.message_area['xscrollcommand'] = xs.set
 
-        prev_button = ttk.Button(self, text="Previous Step", command=self._onBack)
+        prev_button = ttk.Button(self, text="<<<", command=self._onBack)
         prev_button.grid(row=99, column=1, sticky=(W,N,S))  #, pady=5)
-        prev_button_Tip = Hovertip(prev_button, hover_delay=500, text="Text file conversion to USFM")
+        prev_button_Tip = Hovertip(prev_button, hover_delay=500, text="Previous step")
 
         self.execute_button = ttk.Button(self, text="VERIFY", command=self._onExecute)
         self.execute_button.grid(row=99, column=2, sticky=(W,N,S))  #, padx=0, pady=5)
@@ -153,7 +158,7 @@ class VerifyUSFM_Frame(ttk.Frame):
 
         self.issues_button= ttk.Button(self, text="Open issues file", command=self._onOpenIssues)
 
-        next_button = ttk.Button(self, text="Next Step", command=self._onNext)
+        next_button = ttk.Button(self, text=">>>", command=self._onNext)
         next_button.grid(row=99, column=4, sticky=(N,S,E))  #, padx=0, pady=5)
         next_button_Tip = Hovertip(next_button, hover_delay=500, text="Automated USFM file cleanup")
 
@@ -216,12 +221,19 @@ class VerifyUSFM_Frame(ttk.Frame):
         if path:
             self.filename.set(os.path.basename(path))
 
+    def _onChangeEntry(self, *args):
+        self._set_button_status()
+    def _onChangeQuotes(self, *args):
+        if suppress_all := self.suppress[6].get():    # suppress all straight quotes
+            self.suppress[7].set(True)
+        self.suppress7_checkbox.state(['disabled'] if suppress_all else ['!disabled'])
+        if not self.suppress[7].get():
+            self.suppress[6].set(False)
+
     def _onExecute(self, *args):
         self._save_values()
         self.execute_button['state'] = DISABLED
         self.controller.onExecute(self.values)
-    def _onChangeEntry(self, *args):
-        self._set_button_status()
     def _onBack(self, *args):
         self._save_values()
         self.controller.onBack()
