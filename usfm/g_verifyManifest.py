@@ -5,7 +5,6 @@
 from tkinter import *
 from tkinter import ttk
 from tkinter import font
-# from tkinter import filedialog
 from idlelib.tooltip import Hovertip
 import g_util
 import g_step
@@ -33,17 +32,24 @@ class VerifyManifest_Frame(ttk.Frame):
 
         self.source_dir = StringVar()
         self.source_dir.trace_add("write", self._onChangeEntry)
+        self.expectAscii = BooleanVar(value = False)
         self.columnconfigure(2, weight=1)   # keep column 1 from expanding
         self.rowconfigure(88, minsize=170, weight=1)  # let the message expand vertically
 
         source_dir_label = ttk.Label(self, text="Location of resource:", width=27)
         source_dir_label.grid(row=4, column=1, sticky=W, pady=2)
-        self.source_dir_entry = ttk.Entry(self, width=43, textvariable=self.source_dir)
+        self.source_dir_entry = ttk.Entry(self, width=49, textvariable=self.source_dir)
         self.source_dir_entry.grid(row=4, column=2, sticky=W)
         file_Tip = Hovertip(self.source_dir_entry, hover_delay=500,
              text="Folder where manifest.yaml and other files to be submitted reside")
         src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
-        src_dir_find.grid(row=4, column=4, sticky=W, padx=0)
+        src_dir_find.grid(row=4, column=4, sticky=W)
+
+        expectAscii_checkbox = ttk.Checkbutton(self, text=r'Expect ASCII', variable=self.expectAscii,
+                                             onvalue=True, offvalue=False)
+        expectAscii_checkbox.grid(row=5, column=1, sticky=W)
+        expectAscii_Tip = Hovertip(expectAscii_checkbox, hover_delay=500,
+             text=r"Suppress warnings about ASCII book titles, etc")
 
         self.message_area = Text(self, height=10, width=30, wrap="none")
         self.message_area['borderwidth'] = 2
@@ -57,7 +63,7 @@ class VerifyManifest_Frame(ttk.Frame):
         xs.grid(row=89, column = 1, columnspan=4, sticky = 'ew')
         self.message_area['xscrollcommand'] = xs.set
 
-        prev_button = ttk.Button(self, text="Previous step", command=self._onBack)
+        prev_button = ttk.Button(self, text="<<<", command=self._onBack)
         prev_button.grid(row=99, column=1, sticky=(W,N,S))  #, pady=5)
 
         self.execute_button = ttk.Button(self, text="VERIFY",
@@ -67,14 +73,15 @@ class VerifyManifest_Frame(ttk.Frame):
         self.execute_button_Tip = Hovertip(self.execute_button, hover_delay=500,
                 text="Verify readiness of manifest.yaml and the whole resource.")
 
-        next_button = ttk.Button(self, text="Next Step")
+        next_button = ttk.Button(self, text=">>>")
         next_button.grid(row=99, column=4, sticky=(N,S,E))
         next_button['state']  = DISABLED
         next_button_Tip = Hovertip(next_button, hover_delay=500, text="Not implemented")
 
     def show_values(self, values):
         self.values = values
-        self.source_dir.set(values['source_dir'])
+        self.source_dir.set(values.get('source_dir', fallback = ""))
+        self.expectAscii.set(values.get('expectascii', fallback = False))
         self._set_button_status()
 
     # Displays status messages from the running script.
@@ -94,6 +101,7 @@ class VerifyManifest_Frame(ttk.Frame):
 
     def _save_values(self):
         self.values['source_dir'] = self.source_dir.get()
+        self.values['expectascii'] = str(self.expectAscii.get())
         self.controller.mainapp.save_values(stepname, self.values)
         self._set_button_status()
 
