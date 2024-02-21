@@ -19,7 +19,8 @@ lastToken = None
 aligned_usfm = False
 usfm_version = 2
 issuesFile = None
-issues: dict = dict()
+issues: dict = {}   # Can't put in State because we want to accumulate issues across all files.
+wordlist = dict()
 
 import configmanager
 import os
@@ -43,6 +44,7 @@ B = 3       # \b for blank line; no titles, text, or verse markers may immediate
 C = 4       # \c
 OTHER = 9
 
+# Manages the verify state for a single usfm file.
 class State:
     def __init__(self):
         self.IDs = []
@@ -71,8 +73,10 @@ class State:
         self.lastRef = ""
         self.startChunkRef = ""
         self.errorRefs = set()
-        self.currMarker = OTHER
-        self.prevMarker = OTHER
+        self.currMarkerType = OTHER
+        self.prevMarkerType = OTHER
+        self.currMarker = None
+        self.prevMarker = None
 
     def __repr__(self):
         return f'State({self.reference})'
@@ -102,8 +106,8 @@ class State:
         self.lastRef = self.reference
         self.startChunkRef = ""
         self.reference = id + " header/intro"
-        self.currMarker = OTHER
-        self.prevMarker = OTHER
+        self.currMarkerType = OTHER
+        self.prevMarkerType = OTHER
         self.toc3 = None
         self.upperCaseReported = False
 
@@ -112,15 +116,15 @@ class State:
 
     def addTitle(self, bookTitle):
         self.booktitles.append(bookTitle)
-        self.prevMarker = self.currMarker
-        self.currMarker = OTHER
+        self.prevMarkerType = self.currMarkerType
+        self.currMarkerType = OTHER
 
     def addToc3(self, toc3):
         self.toc3 = toc3
 
     def addB(self):
-        self.prevMarker = self.currMarker
-        self.currMarker = B
+        self.prevMarkerType = self.currMarkerType
+        self.currMarkerType = B
 
     def addChapter(self, c):
         self.lastChapter = self.chapter
@@ -133,8 +137,8 @@ class State:
         self.lastRef = self.reference
         self.reference = self.ID + " " + c
         self.startChunkRef = self.reference + ":1"
-        self.prevMarker = self.currMarker
-        self.currMarker = C
+        self.prevMarkerType = self.currMarkerType
+        self.currMarkerType = C
 
     # Isolate the word/phrase for "chapter" from the given string.
     # Add it to the list of chapter titles.
@@ -153,8 +157,8 @@ class State:
     def addNB(self):
         self.needPP = False
         self.textOkayHere = True
-        self.prevMarker = self.currMarker
-        self.currMarker = PP
+        self.prevMarkerType = self.currMarkerType
+        self.currMarkerType = PP
 
     def addParagraph(self):
         self.nParagraphs += 1
@@ -162,8 +166,8 @@ class State:
         self.needQQ = False
         self.textOkayHere = True
         self.sentenceEnd = True
-        self.prevMarker = self.currMarker
-        self.currMarker = PP
+        self.prevMarkerType = self.currMarkerType
+        self.currMarkerType = PP
 
     def addPoetry(self):
         self.nPoetry += 1
@@ -171,17 +175,25 @@ class State:
         self.needQQ = False
         self.needPP = False
         self.textOkayHere = True
-        self.prevMarker = self.currMarker
-        self.currMarker = QQ
+        self.prevMarkerType = self.currMarkerType
+        self.currMarkerType = QQ
 
     def addSection(self):
-        self.prevMarker = self.currMarker
-        self.currMarker = OTHER
+        self.prevMarkerType = self.currMarkerType
+        self.currMarkerType = OTHER
 
     # Records the start of a new chunk
     def addS5(self):
         self.startChunkVerse = self.verse + 1
         self.startChunkRef = self.ID + " " + str(self.chapter) + ":" + str(self.startChunkVerse)
+
+    # Keeps track of the current and previous token types.
+    # Returns False if there is a repetition of tokens that should not repeat.
+    def addMarker(self, type):
+        okay = (type != self.currMarker or repeatableMarker(type))
+        self.prevMarker = self.currMarker
+        self.currMarker = type
+        return okay
 
     def addVerse(self, v):
         self.lastVerse = self.verse
@@ -191,8 +203,8 @@ class State:
         self.textOkayHere = True
         self.lastRef = self.reference
         self.reference = self.ID + " " + str(self.chapter) + ":" + v
-        self.prevMarker = self.currMarker
-        self.currMarker = OTHER
+        self.prevMarkerType = self.currMarkerType
+        self.currMarkerType = OTHER
         self.asciiVerse = True   # until proven False
 
     def addAcrosticHeading(self):
@@ -219,8 +231,8 @@ class State:
         return self.textLength
 
     def addText(self, text):
-        self.prevMarker = self.currMarker
-        self.currMarker = OTHER
+        self.prevMarkerType = self.currMarkerType
+        self.currMarkerType = OTHER
         self.needVerseText = False
         self.textLength += len(text)
         self.textOkayHere = True
@@ -238,8 +250,8 @@ class State:
     # Increments \f counter
     def addFootnoteStart(self):
         self.footnote_starts += 1
-        self.prevMarker = self.currMarker
-        self.currMarker = OTHER
+        self.prevMarkerType = self.currMarkerType
+        self.currMarkerType = OTHER
         self.needVerseText = False
         self.textOkayHere = True
 
@@ -252,8 +264,8 @@ class State:
     # Increments \fe counter
     def addEndnoteStart(self):
         self.endnote_starts += 1
-        self.prevMarker = self.currMarker
-        self.currMarker = OTHER
+        self.prevMarkerType = self.currMarkerType
+        self.currMarkerType = OTHER
         self.needVerseText = False
         self.textOkayHere = True
 
@@ -282,6 +294,10 @@ class State:
 
     def reportedUpperCase(self):
         self.upperCaseReported = True
+
+# Returns True if it is normal for two markers of the specified type to occur in succession.
+def repeatableMarker(marker):
+    return (marker == 'v')
 
 # Tries to interpret the specified string as an integer, regardless of language.
 # Returns 0 if unable to interpret.
@@ -347,7 +363,7 @@ def long_substring(s1, s2):
 # Keeps track of how many errors of each type.
 def reportError(msg, errorId=0, summarize_only=False):
     if not summarize_only:
-        reportStatus(msg)     # message to gui
+        reportToGui('<<ScriptMessage>>', msg)
         write(msg, sys.stderr)
         issuesfile = openIssuesFile()
         issuesfile.write(msg + "\n")
@@ -364,19 +380,19 @@ def reportError(msg, errorId=0, summarize_only=False):
 
 # Sends a progress message to the GUI, and to stdout.
 def reportProgress(msg):
-    if gui:
-        with gui.progress_lock:
-            gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
-        gui.event_generate('<<ScriptProgress>>', when="tail")
+    reportToGui('<<ScriptProgress>>', msg)
     write(msg, sys.stdout)
 
 # Sends a status message to the GUI, and to stdout.
 def reportStatus(msg):
+    reportToGui('<<ScriptMessage>>', msg)
+    write(msg, sys.stdout)
+
+def reportToGui(event, msg):
     if gui:
         with gui.progress_lock:
             gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
-        gui.event_generate('<<ScriptMessage>>', when="tail")
-    write(msg, sys.stdout)
+        gui.event_generate(event, when="tail")
 
 # This little function streams the specified message and handles UnicodeEncodeError
 # exceptions, which are common in Indian language texts. 2/5/24.
@@ -396,6 +412,23 @@ def reportIssues():
         total += issue[1][1]
         issuesfile.write(f"{issue[1][0]}...:  {issue[1][1]} occurrence(s).\n")
     issuesfile.write(f"\n{total} issues found.")
+
+# Writes the word list to a file.
+def dumpWords():
+    path = os.path.join(config['source_dir'], "wordlist.txt")
+    with io.open(path, "tw", encoding='utf-8', newline = '\n') as file:
+        file.write("For better viewing, used a fixed-width font if available.\n")
+        file.write("---------------------------------------------------------\n")
+        for entry in sorted(wordlist.items(), key=wordkey):
+            line = f"{entry[0]:20}  {entry[1][0]}"
+            if entry[1][0] < 3:
+                line = line + ",   " + entry[1][1]
+            file.write(line + '\n')
+
+# Returns sort key for the specified item. 
+def wordkey(item):
+    word = item[0].lstrip("' .,:;!?-[]{}()<>\"“‘’”*/")
+    return str.lower(word)
 
 # Report missing text or all ASCII text, in previous verse
 def previousVerseCheck():
@@ -523,11 +556,11 @@ def takeID(id):
     state.addID(id)
 
 def reportParagraphMarkerErrors(type):
-    if state.currMarker in {QQ,PP} and not suppress[4]:
+    if state.currMarkerType in {QQ,PP} and not suppress[4]:
         reportError("Warning: back to back paragraph/poetry markers after: " + state.reference, 24)
     if state.needText() and not isOptional(state.reference):
         reportError("Paragraph marker after verse marker, or empty verse: " + state.reference, 25)
-    if type == 'nb' and state.currMarker != C:
+    if type == 'nb' and state.currMarkerType != C:
         reportError("\\nb marker should follow chapter marker: " + state.reference, 25.1)
 
 def takeP(type):
@@ -550,11 +583,11 @@ def takeS5():
 
 def takeSection(tag):
     if not suppress[4]:
-        if state.currMarker == PP:
+        if state.currMarkerType == PP:
             reportError(f"Warning: useless paragraph (p,m,nb) marker before \\{tag} marker at: {state.reference}", 27)
-        elif state.currMarker == QQ:
+        elif state.currMarkerType == QQ:
             reportError(f"Warning: useless \q before \\{tag} marker at: {state.reference}", 28)
-        elif state.currMarker == B:
+        elif state.currMarkerType == B:
             reportError(f"\\b may not be used before or after section heading. {state.reference}", 29)
     state.addSection()
 
@@ -576,7 +609,7 @@ def takeTitle(token):
         state.reportedUpperCase()
     if token.value.startswith("Ii"):
         reportError(f"Mixed case roman numerals in \\{token.type} field", 31.1)
-    if state.currMarker == B:
+    if state.currMarkerType == B:
         reportError("\\b may not be used before or after titles or headings. " + state.reference, 32)
 
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
@@ -586,7 +619,7 @@ vinvalid_re = re.compile(r'[^\d\-]')
 # Reports missing text in previous verse.
 # Reports errors related to the verse number(s), such as missing or duplicated verses.
 def takeV(vstr):
-    if state.currMarker == B:
+    if state.currMarkerType == B:
         reportError(f"\\b should be used only between paragraphs. {state.reference}", 33)
     if vstr != "1":
         previousVerseCheck()   # Checks previous verse
@@ -613,8 +646,8 @@ def takeV(vstr):
             reportError("Missing ID before verse: " + v, 35)
         if state.chapter == 0:
             reportError("Missing chapter tag: " + state.reference, 36)
-        if state.verse == 1 and state.needPP and not suppress[2]:
-            reportError("Need paragraph marker before: " + state.reference, 37)
+        if state.verse == 1 and state.needPP:
+            reportError("Need paragraph marker before: " + state.reference, 37, suppress[2])
         if state.needQQ:
             reportError("Need \\q or \\p after acrostic heading before: " + state.reference, 38)
             state.resetPoetry()
@@ -629,7 +662,7 @@ def takeV(vstr):
         elif state.verse > state.lastVerse + 2 and state.addError(state.lastRef):
             reportError("Missing verses between: " + state.lastRef + " and " + state.reference, 41.1)
 
-reference_re = re.compile(r'[\d]+\: *[\d]+', re.UNICODE)
+reference_re = re.compile(r'[\d]+[\s]*:[\s]*[\d]+', re.UNICODE)
 bracketed_re = re.compile(r'\[ *([^\]]+) *\]', re.UNICODE)
 
 # Looks for possible verse references and square brackets in the text, not preceded by a footnote marker.
@@ -662,13 +695,13 @@ def reportCaps(s):
     if state.needCaps():
         word = sentences.firstword(s)
         if word and word[0].islower():
-            if state.currMarker == PP or state.prevMarker == PP:
+            if state.currMarkerType == PP or state.prevMarkerType == PP:
                 reportError(f"First word of paragraph not capitalized near {state.reference}", 44, suppress[10])
             else:
-                reportError(f"First word in sentence: ({word}) is not capitalized. {state.reference}", 44.1, suppress[10])
+                reportError(f"First word in sentence is not capitalized: \"{word}\" at {state.reference}", 44.1, suppress[10])
     for word in sentences.nextfirstwords(s):
         if word[0].islower():
-            reportError(f"First word in sentence: ({word}) is not capitalized. {state.reference}", 44.1, suppress[10])
+            reportError(f"First word in sentence is not capitalized: \"{word}\" in {state.reference}", 44.1, suppress[10])
 
 # Returns a string containing text preceding specified start position and following end position
 def context(text, start, end):
@@ -794,6 +827,8 @@ def takeText(t, footnote=False):
             reportError("  preceding Token was \\" + lastToken.getValue(), 0)
         else:
             reportError("  no preceding Token", 0)
+    if state.textOkay() and state.verse == 0:
+        reportError(f"Unmarked text before {state.reference + ':1'}", 76)
     if "<" in t and not ">" in t:
         if "<< HEAD" in t:
             reportError("Unresolved translation conflict near " + state.reference, 55)
@@ -801,22 +836,37 @@ def takeText(t, footnote=False):
             reportError("Angle bracket not closed at " + state.reference, 56)
     if "Conflict Parsing Error" in t:
         reportError("BTT Writer artifact in " + state.reference, 57)
-    if not suppress[3] and not aligned_usfm:
+    if not suppress[3] and not aligned_usfm:    # report punctuation issues
         reportPunctuation(t)
+    if period := period_re.match(t):    # text starts with a period
+        if len(t) <= period.end() + 1:
+            reportError(f"Orphaned punctuation at {state.reference}", 58)
+        else:
+            reportError("Text begins with phrase-ending punctuation in " + state.reference, 58.1)
     if lastToken.isV() and not aligned_usfm:
         reportFootnotes(t)
-    if not suppress[3]:
-        if period := period_re.match(t):
-            if len(t) <= period.end() + 1:
-                reportError(f"Orphaned punctuation at {state.reference}", 58)
-            else:
-                reportError("Text begins with phrase-ending punctuation in " + state.reference, 58.1)
     if not suppress[1]:
         reportNumbers(t, footnote)
     if not footnote:
         reportCaps(t)
         state.endSentence( sentences.endsSentence(t) )
     state.addText(t)
+    addWords(t)
+
+allpunc = ".,:;!?-\[\]{}()<>'\"“‘’”*/"
+quoteend_re = re.compile(r"[.,:;!?-\[\]{}()<>'\"“‘’”*/]'$")
+notnumberinfootnote_re = re.compile(r'[^\d:\-.,]')
+
+def addWords(t):
+    for item in t.split():
+        word = item.strip(".,:;!?+-[]{}()<>\"“‘’”*/")
+        if quoteend_re.search(word):
+            word = word.rstrip(allpunc)
+        if word:
+            if not state.inFootnote() or notnumberinfootnote_re.search(word):
+                (count, ref) = wordlist.get(word, (0, None))
+                ref = state.reference if count == 0 else ""
+                wordlist[word] = (count+1, ref)
 
 # Returns true if token is part of a footnote
 def isFootnote(token):
@@ -873,13 +923,19 @@ def take(token):
     global lastToken
     global usfm_version
 
+    if not token.isTEXT():
+        if not state.addMarker(token.type):
+            reportError(f"Back to back markers of type {token.type} at {state.reference}", 62)
+    else:
+        takeText(token.value, state.inFootnote())
+
     if token.isID():
         takeID(token.value)
     elif token.isC():
         if not suppress[5]:
             verifyVerseCount()  # for the preceding chapter
         if not state.ID:
-            reportError("Missing book ID: " + state.reference, 62)
+            reportError("Missing book ID: " + state.reference, 62.1)
             sys.exit(-1)
         if token.value == "1":
             verifyBookTitle()
@@ -893,8 +949,6 @@ def take(token):
             takeText(token.value)
     elif token.isV():
         takeV(token.value)
-    elif token.isTEXT():
-        takeText(token.value, state.inFootnote())
     elif isFootnote(token):
         takeFootnote(token)
     elif token.isS5():
@@ -1061,7 +1115,7 @@ def main(app=None):
     config = configmanager.ToolsConfigManager().get_section('VerifyUSFM')   # configmanager version
     if config:
         source_dir = config['source_dir']
-        for i in range(0, len(suppress)):
+        for i in range(1, len(suppress)):
             suppress[i] = config.getboolean('suppress'+str(i), fallback = False)
         language_code = config['language_code']
         if language_code in {'diu','en','es','es-419','gl','ha','hr','id','kcn','kpj','nag','plt','pmy','pt-br','sw','tl','tpi'}:    # ASCII content
@@ -1098,7 +1152,8 @@ def main(app=None):
             issuesFile = None
         else:
             reportStatus("No issues to report.")
-        reportStatus("Done.")
+        dumpWords()
+        reportStatus("\nDone.")
         sys.stdout.flush()
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
