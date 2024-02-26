@@ -42,7 +42,7 @@ class Step:
     def hidebutton(self, *psns):
         for psn in psns:
             self.buttons.hide(psn)
-    def enablebutton(self, psn, enable):
+    def enablebutton(self, psn, enable=True):
         if enable:
             self.buttons.enable(psn)
         else:

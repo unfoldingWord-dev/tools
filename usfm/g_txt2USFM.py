@@ -110,8 +110,8 @@ class Text2USFM_Frame(ttk.Frame):
 
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
-        self.controller.enablebutton(2)
-        self.controller.enablebutton(3)
+        self.controller.enablebutton(2, True)
+        self.controller.enablebutton(3, True)
 
     # Called by the controller when script execution begins.
     def clear_status(self):

@@ -29,7 +29,7 @@ from revertChanges import main
 from usfm2usx import main
 from verifyManifest import main
 
-app_version = "1.1.1"
+app_version = "1.1.2"
 
 class UsfmWizard(tkinter.Tk):
     def __init__(self):
@@ -204,7 +204,6 @@ class Buttons_Frame(Frame):
             self.columnconfigure(i, minsize=82)
         label1 = ttk.Label(self, text="     ")
         label1.grid(row=1, column=1, padx=(0,10))
-        self.columnconfigure
         label2 = ttk.Label(self, text="     ")
         label2.grid(row=1, column=2, padx=50)
         label3 = ttk.Label(self, text="     ")
