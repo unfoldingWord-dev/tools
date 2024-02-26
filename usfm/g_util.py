@@ -8,13 +8,14 @@ import re
 # Omits subfolders whose names start with '.'
 def count_files(folder, pattern):
     n = 0
-    for entry in os.listdir(folder):
-        if entry[0] != '.':
-            path = os.path.join(folder, entry)
-            if os.path.isdir(path):
-                n += count_files(path, pattern)
-            elif re.match(pattern, entry.lower()):
-                n += 1
+    if os.path.isdir(folder):
+        for entry in os.listdir(folder):
+            if entry[0] != '.':
+                path = os.path.join(folder, entry)
+                if os.path.isdir(path):
+                    n += count_files(path, pattern)
+                elif re.match(pattern, entry.lower()):
+                    n += 1
     return n
 
 # Returns a count of folders in path matching path name pattern.
