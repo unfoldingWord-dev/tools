@@ -33,13 +33,15 @@ class VerifyManifest_Frame(ttk.Frame):
         self.source_dir = StringVar()
         self.source_dir.trace_add("write", self._onChangeEntry)
         self.expectAscii = BooleanVar(value = False)
-        self.columnconfigure(2, weight=1)   # keep column 1 from expanding
+        for col in (2,3):
+            self.columnconfigure(col, weight=1)   # keep column 1 from expanding
+        self.columnconfigure(4, minsize=82)
         self.rowconfigure(88, minsize=170, weight=1)  # let the message expand vertically
 
-        source_dir_label = ttk.Label(self, text="Location of resource:", width=27)
+        source_dir_label = ttk.Label(self, text="Location of resource: ")
         source_dir_label.grid(row=4, column=1, sticky=W, pady=2)
         self.source_dir_entry = ttk.Entry(self, width=49, textvariable=self.source_dir)
-        self.source_dir_entry.grid(row=4, column=2, sticky=W)
+        self.source_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
         file_Tip = Hovertip(self.source_dir_entry, hover_delay=500,
              text="Folder where manifest.yaml and other files to be submitted reside")
         src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
@@ -63,36 +65,31 @@ class VerifyManifest_Frame(ttk.Frame):
         xs.grid(row=89, column = 1, columnspan=4, sticky = 'ew')
         self.message_area['xscrollcommand'] = xs.set
 
-        prev_button = ttk.Button(self, text="<<<", command=self._onBack)
-        prev_button.grid(row=99, column=1, sticky=(W,N,S))  #, pady=5)
-
-        self.execute_button = ttk.Button(self, text="VERIFY",
-                                          command=self._onExecute, padding=5)
-        self.execute_button['padding'] = (5, 5) # internal padding!
-        self.execute_button.grid(row=99, column=2, sticky=(W,N,S))  #, padx=10, pady=5)
-        self.execute_button_Tip = Hovertip(self.execute_button, hover_delay=500,
-                text="Verify readiness of manifest.yaml and the whole resource.")
-
-        next_button = ttk.Button(self, text=">>>")
-        next_button.grid(row=99, column=4, sticky=(N,S,E))
-        next_button['state']  = DISABLED
-        next_button_Tip = Hovertip(next_button, hover_delay=500, text="Not implemented")
-
     def show_values(self, values):
         self.values = values
         self.source_dir.set(values.get('source_dir', fallback = ""))
         self.expectAscii.set(values.get('expectascii', fallback = False))
+
+        # Create buttons
+        self.controller.showbutton(1, "<<<", tip="Previous step", cmd=self._onBack)
+        self.controller.showbutton(2, "VERIFY", tip="Verify readiness of manifest.yaml and the whole resource.",
+                                   cmd=self._onExecute)
+        self.controller.showbutton(3, "Open manifest", tip="Opens manifest.yaml in your default editor",
+                                   cmd=self._onOpenManifest)
+        self.controller.showbutton(4, "Open folder", tip="Opens the resource folder", cmd=self._onOpenSourceDir)
+        self.controller.showbutton(5, ">>>", tip="Not implemented")
+        self.controller.enablebutton(5, False)
         self._set_button_status()
 
     # Displays status messages from the running script.
     def show_progress(self, status):
         self.message_area.insert('end', status + '\n')
         self.message_area.see('end')
-        self.execute_button['state'] = DISABLED
+        self.controller.enablebutton(2, False)
 
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
-        self.execute_button['state'] = NORMAL
+        self.controller.enablebutton(2, True)
 
     # Called by the controller when script execution begins.
     def clear_status(self):
@@ -114,10 +111,17 @@ class VerifyManifest_Frame(ttk.Frame):
     def _onChangeEntry(self, *args):
         self._set_button_status()
 
+    def _onOpenManifest(self, *args):
+        self._save_values()
+        path = os.path.join(self.values['source_dir'], "manifest.yaml")
+        os.startfile(path)
+    def _onOpenSourceDir(self, *args):
+        self._save_values()
+        os.startfile(self.values['source_dir'])
+
     def _onBack(self, *args):
         self._save_values()
         self.controller.onBack()
 
     def _set_button_status(self):
-        good_source = os.path.isdir(self.source_dir.get())
-        self.execute_button['state'] = NORMAL if good_source else DISABLED
+        self.controller.enablebutton(2, os.path.isdir(self.source_dir.get()))

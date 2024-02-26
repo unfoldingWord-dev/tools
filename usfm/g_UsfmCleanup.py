@@ -56,19 +56,19 @@ class UsfmCleanup_Frame(ttk.Frame):
 
         source_dir_label = ttk.Label(self, text="Location of .usfm files:", width=20)
         source_dir_label.grid(row=4, column=1, sticky=W, pady=2)
-        self.source_dir_entry = ttk.Entry(self, width=45, textvariable=self.source_dir)
+        self.source_dir_entry = ttk.Entry(self, width=43, textvariable=self.source_dir)
         self.source_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
         src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
-        src_dir_find.grid(row=4, column=3, sticky=E)
+        src_dir_find.grid(row=4, column=4, sticky=W, padx=5)
 
         file_label = ttk.Label(self, text="File name:", width=20)
         file_label.grid(row=5, column=1, sticky=W, pady=2)
-        self.file_entry = ttk.Entry(self, width=24, textvariable=self.filename)
+        self.file_entry = ttk.Entry(self, width=21, textvariable=self.filename)
         self.file_entry.grid(row=5, column=2, sticky=W)
         file_Tip = Hovertip(self.file_entry, hover_delay=500,
              text="Leave filename blank to clean all .usfm files in the folder.")
         file_find = ttk.Button(self, text="...", width=2, command=self._onFindFile)
-        file_find.grid(row=5, column=2, sticky=E)
+        file_find.grid(row=5, column=3, sticky=W, padx=3)
         
         subheadingFont = font.Font(size=10, slant='italic')     # normal size is 9
         enable_label = ttk.Label(self, text="Enable these fixes?", font=subheadingFont)
@@ -126,24 +126,6 @@ class UsfmCleanup_Frame(ttk.Frame):
         ys.grid(column = 5, row = 88, sticky = 'ns')
         self.message_area['yscrollcommand'] = ys.set
 
-        prev_button = ttk.Button(self, text="<<<", command=self._onBack)
-        prev_button.grid(row=99, column=1, sticky=(W,N,S))  #, pady=5)
-        prev_button_Tip = Hovertip(prev_button, hover_delay=500, text="Verify usfm")
-
-        self.execute_button = ttk.Button(self, text="CLEAN", command=self._onExecute)
-        self.execute_button.grid(row=99, column=2, sticky=(W,N,S))  #, padx=0, pady=5)
-        self.execute_button['padding'] = (5, 5) # internal padding!
-        self.execute_button_Tip = Hovertip(self.execute_button, hover_delay=500,
-                text="Run the USFM cleanup script now.")
-
-        self.undo_button = ttk.Button(self, text="Undo", command=self._onUndo)
-        self.undo_button_Tip = Hovertip(self.undo_button, hover_delay=500,
-                text=f"Restore any and all .usfm.orig backup files.")
-
-        next_button = ttk.Button(self, text=">>>", command=self._onNext)
-        next_button.grid(row=99, column=4, sticky=(N,S,E))  #, padx=0, pady=5)
-        next_button_Tip = Hovertip(next_button, hover_delay=500, text="Mark paragraphs")
-
     def show_values(self, values):
         self.values = values
         self.source_dir.set(values.get('source_dir', fallback=""))
@@ -151,20 +133,27 @@ class UsfmCleanup_Frame(ttk.Frame):
         for i in range(len(self.enable)):
             configvalue = f"enable{i}"
             self.enable[i].set( values.get(configvalue, fallback = False))
+
+        # Create buttons
+        self.controller.showbutton(1, "<<<", tip="Verify usfm", cmd=self._onBack)
+        self.controller.showbutton(2, "CLEAN", tip="Run the USFM cleanup script now.", cmd=self._onExecute)
+        self.controller.showbutton(3, "Open usfm folder", cmd=self._onOpenSourceDir)
+        self.controller.showbutton(4, "Undo", tip="Restore any and all .usfm.orig backup files.",
+                                   cmd=self._onUndo)
+        self.controller.showbutton(5, ">>>", tip="Mark paragraphs", cmd=self._onNext)
         self._set_button_status()
 
     # Displays status messages from the running script.
     def show_progress(self, status):
         self.message_area.insert('end', status + '\n')
         self.message_area.see('end')
-        self.execute_button['state'] = DISABLED
-        self.execute_button['state'] = DISABLED
+        self.controller.enablebutton(2, False)
 
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
-        self.execute_button['state'] = NORMAL
-        self.undo_button.grid(row=99, column=3, sticky=(W,N,S))  #, padx=0, pady=5)
-        self.undo_button['padding'] = (5, 5) # internal padding!
+        self.controller.enablebutton(2, True)
+        nChanged = g_util.count_files(self.source_dir.get(), ".*\.usfm\.orig$")
+        self.controller.enablebutton(4, nChanged > 0)
 
     # Called by the controller when script execution begins.
     def clear_status(self):
@@ -199,9 +188,13 @@ class UsfmCleanup_Frame(ttk.Frame):
     def _onBack(self, *args):
         self._save_values()
         self.controller.onBack()
+    def _onOpenSourceDir(self, *args):
+        self._save_values()
+        os.startfile(self.values['source_dir'])
     def _onUndo(self, *args):
         self._save_values()
         self.controller.revertChanges()
+        self.controller.enablebutton(4, False)
     def _onNext(self, *args):
         self._save_values()
         self.controller.onNext()
@@ -209,6 +202,7 @@ class UsfmCleanup_Frame(ttk.Frame):
     def _onExecute(self, *args):
         self._save_values()
         self.controller.onExecute(self.values)
+
     def _onOpenIssues(self, *args):
         self._save_values()
         path = os.path.join(self.values['source_dir'], "issues.txt")
@@ -216,8 +210,11 @@ class UsfmCleanup_Frame(ttk.Frame):
 
     def _set_button_status(self):
         good_source = os.path.isdir(self.source_dir.get())
-        self.undo_button['state'] = NORMAL if good_source else DISABLED
+        backup_count = g_util.count_files(self.source_dir.get(), ".*\.usfm\.orig$")
+        self.controller.enablebutton(3, good_source)
+        self.controller.enablebutton(4, backup_count > 0)
+
         if good_source and self.filename.get():
             path = os.path.join(self.source_dir.get(), self.filename.get())
             good_source = os.path.isfile(path)
-        self.execute_button['state'] = NORMAL if good_source else DISABLED
+        self.controller.enablebutton(2, good_source)

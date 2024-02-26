@@ -19,9 +19,14 @@ class VerifyUSFM(g_step.Step):
         super().__init__(mainframe, mainapp, stepname, "Verify USFM")
         self.frame = VerifyUSFM_Frame(mainframe, self)
         self.frame.grid(row=1, column=0, sticky="nsew")
+        self.executed = False
 
     def onNext(self):
-        super().onNext('source_dir', 'filename')
+        if self.executed:
+            super().onNext('source_dir', 'filename', 'language_code')
+        else:
+            super().onNext()
+        self.executed = False
 
     def onExecute(self, values):
         self.values = values    # redundant, they were the same dict to begin with
@@ -30,6 +35,7 @@ class VerifyUSFM(g_step.Step):
             count = g_util.count_files(values['source_dir'], ".*sfm$")
         self.mainapp.execute_script("verifyUSFM", count)
         self.frame.clear_status()
+        self.executed = True
 
 class VerifyUSFM_Frame(ttk.Frame):
     def __init__(self, parent, controller):
@@ -45,6 +51,9 @@ class VerifyUSFM_Frame(ttk.Frame):
         self.suppress = [BooleanVar(value = False) for i in range(12)]
         self.suppress[6].trace_add("write", self._onChangeQuotes)
         self.suppress[7].trace_add("write", self._onChangeQuotes)
+        for col in [2,3,4]:
+            self.columnconfigure(col, weight=1)   # keep column 1 from expanding
+        self.rowconfigure(88, minsize=170, weight=1)  # let the message expand vertically
 
         language_code_label = ttk.Label(self, text="Language code:", width=20)
         language_code_label.grid(row=3, column=1, sticky=(W,E,N), pady=2)
@@ -57,10 +66,10 @@ class VerifyUSFM_Frame(ttk.Frame):
         
         source_dir_label = ttk.Label(self, text="Location of .usfm files:", width=20)
         source_dir_label.grid(row=4, column=1, sticky=W, pady=2)
-        source_dir_entry = ttk.Entry(self, width=41, textvariable=self.source_dir)
+        source_dir_entry = ttk.Entry(self, width=43, textvariable=self.source_dir)
         source_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
         src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
-        src_dir_find.grid(row=4, column=4, sticky=W, padx=0)
+        src_dir_find.grid(row=4, column=4, sticky=W, padx=5)
         file_label = ttk.Label(self, text="File name:", width=20)
         file_label.grid(row=5, column=1, sticky=W, pady=2)
         file_entry = ttk.Entry(self, width=20, textvariable=self.filename)
@@ -68,7 +77,7 @@ class VerifyUSFM_Frame(ttk.Frame):
         file_Tip = Hovertip(file_entry, hover_delay=500,
              text="Leave filename blank to verify all .usfm files in the folder.")
         file_find = ttk.Button(self, text="...", width=2, command=self._onFindFile)
-        file_find.grid(row=5, column=3, sticky=W, padx=15)
+        file_find.grid(row=5, column=3, sticky=W, padx=14)
 
         subheadingFont = font.Font(size=10, slant='italic')     # normal size is 9
         suppressions_label = ttk.Label(self, text="Suppress these warnings?", font=subheadingFont)
@@ -139,7 +148,7 @@ class VerifyUSFM_Frame(ttk.Frame):
         self.message_area['borderwidth'] = 2
         self.message_area['relief'] = 'sunken'
         self.message_area['background'] = 'grey97'
-        self.message_area.grid(row=88, column=1, columnspan=4, sticky='nsew', pady=6)
+        self.message_area.grid(row=88, column=1, columnspan=5, sticky='nsew', pady=6)
         ys = ttk.Scrollbar(self, orient = 'vertical', command = self.message_area.yview)
         ys.grid(column = 5, row = 88, sticky = 'ns')
         self.message_area['yscrollcommand'] = ys.set
@@ -147,24 +156,6 @@ class VerifyUSFM_Frame(ttk.Frame):
         xs.grid(row=89, column = 1, columnspan=4, sticky = 'ew')
         self.message_area['xscrollcommand'] = xs.set
 
-        prev_button = ttk.Button(self, text="<<<", command=self._onBack)
-        prev_button.grid(row=99, column=1, sticky=(W,N,S))  #, pady=5)
-        prev_button_Tip = Hovertip(prev_button, hover_delay=500, text="Previous step")
-
-        self.execute_button = ttk.Button(self, text="VERIFY", command=self._onExecute)
-        self.execute_button.grid(row=99, column=2, sticky=(W,N,S))  #, padx=0, pady=5)
-        self.execute_button['padding'] = (5, 5) # internal padding!
-        execute_button_Tip = Hovertip(self.execute_button, hover_delay=500, text="Check the USFM files now.")
-
-        self.issues_button= ttk.Button(self, text="Open issues file", command=self._onOpenIssues)
-
-        next_button = ttk.Button(self, text=">>>", command=self._onNext)
-        next_button.grid(row=99, column=4, sticky=(N,S,E))  #, padx=0, pady=5)
-        next_button_Tip = Hovertip(next_button, hover_delay=500, text="Automated USFM file cleanup")
-
-        # for child in parent.winfo_children():
-            # child.grid_configure(padx=25, pady=5)
-        
     def show_values(self, values):
         self.values = values
         self.language_code.set(values.get('language_code', fallback=""))
@@ -174,26 +165,38 @@ class VerifyUSFM_Frame(ttk.Frame):
         for si in range(len(self.suppress)):
             configvalue = f"suppress{si}"
             self.suppress[si].set( values.get(configvalue, fallback = False))
+
+        # Create buttons
+        self.controller.showbutton(1, "<<<", tip="Previous step", cmd=self._onBack)
+        self.controller.showbutton(2, "VERIFY", tip="Check the USFM files now.", cmd=self._onExecute)
+        self.controller.showbutton(3, "Open issues.txt", tip="Open issues.txt file in your default editor",
+                                   cmd=self._onOpenIssues)
+        nextstep = self.controller.mainapp.nextstep()
+        if nextstep == "Usfm2Usx":
+            tip = "Convert to resource container"
+        else:
+            tip = "Automated USFM file cleanup"
+        self.controller.showbutton(5, ">>>", tip=tip, cmd=self._onNext)
         self._set_button_status()
 
     # Displays status messages from the running script.
     def show_progress(self, status):
         self.message_area.insert('end', status + '\n')
         self.message_area.see('end')
-        self.execute_button['state'] = DISABLED
-        self.issues_button['state'] = DISABLED
+        self.controller.enablebutton(2, False)
+        self.controller.enablebutton(3, False)
 
     def onScriptEnd(self):
         issuespath = os.path.join(self.values['source_dir'], "issues.txt")
-        if os.path.isfile(issuespath):
+        exists = os.path.isfile(issuespath)
+        self.controller.enablebutton(3, exists)
+        if exists:
             if time.time() - os.path.getmtime(issuespath) < 10:     # issues.txt is recent
                 self.message_area.insert('end', "issues.txt contains the list of issues found.\n")
                 self.message_area.insert('end', "Make corrections using your text editor, or go to\n  Next Step to do automated cleanup.\n")
                 self.message_area.see('end')
-                self.issues_button.grid(row=99, column=3, sticky=(W,N,S))
         self.message_area['state'] = DISABLED   # prevents insertions to message area
-        self.execute_button['state'] = NORMAL
-        self.issues_button['state'] = NORMAL
+        self.controller.enablebutton(2, True)
 
     # Called by the controller when script execution begins.
     def clear_status(self):
@@ -232,7 +235,7 @@ class VerifyUSFM_Frame(ttk.Frame):
 
     def _onExecute(self, *args):
         self._save_values()
-        self.execute_button['state'] = DISABLED
+        self.controller.enablebutton(2, False)
         self.controller.onExecute(self.values)
     def _onBack(self, *args):
         self._save_values()
@@ -244,10 +247,21 @@ class VerifyUSFM_Frame(ttk.Frame):
         self._save_values()
         path = os.path.join(self.values['source_dir'], "issues.txt")
         os.startfile(path)
+    def _onOpenUsfmFile(self, *args):
+        path = os.path.join(self.source_dir.get(), self.filename.get())
+        os.startfile(path)
 
     def _set_button_status(self):
         good_source = os.path.isdir(self.source_dir.get())
+        filepath = ""
         if good_source and self.filename.get():
-            path = os.path.join(self.source_dir.get(), self.filename.get())
-            good_source = os.path.isfile(path)
-        self.execute_button['state'] = NORMAL if self.language_code.get() and good_source else DISABLED
+            filepath = os.path.join(self.source_dir.get(), self.filename.get())
+            good_source = os.path.isfile(filepath)
+        self.controller.enablebutton(2, self.language_code.get() and good_source)
+        if good_source:
+            self.controller.showbutton(4, self.filename.get(), tip=f"Open {self.filename.get()}", cmd=self._onOpenUsfmFile)
+        else:
+            self.controller.hidebutton(4)
+
+        issuespath = os.path.join(self.source_dir.get(), "issues.txt")
+        self.controller.enablebutton(3, os.path.isfile(issuespath))

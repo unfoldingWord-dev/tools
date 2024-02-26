@@ -103,7 +103,7 @@ class Usfm2Usx_Frame(ttk.Frame):
 
         source_dir_label = ttk.Label(self, text="Location of .usfm files:", width=20)
         source_dir_label.grid(row=8, column=1, sticky=W, pady=2)
-        source_dir_entry = ttk.Entry(self, width=62, textvariable=self.source_dir)
+        source_dir_entry = ttk.Entry(self, width=61, textvariable=self.source_dir)
         source_dir_entry.grid(row=8, column=2, columnspan=3, sticky=W)
         src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
         src_dir_find.grid(row=8, column=5, sticky=W)
@@ -115,11 +115,11 @@ class Usfm2Usx_Frame(ttk.Frame):
         file_Tip = Hovertip(file_entry, hover_delay=500,
              text="Leave filename blank to convert all .usfm files in the folder.")
         file_find = ttk.Button(self, text="...", width=2, command=self._onFindFile)
-        file_find.grid(row=9, column=3, sticky=W, padx=0)
+        file_find.grid(row=9, column=3, sticky=W)
         
         rc_dir_label = ttk.Label(self, text="RC folder:", width=20)
         rc_dir_label.grid(row=10, column=1, sticky=W, pady=2)
-        rc_dir_entry = ttk.Entry(self, width=62, textvariable=self.rc_dir)
+        rc_dir_entry = ttk.Entry(self, width=61, textvariable=self.rc_dir)
         rc_dir_entry.grid(row=10, column=2, columnspan=4, sticky=W)
         rc_dir_Tip = Hovertip(rc_dir_entry, hover_delay=500,
              text="BTT-Writer application data folder for Resource Containers")
@@ -135,15 +135,6 @@ class Usfm2Usx_Frame(ttk.Frame):
         ys.grid(column = 5, row = 88, sticky = 'ns')
         self.message_area['yscrollcommand'] = ys.set
 
-        prev_button = ttk.Button(self, text="<<<", command=self._onBack)
-        prev_button.grid(row=99, column=1, sticky=(W,N,S))  #, pady=5)
-        prev_button_Tip = Hovertip(prev_button, hover_delay=500, text="Verify USFM")
-
-        self.execute_button = ttk.Button(self, text="CONVERT", command=self._onExecute)
-        self.execute_button.grid(row=99, column=2, sticky=(W,N,S))  #, padx=0, pady=5)
-        self.execute_button['padding'] = (5, 5) # internal padding!
-        execute_button_Tip = Hovertip(self.execute_button, hover_delay=500, text="Convert to USX now, overwrite existing .usx files, if any.")
-        
     def show_values(self, values):
         self.values = values
         self.language_code.set(values.get('language_code', fallback=""))
@@ -157,17 +148,23 @@ class Usfm2Usx_Frame(ttk.Frame):
         self.source_dir.set(values.get('source_dir', fallback=""))
         self.filename.set(values.get('filename', fallback=""))
         self.rc_dir.set(values.get('rc_dir', fallback=""))
+
+        # Create buttons
+        self.controller.showbutton(1, "<<<", tip="Reverify original USFM file(s)", cmd=self._onBack)
+        self.controller.showbutton(2, "CONVERT", tip="Convert to USX now; overwrite existing .usx files, if any.",
+                                   cmd=self._onExecute)
+        self.controller.hidebutton(3,4,5)
         self._set_button_status()
 
     # Displays status messages from the running script.
     def show_progress(self, status):
         self.message_area.insert('end', status + '\n')
         self.message_area.see('end')
-        self.execute_button['state'] = DISABLED
+        self.controller.enablebutton(2, False)
 
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
-        self.execute_button['state'] = NORMAL
+        self.controller.enablebutton(2, True)
 
     # Called by the controller when script execution begins.
     def clear_status(self):
@@ -208,7 +205,7 @@ class Usfm2Usx_Frame(ttk.Frame):
         self._set_button_status()
     # Called when the Bible name changes
     def _onChangeBible(self, *args):
-        if len(self.bible_id.get()) > 3 and not self.bible_id:
+        if len(self.bible_name.get()) > 3 and not self.bible_id:
             self.bible_id.set( self.bible_name.get().lower()[0:3] )
         self._set_button_status()
 
@@ -217,7 +214,7 @@ class Usfm2Usx_Frame(ttk.Frame):
         self.controller.onBack()
     def _onExecute(self, *args):
         self._save_values()
-        self.execute_button['state'] = DISABLED
+        self.controller.enablebutton(2, False)
         self.controller.onExecute(self.values)
 
     def _set_button_status(self):
@@ -228,4 +225,4 @@ class Usfm2Usx_Frame(ttk.Frame):
         language_ok = self.language_code.get() and self.language_name.get()
         pubdetails_ok = self.bible_id.get() and self.bible_name.get() and\
                         self.pub_date.get() and self.license.get() and self.version.get()
-        self.execute_button['state'] = NORMAL if (dirs_ok and language_ok and pubdetails_ok) else DISABLED
+        self.controller.enablebutton(2, dirs_ok and language_ok and pubdetails_ok)

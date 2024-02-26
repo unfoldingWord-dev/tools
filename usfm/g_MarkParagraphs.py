@@ -67,7 +67,8 @@ class MarkParagraphs_Frame(ttk.Frame):
         self.sentence_sensitive = BooleanVar(value = True)
         for var in (self.model_dir, self.source_dir, self.filename):
             var.trace_add("write", self._onChangeEntry)
-        self.columnconfigure(2, weight=1)   # keep column 1 from expanding
+        self.columnconfigure(3, weight=1)   # keep column 1 from expanding
+        self.columnconfigure(4, minsize=115)
         self.rowconfigure(88, minsize=170, weight=1)  # let the message expand vertically
 
         model_dir_label = ttk.Label(self, text="Location of model files:", width=21)
@@ -77,14 +78,14 @@ class MarkParagraphs_Frame(ttk.Frame):
         model_dir__Tip = Hovertip(self.model_dir_entry, hover_delay=500,
              text="Folder containing USFM files with well marked paragraphs, e.g. English UDB folder")
         model_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindModelDir)
-        model_dir_find.grid(row=3, column=4)
+        model_dir_find.grid(row=3, column=4, sticky=W, padx=8)
 
         source_dir_label = ttk.Label(self, text="Location of files\n to be marked:", width=15)
         source_dir_label.grid(row=4, column=1, sticky=W, pady=2)
         self.source_dir_entry = ttk.Entry(self, width=43, textvariable=self.source_dir)
         self.source_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
         src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
-        src_dir_find.grid(row=4, column=4)
+        src_dir_find.grid(row=4, column=4, sticky=W, padx=8)
 
         file_label = ttk.Label(self, text="File name:", width=20)
         file_label.grid(row=5, column=1, sticky=W, pady=2)
@@ -125,34 +126,6 @@ class MarkParagraphs_Frame(ttk.Frame):
         ys.grid(column = 6, row = 88, sticky = 'ns')
         self.message_area['yscrollcommand'] = ys.set
 
-        prev_button = ttk.Button(self, text="<<<", command=self._onBack)
-        prev_button.grid(row=99, column=1, sticky=(W,N,S))  #, pady=5)
-        prev_button_Tip = Hovertip(prev_button, hover_delay=500, text="Previous step")
-
-        self.execute_button = ttk.Button(self, text="MARK",
-                                          command=self._onExecute, padding=5)
-        self.execute_button['padding'] = (5, 5) # internal padding!
-        self.execute_button.grid(row=99, column=2, sticky=(W,N,S))  #, padx=10, pady=5)
-        self.execute_button_Tip = Hovertip(self.execute_button, hover_delay=500,
-                text="Mark paragraphs now.")
-
-        self.undo_button = ttk.Button(self, text="Undo", command=self._onUndo)
-        self.undo_button.grid(row=99, column=3, sticky=(W,N,S))  #, padx=0, pady=5)
-        self.undo_button['padding'] = (3, 3) # internal padding!
-        self.undo_button_Tip = Hovertip(self.undo_button, hover_delay=500,
-                text=f"Restore any and all .usfmorig backup files in the folder.")
-        self.undo_button['state'] = DISABLED
-        self.issues_button= ttk.Button(self, text="Open issues file", command=self._onOpenIssues)
-        self.issues_button.grid(row=99, column=4, sticky=(W,N,S))
-        self.undo_button_Tip = Hovertip(self.issues_button, hover_delay=500,
-                text=f"Open the issues file, which may be from the previous step!")
-
-        next_button = ttk.Button(self, text=">>>", command=self._onNext, padding=10)
-        next_button.grid(row=99, column=5, sticky=(N,S,E)) #, padx=0, pady=5)
-        next_button_Tip = Hovertip(next_button, hover_delay=500, text="Verify manifest")
-
-        # for child in parent.winfo_children():
-        #     child.grid_configure(padx=25, pady=5)
         self.model_dir_entry.focus()
 
     def show_values(self, values):
@@ -163,14 +136,24 @@ class MarkParagraphs_Frame(ttk.Frame):
         self.copy_nb.set(values.get('copy_nb', fallback=False))
         self.remove_s5.set(values.get('removes5markers', fallback=True))
         self.sentence_sensitive.set(values.get('sentence_sensitive', fallback=True))
+
+        # Create buttons
+        self.controller.showbutton(1, "<<<", tip="Verify usfm", cmd=self._onBack)
+        self.controller.showbutton(2, "MARK", tip="Mark paragraphs now.", cmd=self._onExecute)
+        self.controller.showbutton(3, "Open issues file", tip="Open the issues file (which may be from the previous step).",
+                                   cmd=self._onOpenIssues)
+        self.controller.showbutton(4, "Undo", tip="Restore any and all .usfmorig backup files in the folder.",
+                                   cmd=self._onUndo)
+        self.controller.enablebutton(4, False)
+        self.controller.showbutton(5, ">>>", tip="Verify manifest", cmd=self._onNext)
         self._set_button_status()
 
     # Displays status messages from the running script.
     def show_progress(self, status):
         self.message_area.insert('end', status + '\n')
         self.message_area.see('end')
-        self.execute_button['state'] = DISABLED
-        self.issues_button['state'] = DISABLED
+        self.controller.enablebutton(2, False)
+        self.controller.enablebutton(3, False)
 
     def onScriptEnd(self, nIssues):
         issuespath = os.path.join(self.values['source_dir'], "issues.txt")
@@ -179,9 +162,9 @@ class MarkParagraphs_Frame(ttk.Frame):
             self.message_area.insert('end', "Resolve as appropriate.\n")
             self.message_area.see('end')
         self.message_area['state'] = DISABLED   # prevents insertions to message area
-        self.execute_button['state'] = NORMAL
-        self.issues_button['state'] = NORMAL
-        self.undo_button['state'] = NORMAL
+        self.controller.enablebutton(2, True)
+        self.controller.enablebutton(3, True)
+        self.controller.enablebutton(4, True)
 
     # Called by the controller when script execution begins.
     def clear_status(self):
@@ -217,23 +200,23 @@ class MarkParagraphs_Frame(ttk.Frame):
         os.startfile(path)
 
     def _onBack(self, *args):
-        self.undo_button['state'] = DISABLED
+        self.controller.enablebutton(4, False)
         self._save_values()
         self.controller.onBack()
     def _onNext(self, *args):
-        self.undo_button['state'] = DISABLED
+        self.controller.enablebutton(4, False)
         self._save_values()
         self.controller.onNext()
     def _onUndo(self, *args):
         self._save_values()
         self.controller.revertChanges()
-        self.undo_button['state'] = DISABLED
+        self.controller.enablebutton(4, False)
 
     def _set_button_status(self):
         good_model = os.path.isdir(self.model_dir.get())
         good_source = os.path.isdir(self.source_dir.get())
-        # self.undo_button['state'] = NORMAL if good_source else DISABLED
+        self.controller.enablebutton(4, good_source)
         if good_source and self.filename.get():
             path = os.path.join(self.source_dir.get(), self.filename.get())
             good_source = os.path.isfile(path)
-        self.execute_button['state'] = NORMAL if good_model and good_source else DISABLED
+        self.controller.enablebutton(2, good_model and good_source)

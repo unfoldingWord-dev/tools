@@ -14,6 +14,7 @@ class Step:
         self.mainapp = mainapp
         self.stepname = stepname
         self.steptitle = title
+        self.buttons = mainapp.buttonsframe
         self.frame = None
 
     def show(self, values):
@@ -35,6 +36,17 @@ class Step:
 
     def onExecute(self):
         pass
+
+    def showbutton(self, psn, text, tip=None, cmd=None):
+        self.buttons.show(psn, text, tip, cmd)
+    def hidebutton(self, *psns):
+        for psn in psns:
+            self.buttons.hide(psn)
+    def enablebutton(self, psn, enable):
+        if enable:
+            self.buttons.enable(psn)
+        else:
+            self.buttons.disable(psn)
 
     # Called by the main app.
     # Displays the specified string in the message area.
