@@ -14,6 +14,7 @@
 # source_dir = r'C:\DCS\Persian\pes_opcb'
 config = None
 gui = None
+nConverted = 0
 # rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
 
 # Values to be written into each of the package.json files
@@ -401,6 +402,8 @@ def convertFile(usfmpath, bookId):
         copy(os.path.join(en_content_dir, 'config.yml'), state.target_content_dir)    # copy() is from shutil
         createToc(en_content_dir, state.target_content_dir)
         createBookTitleFile()
+        global nConverted
+        nConverted += 1
 
 # Parses entire usfm file and writes to .usx files by chunk.
 def processFile(usfmpath):
@@ -430,8 +433,10 @@ def make_dir(folder):
     return os.path.isdir(folder)
  
 def main(app = None):
+    global nConverted
     global gui
     global config
+    nConverted = 0
     gui = app
     config = configmanager.ToolsConfigManager().get_section('Usfm2Usx')   # configmanager version
     if config:
@@ -447,12 +452,14 @@ def main(app = None):
             path = os.path.join(source_dir, file)
             if os.path.isfile(path):
                 processFile(path)
-                reportStatus("\nDone.")
             else:
                 reportError(f"No such file: {path}")
         else:
             convertDir(source_dir)
-            reportStatus("\nDone.")
+        if nConverted > 0:
+            reportStatus(f"\nDone. Converted {nConverted} book(s).")
+        else:
+            reportStatus("No books were successfully converted.")
     sys.stdout.flush()
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
