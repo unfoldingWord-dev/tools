@@ -31,7 +31,7 @@ from revertChanges import main
 from usfm2usx import main
 from verifyManifest import main
 
-app_version = "1.1.2"
+app_version = "1.1.3"
 
 class UsfmWizard(tkinter.Tk):
     def __init__(self):
