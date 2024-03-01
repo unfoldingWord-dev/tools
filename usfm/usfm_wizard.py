@@ -19,12 +19,14 @@ import g_txt2USFM
 import g_verifyUSFM
 import g_UsfmCleanup
 import g_MarkParagraphs
+import g_plaintext2usfm
 import g_verifyManifest
 import g_usfm2usx
 from txt2USFM import main
 from verifyUSFM import main
 from usfm_cleanup import main
 from mark_paragraphs import main
+from plaintext2usfm import main
 from revertChanges import main
 from usfm2usx import main
 from verifyManifest import main
@@ -58,7 +60,7 @@ class UsfmWizard(tkinter.Tk):
     def _build_steps(self, mainframe):
         self.steps = {}
         for S in (g_selectProcess, g_txt2USFM, g_verifyUSFM, g_UsfmCleanup, g_MarkParagraphs,
-                  g_verifyManifest, g_usfm2usx):
+                  g_verifyManifest, g_plaintext2usfm, g_usfm2usx):
             stepclass = getattr(sys.modules[S.__name__], S.stepname)
             step = stepclass(mainframe, mainapp=self)   # create an instance of the class
             self.steps[S.stepname] = step
@@ -110,6 +112,8 @@ class UsfmWizard(tkinter.Tk):
         match self.current_step.name():
             case 'MarkParagraphs':
                 gotostep = 'VerifyUSFM'
+            case 'Plaintext2Usfm':
+                gotostep = 'SelectProcess'
             case 'Txt2USFM':
                 gotostep = 'SelectProcess'
             case 'Usfm2Usx':
@@ -122,7 +126,7 @@ class UsfmWizard(tkinter.Tk):
                 if self.process in {'Usfm2Usx', 'VerifyUSFM'}:
                     gotostep = 'SelectProcess'
                 else:
-                    gotostep = 'Txt2USFM'
+                    gotostep = self.process
         return gotostep
     
     # Activates the previous step
@@ -141,6 +145,8 @@ class UsfmWizard(tkinter.Tk):
                 else:
                     gotostep = self.process
             case 'Txt2USFM':
+                gotostep = 'VerifyUSFM'
+            case 'Plaintext2Usfm':
                 gotostep = 'VerifyUSFM'
             case 'UsfmCleanup':
                 gotostep = 'MarkParagraphs'

@@ -14,7 +14,7 @@
 #    Reports failure when chapter 1 is not found, and other errors.
 # The script does not mark chunks. If that is desired. run usfm2rc.py later.
 
-import configreader
+import configmanager
 import usfm_verses
 import re
 import operator
@@ -24,7 +24,9 @@ import sys
 import json
 from pathlib import Path
 
-numberstart_re = re.compile(r'([\d]{1,3})[ \n]', re.UNICODE)
+config = None
+gui = None
+state = None
 projects = []
 issues_file = None
 
@@ -37,92 +39,92 @@ TEXT = 5
 EOF = 6
 
 class State:
-    ID = ""
-    data = ""
-    title = ""
-    chapter = 0
-    verse = 0
-    reference = ""
-    lastRef = ""
-    lastEntity = None
-    neednext = ID
-    priority = ID
-    usfm_file = None
-    missing_chapters = []
+    def __init__(self):
+        self.ID = ""
+        self.data = ""
+        self.title = ""
+        self.chapter = 0
+        self.verse = 0
+        self.reference = ""
+        self.lastRef = ""
+        self.lastEntity = None
+        self.neednext = ID
+        self.priority = ID
+        self.usfm_file = None
+        self.missing_chapters = []
 
     # Resets state data for a new book
     def addID(self, id):
-        global target_dir
-        State.ID = id
-        State.data = ""
-        State.title = ""
-        State.chapter = 0
-        State.verse = 0
-        State.missing_chapters = []
-        State.lastRef = State.reference + "0"
-        State.lastEntity = ID
-        State.neednext = {TITLE}
-        State.priority = TITLE
-        State.usfm_file = io.open(makeUsfmPath(id), "tw", encoding='utf-8', newline='\n')
+        self.ID = id
+        self.data = ""
+        self.title = ""
+        self.chapter = 0
+        self.verse = 0
+        self.missing_chapters = []
+        self.lastRef = self.reference + "0"
+        self.lastEntity = ID
+        self.neednext = {TITLE}
+        self.priority = TITLE
+        self.usfm_file = io.open(makeUsfmPath(id), "tw", encoding='utf-8', newline='\n')
 
     def addTitle(self, title, lineno):
-        if len(State.data):
-            State.data += ' '
-        State.data += title
-        State.title += title
-        State.lastEntity = TITLE
-        State.neednext = {CHAPTER, TITLE}
+        if len(self.data):
+            self.data += ' '
+        self.data += title
+        self.title += title
+        self.lastEntity = TITLE
+        self.neednext = {CHAPTER, TITLE}
         if lineno > 7:
-            State.neednext = {CHAPTER}
-        State.priority = CHAPTER
+            self.neednext = {CHAPTER}
+        self.priority = CHAPTER
 
     def addChapter(self, nchap):
-        State.data = ""
-        State.chapter = nchap
-        State.verse = 0
-        State.lastRef = State.reference
-        State.reference = State.ID + " " + str(nchap) + ":"
-        State.lastEntity = CHAPTER
-        State.neednext = {VERSE}
-        State.priority = VERSE
+        self.data = ""
+        self.chapter = nchap
+        self.verse = 0
+        self.lastRef = self.reference
+        self.reference = self.ID + " " + str(nchap) + ":"
+        self.lastEntity = CHAPTER
+        self.neednext = {VERSE}
+        self.priority = VERSE
 
     def missingChapter(self, nchap):
-        State.missing_chapters.append(nchap)
+        self.missing_chapters.append(nchap)
 
     # Adds the line of text as is without touching any other state
     # Supports texts where chapter labels or section headings are tagged: \cl or \s
     def addMarkedLine(self, text):
-        State.data += "\n" + text
+        self.data += "\n" + text
 
     def addVerse(self, vstr):
-        State.data = ""
-        State.verse = int(vstr)
-        State.lastRef = State.reference
-        State.reference = State.ID + " " + str(State.chapter) + ":" + vstr
-        State.lastEntity = VERSE
-        State.neednext = {TEXT}
-        State.priority = TEXT
+        self.data = ""
+        self.verse = int(vstr)
+        self.lastRef = self.reference
+        self.reference = self.ID + " " + str(self.chapter) + ":" + vstr
+        self.lastEntity = VERSE
+        self.neednext = {TEXT}
+        self.priority = TEXT
 
     def addText(self, text):
-        if len(State.data) > 0:
-            State.data += ' '
+        if len(self.data) > 0:
+            self.data += ' '
         text = text.lstrip(". ")   # lose period after preceding verse number
-        State.data += text.strip()  # lose other leading and trailing white space
-        if State.lastEntity != TEXT:
-            State.neednext = {VERSE, CHAPTER, TEXT}
-            State.priority = whatsNext(State.ID, State.chapter, State.verse)
-            State.lastEntity = VERSE
+        self.data += text.strip()  # lose other leading and trailing white space
+        if self.lastEntity != TEXT:
+            self.neednext = {VERSE, CHAPTER, TEXT}
+            self.priority = whatsNext(self.ID, self.chapter, self.verse)
+            self.lastEntity = VERSE
 
     # Called when the end of file is reached
     def addEOF(self):
-        State.usfm_file.close()
-        State.lastRef = State.reference
-        State.lastEntity = EOF
-        State.neednext = {ID}
-        State.priority = ID
-        if State.chapter == 0:
-            State.title = ""
-            State.lastref = State.ID + " 0"
+        self.usfm_file.close()
+        self.lastRef = self.reference
+        self.lastEntity = EOF
+        self.neednext = {ID}
+        self.priority = ID
+        if self.chapter == 0:
+            self.title = ""
+            self.lastref = self.ID + " 0"
 
 # Determines whether a verse or a chapter is expected next.
 # Based on the current book, chapter and verse as specified by the arguments.
@@ -141,8 +143,7 @@ vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
 # cstr is the entire chapter label, often just the chapter number.
 def takeChapter(cstr, nchap):
-    state = State()
-    if State.lastEntity == TITLE:
+    if state.lastEntity == TITLE:
         writeHeader(state.usfm_file, state.ID, state.data)
     elif state.data:
         state.usfm_file.write(re.sub(" +", " ", state.data) + "\n")
@@ -155,7 +156,6 @@ vrange_re = re.compile(r'([0-9])+-([0-9]+)')
 
 # vstr contains only the verse number, or a verse number range
 def takeVerse(vstr):
-    state = State()
     if state.data:
         state.usfm_file.write(re.sub(" +", " ", state.data) + "\n")
     if state.verse == 0:
@@ -168,7 +168,6 @@ def takeVerse(vstr):
         state.addVerse(vstr)
 
 def takeLine(line, lineno):
-    state = State()
     if line.startswith(r'\c '):
         cstr = line[3:]
         takeChapter(cstr, int(cstr))
@@ -180,7 +179,6 @@ def takeLine(line, lineno):
 # Handles the next bit of text, which may be a line or part of a line.
 # Uses recursion to handle complex lines.
 def take(s, lineno):
-    state = State()
     if state.priority == EOF:
         state.priority = TEXT
     if state.priority == TITLE:
@@ -293,11 +291,33 @@ def isolateNumbers(s):
 
 # Writes error message to stderr and to issues.txt.
 def reportError(msg):
-    try:
-        sys.stderr.write(msg + "\n")
-    except UnicodeEncodeError as e:
-        sys.stderr.write(State().reference + ": (Unicode...)\n")
+    reportToGui('<<ScriptMessage>>', msg)
+    write(msg, sys.stderr)
     openIssuesFile().write(msg + "\n")
+
+# Sends a progress message to the GUI, and to stdout.
+def reportProgress(msg):
+    reportToGui('<<ScriptProgress>>', msg)
+    write(msg, sys.stdout)
+
+# Sends a status message to the GUI, and to stdout.
+def reportStatus(msg):
+    reportToGui('<<ScriptMessage>>', msg)
+    write(msg, sys.stdout)
+
+def reportToGui(event, msg):
+    if gui:
+        with gui.progress_lock:
+            gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
+        gui.event_generate(event, when="tail")
+
+# This little function streams the specified message and handles UnicodeEncodeError
+# exceptions, which are common in Indian language texts. 2/5/24.
+def write(msg, stream):
+    try:
+        stream.write(msg + "\n")
+    except UnicodeEncodeError as e:
+        stream.write(state.reference + ": (Unicode...)\n")
 
 # If issues.txt file is not already open, opens it for writing.
 # First renames existing issues.txt file to issues-oldest.txt unless
@@ -306,16 +326,13 @@ def reportError(msg):
 def openIssuesFile():
     global issues_file
     if not issues_file:
-        global source_dir
-        path = os.path.join(source_dir, "issues.txt")
+        path = os.path.join(config['source_dir'], "issues.txt")
         if os.path.exists(path):
-            bakpath = os.path.join(source_dir, "issues-oldest.txt")
+            bakpath = os.path.join(config['source_dir'], "issues-oldest.txt")
             if not os.path.exists(bakpath):
                 os.rename(path, bakpath)
         issues_file = io.open(path, "tw", buffering=2048, encoding='utf-8', newline='\n')
     return issues_file
-
-# idfield_re = re.compile(r'\\id ([\w][\w][\w])', re.UNICODE)
 
 # Parses the book id from the file name.
 # Return upper case bookId, or empty string on failure.
@@ -356,15 +373,15 @@ def dumpProjects(path):
     manifest.close()
 
 def shortname(longpath):
-    shortname = longpath
-    if source_dir in longpath:
-        shortname = longpath[len(source_dir)+1:]
-    return shortname
+    source_dir = Path(config['source_dir'])
+    shortname = Path(longpath)
+    if shortname.is_relative_to(source_dir):
+        shortname = shortname.relative_to(source_dir)
+    return str(shortname)
 
 # Generates name for usfm file
 def makeUsfmPath(bookId):
-    global target_dir
-    return os.path.join(target_dir, makeUsfmFilename(bookId))
+    return os.path.join(config['target_dir'], makeUsfmFilename(bookId))
 
     # Generates name for usfm file
 def makeUsfmFilename(bookId):
@@ -382,9 +399,8 @@ def writeHeader(usfmfile, bookId, bookTitle):
 # This method is called to convert the specified file to usfm.
 # Returns the book title.
 def convertBook(path, bookId):
-    sys.stdout.write("Converting: " + shortname(path) + "\n")
+    reportProgress(f"Converting: {shortname(path)}...")
     sys.stdout.flush()
-    state = State()
     state.addID(bookId)
 
     with io.open(path, "tr", 1, encoding='utf-8-sig') as input:
@@ -419,12 +435,16 @@ def convertFolder(folder):
                 elif not title:
                     reportError("Invalid file: " + shortname(path))
 
-# Processes each directory and its files one at a time
-if __name__ == "__main__":
-    config = configreader.get_config(sys.argv, 'plaintext2usfm')
+def main(app = None):
+    global gui
+    gui = app
+    global config
+    config = configmanager.ToolsConfigManager().get_section('Plaintext2Usfm')
     if config:
+        global state
+        state = State()
         source_dir = config['source_dir']
-        file = config['file']
+        file = config['filename']
         target_dir = config['target_dir']
         Path(target_dir).mkdir(exist_ok=True)
 
@@ -443,4 +463,11 @@ if __name__ == "__main__":
             if projects:
                 dumpProjects( os.path.join(target_dir, "projects.yaml") )
 
-        print("\nDone.")
+    reportStatus("\nDone.")
+    sys.stdout.flush()
+    if gui:
+        gui.event_generate('<<ScriptEnd>>', when="tail")
+
+# Processes each directory and its files one at a time
+if __name__ == "__main__":
+    main()

@@ -46,7 +46,7 @@ class Select_Frame(ttk.Frame):
                                       command=self._onRbChange, value='Plaintext2Usfm')
         process3_rb.grid(row=6, column=1, sticky=W)
         process3_Tip = Hovertip(process3_rb, hover_delay=500,
-             text="Convert plain text file containing books of the Bible to usfm files.")
+             text="Convert plain text filed containing books of the Bible to usfm files.")
 
         process4_rb = ttk.Radiobutton(self, text='Convert USFM to USX', variable=self.process,
                                       command=self._onRbChange, value='Usfm2Usx')
@@ -81,7 +81,6 @@ class Select_Frame(ttk.Frame):
     def _save_values(self):
         self.values['selection'] = self.process.get()
         self.controller.mainapp.save_values(stepname, self.values)
-        # self._set_button_status()
 
     # Handles the radio button click event.
     def _onRbChange(self, *args):
@@ -108,7 +107,19 @@ The resulting USFM file(s) need to be verified and probably cleaned up a bit.")
             case 'VerifyUSFM':
                 self.message_area.insert('end', "Find and address issues in USFM files.")
             case 'Plaintext2Usfm':
-                self.message_area.insert('end', "This process is not supported yet.")
+                self.message_area.insert('end',
+"This process converts text files containing books of the Bible to usfm.\n\
+The text files must meet these rigid conditions:\n\
+  * Each file contains a single book of the Bible.\n\
+  * No extraneous text in file.\n\
+  * File names must be like XXX.txt (where XXX = book id).\n\
+  * UTF-8 encoding is required.\n\
+  * The first line of each file contains the book title.\n\
+  * No other characters on first line.\n\
+  * Chapter and verse numbers in Arabic numerals (0-9).\n\n\
+The process creates one USFM file per book, with \
+standardized names, like 41-MAT.usfm and 42-MRK.usfm. \
+The resulting USFM file(s) need to be verified and probably cleaned up a bit.")
             case 'Usfm2Usx':
                 self.message_area.insert('end',
 "This process produces .usx and auxiliary files from USFM source text. \
@@ -121,5 +132,5 @@ The input file(s) should be verified, correct USFM. Therefore, the first step of
         self.message_area['state'] = DISABLED   # prevents editing of message area
 
     def _set_button_status(self):
-        okay = self.process.get() in {'Txt2USFM', 'VerifyUSFM', 'Usfm2Usx'}
-        self.controller.enablebutton(5, okay)
+        # okay = self.process.get() in {'Txt2USFM', 'VerifyUSFM', 'Plaintext2Usfm', 'Usfm2Usx'}
+        self.controller.enablebutton(5, True)

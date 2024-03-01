@@ -63,7 +63,9 @@ class ToolsConfigManager:
                     'removeS5markers': True,
                     'sentence_sensitive': True }
             case 'Plaintext2Usfm':
-                sec = {}
+                sec = {'source_dir': "",
+                       'filename': "",
+                       'target_dir': ""}
             case 'RenameParatextFiles':
                 sec = {}
             case 'RevertChanges':
