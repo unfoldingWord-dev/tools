@@ -3,7 +3,7 @@
 # The input file(s) should be verified, correct USFM.
 
 # Global variables
-source_dir = r"C:\DCS\Hausa\ha_ulb.work"
+source_dir = r"C:\DCS\Indonesian\id_ayt.TA"
 
 issuesFile = None
 countsFile = None
@@ -59,8 +59,7 @@ def reportError(msg):
     try:
         sys.stderr.write(msg + "\n")
     except UnicodeEncodeError as e:
-        state = State()
-        sys.stderr.write(state.reference + ": (Unicode...)\n")
+        sys.stderr.write("(Unicode...)\n")
     issues = openIssuesFile()
     issues.write(msg + "\n")
 
