@@ -6,6 +6,7 @@
 # Global variables
 source_dir = r'C:\DCS\Portuguese\pt-br_ulb'
 usfmVersion = 2     # if version 3.0 or greater, tolerates unknown tokens and verse fragments
+state = None
 
 import os
 import sys
@@ -19,36 +20,37 @@ if usfmVersion >= 3.0:
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
 class State:
-    IDs = []
-    ID = ""
-    chapter = 0
-    verse = 0
-    reference = ""
-    footnoteRefs = list()
+    def __init__(self):
+        self.IDs = []
+        self.ID = ""
+        self.chapter = 0
+        self.verse = 0
+        self.reference = ""
+        self.footnoteRefs = list()
     
     # Resets state data for a new book
     def addID(self, id):
-        State.IDs.append(id)
-        State.ID = id
-        State.chapter = 0
-        State.verse = 0
-        State.reference = id
+        self.IDs.append(id)
+        self.ID = id
+        self.chapter = 0
+        self.verse = 0
+        self.reference = id
         
     def getIDs(self):
-        return State.IDs
+        return self.IDs
         
     def addChapter(self, c):
-        State.chapter = int(c)
-        State.verse = 0
-        State.reference = State.ID + " " + c
+        self.chapter = int(c)
+        self.verse = 0
+        self.reference = self.ID + " " + c
     
     def addVerse(self, v):
-        State.verse = int(v)
-        State.reference = State.ID + " " + str(State.chapter) + ":" + v
+        self.verse = int(v)
+        self.reference = self.ID + " " + str(self.chapter) + ":" + v
 
     # Adds the current reference to the list of footnote references
     def addFootnote(self):
-        if self.reference not in State.footnoteRefs:
+        if self.reference not in self.footnoteRefs:
             self.footnoteRefs.append(self.reference)
     
     # Returns list of footnote references as a json string
@@ -65,7 +67,6 @@ def shortname(longpath):
     return shortname
 
 def takeID(id):
-    state = State()
     if len(id) < 3:
         reportError("Invalid ID: " + id)
     id = id[0:3].upper()
@@ -74,13 +75,11 @@ def takeID(id):
     state.addID(id)
     
 def takeC(c):
-    state = State()
     state.addChapter(c)
 
 # Receives a string containing a verse number or range of verse numbers.
 # Reports errors related to the verse number(s), such as missing or duplicated verses.
 def takeV(vstr):
-    state = State()
     vlist = []
     if vstr.find('-') > 0:
         vv_range = vv_re.search(vstr)
@@ -91,7 +90,7 @@ def takeV(vstr):
                 vlist.append(vn)
                 vn += 1
         else:
-            reportError("Problem in verse range near " + State.reference)
+            reportError("Problem in verse range near " + state.reference)
     else:
         vlist.append(int(vstr))
 
@@ -104,7 +103,6 @@ def reportError(msg):
     try:
         sys.stderr.write(msg + "\n")
     except UnicodeEncodeError as e:
-        state = State()
         sys.stderr.write(state.reference + ": (Unicode...)\n")
  
 # Returns true if token is a countable part of a footnote
@@ -115,7 +113,6 @@ def isFootnote(token):
 def take(token):
     global usfmVersion
 
-    state = State()
     if isFootnote(token):
         state.addFootnote()
     if token.isID():
@@ -140,7 +137,6 @@ def processFile(path):
     sys.stdout.flush()
     for token in parseUsfm.parseString(str):
         take(token)
-    state = State()
     state.addID("")
     sys.stderr.flush()
 
@@ -157,7 +153,6 @@ def processDir(dirpath):
 
 # Writes list of footnote references to a file.
 def dumpFootnoteReferences():
-    state = State()
     refs = state.getFootnoteReferences()
     if refs:
         path = os.path.join(source_dir, "footnotedVerses.json")
@@ -166,7 +161,9 @@ def dumpFootnoteReferences():
         footnoteFile.close()
     sys.stdout.write("Found " + str(state.countFootnotes()) + " footnotes.\n")
 
-if __name__ == "__main__":
+def main():
+    global state
+    state = State()
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         source_dir = sys.argv[1]
     
@@ -180,3 +177,6 @@ if __name__ == "__main__":
         reportError("File not found: " + source_dir)
     
     dumpFootnoteReferences()
+
+if __name__ == "__main__":
+    main()

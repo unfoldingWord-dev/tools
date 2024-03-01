@@ -10,8 +10,9 @@ import sys
 import os
 
 # Global variables
-source_dir = r'C:\DCS\Nepali\GST'   # folder containing usfm files to be converted
-target_dir = r'C:\DCS\Nepali\work'
+source_dir = r'C:\DCS\Persian\pes_opcb22'   # folder containing usfm files to be converted
+target_dir = r'C:\DCS\Persian\work'
+state = None
 projects = []
 contributors = []
 checkers = []
@@ -24,111 +25,112 @@ import operator
 import json
 
 class State:
-    ID = ""
-    identification = ""
-    rem = ""
-    h = ""
-    toc1 = ""
-    toc2 = ""
-    toc3 = ""
-    mt = ""
-    title = ""         # updates to the best non-ascii title if any, or best ascii title
-    postHeader = ""
-    prevkey = ""
-    key = ""
-    reference = ""
-    usfmFile = 0
+    def __init__(self):
+        self.ID = ""
+        self.identification = ""
+        self.rem = ""
+        self.h = ""
+        self.toc1 = ""
+        self.toc2 = ""
+        self.toc3 = ""
+        self.mt = ""
+        self.title = ""   # updates to the best non-ascii title if any, or best ascii title
+        self.postHeader = ""
+        self.prevkey = ""
+        self.key = ""
+        self.reference = ""
+        self.usfmFile = 0
 
     def addTOC1(self, toc):
-        State.toc1 = toc
-        State.title = toc
+        self.toc1 = toc
+        self.title = toc
 
     def addH(self, h):
-        State.h = h
-        if not State.toc1:
-            State.title = h
+        self.h = h
+        if not self.toc1:
+            self.title = h
 
     def addMT(self, mt):
-        if not State.mt:
-            State.mt = mt
-            if not State.toc1 and not State.h:
-                State.title = mt
+        if not self.mt:
+            self.mt = mt
+            if not self.toc1 and not self.h:
+                self.title = mt
 
     # \mt1 overrides \mt on input
     # On output, there is only \mt1
     def addMT1(self, mt1):
-        State.mt = mt1
-        if not State.toc1 and not State.h:
-            State.title = mt1
+        self.mt = mt1
+        if not self.toc1 and not self.h:
+            self.title = mt1
 
     def addTOC2(self, toc):
-        State.toc2 = toc
-        if not State.toc1 and not State.h and not State.mt:
-            State.title = toc
+        self.toc2 = toc
+        if not self.toc1 and not self.h and not self.mt:
+            self.title = toc
 
     def addTOC3(self, toc):
-        State.toc3 = toc
+        self.toc3 = toc
 
     def addPostHeader(self, key, value):
         if key:
-            State.postHeader += "\n\\" + key + " "
+            self.postHeader += "\n\\" + key + " "
         else:
-            State.postHeader = ""
+            self.postHeader = ""
         if value:
-            State.postHeader += value
-        State.key = key
+            self.postHeader += value
+        self.key = key
 
     def addKey(self, key):
-        State.prevkey = State.key
-        State.key = key
+        self.prevkey = self.key
+        self.key = key
 
     def addID(self, id):
-        State.identification = id
+        self.identification = id
         if len(id) >= 3:
-            State.ID = id[0:3].upper()
-        if not projectExists(State.ID):
-            State.chapter = 0
-            State.verse = 0
-            State.reference = id
-            State.title = getDefaultName(State.ID)
+            self.ID = id[0:3].upper()
+        if not projectExists(self.ID):
+            self.chapter = 0
+            self.verse = 0
+            self.reference = id
+            self.title = getDefaultName(self.ID)
             # Open output USFM file for writing.
-            usfmPath = os.path.join(target_dir, makeUsfmFilename(State.ID))
-            State.usfmFile = io.open(usfmPath, "tw", buffering=1, encoding='utf-8', newline='\n')
+            usfmPath = os.path.join(target_dir, makeUsfmFilename(self.ID))
+            self.usfmFile = io.open(usfmPath, "tw", buffering=1, encoding='utf-8', newline='\n')
         else:
-            raise RuntimeError("Duplicate USFM file for: " + State.ID)
+            raise RuntimeError("Duplicate USFM file for: " + self.ID)
 
     # Finds the best values for h, toc1, toc2, and mt1.
     # Prefers non-ascii values for all fields.
-    # Sets these values in the State
+    # Sets these values in the State.
     def optimizeTitles(self):
-        if State.title.isascii() and not State.mt.isascii():
-            State.title = State.mt
-        elif State.title.isascii() and not State.toc1.isascii():
-            State.title = State.toc1
-        elif State.title.isascii() and not State.h.isascii():
-            State.title = State.h
-        elif State.title.isascii() and not State.toc2.isascii():
-            State.title = State.toc2
+        if self.title.isascii() and not self.mt.isascii():
+            self.title = self.mt
+        elif self.title.isascii() and not self.toc1.isascii():
+            self.title = self.toc1
+        elif self.title.isascii() and not self.h.isascii():
+            self.title = self.h
+        elif self.title.isascii() and not self.toc2.isascii():
+            self.title = self.toc2          
 
-        if State.h == "" or (State.h.isascii() and not State.title.isascii()):
-            State.h = State.title
-        if State.toc1 == "" or (State.toc1.isascii() and not State.title.isascii()):
-            State.toc1 = State.title
-        if State.toc2 == "" or (State.toc2.isascii() and not State.title.isascii()):
-            State.toc2 = State.title
-        if State.mt == "" or (State.mt.isascii() and not State.title.isascii()):
-            State.mt = State.title
+        if self.h == "" or (self.h.isascii() and not self.title.isascii()):
+            self.h = self.title
+        if self.toc1 == "" or (self.toc1.isascii() and not self.title.isascii()):
+            self.toc1 = self.title
+        if self.toc2 == "" or (self.toc2.isascii() and not self.title.isascii()):
+            state.toc2 = state.title
+        if state.mt == "" or (state.mt.isascii() and not state.title.isascii()):
+            state.mt = state.title
 
     def reset(self):
-        State.ID = ""
-        State.rem = ""
-        State.h = ""
-        State.toc1 = ""
-        State.toc2 = ""
-        State.toc3 = ""
-        State.mt = ""
-        State.postHeader = ""
-        State.reference = ""
+        state.ID = ""
+        state.rem = ""
+        state.h = ""
+        state.toc1 = ""
+        state.toc2 = ""
+        state.toc3 = ""
+        state.mt = ""
+        state.postHeader = ""
+        state.reference = ""
 
 # class DuplicateBook(Exception):
 #     def __init__(self, value):
@@ -188,14 +190,12 @@ def getDefaultName(id):
     return en_name
 
 def takeAsIs(key, value):
-    state = State()
     state.addPostHeader(key, value)
     # sys.stdout.write(u"addPostHeader(" + key + u", " + str(len(value)) + u")\n")
 
 # Treats the token as the book title if no \mt has been encountered yet.
 # Calls takeAsIs() otherwise.
 def takeMTX(key, value):
-    state = State()
     if not state.mt:
         state.addMT(value)
     else:
@@ -207,7 +207,6 @@ token_re = re.compile(r'\\([^\t ]+)[\t ](.*)', re.UNICODE)
 def take(line):
     token = token_re.match(line)
     if token:
-        state = State()
         marker = token.group(1)
         value = token.group(2)
 
@@ -243,13 +242,11 @@ bodytoken_re = re.compile(r'\\([^\t \n]+)', re.UNICODE)
 def takeBody(line):
     token = bodytoken_re.match(line)
     if token:
-        state = State()
         marker = token.group(1)
         state.addKey(marker)
 
 # Writes a corrected USFM header to the new USFM file, then writes the body.
 def writeUsfm(body):
-    state = State()
     state.optimizeTitles()
     # sys.stdout.write(u"Starting to write header.\n")
     state.usfmFile.write("\\id " + state.identification)
@@ -283,7 +280,6 @@ def writeUsfm(body):
 
 # Makes minor corrections to specified usfm file and copies to properly named usfm file at target_dir.
 def convertFile(usfmpath, fname):
-    state = State()
     state.reset()
 
     print("CONVERTING " + fname + ":")
@@ -310,7 +306,6 @@ def convertFile(usfmpath, fname):
 # Appends information about the current book to the global projects list.
 def appendToProjects():
     global projects
-    state = State()
 
     sort = usfm_verses.verseCounts[state.ID]["sort"]
     testament = 'nt'
@@ -386,7 +381,9 @@ def printError(text):
     sys.stderr.write(text + '\n')
 
 # Processes each directory and its files one at a time
-if __name__ == "__main__":
+def main():
+    global state
+    state = State()
     if os.path.isfile( makeProjectsPath() ):
         os.remove( makeProjectsPath() )
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
@@ -397,3 +394,6 @@ if __name__ == "__main__":
     sys.stderr.flush()
 
     print("\nDone.")
+
+if __name__ == "__main__":
+    main()

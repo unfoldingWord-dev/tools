@@ -14,6 +14,7 @@
 # source_dir = r'C:\DCS\Persian\pes_opcb'
 config = None
 gui = None
+state = None
 nConverted = 0
 # rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
 
@@ -45,95 +46,96 @@ lastToken = parseUsfm.UsfmToken(None)
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
 class State:
-    ID = ""
-    title = ""
-    chapter = 0
-    chapterPad = "00"
-    verse = 0
-    lastVerse = 0
-    versePad = "00"
-    needingVerseText = False
-    pendingVerse = 0
-    sectionPending = ""
-    reference = ""
-    lastRef = ""
-    en_content_dir = ""
-    en_chapter_dir = ""
-    target_content_dir = ""
-    target_chapter_dir = ""
-    usxOutput = None
+    def __init__(self):
+        self.ID = ""
+        self.title = ""
+        self.chapter = 0
+        self.chapterPad = "00"
+        self.verse = 0
+        self.lastVerse = 0
+        self.versePad = "00"
+        self.needingVerseText = False
+        self.pendingVerse = 0
+        self.sectionPending = ""
+        self.reference = ""
+        self.lastRef = ""
+        self.en_content_dir = ""
+        self.en_chapter_dir = ""
+        self.target_content_dir = ""
+        self.target_chapter_dir = ""
+        self.usxOutput = None
 
     def addID(self, id):
-        State.ID = id
-        State.title = ""
-        State.chapter = 0
-        State.lastVerse = 0
-        State.verse = 0
-        State.needingVerseText = False
-        State.lastRef = State.reference
-        State.reference = id
+        self.ID = id
+        self.title = ""
+        self.chapter = 0
+        self.lastVerse = 0
+        self.verse = 0
+        self.needingVerseText = False
+        self.lastRef = self.reference
+        self.reference = id
         rc_dir = config['rc_dir']
-        State.en_content_dir = os.path.join( os.path.join(rc_dir, "en_" + id.lower() + "_ulb"), "content")
-        State.target_content_dir = os.path.join( os.path.join(rc_dir, config['language_code'] + "_" + id.lower() + "_" + config['bible_id']), "content")
+        self.en_content_dir = os.path.join( os.path.join(rc_dir, "en_" + id.lower() + "_ulb"), "content")
+        self.target_content_dir = os.path.join( os.path.join(rc_dir, config['language_code'] + "_" + id.lower() + "_" + config['bible_id']), "content")
 
     def addTitle(self, bookTitle, mt):
-        if not State.title:
-            State.title = bookTitle
-        if State.title.isascii() and not bookTitle.isascii():
-            State.title = bookTitle
-        if mt and State.title.isascii() == bookTitle.isascii(): # \mt is highest priority title, everything else being equal
-            State.title = bookTitle
+        if not self.title:
+            self.title = bookTitle
+        if self.title.isascii() and not bookTitle.isascii():
+            self.title = bookTitle
+        if mt and self.title.isascii() == bookTitle.isascii(): # \mt is highest priority title, everything else being equal
+            self.title = bookTitle
 
     def addChapter(self, c):
-        State.lastChapter = State.chapter
-        State.chapter = int(c)
+        self.lastChapter = self.chapter
+        self.chapter = int(c)
         if len(c) == 1:
-            State.chapterPad = "0" + c
+            self.chapterPad = "0" + c
         else:
-            State.chapterPad = c
-        State.lastVerse = 0
-        State.verse = 0
-        State.versePad = ""
-        State.needingVerseText = False
-        State.lastRef = State.reference
-        State.reference = State.ID + " " + c
-        State.en_chapter_dir = os.path.join(State.en_content_dir, State.chapterPad)
-        State.target_chapter_dir = os.path.join(State.target_content_dir, State.chapterPad)
+            self.chapterPad = c
+        self.lastVerse = 0
+        self.verse = 0
+        self.versePad = ""
+        self.needingVerseText = False
+        self.lastRef = self.reference
+        self.reference = self.ID + " " + c
+        self.en_chapter_dir = os.path.join(self.en_content_dir, self.chapterPad)
+        self.target_chapter_dir = os.path.join(self.target_content_dir, self.chapterPad)
 
     def addText(self):
-        State.needingVerseText = False
+        self.needingVerseText = False
 
     # Reports if vv is a range of verses, e.g. 3-4. Passes the verse(s) on to addVerse()
     def addVerses(self, vv):
         if vv.find('-') > 0:
-            reportError("Range of verses encountered at " + State.reference)
+            reportError("Range of verses encountered at " + self.reference)
             vv_range = vv_re.search(vv)
             self.addVerse(vv_range.group(1))
             self.addVerse(vv_range.group(2))
         else:
             self.addVerse(vv)
 
-    # Sets State.versePad for file naming purposes.
-    # Updates State.reference
+    # Sets self.versePad for file naming purposes.
+    # Updates self.reference
     def addVerse(self, v):
-        State.lastVerse = State.verse
-        State.verse = int(v)
+        self.lastVerse = self.verse
+        self.verse = int(v)
         if len(v) == 1:
-            State.versePad = "0" + v
+            self.versePad = "0" + v
         else:
-            State.versePad = v
-        State.needingVerseText = True
-        State.lastRef = State.reference
-        State.reference = State.ID + " " + str(State.chapter) + ":" + v
+            self.versePad = v
+        self.needingVerseText = True
+        self.lastRef = self.reference
+        self.reference = self.ID + " " + str(self.chapter) + ":" + v
 
     def setUsxOutput(self, file):
-        State.usxOutput = file
+        self.usxOutput = file
 
     def needVerseText(self):
-        return State.needingVerseText
+        return self.needingVerseText
 
     def saveSection(self, s):
-        State.sectionPending = s
+        self.sectionPending = s
 
 # def printToken(token):
 #     if token.isV():
@@ -163,14 +165,12 @@ def removeBOM(path):
             f.write(raw)
 
 def takeID(id):
-    state = State()
     state.addID(id[0:3])
 
 # When a chapter marker is encountered in the USFM file, we close the current .usx files
 # and change the target chapter folder.
 # We also write a default title.usx for the chapter.
 def takeC(c):
-    state = State()
     closeUsx()
     state.addChapter(c)
     makeChapterDir(state.chapterPad)
@@ -182,23 +182,22 @@ def takeCL(value):
     createChapterTitleFile(value)
 
 def takeF(value):
-    State().usxOutput.write('<note style="f" caller="+"> ')
+    state.usxOutput.write('<note style="f" caller="+"> ')
 
 def takeFTFQA(type, value):
-    State().usxOutput.write(f'<char style="{type}">\n{value} </char>\n')
+    state.usxOutput.write(f'<char style="{type}">\n{value} </char>\n')
 
 def takeFE():
-    State().usxOutput.write('</note>\n')
+    state.usxOutput.write('</note>\n')
 
 # Currently this function does nothing, as paragraphs are not relevant to tStudio/BTTW (confirmed 3/29/22).
 def takeP(type):
-    state = State()
+    pass
     # state.usxOutput.write('<para style="' + type + '">\n\n')
 
 # Writes the section heading immediately if at the beginning of a chapter.
 # Saves the section heading if it occurs after the first verse in a chapter.
 def takeS(s):
-    state = State()
     if state.verse == 0:    # section heading is at the start of the chapter
         state.usxOutput.write(s)
     else:
@@ -207,7 +206,6 @@ def takeS(s):
 # When a verse marker is encountered in the USFM file, we open a new usx file if needed.
 # We write the <verse> element into the usx file.
 def takeV(v):
-    state = State()
     state.addVerses(v)
     if not state.usxOutput:
         path = os.path.join(state.target_chapter_dir, state.versePad + ".usx")
@@ -216,7 +214,6 @@ def takeV(v):
 
 # Writes the specified text to the current usx file.
 def takeText(t):
-    state = State()
     if state.verse > 0:
         if state.usxOutput:
             state.usxOutput.write(t + "\n\n")
@@ -226,7 +223,6 @@ def takeText(t):
 
 # Handles each usfm token as the usfm files is parsed.
 def take(token):
-    state = State()
     if state.needVerseText() and not token.isTEXT():
         reportError("Empty verse: " + state.reference)
     if token.isID():
@@ -264,7 +260,6 @@ def take(token):
 # Called when a \s5 chunk marker occurs, and at the end of every chapter.
 # Closes the current usx file.
 def closeUsx():
-    state = State()
     if state.usxOutput:
         state.usxOutput.close()
         state.setUsxOutput(None)
@@ -300,7 +295,7 @@ def makeTargetDirs(target_book_dir):
 
 # Creates a chapter folder under the target content directory.
 def makeChapterDir(chap):
-    dir = os.path.join(State().target_content_dir, chap)
+    dir = os.path.join(state.target_content_dir, chap)
     if not os.path.isdir(dir):
         os.mkdir(dir)
 
@@ -330,7 +325,6 @@ def createManifest(en_book_dir, target_book_dir):
     package['language']['slug'] = config['language_code']
     package['language']['name'] = config['language_name']
     package['language']['direction'] = config['direction']
-    state = State()
     package['project']['slug'] = state.ID.lower()
     package['project']['name'] = state.title
     package['project']['sort'] = usfm_verses.verseCounts[state.ID.upper()]['sort']
@@ -354,14 +348,12 @@ def createManifest(en_book_dir, target_book_dir):
 
 # Creates or overwrites chapter title file.
 def createChapterTitleFile(title):
-    state = State()
     path = os.path.join(state.target_chapter_dir, "title.usx")
     with io.open(path, "tw", encoding="utf-8", newline='\n') as usxOutput:
         usxOutput.write( title )
 
 # Adds front folder with title.usx, if the book title is known.
 def createBookTitleFile():
-    state = State()
     frontFolder = os.path.join(state.target_content_dir, 'front')
     if not os.path.isdir(frontFolder):
         os.mkdir(frontFolder)
@@ -396,7 +388,6 @@ def convertFile(usfmpath, bookId):
         for token in parseUsfm.parseString(str):
             take(token)
         closeUsx()
-        state = State()
         copy(os.path.join(en_book_dir, 'LICENSE.md'), target_book_dir)
         createManifest(en_book_dir, target_book_dir)
         copy(os.path.join(en_content_dir, 'config.yml'), state.target_content_dir)    # copy() is from shutil
@@ -436,8 +427,10 @@ def main(app = None):
     global nConverted
     global gui
     global config
+    global state
     nConverted = 0
     gui = app
+    state = State()
     config = configmanager.ToolsConfigManager().get_section('Usfm2Usx')   # configmanager version
     if config:
         source_dir = config['source_dir']
